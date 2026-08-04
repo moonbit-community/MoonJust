@@ -527,6 +527,8 @@ Rust 上游的 source offset 基于 UTF-8 byte。MoonBit `String` 的索引模�
 
 Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是拖延，而是消除会导致全项目返工的 source offset、runtime 和依赖假设。
 
+执行状态：Phase 0 已于 2026-08-04 完成。逐项证据、确定性 CI 故障及修复、已冻结决策和后续限制见 [`PHASE_0_REPORT.md`](PHASE_0_REPORT.md)。
+
 ### Phase 1：Source、诊断和平台值模型
 
 | PR | 内容 | 交付物 | 出口条件 |
@@ -1008,7 +1010,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. 只有以上门禁通过后，开始 PR-020 Lexer 普通模式。
+10. 只有以上门禁通过后，开始 PR-010 Source/Span；其门禁通过后再进入 PR-020 Lexer 普通模式。
 
 ## 20. 参考资料与可复核来源
 
