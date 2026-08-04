@@ -37,6 +37,9 @@ jobs:
       - name: Check formatting
         run: moon fmt --check
 
+      - name: Verify architecture boundaries
+        run: ./tools/check_architecture.sh
+
       - name: Verify compatibility snapshot
         run: ./tools/upstream/verify_snapshot.sh
 

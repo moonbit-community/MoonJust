@@ -28,7 +28,8 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
 - 模块名：`moonbit-community/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
 - 当前首选目标：`wasm`。
-- Phase 0 已建立 `cmd/just` smoke、Native/wasm1 测试、兼容快照、差分 harness 和隔离的生态尖峰；尚未实现 justfile 执行。
+- Phase 0 已建立 `cmd/just` smoke、Native/wasm1 测试、兼容快照、差分 harness 和隔离的生态尖峰。
+- Phase 1 已实现 Source/Span、诊断 IR、双 flavor PathModel、Host 契约/FakeHost 和 CLI 错误/退出契约；尚未实现 justfile lexer、parser 或执行。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -539,6 +540,8 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-013 | Host contract 和 fake | capability interfaces、memory fs、fake env/clock/random/process | 核心 package 无目标 FFI；fake 可复现错误 |
 | PR-014 | CLI error/exit contract | ApplicationRequest、错误分类、退出码映射 | 用法/编译/执行/能力错误端到端测试 |
 
+执行状态：Phase 1 已于 2026-08-04 完成实现。逐项测试、公开 API、架构门禁、兼容清单和后续限制见 [`PHASE_1_REPORT.md`](PHASE_1_REPORT.md)。
+
 ### Phase 2：Lexer
 
 | PR | 内容 | 交付物 | 出口条件 |
@@ -999,7 +1002,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 | completion | 永久排除首发范围；不生成脚本 | PR-000 |
 | cache format | MoonJust 自有、版本化，不假定与上游共享 | PR-091/ADR-008 |
 
-## 19. 动工后的前 10 个工作日
+## 19. 动工顺序检查清单
 
 1. 冻结 PR-000 计划基线，建立责任范围和风险跟踪台账。
 2. 建立 PR-001 的规范仓库/CI，但不写 parser 或 executor。
@@ -1010,7 +1013,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. 只有以上门禁通过后，开始 PR-010 Source/Span；其门禁通过后再进入 PR-020 Lexer 普通模式。
+10. 以上门禁和 Phase 1 契约均已通过；下一实施单元为 PR-020 Lexer 普通模式。
 
 ## 20. 参考资料与可复核来源
 
