@@ -79,7 +79,7 @@ fn Lexer::lex_line_start(self : Lexer) -> Unit raise LexerError {
   }
   let whitespace = self.slice(start, whitespace_end)
 
-  if !self.delimiters.is_empty() {
+  if !self.delimiters.is_empty() || !self.interpolations.is_empty() {
     self.consume_leading(whitespace_end - start, Whitespace)
     return
   }

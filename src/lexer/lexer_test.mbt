@@ -299,3 +299,128 @@ test "mixed and inconsistent leading whitespace are typed" {
     _ => fail("expected inconsistent leading whitespace")
   }
 }
+
+///|
+test "recipe bodies preserve text, prefixes, blank lines, and brace escapes" {
+  let input = source(
+    "build: dependency\n  @echo first\n  -echo {{{{literal\n\nnext:\n\techo tab",
+  )
+  let stream = @lexer.lex(input)
+  assert_eq(kinds(stream), [
+    @lexer.Identifier,
+    @lexer.Colon,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Indent,
+    @lexer.Text,
+    @lexer.Eol,
+    @lexer.Whitespace,
+    @lexer.Text,
+    @lexer.Eol,
+    @lexer.Dedent,
+    @lexer.Eol,
+    @lexer.Identifier,
+    @lexer.Colon,
+    @lexer.Eol,
+    @lexer.Indent,
+    @lexer.Text,
+    @lexer.Dedent,
+    @lexer.Eof,
+  ])
+  assert_eq(stream.tokens()[6].lexeme(input), "@echo first")
+  assert_eq(stream.tokens()[9].lexeme(input), "-echo {{{{literal")
+  assert_eq(stream.tokens()[17].lexeme(input), "echo tab")
+}
+
+///|
+test "recipe interpolation switches between text and normal token modes" {
+  let input = source("hello:\n echo {{`echo hello` + (name)}} tail {{}}")
+  let stream = @lexer.lex(input)
+  assert_eq(kinds(stream), [
+    @lexer.Identifier,
+    @lexer.Colon,
+    @lexer.Eol,
+    @lexer.Indent,
+    @lexer.Text,
+    @lexer.InterpolationStart,
+    @lexer.Backtick,
+    @lexer.Whitespace,
+    @lexer.Plus,
+    @lexer.Whitespace,
+    @lexer.ParenL,
+    @lexer.Identifier,
+    @lexer.ParenR,
+    @lexer.InterpolationEnd,
+    @lexer.Text,
+    @lexer.InterpolationStart,
+    @lexer.InterpolationEnd,
+    @lexer.Dedent,
+    @lexer.Eof,
+  ])
+  assert_eq(stream.tokens()[4].lexeme(input), "echo ")
+  assert_eq(stream.tokens()[14].lexeme(input), " tail ")
+}
+
+///|
+test "format strings emit start, continue, and end segments" {
+  let input = source(
+    "f'' f'{{foo}}bar{{baz}}' f '{{plain}}' g'{{plain}}' f'''{{'x'}}'''",
+  )
+  let stream = @lexer.lex(input)
+  assert_eq(kinds(stream), [
+    @lexer.Identifier,
+    @lexer.StringToken,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.FormatStringStart,
+    @lexer.Identifier,
+    @lexer.FormatStringContinue,
+    @lexer.Identifier,
+    @lexer.FormatStringEnd,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.Whitespace,
+    @lexer.StringToken,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.StringToken,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.FormatStringStart,
+    @lexer.StringToken,
+    @lexer.FormatStringEnd,
+    @lexer.Eof,
+  ])
+  assert_eq(stream.tokens()[4].lexeme(input), "'{{")
+  assert_eq(stream.tokens()[6].lexeme(input), "}}bar{{")
+  assert_eq(stream.tokens()[8].lexeme(input), "}}'")
+  assert_eq(stream.tokens()[18].lexeme(input), "'''{{")
+  assert_eq(stream.tokens()[20].lexeme(input), "}}'''")
+}
+
+///|
+test "unterminated and nested interpolation errors retain opening spans" {
+  let unterminated = source("foo:\n echo {{ value")
+  try @lexer.lex(unterminated) catch {
+    @lexer.UnterminatedInterpolation(span~) => {
+      assert_eq(span.start_byte(), 11)
+      assert_eq(span.length(), 2)
+    }
+    error => fail("unexpected error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unterminated interpolation")
+  }
+  let mismatched = source("foo:\n echo {{ value(}}")
+  try @lexer.lex(mismatched) catch {
+    @lexer.MismatchedClosingDelimiter(
+      open=@lexer.Paren,
+      close=@lexer.Brace,
+      span~,
+      ..
+    ) => assert_true(span.is_empty())
+    error => fail("unexpected error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected nested delimiter mismatch")
+  }
+}

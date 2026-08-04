@@ -4,6 +4,7 @@ pub(all) enum DelimiterKind {
   Brace
   Bracket
   Paren
+  FormatString
 } derive(Eq, Debug)
 
 ///|
@@ -88,6 +89,7 @@ fn delimiter_text(delimiter : DelimiterKind) -> String {
     Brace => "brace"
     Bracket => "bracket"
     Paren => "parenthesis"
+    FormatString => "format string"
   }
 }
 

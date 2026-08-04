@@ -39,6 +39,7 @@ pub(all) enum DelimiterKind {
   Brace
   Bracket
   Paren
+  FormatString
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Keyword {

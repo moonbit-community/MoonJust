@@ -2,6 +2,7 @@
 priv struct DelimiterFrame {
   kind : DelimiterKind
   line : Int
+  format : StringKind?
 }
 
 ///|
@@ -13,6 +14,7 @@ priv struct Lexer {
   mut column : Int
   tokens : Array[Token]
   delimiters : Array[DelimiterFrame]
+  interpolations : Array[@source.Span]
   indentation : Array[String]
   mut recipe_body : Bool
   mut recipe_body_pending : Bool
@@ -28,6 +30,7 @@ fn Lexer::new(source : @source.Source) -> Lexer {
     column: 0,
     tokens: [],
     delimiters: [],
+    interpolations: [],
     indentation: [""],
     recipe_body: false,
     recipe_body_pending: false,
@@ -164,7 +167,11 @@ fn token_for_close(byte : Byte) -> TokenKind {
 ///|
 fn Lexer::lex_open(self : Lexer, start : Int) -> Unit {
   let byte = self.peek(0)
-  self.delimiters.push({ kind: delimiter_for_open(byte), line: self.line })
+  self.delimiters.push({
+    kind: delimiter_for_open(byte),
+    line: self.line,
+    format: None,
+  })
   self.take()
   self.emit(token_for_open(byte), start)
 }
@@ -253,7 +260,14 @@ fn Lexer::lex_eol(self : Lexer, start : Int) -> Unit raise LexerError {
     }
   }
   self.take()
-  self.emit(if self.delimiters.is_empty() { Eol } else { Whitespace }, start)
+  self.emit(
+    if self.delimiters.is_empty() && self.interpolations.is_empty() {
+      Eol
+    } else {
+      Whitespace
+    },
+    start,
+  )
 }
 
 ///|
@@ -285,6 +299,9 @@ fn Lexer::lex_normal(self : Lexer) -> Unit raise LexerError {
       b'#' => self.lex_comment(start)
       b'\n' | b'\r' => self.lex_eol(start)
       b'{' | b'[' | b'(' => self.lex_open(start)
+      b'}' if self.has(1) &&
+        self.peek(1) == b'}' &&
+        self.top_format_kind() is Some(_) => self.lex_format_resume(start)
       b'}' | b']' | b')' => self.lex_close(start)
       b'&' => self.lex_digraph(start, b'&', AmpersandAmpersand)
       b'|' => self.lex_digraph(start, b'|', BarBar)
@@ -384,7 +401,17 @@ fn Lexer::run(self : Lexer) -> TokenStream raise LexerError {
         break
       }
     }
-    self.lex_normal()
+    if !self.interpolations.is_empty() {
+      self.lex_interpolation()
+    } else if self.recipe_body {
+      self.lex_body()
+    } else {
+      self.lex_normal()
+    }
+  }
+  match self.interpolations.last() {
+    Some(span) => raise UnterminatedInterpolation(span~)
+    None => ()
   }
   while self.indentation.length() > 1 {
     self.emit_dedent()

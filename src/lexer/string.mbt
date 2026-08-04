@@ -7,6 +7,30 @@ priv struct StringKind {
 }
 
 ///|
+fn Lexer::previous_token_is_format_prefix(self : Lexer) -> Bool {
+  match self.tokens.last() {
+    Some(token) if token.kind() == Identifier =>
+      (try! token.lexeme(self.source)) == "f"
+    _ => false
+  }
+}
+
+///|
+fn Lexer::top_format_kind(self : Lexer) -> StringKind? {
+  match self.delimiters.last() {
+    Some(frame) => frame.format
+    None => None
+  }
+}
+
+///|
+fn Lexer::consume_count(self : Lexer, count : Int) -> Unit {
+  for index = 0; index < count; index = index + 1 {
+    self.take()
+  }
+}
+
+///|
 fn Lexer::starts_with_byte(self : Lexer, byte : Byte, count : Int) -> Bool {
   if self.offset + count > self.bytes.length() {
     return false
@@ -44,20 +68,27 @@ fn Lexer::take_scalar(self : Lexer) -> Unit {
 }
 
 ///|
-fn Lexer::lex_string(self : Lexer, start : Int) -> Unit raise LexerError {
-  let kind = self.string_kind()
-  self.offset += kind.delimiter_length
-  self.column += kind.delimiter_length
+fn Lexer::lex_string_segment(
+  self : Lexer,
+  start : Int,
+  kind : StringKind,
+  format : Bool,
+  resumed : Bool,
+) -> Unit raise LexerError {
+  self.consume_count(if resumed { 2 } else { kind.delimiter_length })
   let mut escaped = false
   while self.has(0) {
-    if !escaped && self.starts_with_byte(kind.delimiter, kind.delimiter_length) {
-      self.offset += kind.delimiter_length
-      self.column += kind.delimiter_length
-      self.emit(if kind.backtick { Backtick } else { StringToken }, start)
-      return
-    }
     let byte = self.peek(0)
-    if kind.cooked && !escaped && byte == b'\\' {
+    if format && self.starts_with_byte(b'{', 4) {
+      escaped = false
+      self.consume_count(4)
+    } else if !escaped &&
+      (
+        self.starts_with_byte(kind.delimiter, kind.delimiter_length) ||
+        (format && self.starts_with_byte(b'{', 2))
+      ) {
+      break
+    } else if kind.cooked && !escaped && byte == b'\\' {
       escaped = true
       self.take()
     } else {
@@ -67,10 +98,54 @@ fn Lexer::lex_string(self : Lexer, start : Int) -> Unit raise LexerError {
       self.take_scalar()
     }
   }
-  let span = self.span(start, start + kind.delimiter_length)
-  if kind.backtick {
-    raise UnterminatedBacktick(span~)
+  if !self.has(0) {
+    let highlight = if resumed { 2 } else { kind.delimiter_length }
+    let span = self.span(start, start + highlight)
+    if kind.backtick {
+      raise UnterminatedBacktick(span~)
+    } else {
+      raise UnterminatedString(span~)
+    }
+  }
+  if format && self.starts_with_byte(b'{', 2) {
+    self.consume_count(2)
+    self.emit(
+      if resumed {
+        FormatStringContinue
+      } else {
+        FormatStringStart
+      },
+      start,
+    )
+    if !resumed {
+      self.delimiters.push({
+        kind: FormatString,
+        line: self.line,
+        format: Some(kind),
+      })
+    }
   } else {
-    raise UnterminatedString(span~)
+    self.consume_count(kind.delimiter_length)
+    if resumed {
+      self.delimiters.pop() |> ignore
+      self.emit(FormatStringEnd, start)
+    } else {
+      self.emit(if kind.backtick { Backtick } else { StringToken }, start)
+    }
+  }
+}
+
+///|
+fn Lexer::lex_string(self : Lexer, start : Int) -> Unit raise LexerError {
+  let kind = self.string_kind()
+  let format = !kind.backtick && self.previous_token_is_format_prefix()
+  self.lex_string_segment(start, kind, format, false)
+}
+
+///|
+fn Lexer::lex_format_resume(self : Lexer, start : Int) -> Unit raise LexerError {
+  match self.top_format_kind() {
+    Some(kind) => self.lex_string_segment(start, kind, true, true)
+    None => ()
   }
 }
