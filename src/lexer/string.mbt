@@ -118,6 +118,7 @@ fn Lexer::lex_string_segment(
       start,
     )
     if !resumed {
+      self.ensure_nesting(self.span(start, self.offset))
       self.delimiters.push({
         kind: FormatString,
         line: self.line,

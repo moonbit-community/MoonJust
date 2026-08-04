@@ -80,6 +80,6 @@ the facade. Every public change is reviewed through generated
 CI enforces all-target type checking, Native/wasm tests, generated interface
 stability, and `tools/check_architecture.sh`. The architecture check rejects
 target-specific FFI, conditional compilation, async implementation, and host
-adapter imports in Phase 1 core packages. Its package inventory expands when a
-new pure-core phase begins. Compatibility manifests are verified alongside the
-pinned upstream inventory.
+adapter imports in the completed pure-core packages, including the Phase 2
+lexer. Its package inventory expands when a new pure-core phase begins.
+Compatibility manifests are verified alongside the pinned upstream inventory.

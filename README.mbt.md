@@ -5,7 +5,7 @@ MoonJust is a MoonBit implementation of the
 behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
 backends.
 
-> Status: Phase 1 complete; Phase 2 lexer work is next. MoonJust cannot
+> Status: Phase 2 lexer complete; Phase 3 parser work is next. MoonJust cannot
 > execute justfiles yet.
 
 ## Compatibility scope
@@ -19,10 +19,10 @@ backends.
   arbitrary WASI runtimes.
 
 The complete scope, architecture, PR sequence, quality gates, and release
-criteria are defined in [the project plan](docs/PROJECT_PLAN.md). Phase 1 exit
+criteria are defined in [the project plan](docs/PROJECT_PLAN.md). Phase 2 exit
 evidence and known limitations are recorded in
-[the current completion report](docs/PHASE_1_REPORT.md); the
-[Phase 0 report](docs/PHASE_0_REPORT.md) remains available for provenance.
+[the current completion report](docs/PHASE_2_REPORT.md); the
+[Phase 1 report](docs/PHASE_1_REPORT.md) remains available for provenance.
 
 ## Development
 

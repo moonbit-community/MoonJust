@@ -10,7 +10,13 @@ import {
 // Values
 pub fn lex(@source.Source) -> TokenStream raise LexerError
 
+pub fn lex_with_limits(@source.Source, LexerLimits) -> TokenStream raise LexerError
+
 // Errors
+pub(all) suberror LexerConfigurationError {
+  InvalidLexerLimit(name~ : String, value~ : Int)
+} derive(Eq, @debug.Debug)
+
 pub(all) suberror LexerError {
   UnknownStartOfToken(start~ : String, span~ : @source.Span)
   UnexpectedEndOfToken(expected~ : String, span~ : @source.Span)
@@ -88,6 +94,17 @@ pub(all) enum Keyword {
 } derive(Compare, Eq, Hash, @debug.Debug)
 pub fn Keyword::from_lexeme(String) -> Self?
 pub fn Keyword::lexeme(Self) -> String
+
+pub struct LexerLimits {
+  max_source_bytes : Int
+  max_tokens : Int
+  max_nesting : Int
+} derive(Eq, @debug.Debug)
+pub fn LexerLimits::default() -> Self
+pub fn LexerLimits::max_nesting(Self) -> Int
+pub fn LexerLimits::max_source_bytes(Self) -> Int
+pub fn LexerLimits::max_tokens(Self) -> Int
+pub fn LexerLimits::new(Int, Int, Int) -> Self raise LexerConfigurationError
 
 pub struct Token {
   kind : TokenKind

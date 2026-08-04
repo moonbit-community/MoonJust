@@ -17,5 +17,6 @@ Future copied or adapted fixtures must append a row:
 
 | MoonJust path | Upstream path | Modification | Compatibility ID |
 | --- | --- | --- | --- |
+| `src/lexer/upstream_lexer_test.mbt` | `src/lexer.rs` (`lexer::tests`) | Adapted key token/error cases to byte-span MoonBit black-box tests; omitted Rust-internal `presume_error` | `MJ-LEX-ORACLE-1.57.0` |
 
 No upstream implementation source has been copied into MoonJust during Phase 0.

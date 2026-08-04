@@ -141,6 +141,7 @@ fn Lexer::lex_line_start(self : Lexer) -> Unit raise LexerError {
       span=self.span(start, whitespace_end),
     )
   } else {
+    self.ensure_nesting(self.span(start, whitespace_end))
     self.consume_leading(whitespace.length(), Indent)
     self.indentation.push(whitespace)
     self.recipe_body = self.recipe_body_pending

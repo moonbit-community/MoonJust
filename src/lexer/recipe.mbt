@@ -21,9 +21,11 @@ fn Lexer::lex_body(self : Lexer) -> Unit raise LexerError {
   if self.offset > start {
     self.emit(Text, start)
   } else if self.starts_with_pair(b'{', b'{') {
+    let opening_span = self.span(start, start + 2)
+    self.ensure_nesting(opening_span)
     self.consume_count(2)
     self.emit(InterpolationStart, start)
-    self.interpolations.push(self.tokens[self.tokens.length() - 1].span())
+    self.interpolations.push(opening_span)
   } else if self.has(0) {
     self.lex_eol(start)
   }

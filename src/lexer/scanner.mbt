@@ -18,10 +18,12 @@ priv struct Lexer {
   indentation : Array[String]
   mut recipe_body : Bool
   mut recipe_body_pending : Bool
+  limits : LexerLimits
+  mut limit_error : LexerError?
 }
 
 ///|
-fn Lexer::new(source : @source.Source) -> Lexer {
+fn Lexer::new(source : @source.Source, limits : LexerLimits) -> Lexer {
   {
     source,
     bytes: source.bytes(),
@@ -34,6 +36,8 @@ fn Lexer::new(source : @source.Source) -> Lexer {
     indentation: [""],
     recipe_body: false,
     recipe_body_pending: false,
+    limits,
+    limit_error: None,
   }
 }
 
@@ -44,12 +48,49 @@ fn Lexer::span(self : Lexer, start : Int, end : Int) -> @source.Span {
 
 ///|
 fn Lexer::emit(self : Lexer, kind : TokenKind, start : Int) -> Unit {
-  self.tokens.push(Token::new(kind, self.span(start, self.offset)))
+  if self.tokens.length() >= self.limits.max_tokens() {
+    if self.limit_error is None {
+      self.limit_error = Some(
+        TokenLimitExceeded(
+          limit=self.limits.max_tokens(),
+          span=self.span(start, self.offset),
+        ),
+      )
+    }
+  } else {
+    self.tokens.push(Token::new(kind, self.span(start, self.offset)))
+  }
 }
 
 ///|
 fn Lexer::emit_empty(self : Lexer, kind : TokenKind) -> Unit {
-  self.tokens.push(Token::new(kind, self.span(self.offset, self.offset)))
+  self.emit(kind, self.offset)
+}
+
+///|
+fn Lexer::raise_limit_error(self : Lexer) -> Unit raise LexerError {
+  match self.limit_error {
+    Some(error) => raise error
+    None => ()
+  }
+}
+
+///|
+fn Lexer::nesting_depth(self : Lexer) -> Int {
+  self.delimiters.length() +
+  self.interpolations.length() +
+  self.indentation.length() -
+  1
+}
+
+///|
+fn Lexer::ensure_nesting(
+  self : Lexer,
+  span : @source.Span,
+) -> Unit raise LexerError {
+  if self.nesting_depth() >= self.limits.max_nesting() {
+    raise NestingLimitExceeded(limit=self.limits.max_nesting(), span~)
+  }
 }
 
 ///|
@@ -165,8 +206,9 @@ fn token_for_close(byte : Byte) -> TokenKind {
 }
 
 ///|
-fn Lexer::lex_open(self : Lexer, start : Int) -> Unit {
+fn Lexer::lex_open(self : Lexer, start : Int) -> Unit raise LexerError {
   let byte = self.peek(0)
+  self.ensure_nesting(self.span(start, start + 1))
   self.delimiters.push({
     kind: delimiter_for_open(byte),
     line: self.line,
@@ -235,14 +277,14 @@ fn Lexer::lex_escape(self : Lexer, start : Int) -> Unit raise LexerError {
   } else if self.peek(0) == b'\r' {
     self.take()
     if !self.has(0) || self.peek(0) != b'\n' {
-      raise UnpairedCarriageReturn(span=self.span(self.offset - 1, self.offset))
+      raise UnpairedCarriageReturn(span=self.span(start, self.offset))
     }
     self.take()
   } else {
     let width = utf8_scalar_width(self.peek(0))
     raise InvalidEscapeSequence(
       character=self.slice(self.offset, self.offset + width),
-      span=self.span(self.offset, self.offset + width),
+      span=self.span(start, self.offset),
     )
   }
   while self.has(0) && (self.peek(0) == b' ' || self.peek(0) == b'\t') {
@@ -397,6 +439,7 @@ fn Lexer::run(self : Lexer) -> TokenStream raise LexerError {
   while self.offset < self.bytes.length() {
     if self.column == 0 {
       self.lex_line_start()
+      self.raise_limit_error()
       if self.offset >= self.bytes.length() {
         break
       }
@@ -408,6 +451,7 @@ fn Lexer::run(self : Lexer) -> TokenStream raise LexerError {
     } else {
       self.lex_normal()
     }
+    self.raise_limit_error()
   }
   match self.interpolations.last() {
     Some(span) => raise UnterminatedInterpolation(span~)
@@ -417,11 +461,28 @@ fn Lexer::run(self : Lexer) -> TokenStream raise LexerError {
     self.emit_dedent()
   }
   self.emit_empty(Eof)
+  self.raise_limit_error()
   { source_id: self.source.id(), tokens: self.tokens }
 }
 
 ///|
 /// Lex a validated UTF-8 source using the default compatibility behavior.
 pub fn lex(source : @source.Source) -> TokenStream raise LexerError {
-  Lexer::new(source).run()
+  lex_with_limits(source, LexerLimits::default())
+}
+
+///|
+/// Lex a source with caller-supplied resource budgets.
+pub fn lex_with_limits(
+  source : @source.Source,
+  limits : LexerLimits,
+) -> TokenStream raise LexerError {
+  if source.length() > limits.max_source_bytes() {
+    raise SourceLimitExceeded(
+      length=source.length(),
+      limit=limits.max_source_bytes(),
+      span=source.full_span(),
+    )
+  }
+  Lexer::new(source, limits).run()
 }

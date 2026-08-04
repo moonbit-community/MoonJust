@@ -7,6 +7,8 @@ expected_options=50
 expected_commands=19
 expected_builtins=83
 expected_phase_one_contracts=5
+expected_phase_two_contracts=5
+expected_lexer_registrations=93
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
@@ -57,5 +59,35 @@ native_phase_one_contracts=$(grep -c '^native = "pass"$' "$phase_one_manifest")
 wasm_phase_one_contracts=$(grep -c '^wasm1 = "pass"$' "$phase_one_manifest")
 [ "$wasm_phase_one_contracts" = "$expected_phase_one_contracts" ] || \
   fail "expected all Phase 1 contracts to pass wasm1"
+
+actual_lexer_registrations=$(grep -c '^lexer::tests::' "$test_list")
+[ "$actual_lexer_registrations" = "$expected_lexer_registrations" ] || \
+  fail "expected $expected_lexer_registrations lexer tests, found $actual_lexer_registrations"
+
+phase_two_manifest="$repo_root/compat/phase-2.toml"
+actual_phase_two_contracts=$(grep -c '^\[\[contract\]\]$' "$phase_two_manifest")
+[ "$actual_phase_two_contracts" = "$expected_phase_two_contracts" ] || \
+  fail "expected $expected_phase_two_contracts Phase 2 contracts, found $actual_phase_two_contracts"
+
+implemented_phase_two_contracts=$(grep -c '^status = "implemented"$' "$phase_two_manifest")
+[ "$implemented_phase_two_contracts" = "$expected_phase_two_contracts" ] || \
+  fail "expected all Phase 2 contracts to be implemented"
+
+native_phase_two_contracts=$(grep -c '^native = "pass"$' "$phase_two_manifest")
+[ "$native_phase_two_contracts" = "$expected_phase_two_contracts" ] || \
+  fail "expected all Phase 2 contracts to pass Native"
+
+wasm_phase_two_contracts=$(grep -c '^wasm1 = "pass"$' "$phase_two_manifest")
+[ "$wasm_phase_two_contracts" = "$expected_phase_two_contracts" ] || \
+  fail "expected all Phase 2 contracts to pass wasm1"
+
+grep -q '^registrations = 93$' "$phase_two_manifest" || \
+  fail "Phase 2 manifest does not freeze 93 lexer registrations"
+grep -q '^random_inputs = 100000$' "$phase_two_manifest" || \
+  fail "Phase 2 manifest does not require 100000 hardening inputs"
+grep -q '^adapted_success_cases = 16$' "$phase_two_manifest" || \
+  fail "Phase 2 manifest success oracle count changed"
+grep -q '^adapted_error_cases = 5$' "$phase_two_manifest" || \
+  fail "Phase 2 manifest error oracle count changed"
 
 echo "compatibility snapshot verified"
