@@ -36,6 +36,9 @@ fn Lexer::take_scalar(self : Lexer) -> Unit {
   let byte = self.peek(0)
   if byte == b'\n' {
     self.line += 1
+    self.column = 0
+  } else {
+    self.column += utf8_scalar_width(byte)
   }
   self.offset += utf8_scalar_width(byte)
 }
@@ -44,10 +47,12 @@ fn Lexer::take_scalar(self : Lexer) -> Unit {
 fn Lexer::lex_string(self : Lexer, start : Int) -> Unit raise LexerError {
   let kind = self.string_kind()
   self.offset += kind.delimiter_length
+  self.column += kind.delimiter_length
   let mut escaped = false
   while self.has(0) {
     if !escaped && self.starts_with_byte(kind.delimiter, kind.delimiter_length) {
       self.offset += kind.delimiter_length
+      self.column += kind.delimiter_length
       self.emit(if kind.backtick { Backtick } else { StringToken }, start)
       return
     }

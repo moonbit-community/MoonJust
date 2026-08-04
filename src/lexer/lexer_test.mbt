@@ -209,3 +209,93 @@ test "unterminated strings highlight only their opening delimiter" {
     _ => fail("expected unterminated backtick")
   }
 }
+
+///|
+test "nested indentation emits source-backed indents and synthetic dedents" {
+  let input = source("a\n  b\n    c\n  d\n")
+  let stream = @lexer.lex(input)
+  assert_eq(kinds(stream), [
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Indent,
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Indent,
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Dedent,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Dedent,
+    @lexer.Eof,
+  ])
+  let tokens = stream.tokens()
+  assert_eq(tokens[2].lexeme(input), "  ")
+  assert_eq(tokens[5].lexeme(input), "    ")
+  assert_true(tokens[8].span().is_empty())
+  assert_true(tokens[12].span().is_empty())
+}
+
+///|
+test "blank lines, CRLF, delimiters, and EOF preserve indentation behavior" {
+  let input = source("a\r\n  b\r\n\t\t\r\n  c\r\n\r\nd")
+  let stream = @lexer.lex(input)
+  assert_eq(kinds(stream), [
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Indent,
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Whitespace,
+    @lexer.Eol,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Dedent,
+    @lexer.Eol,
+    @lexer.Identifier,
+    @lexer.Eof,
+  ])
+  let delimited = source("[\n  value\n]")
+  assert_eq(kinds(@lexer.lex(delimited)), [
+    @lexer.BracketL,
+    @lexer.Whitespace,
+    @lexer.Whitespace,
+    @lexer.Identifier,
+    @lexer.Whitespace,
+    @lexer.BracketR,
+    @lexer.Eof,
+  ])
+  let eof = source("a\n  b")
+  assert_eq(kinds(@lexer.lex(eof)), [
+    @lexer.Identifier,
+    @lexer.Eol,
+    @lexer.Indent,
+    @lexer.Identifier,
+    @lexer.Dedent,
+    @lexer.Eof,
+  ])
+}
+
+///|
+test "mixed and inconsistent leading whitespace are typed" {
+  let mixed = source("a\n \tb")
+  try @lexer.lex(mixed) catch {
+    @lexer.MixedLeadingWhitespace(whitespace=" \t", span~) => {
+      assert_eq(span.start_byte(), 2)
+      assert_eq(span.length(), 2)
+    }
+    error => fail("unexpected error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected mixed leading whitespace")
+  }
+  let inconsistent = source("a\n foo\n   bar\n  baz")
+  try @lexer.lex(inconsistent) catch {
+    @lexer.InconsistentLeadingWhitespace(expected="   ", found="  ", span~) =>
+      assert_eq(span.start_byte(), 14)
+    error => fail("unexpected error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected inconsistent leading whitespace")
+  }
+}

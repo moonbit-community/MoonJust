@@ -10,8 +10,12 @@ priv struct Lexer {
   bytes : BytesView
   mut offset : Int
   mut line : Int
+  mut column : Int
   tokens : Array[Token]
   delimiters : Array[DelimiterFrame]
+  indentation : Array[String]
+  mut recipe_body : Bool
+  mut recipe_body_pending : Bool
 }
 
 ///|
@@ -21,8 +25,12 @@ fn Lexer::new(source : @source.Source) -> Lexer {
     bytes: source.bytes(),
     offset: 0,
     line: 1,
+    column: 0,
     tokens: [],
     delimiters: [],
+    indentation: [""],
+    recipe_body: false,
+    recipe_body_pending: false,
   }
 }
 
@@ -53,6 +61,12 @@ fn Lexer::peek(self : Lexer, distance : Int) -> Byte {
 
 ///|
 fn Lexer::take(self : Lexer) -> Unit {
+  if self.peek(0) == b'\n' {
+    self.line += 1
+    self.column = 0
+  } else {
+    self.column += 1
+  }
   self.offset += 1
 }
 
@@ -211,14 +225,12 @@ fn Lexer::lex_escape(self : Lexer, start : Int) -> Unit raise LexerError {
   }
   if self.peek(0) == b'\n' {
     self.take()
-    self.line += 1
   } else if self.peek(0) == b'\r' {
     self.take()
     if !self.has(0) || self.peek(0) != b'\n' {
       raise UnpairedCarriageReturn(span=self.span(self.offset - 1, self.offset))
     }
     self.take()
-    self.line += 1
   } else {
     let width = utf8_scalar_width(self.peek(0))
     raise InvalidEscapeSequence(
@@ -241,7 +253,6 @@ fn Lexer::lex_eol(self : Lexer, start : Int) -> Unit raise LexerError {
     }
   }
   self.take()
-  self.line += 1
   self.emit(if self.delimiters.is_empty() { Eol } else { Whitespace }, start)
 }
 
@@ -312,6 +323,7 @@ fn Lexer::lex_normal(self : Lexer) -> Unit raise LexerError {
           self.emit(ColonColon, start)
         } else {
           self.emit(Colon, start)
+          self.recipe_body_pending = true
         }
       }
       b'\\' => self.lex_escape(start)
@@ -343,6 +355,7 @@ fn Lexer::lex_normal(self : Lexer) -> Unit raise LexerError {
       0xef =>
         if self.has(2) && self.peek(1) == 0xbb && self.peek(2) == 0xbf {
           self.offset += 3
+          self.column += 3
           self.emit(ByteOrderMark, start)
         } else {
           let width = utf8_scalar_width(byte)
@@ -365,7 +378,16 @@ fn Lexer::lex_normal(self : Lexer) -> Unit raise LexerError {
 ///|
 fn Lexer::run(self : Lexer) -> TokenStream raise LexerError {
   while self.offset < self.bytes.length() {
+    if self.column == 0 {
+      self.lex_line_start()
+      if self.offset >= self.bytes.length() {
+        break
+      }
+    }
     self.lex_normal()
+  }
+  while self.indentation.length() > 1 {
+    self.emit_dedent()
   }
   self.emit_empty(Eof)
   { source_id: self.source.id(), tokens: self.tokens }
