@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-phase_packages="source diagnostic path host cli"
+phase_packages="source diagnostic path host cli lexer"
 
 fail() {
   echo "architecture boundary error: $1" >&2
@@ -26,7 +26,7 @@ for package in $phase_packages; do
   done
 done
 
-pure_packages="source diagnostic path cli"
+pure_packages="source diagnostic path cli lexer"
 for package in $pure_packages; do
   if grep -nE 'src/host(_native|_wasm)?' "$repo_root/src/$package/moon.pkg"; then
     fail "src/$package imports a host package"
@@ -37,4 +37,4 @@ if grep -nE 'src/host_(native|wasm)' "$repo_root/src/host/moon.pkg"; then
   fail "host contracts import a concrete host adapter"
 fi
 
-echo "architecture boundaries verified for five Phase 1 packages"
+echo "architecture boundaries verified for six Phase 1-2 packages"

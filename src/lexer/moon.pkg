@@ -1,0 +1,4 @@
+import {
+  "moonbit-community/MoonJust/src/diagnostic",
+  "moonbit-community/MoonJust/src/source",
+}
