@@ -29,6 +29,11 @@ jobs:
       - name: Report toolchain
         run: moon version --all
 
+      - name: Refresh nested spike dependencies
+        run: |
+          moon -C spikes/host-async update
+          moon -C spikes/ecosystem update
+
       - name: Check formatting
         run: moon fmt --check
 
