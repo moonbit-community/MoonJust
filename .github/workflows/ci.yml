@@ -41,6 +41,9 @@ jobs:
       - name: Verify async Host capability spike
         run: ./tools/spikes/check_host_async.sh
 
+      - name: Verify parser ecosystem spike
+        run: ./tools/spikes/check_ecosystem.sh
+
       - name: Check all stable backends
         run: moon check --target all --warn-list +73
 

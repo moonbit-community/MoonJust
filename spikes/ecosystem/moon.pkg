@@ -1,0 +1,10 @@
+import {
+  "moonbit-community/cmark/cmark",
+  "moonbitlang/core/bench",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/regexp",
+}
+
+import {
+  "moonbitlang/x/time",
+} for "test"
