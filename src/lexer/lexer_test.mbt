@@ -155,3 +155,57 @@ test "delimiter and digraph failures preserve upstream error spans" {
     _ => fail("expected digraph error")
   }
 }
+
+///|
+test "raw, cooked, backtick, and triple strings match upstream boundaries" {
+  let input = source(
+    "'raw \\\\ value' \"cooked \\\" value\" `echo \\\\ ok` '''multi\nraw''' \"\"\"multi\n\\\"quoted\\\"\"\"\"",
+  )
+  let stream = @lexer.lex(input)
+  assert_eq(kinds(stream), [
+    @lexer.StringToken,
+    @lexer.Whitespace,
+    @lexer.StringToken,
+    @lexer.Whitespace,
+    @lexer.Backtick,
+    @lexer.Whitespace,
+    @lexer.StringToken,
+    @lexer.Whitespace,
+    @lexer.StringToken,
+    @lexer.Eof,
+  ])
+  assert_eq(lexemes(stream, input), [
+    "'raw \\\\ value'", " ", "\"cooked \\\" value\"", " ", "`echo \\\\ ok`", " ",
+    "'''multi\nraw'''", " ", "\"\"\"multi\n\\\"quoted\\\"\"\"\"", "",
+  ])
+}
+
+///|
+test "Unicode and parser-level escape errors remain one cooked token" {
+  let input = source("\"中🙂\\u{1F642}\\q\"")
+  let stream = @lexer.lex(input)
+  assert_eq(kinds(stream), [@lexer.StringToken, @lexer.Eof])
+  assert_eq(stream.tokens()[0].span().end_byte(), input.length())
+  assert_eq(stream.tokens()[0].lexeme(input), "\"中🙂\\u{1F642}\\q\"")
+}
+
+///|
+test "unterminated strings highlight only their opening delimiter" {
+  let cooked = source("name = \"unterminated")
+  try @lexer.lex(cooked) catch {
+    @lexer.UnterminatedString(span~) => {
+      assert_eq(span.start_byte(), 7)
+      assert_eq(span.length(), 1)
+    }
+    error => fail("unexpected error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unterminated string")
+  }
+  let backtick = source("```unterminated")
+  try @lexer.lex(backtick) catch {
+    @lexer.UnterminatedBacktick(span~) => assert_eq(span.length(), 3)
+    error => fail("unexpected error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unterminated backtick")
+  }
+}

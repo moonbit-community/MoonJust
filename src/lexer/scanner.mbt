@@ -315,6 +315,7 @@ fn Lexer::lex_normal(self : Lexer) -> Unit raise LexerError {
         }
       }
       b'\\' => self.lex_escape(start)
+      b'\'' | b'"' | b'`' => self.lex_string(start)
       b'*' => {
         self.take()
         self.emit(Asterisk, start)
