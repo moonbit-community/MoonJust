@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install MoonBit
+        uses: hustcer/setup-moonbit@v1.22
+        with:
+          version: 0.10.6+62c2592d1
+
+      - name: Report toolchain
+        run: moon version --all
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Check all stable backends
+        run: moon check --target all --warn-list +73
+
+      - name: Verify public interfaces
+        run: |
+          moon info
+          git diff --exit-code
+
+      - name: Test Native
+        run: moon test --target native
+
+      - name: Test wasm1
+        run: moon test --target wasm
+
+      - name: Smoke-test Native CLI
+        run: moon run --target native cmd/just -- --version
+
+      - name: Smoke-test wasm1 CLI
+        run: moon run --target wasm cmd/just -- --version
+
+  native-platforms:
+    name: Native smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install MoonBit
+        uses: hustcer/setup-moonbit@v1.22
+        with:
+          version: 0.10.6+62c2592d1
+
+      - name: Test Native
+        run: moon test --target native
+
+      - name: Smoke-test Native CLI
+        run: moon run --target native cmd/just -- --version

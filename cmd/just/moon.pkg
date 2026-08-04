@@ -1,0 +1,6 @@
+import {
+  "moonbit-community/MoonJust" @moonjust,
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")

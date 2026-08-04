@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust"
+
+// Values
+pub fn compatible_just_version() -> String
+
+pub fn version() -> String
+
+pub fn version_line() -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

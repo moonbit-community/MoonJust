@@ -1,0 +1,37 @@
+name: Compatibility difference
+description: Report a behavioral difference from the pinned upstream just release
+title: "[compat]: "
+labels:
+  - compat:B
+body:
+  - type: markdown
+    attributes:
+      value: Do not include secrets in justfiles, environment data, or output.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: MoonJust commit/version and upstream just version
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Target, OS, architecture, shell, and runtime
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      description: Minimal justfile, argv, cwd, and non-secret environment
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed difference
+      description: stdout, stderr, exit status, and filesystem/process side effects
+    validations:
+      required: true
