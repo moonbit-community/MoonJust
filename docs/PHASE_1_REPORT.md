@@ -1,10 +1,10 @@
 # Phase 1 completion report
 
-- Status: Implementation complete; remote integration pending
+- Status: Complete
 - Review date: 2026-08-04
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
-- Decision: Proceed to Phase 2 only after protected-branch CI succeeds
+- Decision: Proceed to Phase 2 (`Lexer`)
 
 ## Scope statement
 
@@ -38,7 +38,7 @@ for `just`.
 | Architecture boundary | `tools/check_architecture.sh` rejects target FFI, `#cfg`, async implementation, and host-adapter imports in Phase 1 core | Pass |
 | Public API review | Generated `.mbti` committed for all five packages; collection storage exposed only through read-only views | Pass |
 | Dependency containment | Root production module adds no third-party dependency | Pass |
-| Remote protected-branch CI | To be recorded before merge | Pending |
+| Remote protected-branch CI | PR #2 run `30909948047`: quality gate plus Linux, macOS, and Windows Native smoke succeeded; the evidence-only report update reran the same required checks before merge | Pass |
 
 The machine-readable result is `compat/phase-1.toml`. Its verifier asserts five
 implemented contracts and Native/wasm1 pass evidence, so documentation drift is
