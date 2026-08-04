@@ -1,0 +1,29 @@
+schema_version = 1
+
+[upstream]
+repository = "https://github.com/casey/just"
+tag = "1.57.0"
+commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
+release_date = "2026-07-19"
+license = "CC0-1.0"
+
+[test_inventory]
+command = "cargo test -- --list"
+registrations = 2417
+path = "tests/upstream/just-1.57.0/test-list.txt"
+sha256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
+
+[scope]
+native_tier_a = "required"
+wasm_moonrun_tier_w = "required"
+completion = "excluded"
+rust_library_api = "not-applicable"
+browser_execution = "excluded"
+arbitrary_wasi_execution = "excluded"
+
+[evidence]
+cli_options = "compat/cli-options.toml"
+builtins = "compat/builtins.toml"
+settings = "compat/settings.toml"
+attributes = "compat/attributes.toml"
+provenance = "tests/upstream/NOTICE.md"

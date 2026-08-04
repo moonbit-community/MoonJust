@@ -2,6 +2,7 @@
 set -eu
 
 moon fmt --check
+./tools/upstream/verify_snapshot.sh
 moon check --target all --warn-list +73
 moon test --target native
 moon test --target wasm

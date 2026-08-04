@@ -1,0 +1,43 @@
+schema_version = 1
+upstream = "just 1.57.0"
+status = "planned"
+tier = "A"
+names = [
+  "allow-duplicate-recipes",
+  "allow-duplicate-variables",
+  "default-list",
+  "default-script",
+  "dotenv-command",
+  "dotenv-filename",
+  "dotenv-load",
+  "dotenv-override",
+  "dotenv-path",
+  "dotenv-required",
+  "export",
+  "fallback",
+  "guards",
+  "ignore-comments",
+  "indentation",
+  "lazy",
+  "lists",
+  "minimum-version",
+  "no-cd",
+  "no-exit-message",
+  "positional-arguments",
+  "quiet",
+  "script-interpreter",
+  "shell",
+  "tempdir",
+  "unstable",
+  "windows-powershell",
+  "windows-shell",
+  "working-directory",
+]
+
+[[conflict]]
+left = "dotenv-command"
+right = ["dotenv-filename", "dotenv-load", "dotenv-path", "dotenv-required"]
+
+[[conflict]]
+left = "no-cd"
+right = ["working-directory"]

@@ -1,0 +1,378 @@
+schema_version = 1
+upstream = "just 1.57.0"
+
+# Status values: planned, implemented, excluded.
+# Tier values: A, B, W, X.
+
+[[option]]
+name = "--alias-style"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--allow-missing"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--ceiling"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--check"
+tier = "A"
+status = "planned"
+requires = ["--fmt"]
+
+[[option]]
+name = "--chooser"
+tier = "B"
+status = "planned"
+
+[[option]]
+name = "--clear-shell-args"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--color"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--command-color"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--complete-aliases"
+tier = "X"
+status = "excluded"
+reason = "Completion is outside project scope."
+
+[[option]]
+name = "--cygpath"
+tier = "B"
+status = "planned"
+
+[[option]]
+name = "--default-list"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--dotenv-command"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--dotenv-filename"
+short = "-F"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--dotenv-path"
+short = "-E"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--dry-run"
+short = "-n"
+tier = "A"
+status = "planned"
+conflicts = ["--quiet"]
+
+[[option]]
+name = "--dump-format"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--evaluate-format"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--explain"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--global-justfile"
+short = "-g"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--group"
+tier = "A"
+status = "planned"
+requires = ["--list"]
+
+[[option]]
+name = "--highlight"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--indentation"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--jobs"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--justfile"
+short = "-f"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--justfile-name"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--list-heading"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--list-prefix"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--list-submodules"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--no-aliases"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--no-cache"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--no-deps"
+aliases = ["--no-dependencies"]
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--no-dotenv"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--no-highlight"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--one"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--quiet"
+short = "-q"
+tier = "A"
+status = "planned"
+conflicts = ["--dry-run"]
+
+[[option]]
+name = "--set"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--shell"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--shell-arg"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--shell-command"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--tempdir"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--time"
+tier = "B"
+status = "planned"
+
+[[option]]
+name = "--timestamp"
+tier = "B"
+status = "planned"
+
+[[option]]
+name = "--timestamp-format"
+tier = "B"
+status = "planned"
+
+[[option]]
+name = "--unsorted"
+short = "-u"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--unstable"
+tier = "X"
+status = "planned"
+reason = "The flag is recognized; experimental features are classified separately."
+
+[[option]]
+name = "--verbose"
+short = "-v"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--working-directory"
+short = "-d"
+tier = "A"
+status = "planned"
+requires = ["--justfile"]
+
+[[option]]
+name = "--yes"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--help"
+short = "-h"
+tier = "A"
+status = "planned"
+
+[[option]]
+name = "--version"
+short = "-V"
+tier = "A"
+status = "implemented"
+
+[[command]]
+name = "--changelog"
+tier = "X"
+status = "excluded"
+
+[[command]]
+name = "--choose"
+tier = "B"
+status = "planned"
+
+[[command]]
+name = "--clean"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--command"
+short = "-c"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--completions"
+tier = "X"
+status = "excluded"
+reason = "Completion is outside project scope."
+
+[[command]]
+name = "--dump"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--edit"
+short = "-e"
+tier = "B"
+status = "planned"
+
+[[command]]
+name = "--evaluate"
+aliases = ["--eval"]
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--fmt"
+aliases = ["--format"]
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--groups"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--init"
+aliases = ["--initialize"]
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--json"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--list"
+short = "-l"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--man"
+tier = "X"
+status = "excluded"
+
+[[command]]
+name = "--request"
+tier = "X"
+status = "excluded"
+reason = "Upstream internal testing interface; not a public compatibility promise."
+
+[[command]]
+name = "--show"
+short = "-s"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--summary"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--usage"
+tier = "A"
+status = "planned"
+
+[[command]]
+name = "--variables"
+tier = "A"
+status = "planned"
