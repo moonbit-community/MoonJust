@@ -35,6 +35,9 @@ jobs:
       - name: Verify compatibility snapshot
         run: ./tools/upstream/verify_snapshot.sh
 
+      - name: Test differential harness
+        run: ./tools/differential/self_test.sh
+
       - name: Check all stable backends
         run: moon check --target all --warn-list +73
 

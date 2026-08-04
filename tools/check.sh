@@ -3,6 +3,7 @@ set -eu
 
 moon fmt --check
 ./tools/upstream/verify_snapshot.sh
+./tools/differential/self_test.sh
 moon check --target all --warn-list +73
 moon test --target native
 moon test --target wasm

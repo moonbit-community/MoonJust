@@ -1,0 +1,5 @@
+alpha:
+  echo alpha
+
+beta:
+  echo beta

@@ -1,0 +1,2 @@
+write:
+  printf done > result.txt

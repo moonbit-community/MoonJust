@@ -3,8 +3,8 @@ set -eu
 
 expected_commit=e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f
 expected_count=2417
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 output="$repo_root/tests/upstream/just-1.57.0/test-list.txt"
 temporary_root=
 
