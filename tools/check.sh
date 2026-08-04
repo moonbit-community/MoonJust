@@ -2,6 +2,7 @@
 set -eu
 
 moon fmt --check
+./tools/check_architecture.sh
 ./tools/upstream/verify_snapshot.sh
 ./tools/differential/self_test.sh
 ./tools/spikes/check_host_async.sh

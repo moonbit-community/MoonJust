@@ -1,0 +1,178 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/host"
+
+import {
+  "moonbit-community/MoonJust/src/path",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/set",
+}
+
+// Values
+
+// Errors
+pub(all) suberror HostError {
+  CapabilityDenied(HostCapability)
+  CapabilityUnavailable(HostCapability)
+  NotFound(@path.PathValue)
+  AlreadyExists(@path.PathValue)
+  PermissionDenied(HostCapability, detail~ : String)
+  InvalidInput(String)
+  UnexpectedProcess(CommandSpec)
+  ProcessMismatch(expected~ : CommandSpec, actual~ : CommandSpec)
+  RandomExhausted(requested~ : Int, remaining~ : Int)
+} derive(Eq, @debug.Debug)
+
+// Types and methods
+pub struct CommandSpec {
+  program : String
+  arguments : Array[String]
+  mut cwd : @path.PathValue?
+  environment : Array[(String, String)]
+  mut stdin : Bytes
+} derive(Eq, @debug.Debug)
+pub fn CommandSpec::add_environment(Self, String, String) -> Unit raise HostError
+pub fn CommandSpec::arguments(Self) -> ArrayView[String]
+pub fn CommandSpec::cwd(Self) -> @path.PathValue?
+pub fn CommandSpec::environment(Self) -> ArrayView[(String, String)]
+pub fn CommandSpec::new(String, Array[String]) -> Self raise HostError
+pub fn CommandSpec::program(Self) -> String
+pub fn CommandSpec::set_cwd(Self, @path.PathValue) -> Unit
+pub fn CommandSpec::set_stdin(Self, Bytes) -> Unit
+pub fn CommandSpec::stdin(Self) -> BytesView
+
+pub struct FakeHost {
+  denied : @set.Set[HostCapability]
+  unavailable : @set.Set[HostCapability]
+  files : Map[@path.PathValue, Bytes]
+  environment : Map[String, String]
+  mut cwd : @path.PathValue
+  mut clock_millis : Int64
+  mut random_stream : Bytes
+  mut random_offset : Int
+  expected_commands : Array[CommandSpec]
+  expected_outputs : Array[ProcessOutput]
+  process_calls : Array[CommandSpec]
+  mut terminal : TerminalInfo
+  signals : Array[SignalKind]
+  mut platform : PlatformInfo
+}
+pub fn FakeHost::allow(Self, HostCapability) -> Unit
+pub fn FakeHost::deny(Self, HostCapability) -> Unit
+pub fn FakeHost::expect_process(Self, CommandSpec, ProcessOutput) -> Unit
+pub fn FakeHost::mark_available(Self, HostCapability) -> Unit
+pub fn FakeHost::mark_unavailable(Self, HostCapability) -> Unit
+pub fn FakeHost::new(@path.PathValue, PlatformInfo) -> Self
+pub fn FakeHost::pending_process_expectations(Self) -> Int
+pub fn FakeHost::process_calls(Self) -> ArrayView[CommandSpec]
+pub fn FakeHost::push_signal(Self, SignalKind) -> Unit
+pub fn FakeHost::put_file(Self, @path.PathValue, Bytes) -> Unit
+pub fn FakeHost::set_clock_millis(Self, Int64) -> Unit
+pub fn FakeHost::set_current_dir(Self, @path.PathValue) -> Unit
+pub fn FakeHost::set_env(Self, String, String) -> Unit
+pub fn FakeHost::set_platform(Self, PlatformInfo) -> Unit
+pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
+pub fn FakeHost::set_terminal(Self, TerminalInfo) -> Unit
+pub impl HostClock for FakeHost
+pub impl HostEnv for FakeHost
+pub impl HostFs for FakeHost
+pub impl HostPlatform for FakeHost
+pub impl HostProcess for FakeHost
+pub impl HostRandom for FakeHost
+pub impl HostSignal for FakeHost
+pub impl HostTerminal for FakeHost
+
+pub(all) enum HostCapability {
+  FsRead
+  FsWrite
+  Environment
+  Process
+  Clock
+  Random
+  Terminal
+  Signal
+  Platform
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) enum OperatingSystem {
+  Linux
+  Macos
+  Windows
+  Other(String)
+} derive(Eq, Hash, @debug.Debug)
+
+pub struct PlatformInfo {
+  operating_system : OperatingSystem
+  architecture : String
+  path_flavor : @path.PathFlavor
+} derive(Eq, @debug.Debug)
+pub fn PlatformInfo::architecture(Self) -> String
+pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor) -> Self
+pub fn PlatformInfo::operating_system(Self) -> OperatingSystem
+pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
+
+pub struct ProcessOutput {
+  exit_code : Int
+  stdout : Bytes
+  stderr : Bytes
+} derive(Eq, @debug.Debug)
+pub fn ProcessOutput::exit_code(Self) -> Int
+pub fn ProcessOutput::new(Int, Bytes, Bytes) -> Self
+pub fn ProcessOutput::stderr(Self) -> BytesView
+pub fn ProcessOutput::stdout(Self) -> BytesView
+
+pub(all) enum SignalKind {
+  Interrupt
+  Terminate
+  Hangup
+  OtherSignal(Int)
+} derive(Eq, @debug.Debug)
+
+pub struct TerminalInfo {
+  stdin_is_terminal : Bool
+  stdout_is_terminal : Bool
+  stderr_is_terminal : Bool
+  color_supported : Bool
+} derive(Eq, @debug.Debug)
+pub fn TerminalInfo::color_supported(Self) -> Bool
+pub fn TerminalInfo::new(Bool, Bool, Bool, Bool) -> Self
+pub fn TerminalInfo::stderr_is_terminal(Self) -> Bool
+pub fn TerminalInfo::stdin_is_terminal(Self) -> Bool
+pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
+
+// Type aliases
+
+// Traits
+pub(open) trait HostClock {
+  fn now_millis(Self) -> Int64 raise HostError
+}
+
+pub(open) trait HostEnv {
+  fn env_get(Self, String) -> String? raise HostError
+  fn current_dir(Self) -> @path.PathValue raise HostError
+}
+
+pub(open) trait HostFs {
+  fn read_file(Self, @path.PathValue) -> Bytes raise HostError
+  fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
+  fn file_exists(Self, @path.PathValue) -> Bool raise HostError
+}
+
+pub(open) trait HostPlatform {
+  fn platform_info(Self) -> PlatformInfo raise HostError
+}
+
+pub(open) trait HostProcess {
+  fn run_process(Self, CommandSpec) -> ProcessOutput raise HostError
+}
+
+pub(open) trait HostRandom {
+  fn random_bytes(Self, Int) -> Bytes raise HostError
+}
+
+pub(open) trait HostSignal {
+  fn pending_signal(Self) -> SignalKind? raise HostError
+}
+
+pub(open) trait HostTerminal {
+  fn terminal_info(Self) -> TerminalInfo raise HostError
+}

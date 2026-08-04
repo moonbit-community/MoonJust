@@ -1,0 +1,7 @@
+import {
+  "moonbit-community/MoonJust/src/diagnostic",
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/source",
+  "moonbitlang/core/array",
+  "moonbitlang/core/encoding/utf8",
+}

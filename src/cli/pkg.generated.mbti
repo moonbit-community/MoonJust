@@ -1,0 +1,86 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/cli"
+
+import {
+  "moonbit-community/MoonJust/src/diagnostic",
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/source",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+pub(all) suberror CliContractError {
+  InvalidRecipeExitCode(Int)
+  InvalidSignalNumber(Int)
+} derive(Eq, @debug.Debug)
+
+// Types and methods
+pub struct ApplicationFailure {
+  kind : FailureKind
+  diagnostic : @diagnostic.Diagnostic
+} derive(@debug.Debug)
+pub fn ApplicationFailure::diagnostic(Self) -> @diagnostic.Diagnostic
+pub fn ApplicationFailure::exit_code(Self) -> Int
+pub fn ApplicationFailure::kind(Self) -> FailureKind
+pub fn ApplicationFailure::new(FailureKind, @diagnostic.Diagnostic) -> Self raise CliContractError
+
+pub(all) enum ApplicationRequest {
+  Version
+  Help
+  Check(InputSelection)
+  Format(InputSelection, check_only~ : Bool)
+  Query(InputSelection, QueryKind)
+  Run(InputSelection, ReadOnlyArray[String])
+} derive(Eq, @debug.Debug)
+pub fn ApplicationRequest::arguments(Self) -> ReadOnlyArray[String]?
+pub fn ApplicationRequest::run(InputSelection, Array[String]) -> Self
+
+pub struct ApplicationResponse {
+  stdout : Bytes
+  stderr : Bytes
+  exit_code : Int
+} derive(Eq, @debug.Debug)
+pub fn ApplicationResponse::exit_code(Self) -> Int
+pub fn ApplicationResponse::from_failure(ApplicationFailure, @source.SourceMap) -> Self raise @diagnostic.DiagnosticError
+pub fn ApplicationResponse::new(Bytes, Bytes, Int) -> Self
+pub fn ApplicationResponse::stderr(Self) -> BytesView
+pub fn ApplicationResponse::stdout(Self) -> BytesView
+pub fn ApplicationResponse::success(stdout? : Bytes, stderr? : Bytes) -> Self
+
+pub(all) enum FailureKind {
+  Usage
+  Load
+  Lex
+  Parse
+  Compile
+  Invocation
+  Evaluation
+  Planning
+  Host
+  Capability
+  RecipeExit(Int)
+  SignalExit(Int)
+  Internal
+} derive(Eq, @debug.Debug)
+pub fn FailureKind::as_string(Self) -> String
+
+pub(all) enum InputSelection {
+  Search
+  Stdin
+  File(@path.PathValue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum QueryKind {
+  List
+  Show(String)
+  Summary
+  Variables
+  Dump
+  Json
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

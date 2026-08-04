@@ -29,6 +29,7 @@ host adapter. Target-specific `#cfg` and FFI are restricted to host adapters.
 | root facade | stable user-facing API and build metadata | parser internals or target FFI |
 | `source` | UTF-8 bytes, source IDs, byte spans, line index | terminal rendering |
 | `diagnostic` | structured diagnostic values and render contracts | process exits |
+| `path` | host-independent Unix/Windows lexical path values | filesystem canonicalization |
 | `lexer` | tokens and lexical state machines | semantic name resolution |
 | `syntax` | AST/CST types used by parser and formatter | filesystem loading |
 | `parser` | recursive-descent grammar | imports or command execution |
@@ -72,11 +73,13 @@ the facade. Every public change is reviewed through generated
 - `wasm`: production CLI target under `moonx`/`moonrun` when the host grants
   required capabilities.
 - `wasm-gc` and `js`: pure-core check targets until a later ADR expands scope.
-- Browser and arbitrary WASI recipe execution are not Phase 0 promises.
+- Browser and arbitrary WASI recipe execution are not initial release promises.
 
 ## Architecture tests
 
-CI enforces all-target type checking and Native/wasm tests. Later phases add a
-dependency-boundary check which rejects host adapter imports from pure core
-packages and a compatibility manifest check which rejects unclassified
-features.
+CI enforces all-target type checking, Native/wasm tests, generated interface
+stability, and `tools/check_architecture.sh`. The architecture check rejects
+target-specific FFI, conditional compilation, async implementation, and host
+adapter imports in Phase 1 core packages. Its package inventory expands when a
+new pure-core phase begins. Compatibility manifests are verified alongside the
+pinned upstream inventory.
