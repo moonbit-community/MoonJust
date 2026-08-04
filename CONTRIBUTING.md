@@ -1,7 +1,7 @@
 # Contributing to MoonJust
 
 MoonJust follows the staged compatibility process in
-[`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md). A change is ready for review
+[`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md). A change is ready for integration
 only when its upstream behavior, compatibility tier, supported targets, and
 acceptance tests are explicit.
 
@@ -24,5 +24,5 @@ acceptance tests are explicit.
 - Do not broaden a differential normalizer or update golden output without
   explaining the observed behavior.
 
-The full Definition of Ready, review policy, and Definition of Done are in the
-project plan.
+The full Definition of Ready, independent-maintainer self-review policy, and
+Definition of Done are in the project plan.

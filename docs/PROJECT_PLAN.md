@@ -1,6 +1,6 @@
 # MoonJust 项目实施计划
 
-> 文档状态：评审草案 v1.0
+> 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
@@ -19,18 +19,18 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 
 依赖策略是“标准库优先、官方包次之、成熟社区包需经过契约测试、兼容关键路径自研”。`moonbitlang/async` 可作为主机 I/O 与进程的候选实现，但必须被封装在适配层并锁定版本；BLAKE3、SemVer requirement、dotenv 和 just 特有路径/引用/输出行为没有足够成熟且完全匹配的跨目标包，计划自研并用上游差分测试约束。
 
-按当前上游规模估算，达到可上线的 1.0 不是短期翻译任务。建议 3 名全职工程师加兼职安全/发布支持，约 18-26 个日历周；单人连续开发约 40-55 周。估算以兼容测试通过率和阶段出口为准，不以日期替代质量门禁。
+按当前上游规模，达到可上线的 1.0 不是短期翻译任务。本项目由独立维护者开发，按关键路径串行推进，并只在依赖已冻结时穿插互不阻塞的验证工作。项目不以人员规模或日期估算替代兼容测试覆盖率和阶段出口。
 
 ## 2. 已核实基线
 
 ### 2.1 本地仓库
 
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
-- 模块名：`ZSeanYves/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
+- 模块名：`moonbit-community/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
 - 当前首选目标：`wasm`。
-- 当前只有模板代码和 `cmd/main` 示例，没有实际实现或有效测试。
-- 当前 pre-commit 只运行 `moon check`，没有正式 CI。
-- 工作目录位于父级 Git 仓库 `/Users/winter/Documents/Moonbit` 内；所有 MoonJust PR 必须用路径限定，禁止夹带同级项目改动。
+- Phase 0 已建立 `cmd/just` smoke、Native/wasm1 测试、兼容快照、差分 harness 和隔离的生态尖峰；尚未实现 justfile 执行。
+- pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
+- 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
 ### 2.2 工具链
 
@@ -172,7 +172,7 @@ Tier W 必须完成：
 - 上游版本和复现 justfile/命令。
 - 受影响目标和平台。
 - 观察差异、风险等级、临时诊断。
-- 负责人、计划修复版本或永久排除 ADR。
+- 跟踪 issue、计划修复版本或永久排除 ADR。
 - 对应差分测试；永久排除也要有“预期不支持”测试。
 
 兼容数据存入 `compat/just-1.57.0.toml`，文档由脚本生成，禁止手工维护两份不同状态。
@@ -511,13 +511,13 @@ Rust 上游的 source offset 基于 UTF-8 byte。MoonBit `String` 的索引模�
 
 ## 10. 详细阶段与 PR 路线图
 
-阶段编号表示依赖顺序，不要求每个阶段只由一个人串行完成。每个 PR 应能独立编译、测试和回滚。表中“出口”是最低验收条件，不替代通用 PR 门禁。
+阶段编号表示依赖顺序；独立维护者可在前置契约冻结后穿插互不阻塞的验证工作。每个 PR 应能独立编译、测试和回滚。表中“出口”是最低验收条件，不替代通用 PR 门禁。
 
 ### Phase 0：治理、基线和研究尖峰
 
 | PR | 内容 | 交付物 | 出口条件 |
 | --- | --- | --- | --- |
-| PR-000 | 接受项目计划 | 本文、owners、术语、范围 | 技术/产品/发布负责人签字；无未解释目标冲突 |
+| PR-000 | 接受项目计划 | 本文、术语、范围、风险台账 | 独立维护者完成范围冲突自检并记录执行基线 |
 | PR-001 | 仓库正规化 | `cmd/just`、包骨架、真实 CI、pre-commit、许可证/NOTICE | `moon check --target all`；native/wasm 测试至少各有 smoke test |
 | PR-002 | ADR-001/002 | CLI 命名和 Mooncakes 坐标；兼容等级与版本策略 | 入口名、发布名、版本线冻结 |
 | PR-003 | 上游快照工具 | tag/commit manifest、测试索引、fixture provenance | 可重复验证 1.57.0 commit 和 2,417 个测试注册项 |
@@ -660,7 +660,7 @@ Phase 8 结束发布 `0.5.0-alpha`，标记为执行预览，不保证并行/cac
 | `0.8.0-beta.1` | feature freeze、公开 API freeze 候选 | Tier A 功能完成，差分只剩已登记缺陷 |
 | `0.9.0-rc.1` | 安全/性能/兼容审计 | 0 P0/P1；所有平台和 MoonX 门禁通过 |
 | `0.9.x-rc.n` | 只修缺陷、文档和发布流程 | 连续 14 天无新 P0/P1；无 flaky gate |
-| `1.0.0` | GA | 第 3.3 节全部满足，负责人签署 release checklist |
+| `1.0.0` | GA | 第 3.3 节全部满足，release checklist 完成并归档证据 |
 
 ## 11. PR 规范
 
@@ -687,13 +687,14 @@ Phase 8 结束发布 `0.5.0-alpha`，标记为执行预览，不保证并行/cac
 - 不允许“parser 全量移植”“executor 全量移植”式不可审查 PR。
 - 每个中间 PR 都必须保持主分支可 build/check/test。
 
-### 11.3 审查规则
+### 11.3 独立维护自审规则
 
-- 普通 PR 至少 1 名 code owner 批准。
-- parser/diagnostic/public API/host/process/cache/security/release PR 至少 2 名批准，其中一名不是作者。
-- 依赖首次引入、权限扩大、policy 放宽、unsafe/FFI、持久化格式和永久兼容例外必须有专项 reviewer。
-- 作者不得自行批准 normalizer 扩大、golden 大规模更新或 flaky test quarantine。
-- 使用 squash merge；标题采用 `type(scope): summary`；PR 正文保留兼容 ID。
+- 每个 PR 或阶段提交必须完成 PR 模板、自审差异、相关 oracle 和完整 CI，并保留可复核证据。
+- parser/diagnostic/public API/host/process/cache/security/release 变更执行两遍自审：先检查设计和边界，再在干净测试通过后检查最终 diff 与 artifact。
+- 首次引入依赖、扩大权限、放宽 policy、unsafe/FFI、持久化格式和永久兼容例外必须有专项 ADR、最小复现、回滚方案和独立门禁脚本。
+- normalizer 扩大、golden 大规模更新或 flaky test quarantine 必须附原始差异、上游 oracle 和明确到期条件，不能仅凭更新后的快照通过。
+- 外部评审可作为高风险变更的补充证据，但不是独立项目推进的硬性人员前置条件。
+- Phase 0 仓库初始化使用分阶段提交；常规功能 PR 使用 squash merge，标题采用 `type(scope): summary`，正文保留兼容 ID。
 
 ### 11.4 禁止合并条件
 
@@ -736,13 +737,13 @@ Phase 8 结束发布 `0.5.0-alpha`，标记为执行预览，不保证并行/cac
 
 ### 11.7 分支、保护和标签
 
-- 采用 protected `main` 的 trunk-based 开发；功能分支应短生命周期，命名 `feat/MJ-123-...`、`fix/MJ-123-...` 或 `chore/...`。
-- 禁止直接 push `main`、强制改写已发布 tag 和绕过 required checks。
+- Phase 0 初始化完成后采用 protected `main` 的 trunk-based 开发；功能分支应短生命周期，命名 `feat/MJ-123-...`、`fix/MJ-123-...` 或 `chore/...`。
+- 独立维护者不设置人数审批门槛，但必须等待 required checks；禁止常规功能直接 push `main`、强制改写已发布 tag 或绕过检查。
 - GA 后只在需要稳定版热修时创建短期 `release/1.x`；修复先回主线，再有记录地 backport。
 - required checks 至少包括 format、API diff、all-target check、native/wasm tests、差分 shard、license/provenance 和测试计数断言。
 - 推荐标签：`area:lexer/parser/semantic/runtime/host/cli/release`、`target:native/wasm/windows/unix`、`compat:A/B/W/X`、`risk:security/api/dependency/persistence`、`priority:P0-P3`。
-- CODEOWNERS 至少覆盖 parser/diagnostic、host/process、cache/security、release workflow 和 compat normalizer。
-- 自动化账号只能创建 PR，不得拥有绕过 review、扩大 policy 或发布 GA 的权限。
+- CODEOWNERS 用于标明独立维护者的责任范围和通知路径，至少覆盖 parser/diagnostic、host/process、cache/security、release workflow 和 compat normalizer。
+- 自动化账号只能创建 PR，不得拥有绕过 required checks、扩大 policy 或发布 GA 的权限。
 
 ## 12. 测试战略
 
@@ -772,7 +773,7 @@ Phase 8 结束发布 `0.5.0-alpha`，标记为执行预览，不保证并行/cac
 - `unsupported`：已登记兼容差异。
 - `blocked-platform`：需要指定真实平台。
 
-1.0 门禁是：Tier A 的适用测试无 `unsupported` 或 `blocked-platform`；所有行有状态、证据和负责人。百分比不允许用大量 Rust 内部 `not-applicable` 美化。
+1.0 门禁是：Tier A 的适用测试无 `unsupported` 或 `blocked-platform`；所有行有状态、证据和跟踪 issue。百分比不允许用大量 Rust 内部 `not-applicable` 美化。
 
 ### 12.3 差分 harness
 
@@ -837,7 +838,7 @@ CI 必须断言选中的测试数量，避免出现“命令成功但 0 个测�
 | --- | --- | --- |
 | P0 | 任意命令执行绕过、数据破坏、普遍无法运行 | 立即停发，必要时撤回版本 |
 | P1 | Tier A 错误执行、死锁、严重平台回归、secret 泄漏 | RC/GA 阻断 |
-| P2 | 有规避方案的兼容差异、罕见诊断/TTY 问题 | 必须登记，可经批准延期 |
+| P2 | 有规避方案的兼容差异、罕见诊断/TTY 问题 | 必须登记，仅可通过 ADR 明确延期 |
 | P3 | 文案、内部重构、非阻断性能改善 | 正常 backlog |
 
 ## 13. 安全模型
@@ -861,14 +862,14 @@ justfile 本质上可以运行任意命令。MoonJust 的目标是正确执行�
 | cache poisoning | 格式版本、完整 key、原子写、权限检查、manifest 验证、拒绝路径穿越 |
 | 临时脚本竞态 | 安全随机名、最小权限、原子创建、生命周期清理 |
 | 子进程遗留 | process group/job object、取消升级策略、最终 cleanup |
-| 依赖供应链 | 精确版本、license review、SBOM、provenance、升级差分 |
+| 依赖供应链 | 精确版本、license audit、SBOM、provenance、升级差分 |
 | 终端转义 | 非 recipe 原始输出的诊断字段转义；颜色受 TTY/flag 控制 |
 | 不可信 Markdown | parser 资源预算；不解析/获取网络资源 |
 
 ### 13.3 安全发布门禁
 
-- Phase 8 后做一次命令构造和临时文件专项评审。
-- Phase 9 后做一次 cache/concurrency 专项评审。
+- Phase 8 后执行并记录一次命令构造和临时文件专项审计。
+- Phase 9 后执行并记录一次 cache/concurrency 专项审计。
 - 每个 RC 跑 security corpus、依赖审计和 secrets scan。
 - P0/P1 安全问题需要私下报告渠道、修复 SLA 和撤回/通告流程。
 
@@ -927,44 +928,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 - 非发布目标的 `moon check` 失败视为架构回归，除非 ADR 正式移除。
 - 兼容问题模板要求上游和 MoonJust 版本、OS/arch/target、justfile 最小复现、命令和脱敏输出。
 
-## 16. 工期、人员和关键路径
-
-### 16.1 推荐团队
-
-- 1 名技术负责人：source/parser/semantic/public API/ADR。
-- 1 名 runtime 工程师：host/process/Wasm/signal/Windows。
-- 1 名质量与兼容工程师：differential harness、上游映射、CI/release。
-- 兼职安全 reviewer 和 Windows/macOS 发布维护者。
-
-所有人都要能修改测试，但关键模块保持 code owner，避免只有一人理解 parser 或 executor。
-
-### 16.2 粗略估算
-
-| 工作流 | 人周范围 |
-| --- | --- |
-| Phase 0-1 基线/架构 | 5-7 |
-| Lexer/Parser/Formatter | 10-14 |
-| Semantic/Loader/Evaluator/Builtins | 12-17 |
-| CLI/Host/Executor | 12-17 |
-| Parallel/Cache/Platform | 9-13 |
-| Stabilization/Security/Release | 8-12 |
-| 合计 | 56-80 人周 |
-
-3 名全职工程师考虑评审、平台等待和缺陷回流后约 18-26 个日历周；单人约 40-55 周。上游新增功能、MoonBit runtime 缺陷、Windows runner 或生态包 fork 会扩大范围。
-
-### 16.3 关键路径
-
-`Source/Span -> Lexer -> Parser -> Semantic -> Evaluator -> Invocation/Planner -> Executor -> Platform/Release`
-
-可并行工作：
-
-- 差分 harness、fixture provenance 和 CI 可从 Phase 0 持续推进。
-- Host spike 与 Source/Span 可并行。
-- 纯 builtins 可在 evaluator value model 冻结后并行。
-- Windows adapter 可在 CommandSpec 冻结后提前开发。
-- 发布工程可在 Phase 6 后开始，不等到 RC。
-
-## 17. 风险登记表
+## 16. 风险登记表
 
 | ID | 风险 | 概率 | 影响 | 触发信号 | 缓解/兜底 |
 | --- | --- | --- | --- | --- | --- |
@@ -972,8 +936,8 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 | R-02 | Wasm 子进程/信号能力不足 | 中高 | 高 | Phase 0 matrix 失败 | Tier W 明确收缩、能力诊断、与 runtime 上游协作 |
 | R-03 | UTF-8 span 模型选错 | 中 | 极高 | Unicode diagnostic diff | Phase 1 byte-span 门禁，禁止字符下标 AST |
 | R-04 | parser 长尾远超估算 | 高 | 高 | grammar/test inventory 未收敛 | 小 PR、生成映射、优先稳定语法、fuzz |
-| R-05 | Windows shell/path 语义漂移 | 高 | 高 | 只在 Unix 开发 | 真机 runner、双 flavor PathModel、Windows owner |
-| R-06 | 差分 normalizer 掩盖缺陷 | 中 | 高 | diff 异常减少、宽正则 | 白名单和双 reviewer、保存原始 artifact |
+| R-05 | Windows shell/path 语义漂移 | 高 | 高 | 只在 Unix 开发 | 真机 runner、双 flavor PathModel、平台验收清单 |
+| R-06 | 差分 normalizer 掩盖缺陷 | 中 | 高 | diff 异常减少、宽正则 | 严格白名单、上游 oracle、保存原始 artifact |
 | R-07 | 上游快速演进造成追赶循环 | 高 | 中 | 基线频繁升级 | 锁 1.57.0 到 GA，自动报告但手动升基线 |
 | R-08 | BLAKE3/regex/SemVer 行为或性能不一致 | 中 | 中高 | 官方向量/随机差分失败 | 隔离包、规范向量、Rust oracle、必要时维护 fork |
 | R-09 | 并行输出/失败非确定 | 高 | 高 | flaky/stress failure | 有序 DAG、单 scheduler、seed 重放、状态机审查 |
@@ -982,13 +946,13 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 | R-12 | 项目范围被误认为全部 just 维护命令 | 中 | 中 | completion/man 需求蔓延 | Tier 表和非目标冻结，变更需 ADR |
 | R-13 | CLI 名称与官方 just 冲突/混淆 | 中 | 中 | 用户安装覆盖 | ADR-001、清晰品牌和发行包说明 |
 | R-14 | MoonBit toolchain 快速变化 | 高 | 高 | nightly/稳定编译差异 | 固定 toolchain、前瞻 CI、升级专门 PR |
-| R-15 | 单人知识瓶颈 | 中 | 高 | 关键 PR 无第二 reviewer | code owners、ADR、pair review、模块文档 |
+| R-15 | 独立维护连续性风险 | 中 | 高 | 关键模块缺少可复现说明或自动化 | ADR、模块文档、脚本化环境、阶段验收与恢复手册 |
 
-每两周在项目例会复核概率/影响/owner；进入高概率高影响的风险必须有当前 mitigation PR，不接受只保留描述。
+每两周在维护周期中复核概率和影响；每项活动风险记录状态、证据和 mitigation issue。进入高概率高影响的风险必须有当前缓解 PR，不接受只保留描述。
 
-## 18. Definition of Done
+## 17. Definition of Done
 
-### 18.1 功能条目 Done
+### 17.1 功能条目 Done
 
 - 上游行为和版本已引用。
 - 正向、反向、边界、跨目标测试已加入。
@@ -998,16 +962,16 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 - 文档、compat manifest、changelog、API docs 已更新。
 - 无新增 warning、flaky、secret、未清理资源和未审查依赖。
 
-### 18.2 阶段 Done
+### 17.2 阶段 Done
 
 - 本阶段表中的所有出口完成。
 - 新增测试已映射到上游 inventory。
 - CI 在连续 5 次主分支运行中无 flaky。
 - 阶段性能和安全检查无未处置 P0/P1。
 - 下一阶段所需 API 已冻结或有明确迁移计划。
-- 召开阶段评审并记录继续/返工/收缩范围决定。
+- 完成阶段自审报告并记录继续、返工或收缩范围决定。
 
-### 18.3 1.0 Done
+### 17.3 1.0 Done
 
 除第 3.3 节外，还要求：
 
@@ -1018,7 +982,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 - 用户文档不夸大浏览器/WASI/sandbox/信号/平台能力。
 - 维护者确认至少一个 minor 版本周期的响应和安全修复安排。
 
-## 19. 需要在 Phase 0 冻结的决策
+## 18. 需要在 Phase 0 冻结的决策
 
 | 决策 | 本计划推荐 | 决策截止 |
 | --- | --- | --- |
@@ -1033,9 +997,9 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 | completion | 永久排除首发范围；不生成脚本 | PR-000 |
 | cache format | MoonJust 自有、版本化，不假定与上游共享 | PR-091/ADR-008 |
 
-## 20. 动工后的前 10 个工作日
+## 19. 动工后的前 10 个工作日
 
-1. 评审并合并 PR-000，指定 code owners 和风险 owner。
+1. 冻结 PR-000 计划基线，建立责任范围和风险跟踪台账。
 2. 建立 PR-001 的规范仓库/CI，但不写 parser 或 executor。
 3. 固化上游 `1.57.0` manifest 和测试索引，校验精确 commit。
 4. 做 UTF-8 byte span 最小原型，覆盖中文、组合字符、emoji、CRLF 和非法 bytes。
@@ -1046,7 +1010,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 9. 冻结 ADR-001 至 ADR-005。
 10. 只有以上门禁通过后，开始 PR-020 Lexer 普通模式。
 
-## 21. 参考资料与可复核来源
+## 20. 参考资料与可复核来源
 
 调查所用一手资料：
 
