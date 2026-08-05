@@ -10,6 +10,7 @@ pub(all) suberror ParserError {
   InvalidEscapeSequence(character~ : String, span~ : @source.Span)
   InvalidUnicodeEscape(reason~ : String, span~ : @source.Span)
   UnknownSetting(name~ : String, span~ : @source.Span)
+  InvalidSettingValue(name~ : String, span~ : @source.Span)
   UnknownAttribute(name~ : String, span~ : @source.Span)
   InvalidAttributeArity(name~ : String, span~ : @source.Span)
   InvalidAttributeArgument(name~ : String, span~ : @source.Span)
@@ -27,13 +28,14 @@ pub fn ParserError::code(self : ParserError) -> String {
     InvalidEscapeSequence(_) => "MJ-PARSE-0002"
     InvalidUnicodeEscape(_) => "MJ-PARSE-0003"
     UnknownSetting(_) => "MJ-PARSE-0004"
-    UnknownAttribute(_) => "MJ-PARSE-0005"
-    InvalidAttributeArity(_) => "MJ-PARSE-0006"
-    InvalidAttributeArgument(_) => "MJ-PARSE-0007"
-    UnknownAttributeKey(_) => "MJ-PARSE-0008"
-    RecursionLimitExceeded(_) => "MJ-PARSE-0009"
-    NodeLimitExceeded(_) => "MJ-PARSE-0010"
-    ExtraneousInput(_) => "MJ-PARSE-0011"
+    InvalidSettingValue(_) => "MJ-PARSE-0005"
+    UnknownAttribute(_) => "MJ-PARSE-0006"
+    InvalidAttributeArity(_) => "MJ-PARSE-0007"
+    InvalidAttributeArgument(_) => "MJ-PARSE-0008"
+    UnknownAttributeKey(_) => "MJ-PARSE-0009"
+    RecursionLimitExceeded(_) => "MJ-PARSE-0010"
+    NodeLimitExceeded(_) => "MJ-PARSE-0011"
+    ExtraneousInput(_) => "MJ-PARSE-0012"
   }
 }
 
@@ -45,6 +47,7 @@ pub fn ParserError::span(self : ParserError) -> @source.Span {
     InvalidEscapeSequence(span~, ..) => span
     InvalidUnicodeEscape(span~, ..) => span
     UnknownSetting(span~, ..) => span
+    InvalidSettingValue(span~, ..) => span
     UnknownAttribute(span~, ..) => span
     InvalidAttributeArity(span~, ..) => span
     InvalidAttributeArgument(span~, ..) => span
@@ -65,6 +68,7 @@ pub fn ParserError::message(self : ParserError) -> String {
       "`\\" + character + "` is not a valid escape sequence"
     InvalidUnicodeEscape(reason~, ..) => "invalid Unicode escape: " + reason
     UnknownSetting(name~, ..) => "unknown setting `" + name + "`"
+    InvalidSettingValue(name~, ..) => "invalid value for setting `" + name + "`"
     UnknownAttribute(name~, ..) => "unknown attribute `" + name + "`"
     InvalidAttributeArity(name~, ..) =>
       "invalid arguments for attribute `" + name + "`"

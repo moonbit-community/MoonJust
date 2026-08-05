@@ -48,11 +48,103 @@ pub(all) enum SettingValue {
 } derive(Eq, Debug)
 
 ///|
+/// Static value category required by one registered setting.
+pub(all) enum SettingKind {
+  Boolean
+  Text
+  Expression
+} derive(Eq, Debug)
+
+///|
+pub(all) struct SettingSpec {
+  name : String
+  kind : SettingKind
+  required : Bool
+} derive(Eq, Debug)
+
+///|
+pub fn SettingSpec::new(
+  name : String,
+  kind : SettingKind,
+  required : Bool,
+) -> SettingSpec {
+  { name, kind, required }
+}
+
+///|
+pub fn SettingSpec::name(self : SettingSpec) -> String {
+  self.name
+}
+
+///|
+pub fn SettingSpec::kind(self : SettingSpec) -> SettingKind {
+  self.kind
+}
+
+///|
+pub fn SettingSpec::required(self : SettingSpec) -> Bool {
+  self.required
+}
+
+///|
+pub fn setting_specs() -> ArrayView[SettingSpec] {
+  [
+    SettingSpec::new("allow-duplicate-recipes", Boolean, false),
+    SettingSpec::new("allow-duplicate-variables", Boolean, false),
+    SettingSpec::new("default-list", Boolean, false),
+    SettingSpec::new("default-script", Boolean, false),
+    SettingSpec::new("dotenv-command", Expression, true),
+    SettingSpec::new("dotenv-filename", Expression, true),
+    SettingSpec::new("dotenv-load", Boolean, false),
+    SettingSpec::new("dotenv-override", Boolean, false),
+    SettingSpec::new("dotenv-path", Expression, true),
+    SettingSpec::new("dotenv-required", Boolean, false),
+    SettingSpec::new("export", Boolean, false),
+    SettingSpec::new("fallback", Boolean, false),
+    SettingSpec::new("guards", Boolean, false),
+    SettingSpec::new("ignore-comments", Boolean, false),
+    SettingSpec::new("indentation", Text, true),
+    SettingSpec::new("lazy", Boolean, false),
+    SettingSpec::new("lists", Boolean, false),
+    SettingSpec::new("minimum-version", Text, true),
+    SettingSpec::new("no-cd", Boolean, false),
+    SettingSpec::new("no-exit-message", Boolean, false),
+    SettingSpec::new("positional-arguments", Boolean, false),
+    SettingSpec::new("quiet", Boolean, false),
+    SettingSpec::new("script-interpreter", Expression, true),
+    SettingSpec::new("shell", Expression, true),
+    SettingSpec::new("tempdir", Expression, true),
+    SettingSpec::new("unstable", Boolean, false),
+    SettingSpec::new("windows-powershell", Boolean, false),
+    SettingSpec::new("windows-shell", Expression, true),
+    SettingSpec::new("working-directory", Expression, true),
+  ][:]
+}
+
+///|
+pub fn setting_spec(name : String) -> SettingSpec? {
+  for spec in setting_specs() {
+    if spec.name() == name {
+      return Some(spec)
+    }
+  }
+  None
+}
+
+///|
 pub fn SettingValue::as_bool(self : SettingValue) -> Bool? {
   match self {
     Flag => Some(true)
     Boolean(value) => Some(value)
     Text(_) | Expression(_) => None
+  }
+}
+
+///|
+pub fn SettingValue::as_text(self : SettingValue) -> String? {
+  match self {
+    Text(value) => Some(value)
+    _ => None
   }
 }
 
@@ -89,12 +181,63 @@ pub fn CompiledSettings::bool(self : CompiledSettings, name : String) -> Bool {
 }
 
 ///|
+pub fn CompiledSettings::kind(
+  self : CompiledSettings,
+  name : String,
+) -> SettingKind? {
+  ignore(self)
+  setting_spec(name).map(fn(spec) { spec.kind() })
+}
+
+///|
 fn setting_value(setting : @syntax.Setting) -> SettingValue {
   match setting.value() {
     None => Flag
     Some(Boolean(value~, ..)) => Boolean(value)
     Some(String(value)) => Text(value.cooked())
     Some(expression) => Expression(expression)
+  }
+}
+
+///|
+fn expression_is_string_list(expression : @syntax.Expression) -> Bool {
+  match expression {
+    List(elements~, ..) =>
+      elements
+      .iter()
+      .all(fn(element) { element is String(_) || element is Backtick(_) })
+    _ => false
+  }
+}
+
+///|
+fn setting_value_valid(name : String, value : SettingValue) -> Bool {
+  match setting_spec(name) {
+    None => false
+    Some(spec) =>
+      match spec.kind() {
+        Boolean =>
+          match value {
+            Flag | Boolean(_) => true
+            _ => false
+          }
+        Text => value is Text(_)
+        // Expressions may be literal strings; shell selectors additionally
+        // require a list of string expressions.
+        Expression =>
+          match value {
+            Text(_) => true
+            Expression(expression) =>
+              if name == "script-interpreter" ||
+                name == "shell" ||
+                name == "windows-shell" {
+                expression_is_string_list(expression)
+              } else {
+                true
+              }
+            _ => false
+          }
+      }
   }
 }
 
@@ -106,10 +249,14 @@ fn compile_settings(
   let ordered : Array[String] = []
   for setting in settings {
     let name = setting.name()
+    let value = setting_value(setting)
+    if !setting_value_valid(name, value) {
+      raise InvalidSettingValue(name~, span=setting.span())
+    }
     if !values.contains(name) {
       ordered.push(name)
     }
-    values[name] = setting_value(setting)
+    values[name] = value
   }
   let conflicts = [
     ("dotenv-command", "dotenv-filename"),

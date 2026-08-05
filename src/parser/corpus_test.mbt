@@ -19,12 +19,13 @@ test "phase 3 grammar corpus covers every registered setting and attribute" {
     let value = match name {
       "minimum-version" => "\"1.57.0\""
       "indentation" => "\"    \""
-      "script-interpreter" | "shell" | "tempdir" => "\"sh\""
-      "default-list"
-      | "default-script"
-      | "dotenv-command"
-      | "dotenv-filename"
-      | "dotenv-path" => "\"justfile\""
+      "script-interpreter"
+      | "shell"
+      | "tempdir"
+      | "windows-shell"
+      | "working-directory" => "\"sh\""
+      "default-list" | "default-script" => "true"
+      "dotenv-command" | "dotenv-filename" | "dotenv-path" => "\"justfile\""
       _ => ""
     }
     let source = if value == "" {
@@ -69,6 +70,8 @@ test "phase 3 grammar corpus rejects invalid attribute arity and unknown names" 
   assert_true(parser_error("[arg(\"x\", unknown=\"y\")]\nrecipe x:\n"))
   assert_true(parser_error("[not-a-just-attribute]\nrecipe:\n"))
   assert_true(parser_error("set not-a-just-setting\nrecipe:\n"))
+  assert_true(parser_error("set quiet := \"yes\"\nrecipe:\n"))
+  assert_true(parser_error("set shell\nrecipe:\n"))
 }
 
 ///|

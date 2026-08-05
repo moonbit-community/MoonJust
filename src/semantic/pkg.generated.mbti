@@ -14,6 +14,10 @@ pub fn compile(@syntax.Ast, platform? : TargetPlatform) -> Compilation raise Sem
 
 pub fn compile_source(@source.Source) -> Compilation raise SemanticError
 
+pub fn setting_spec(String) -> SettingSpec?
+
+pub fn setting_specs() -> ArrayView[SettingSpec]
+
 // Errors
 pub(all) suberror SemanticError {
   Parse(@parser.ParserError)
@@ -25,6 +29,7 @@ pub(all) suberror SemanticError {
   DependencyCycle(name~ : String, span~ : @source.Span)
   InvalidParameters(name~ : String, span~ : @source.Span)
   SettingConflict(first~ : String, second~ : String, span~ : @source.Span)
+  InvalidSettingValue(name~ : String, span~ : @source.Span)
   AttributeConflict(first~ : String, second~ : String, span~ : @source.Span)
   UnsupportedPlatform(name~ : String, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
@@ -60,6 +65,7 @@ pub struct CompiledSettings {
 pub fn CompiledSettings::bool(Self, String) -> Bool
 pub fn CompiledSettings::get(Self, String) -> SettingValue?
 pub fn CompiledSettings::has(Self, String) -> Bool
+pub fn CompiledSettings::kind(Self, String) -> SettingKind?
 pub fn CompiledSettings::names(Self) -> ArrayView[String]
 
 pub struct RecipeAttributes {
@@ -71,16 +77,60 @@ pub struct RecipeAttributes {
   working_directory : @syntax.Expression?
   shell : Array[@syntax.Expression]
   script : Bool
+  confirm : Bool
+  default_value : @syntax.Expression?
+  continue_signals : Array[String]
+  env : Array[(@syntax.Expression, @syntax.Expression)]
+  exit_message : Bool
+  extension : String?
+  metadata : Array[String]
+  no_cd : Bool
+  no_exit_message : Bool
+  no_quiet : Bool
+  parallel : Bool
+  positional_arguments : Bool
+  arg : Array[@syntax.AttributeArgument]
+  cache : Array[@syntax.AttributeArgument]
 } derive(@debug.Debug)
+pub fn RecipeAttributes::args(Self) -> ArrayView[@syntax.AttributeArgument]
+pub fn RecipeAttributes::cache(Self) -> ArrayView[@syntax.AttributeArgument]
+pub fn RecipeAttributes::confirm(Self) -> Bool
+pub fn RecipeAttributes::continue_signals(Self) -> ArrayView[String]
+pub fn RecipeAttributes::default(Self) -> @syntax.Expression?
 pub fn RecipeAttributes::doc(Self) -> String?
+pub fn RecipeAttributes::env(Self) -> ArrayView[(@syntax.Expression, @syntax.Expression)]
+pub fn RecipeAttributes::exit_message(Self) -> Bool
+pub fn RecipeAttributes::extension(Self) -> String?
 pub fn RecipeAttributes::group(Self) -> String?
 pub fn RecipeAttributes::matches(Self, TargetPlatform) -> Bool
+pub fn RecipeAttributes::metadata(Self) -> ArrayView[String]
 pub fn RecipeAttributes::names(Self) -> ArrayView[String]
+pub fn RecipeAttributes::no_cd(Self) -> Bool
+pub fn RecipeAttributes::no_exit_message(Self) -> Bool
+pub fn RecipeAttributes::no_quiet(Self) -> Bool
+pub fn RecipeAttributes::parallel(Self) -> Bool
 pub fn RecipeAttributes::platform(Self) -> TargetOs?
+pub fn RecipeAttributes::positional_arguments(Self) -> Bool
 pub fn RecipeAttributes::private(Self) -> Bool
 pub fn RecipeAttributes::script(Self) -> Bool
 pub fn RecipeAttributes::shell(Self) -> ArrayView[@syntax.Expression]
 pub fn RecipeAttributes::working_directory(Self) -> @syntax.Expression?
+
+pub(all) enum SettingKind {
+  Boolean
+  Text
+  Expression
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SettingSpec {
+  name : String
+  kind : SettingKind
+  required : Bool
+} derive(Eq, @debug.Debug)
+pub fn SettingSpec::kind(Self) -> SettingKind
+pub fn SettingSpec::name(Self) -> String
+pub fn SettingSpec::new(String, SettingKind, Bool) -> Self
+pub fn SettingSpec::required(Self) -> Bool
 
 pub(all) enum SettingValue {
   Flag
@@ -89,6 +139,7 @@ pub(all) enum SettingValue {
   Expression(@syntax.Expression)
 } derive(Eq, @debug.Debug)
 pub fn SettingValue::as_bool(Self) -> Bool?
+pub fn SettingValue::as_text(Self) -> String?
 
 pub(all) struct Symbol {
   name : String

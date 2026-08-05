@@ -40,3 +40,26 @@ test "duplicate and cyclic definitions are static errors" {
     _ => fail("expected dependency cycle")
   }
 }
+
+///|
+test "settings and attributes expose complete typed contracts" {
+  assert_eq(setting_specs().length(), 29)
+  let ast = try! @parser.parse(
+    source(
+      "set quiet\nset minimum-version := \"1.57.0\"\n" +
+      "[confirm, default, env(\"MODE\", \"test\"), metadata(\"ci\")]\n" +
+      "build:\n",
+    ),
+  )
+  let compiled = try! compile(ast)
+  assert_true(compiled.settings().bool("quiet"))
+  assert_eq(
+    compiled.settings().get("minimum-version").unwrap().as_text(),
+    Some("1.57.0"),
+  )
+  let attributes = compiled.recipe_attributes("build").unwrap()
+  assert_true(attributes.confirm())
+  assert_true(attributes.default() is None)
+  assert_eq(attributes.env().length(), 1)
+  assert_eq(attributes.metadata(), ["ci"])
+}

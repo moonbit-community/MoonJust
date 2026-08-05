@@ -14,6 +14,7 @@ pub(all) suberror SemanticError {
   DependencyCycle(name~ : String, span~ : @source.Span)
   InvalidParameters(name~ : String, span~ : @source.Span)
   SettingConflict(first~ : String, second~ : String, span~ : @source.Span)
+  InvalidSettingValue(name~ : String, span~ : @source.Span)
   AttributeConflict(first~ : String, second~ : String, span~ : @source.Span)
   UnsupportedPlatform(name~ : String, span~ : @source.Span)
 } derive(Eq, Debug)
@@ -30,8 +31,9 @@ pub fn SemanticError::code(self : SemanticError) -> String {
     DependencyCycle(_) => "MJ-SEM-0006"
     InvalidParameters(_) => "MJ-SEM-0007"
     SettingConflict(_) => "MJ-SEM-0008"
-    AttributeConflict(_) => "MJ-SEM-0009"
-    UnsupportedPlatform(_) => "MJ-SEM-0010"
+    InvalidSettingValue(_) => "MJ-SEM-0009"
+    AttributeConflict(_) => "MJ-SEM-0010"
+    UnsupportedPlatform(_) => "MJ-SEM-0011"
   }
 }
 
@@ -47,6 +49,7 @@ pub fn SemanticError::span(self : SemanticError) -> @source.Span {
     DependencyCycle(span~, ..) => span
     InvalidParameters(span~, ..) => span
     SettingConflict(span~, ..) => span
+    InvalidSettingValue(span~, ..) => span
     AttributeConflict(span~, ..) => span
     UnsupportedPlatform(span~, ..) => span
   }
@@ -68,6 +71,8 @@ pub fn SemanticError::message(self : SemanticError) -> String {
       "invalid parameters for recipe `" + name + "`"
     SettingConflict(first~, second~, ..) =>
       "settings `" + first + "` and `" + second + "` cannot be used together"
+    InvalidSettingValue(name~, ..) =>
+      "setting `" + name + "` has a value of the wrong type"
     AttributeConflict(first~, second~, ..) =>
       "attributes `" + first + "` and `" + second + "` cannot be used together"
     UnsupportedPlatform(name~, ..) =>

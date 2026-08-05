@@ -194,6 +194,32 @@ fn validate_dependency_graph(
 }
 
 ///|
+fn validate_parameters(recipe : @syntax.Recipe) -> Unit raise SemanticError {
+  let parameters = recipe.parameters()
+  let names : Set[String] = Set([])
+  let mut saw_default = false
+  let mut saw_variadic = false
+  for parameter in parameters {
+    if names.contains(parameter.name()) {
+      raise InvalidParameters(name=recipe.name(), span=parameter.span())
+    }
+    names.add(parameter.name())
+    if saw_variadic || (saw_default && parameter.default_value() is None) {
+      raise InvalidParameters(name=recipe.name(), span=parameter.span())
+    }
+    if parameter.variadic() {
+      if parameter.default_value() is Some(_) {
+        raise InvalidParameters(name=recipe.name(), span=parameter.span())
+      }
+      saw_variadic = true
+    }
+    if parameter.default_value() is Some(_) {
+      saw_default = true
+    }
+  }
+}
+
+///|
 /// Compile an AST into an immutable, ordered semantic model.
 pub fn compile(
   ast : @syntax.Ast,
@@ -255,14 +281,7 @@ pub fn compile(
           pending_attributes = []
           continue
         }
-        if value
-          .parameters()
-          .iter()
-          .filter(fn(parameter) { parameter.variadic() })
-          .count() >
-          1 {
-          raise InvalidParameters(name~, span=value.span())
-        }
+        validate_parameters(value)
         recipes.push(value)
         symbols.push(Symbol::new(name, Recipe, value.span()))
         pending_attributes = []
