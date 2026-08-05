@@ -348,6 +348,7 @@ pub fn Module::span(self : Module) -> @source.Span {
 ///|
 pub(all) struct Recipe {
   name : String
+  quiet : Bool
   parameters : Array[Parameter]
   dependencies : Array[Dependency]
   subsequent_dependencies : Array[Dependency]
@@ -359,6 +360,7 @@ pub(all) struct Recipe {
 ///|
 pub fn Recipe::new(
   name : String,
+  quiet : Bool,
   parameters : Array[Parameter],
   dependencies : Array[Dependency],
   subsequent_dependencies : Array[Dependency],
@@ -368,6 +370,7 @@ pub fn Recipe::new(
 ) -> Recipe {
   {
     name,
+    quiet,
     parameters,
     dependencies,
     subsequent_dependencies,
@@ -380,6 +383,11 @@ pub fn Recipe::new(
 ///|
 pub fn Recipe::name(self : Recipe) -> String {
   self.name
+}
+
+///|
+pub fn Recipe::quiet(self : Recipe) -> Bool {
+  self.quiet
 }
 
 ///|
@@ -421,6 +429,7 @@ pub(all) enum Item {
   Attribute(Attribute)
   Import(Import)
   Module(Module)
+  Unexport(name~ : String, span~ : @source.Span)
   Comment(text~ : String, span~ : @source.Span)
   Blank(span~ : @source.Span)
 } derive(Eq, Debug)
@@ -435,6 +444,7 @@ pub fn Item::span(self : Item) -> @source.Span {
     Attribute(item) => item.span()
     Import(item) => item.span()
     Module(item) => item.span()
+    Unexport(span~, ..) => span
     Comment(span~, ..) => span
     Blank(span~) => span
   }
@@ -448,6 +458,7 @@ pub fn Item::name(self : Item) -> String? {
     Recipe(item) => Some(item.name())
     Setting(item) => Some(item.name())
     Attribute(item) => Some(item.name())
+    Unexport(name~, ..) => Some(name)
     Import(_) | Module(_) | Comment(_) | Blank(_) => None
   }
 }

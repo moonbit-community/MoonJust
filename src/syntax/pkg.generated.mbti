@@ -130,6 +130,7 @@ pub(all) enum Item {
   Attribute(Attribute)
   Import(Import)
   Module(Module)
+  Unexport(name~ : String, span~ : @source.Span)
   Comment(text~ : String, span~ : @source.Span)
   Blank(span~ : @source.Span)
 } derive(Eq, @debug.Debug)
@@ -164,6 +165,7 @@ pub fn Parameter::variadic(Self) -> Bool
 
 pub(all) struct Recipe {
   name : String
+  quiet : Bool
   parameters : Array[Parameter]
   dependencies : Array[Dependency]
   subsequent_dependencies : Array[Dependency]
@@ -175,8 +177,9 @@ pub fn Recipe::attributes(Self) -> ArrayView[Attribute]
 pub fn Recipe::dependencies(Self) -> ArrayView[Dependency]
 pub fn Recipe::lines(Self) -> ArrayView[RecipeLine]
 pub fn Recipe::name(Self) -> String
-pub fn Recipe::new(String, Array[Parameter], Array[Dependency], Array[Dependency], Array[RecipeLine], Array[Attribute], @source.Span) -> Self
+pub fn Recipe::new(String, Bool, Array[Parameter], Array[Dependency], Array[Dependency], Array[RecipeLine], Array[Attribute], @source.Span) -> Self
 pub fn Recipe::parameters(Self) -> ArrayView[Parameter]
+pub fn Recipe::quiet(Self) -> Bool
 pub fn Recipe::span(Self) -> @source.Span
 pub fn Recipe::subsequent_dependencies(Self) -> ArrayView[Dependency]
 

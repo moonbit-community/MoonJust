@@ -10,9 +10,13 @@ import {
 }
 
 // Values
+pub fn parse(@source.Source, limits? : ParserLimits) -> @syntax.Ast raise ParserError
+
 pub fn parse_expression(@source.Source, limits? : ParserLimits) -> @syntax.Expression raise ParserError
 
 pub fn parse_expression_tokens(@source.Source, @lexer.TokenStream, limits? : ParserLimits) -> @syntax.Expression raise ParserError
+
+pub fn parse_tokens(@source.Source, @lexer.TokenStream, limits? : ParserLimits) -> @syntax.Ast raise ParserError
 
 // Errors
 pub(all) suberror ParserConfigurationError {

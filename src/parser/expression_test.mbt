@@ -7,12 +7,12 @@ fn expression_source(text : String) -> @source.Source {
 test "expression parser preserves precedence and byte spans" {
   let source = expression_source("a + b == c && d || e")
   let expression = @parser.parse_expression(source)
-  guard expression is @syntax.Binary(operator=Or, lhs~, rhs~, span~) else {
+  guard expression is Binary(operator=Or, lhs~, rhs~, span~) else {
     fail("expected disjunction")
   }
   assert_eq(span, source.full_span())
-  assert_true(lhs is @syntax.Binary(operator=And, ..))
-  assert_true(rhs is @syntax.Variable(name="e", ..))
+  assert_true(lhs is Binary(operator=And, ..))
+  assert_true(rhs is Variable(name="e", ..))
 }
 
 ///|
@@ -22,23 +22,18 @@ test "calls, lists, joins, conditionals, and booleans parse" {
   )
   let expression = @parser.parse_expression(source)
   guard expression
-    is @syntax.Conditional(
-      condition~,
-      then_branch~,
-      else_branch=Some(otherwise),
-      ..
-    ) else {
+    is Conditional(condition~, then_branch~, else_branch=Some(otherwise), ..) else {
     fail("expected conditional")
   }
-  assert_true(condition is @syntax.Binary(operator=Equal, ..))
-  assert_true(then_branch is @syntax.Call(name="join", ..))
-  assert_true(otherwise is @syntax.Boolean(value=false, ..))
+  assert_true(condition is Binary(operator=Equal, ..))
+  assert_true(then_branch is Call(name="join", ..))
+  assert_true(otherwise is Boolean(value=false, ..))
 }
 
 ///|
 test "parser validates cooked and Unicode escapes" {
   let source = expression_source("\"line\\nsmile \\u{1F642}\"")
-  guard @parser.parse_expression(source) is @syntax.String(literal) else {
+  guard @parser.parse_expression(source) is String(literal) else {
     fail("expected string")
   }
   assert_eq(literal.cooked(), "line\nsmile 🙂")
@@ -55,13 +50,12 @@ test "parser validates cooked and Unicode escapes" {
 ///|
 test "format strings retain literal and expression parts" {
   let source = expression_source("f'hello {{name}}!'")
-  guard @parser.parse_expression(source)
-    is @syntax.Format(start~, parts~, span~) else {
+  guard @parser.parse_expression(source) is Format(start~, parts~, span~) else {
     fail("expected format string")
   }
   assert_eq(start.cooked(), "hello ")
   assert_eq(parts.length(), 1)
-  assert_true(parts[0].expression() is @syntax.Variable(name="name", ..))
+  assert_true(parts[0].expression() is Variable(name="name", ..))
   assert_eq(parts[0].literal().cooked(), "!")
   assert_eq(span, source.full_span())
 }

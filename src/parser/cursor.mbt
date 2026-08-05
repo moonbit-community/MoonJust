@@ -48,6 +48,24 @@ fn Parser::peek_kind(self : Parser) -> @lexer.TokenKind {
 }
 
 ///|
+fn Parser::peek_kind_at(self : Parser, offset : Int) -> @lexer.TokenKind? {
+  let mut cursor = self.index
+  let mut seen = 0
+  while cursor < self.tokens.length() {
+    let kind = self.tokens[cursor].kind()
+    cursor += 1
+    if kind == Whitespace {
+      continue
+    }
+    if seen == offset {
+      return Some(kind)
+    }
+    seen += 1
+  }
+  None
+}
+
+///|
 fn Parser::lexeme(self : Parser, token : @lexer.Token) -> String {
   try! token.lexeme(self.source)
 }
@@ -86,6 +104,29 @@ fn Parser::accept_keyword(
     Some(self.advance())
   } else {
     None
+  }
+}
+
+///|
+fn Parser::line_finished(self : Parser) -> Bool {
+  match self.peek_kind() {
+    Eol | Eof | Dedent | Comment => true
+    _ => false
+  }
+}
+
+///|
+fn Parser::consume_line_end(self : Parser) -> Unit raise ParserError {
+  self.accept(Comment) |> ignore
+  if self.peek_kind() == Eol {
+    self.advance() |> ignore
+  } else if !self.line_finished() {
+    let found = self.peek()
+    raise UnexpectedToken(
+      expected="end-of-line",
+      found=found.kind(),
+      span=found.span(),
+    )
   }
 }
 
