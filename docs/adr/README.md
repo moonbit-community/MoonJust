@@ -16,3 +16,4 @@ are changed only by a new ADR that records migration and compatibility impact.
 | [0006](0006-public-api-and-semver.md) | Public API and semantic versioning | Accepted |
 | [0007](0007-markdown-tangle.md) | Markdown tangle adapter | Accepted |
 | [0009](0009-wasm-support-boundary.md) | Wasm support boundary | Accepted |
+| [0011](0011-phase-5-hash-and-regexp-dependencies.md) | Phase 5 hash and regexp dependencies | Accepted |

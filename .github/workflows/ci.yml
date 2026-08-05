@@ -29,8 +29,9 @@ jobs:
       - name: Report toolchain
         run: moon version --all
 
-      - name: Refresh nested spike dependencies
+      - name: Refresh dependencies
         run: |
+          moon update
           moon -C spikes/host-async update
           moon -C spikes/ecosystem update
 
@@ -90,6 +91,9 @@ jobs:
         uses: hustcer/setup-moonbit@v1.22
         with:
           version: 0.10.6+62c2592d1
+
+      - name: Refresh dependencies
+        run: moon update
 
       - name: Test Native
         run: moon test --target native

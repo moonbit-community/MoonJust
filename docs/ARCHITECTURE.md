@@ -36,7 +36,7 @@ host adapter. Target-specific `#cfg` and FFI are restricted to host adapters.
 | `formatter` | canonical source rendering and check diffs | source discovery |
 | `semantic` | settings, attributes, symbols, static validation | host side effects |
 | `loader` | source discovery and import/module graph | direct target FFI |
-| `evaluator` | pure and explicitly effectful expression evaluation | arbitrary global environment reads |
+| `evaluator` | pure and explicitly effectful expression evaluation | arbitrary global environment reads; implicit host access |
 | `invocation` | recipe argument and option parsing | global CLI parsing |
 | `planner` | ordered dependency DAG and execution plan | process spawning |
 | `runtime` | scheduler, cache state machine, execution orchestration | backend-specific calls |
@@ -81,5 +81,6 @@ CI enforces all-target type checking, Native/wasm tests, generated interface
 stability, and `tools/check_architecture.sh`. The architecture check rejects
 target-specific FFI, conditional compilation, async implementation, and host
 adapter imports in the completed pure-core packages, including the Phase 2
-lexer. Its package inventory expands when a new pure-core phase begins.
+lexer and Phase 5 value/builtin packages. Its package inventory expands when
+a new pure-core phase begins.
 Compatibility manifests are verified alongside the pinned upstream inventory.
