@@ -337,6 +337,8 @@ fn Parser::parse_item(
       self.advance() |> ignore
       Assignment(self.parse_assignment(start, false, true))
     }
+    None | Some(X) if self.peek_kind_at(1) == Some(ColonEquals) =>
+      Assignment(self.parse_assignment(start, false, false))
     Some(Alias) => Alias(self.parse_alias(start))
     Some(Set) => Setting(self.parse_setting(start))
     Some(Import) => Import(self.parse_import(start))
