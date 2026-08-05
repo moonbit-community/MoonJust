@@ -2,7 +2,7 @@ schema_version = 1
 phase = 4
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "pending"
+plan_exit = "passed"
 audit = "docs/PHASE_0_5_AUDIT.md"
 
 [contracts]
@@ -15,6 +15,15 @@ validation = "undefined names, dependency cycles and parameter cardinality"
 api = "immutable Compilation query facade"
 
 [evidence]
-native_tests = 5
-wasm_tests = 5
+native_tests = 7
+wasm_tests = 7
+settings = 29
+attributes = 29
+loader_cases = 4
+stdin_cases = 1
+graph_cases = 3
+parameter_validation_cases = 4
+api_cases = 2
+provenance = "tests/upstream/NOTICE.md"
+corpus = "tests/upstream/just-1.57.0/phase-4.toml"
 normalizers = []

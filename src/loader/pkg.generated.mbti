@@ -20,6 +20,8 @@ pub fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(T, @source.Source
 
 pub fn[T : @host.HostFs] load_graph(T, @path.PathValue, @source.SourceId, limits? : GraphLimits) -> LoadedGraph raise LoaderError
 
+pub fn load_stdin(Bytes, @source.SourceId, display_name? : String) -> LoadedSource raise LoaderError
+
 // Errors
 pub(all) suberror LoaderError {
   InvalidLimit
@@ -51,8 +53,12 @@ pub(all) struct LoadedSource {
   path : @path.PathValue
   source : @source.Source
   ast : @syntax.Ast
+  parent : @path.PathValue?
+  import_span : @source.Span?
 } derive(@debug.Debug)
 pub fn LoadedSource::ast(Self) -> @syntax.Ast
+pub fn LoadedSource::import_span(Self) -> @source.Span?
+pub fn LoadedSource::parent(Self) -> @path.PathValue?
 pub fn LoadedSource::path(Self) -> @path.PathValue
 pub fn LoadedSource::source(Self) -> @source.Source
 
@@ -60,11 +66,13 @@ pub(all) struct SearchOptions {
   filename : String
   ceiling : @path.PathValue?
   explicit : @path.PathValue?
+  global : @path.PathValue?
 } derive(Eq, @debug.Debug)
 pub fn SearchOptions::ceiling(Self) -> @path.PathValue?
 pub fn SearchOptions::explicit(Self) -> @path.PathValue?
 pub fn SearchOptions::filename(Self) -> String
-pub fn SearchOptions::new(filename? : String, ceiling? : @path.PathValue?, explicit? : @path.PathValue?) -> Self
+pub fn SearchOptions::global(Self) -> @path.PathValue?
+pub fn SearchOptions::new(filename? : String, ceiling? : @path.PathValue?, explicit? : @path.PathValue?, global? : @path.PathValue?) -> Self
 
 // Type aliases
 

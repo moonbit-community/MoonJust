@@ -4,6 +4,7 @@ pub(all) struct SearchOptions {
   filename : String
   ceiling : @path.PathValue?
   explicit : @path.PathValue?
+  global : @path.PathValue?
 } derive(Eq, Debug)
 
 ///|
@@ -11,8 +12,9 @@ pub fn SearchOptions::new(
   filename? : String = "justfile",
   ceiling? : @path.PathValue? = None,
   explicit? : @path.PathValue? = None,
+  global? : @path.PathValue? = None,
 ) -> SearchOptions {
-  { filename, ceiling, explicit }
+  { filename, ceiling, explicit, global }
 }
 
 ///|
@@ -31,10 +33,17 @@ pub fn SearchOptions::explicit(self : SearchOptions) -> @path.PathValue? {
 }
 
 ///|
+pub fn SearchOptions::global(self : SearchOptions) -> @path.PathValue? {
+  self.global
+}
+
+///|
 pub(all) struct LoadedSource {
   path : @path.PathValue
   source : @source.Source
   ast : @syntax.Ast
+  parent : @path.PathValue?
+  import_span : @source.Span?
 } derive(Debug)
 
 ///|
@@ -79,6 +88,42 @@ pub fn LoadedSource::source(self : LoadedSource) -> @source.Source {
 ///|
 pub fn LoadedSource::ast(self : LoadedSource) -> @syntax.Ast {
   self.ast
+}
+
+///|
+pub fn LoadedSource::parent(self : LoadedSource) -> @path.PathValue? {
+  self.parent
+}
+
+///|
+pub fn LoadedSource::import_span(self : LoadedSource) -> @source.Span? {
+  self.import_span
+}
+
+///|
+fn LoadedSource::with_parent(
+  self : LoadedSource,
+  parent : @path.PathValue?,
+  import_span : @source.Span?,
+) -> LoadedSource {
+  { path: self.path, source: self.source, ast: self.ast, parent, import_span }
+}
+
+///|
+/// Load source supplied by stdin or another non-filesystem transport.
+pub fn load_stdin(
+  bytes : Bytes,
+  source_id : @source.SourceId,
+  display_name? : String = "<stdin>",
+) -> LoadedSource raise LoaderError {
+  let source = @source.Source::from_bytes(source_id, display_name, bytes) catch {
+    error => raise InvalidSource(error)
+  }
+  let ast = @parser.parse(source) catch { error => raise Parse(error) }
+  let path = @path.PathValue::new(display_name, Unix) catch {
+    _ => raise Host(InvalidInput("invalid stdin display name"))
+  }
+  { path, source, ast, parent: None, import_span: None }
 }
 
 ///|
@@ -129,6 +174,17 @@ pub fn[T : @host.HostFs] discover(
       Some(parent) => current = parent
     }
   }
+  match options.global() {
+    Some(global) => {
+      let exists = @host.HostFs::file_exists(host, global) catch {
+        error => raise Host(error)
+      }
+      if exists {
+        return global
+      }
+    }
+    None => ()
+  }
   raise NoJustfileFound(start~, filename=options.filename())
 }
 
@@ -146,7 +202,7 @@ pub fn[T : @host.HostFs] load(
     error => raise InvalidSource(error)
   }
   let ast = @parser.parse(source) catch { error => raise Parse(error) }
-  { path, source, ast }
+  { path, source, ast, parent: None, import_span: None }
 }
 
 ///|
@@ -191,6 +247,8 @@ pub fn[T : @host.HostFs] load_graph(
   fn visit(
     path : @path.PathValue,
     next_id : @source.SourceId,
+    parent : @path.PathValue?,
+    import_span : @source.Span?,
   ) -> Unit raise LoaderError {
     if active.contains(path) {
       raise ImportCycle(path~)
@@ -202,7 +260,7 @@ pub fn[T : @host.HostFs] load_graph(
       raise Host(InvalidInput("import graph file limit exceeded"))
     }
     active.add(path)
-    let loaded = load(host, path, next_id)
+    let loaded = load(host, path, next_id).with_parent(parent, import_span)
     files.push(loaded)
     for item in loaded.ast().items() {
       match item {
@@ -218,6 +276,8 @@ pub fn[T : @host.HostFs] load_graph(
             visit(
               child,
               @source.SourceId::new(next_id.value() + files.length()),
+              Some(path),
+              Some(value.span()),
             )
           }
         }
@@ -236,6 +296,8 @@ pub fn[T : @host.HostFs] load_graph(
                 visit(
                   child,
                   @source.SourceId::new(next_id.value() + files.length()),
+                  Some(path),
+                  Some(value.span()),
                 )
               }
             }
@@ -246,6 +308,6 @@ pub fn[T : @host.HostFs] load_graph(
     active.remove(path)
     visited.add(path)
   }
-  visit(root, source_id)
+  visit(root, source_id, None, None)
   { files, }
 }

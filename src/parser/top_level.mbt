@@ -199,6 +199,32 @@ fn setting_known(name : String) -> Bool {
 }
 
 ///|
+fn setting_is_boolean(name : String) -> Bool {
+  match name {
+    "allow-duplicate-recipes"
+    | "allow-duplicate-variables"
+    | "default-list"
+    | "default-script"
+    | "dotenv-load"
+    | "dotenv-override"
+    | "dotenv-required"
+    | "export"
+    | "fallback"
+    | "guards"
+    | "ignore-comments"
+    | "lazy"
+    | "lists"
+    | "no-cd"
+    | "no-exit-message"
+    | "positional-arguments"
+    | "quiet"
+    | "unstable"
+    | "windows-powershell" => true
+    _ => false
+  }
+}
+
+///|
 /// Return the complete stable settings inventory from `just 1.57.0`.
 pub fn setting_names() -> ArrayView[String] {
   [
@@ -221,10 +247,19 @@ fn Parser::parse_setting(
   if !setting_known(name) {
     raise UnknownSetting(name~, span=name_token.span())
   }
-  let value = if self.accept(ColonEquals) is Some(_) {
-    Some(self.parse_expression_node())
+  let value = if setting_is_boolean(name) {
+    if self.accept(ColonEquals) is Some(_) {
+      let expression = self.parse_expression_node()
+      match expression {
+        Boolean(_) => Some(expression)
+        _ => raise InvalidSettingValue(name~, span=expression.span())
+      }
+    } else {
+      None
+    }
   } else {
-    None
+    self.expect(ColonEquals) |> ignore
+    Some(self.parse_expression_node())
   }
   let end_span = value
     .map(fn(value) { value.span() })

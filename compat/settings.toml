@@ -1,6 +1,6 @@
 schema_version = 1
 upstream = "just 1.57.0"
-status = "planned"
+status = "implemented"
 tier = "A"
 names = [
   "allow-duplicate-recipes",
@@ -36,7 +36,7 @@ names = [
 
 [[conflict]]
 left = "dotenv-command"
-right = ["dotenv-filename", "dotenv-load", "dotenv-path", "dotenv-required"]
+right = ["dotenv-filename", "dotenv-load", "dotenv-override", "dotenv-path", "dotenv-required"]
 
 [[conflict]]
 left = "no-cd"

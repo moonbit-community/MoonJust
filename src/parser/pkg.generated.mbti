@@ -35,6 +35,7 @@ pub(all) suberror ParserError {
   InvalidEscapeSequence(character~ : String, span~ : @source.Span)
   InvalidUnicodeEscape(reason~ : String, span~ : @source.Span)
   UnknownSetting(name~ : String, span~ : @source.Span)
+  InvalidSettingValue(name~ : String, span~ : @source.Span)
   UnknownAttribute(name~ : String, span~ : @source.Span)
   InvalidAttributeArity(name~ : String, span~ : @source.Span)
   InvalidAttributeArgument(name~ : String, span~ : @source.Span)
