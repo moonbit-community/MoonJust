@@ -1,0 +1,235 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/syntax"
+
+import {
+  "moonbit-community/MoonJust/src/source",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Alias {
+  name : String
+  target : String
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Alias::name(Self) -> String
+pub fn Alias::new(String, String, @source.Span) -> Self
+pub fn Alias::span(Self) -> @source.Span
+pub fn Alias::target(Self) -> String
+
+pub(all) struct Assignment {
+  name : String
+  value : Expression
+  exported : Bool
+  eager : Bool
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Assignment::eager(Self) -> Bool
+pub fn Assignment::exported(Self) -> Bool
+pub fn Assignment::name(Self) -> String
+pub fn Assignment::new(String, Expression, Bool, Bool, @source.Span) -> Self
+pub fn Assignment::span(Self) -> @source.Span
+pub fn Assignment::value(Self) -> Expression
+
+pub(all) struct Ast {
+  source_id : @source.SourceId
+  items : Array[Item]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Ast::items(Self) -> ArrayView[Item]
+pub fn Ast::new(@source.SourceId, Array[Item], @source.Span) -> Self
+pub fn Ast::source_id(Self) -> @source.SourceId
+pub fn Ast::span(Self) -> @source.Span
+
+pub(all) struct Attribute {
+  name : String
+  arguments : Array[AttributeArgument]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Attribute::arguments(Self) -> ArrayView[AttributeArgument]
+pub fn Attribute::name(Self) -> String
+pub fn Attribute::new(String, Array[AttributeArgument], @source.Span) -> Self
+pub fn Attribute::span(Self) -> @source.Span
+
+pub(all) struct AttributeArgument {
+  key : String?
+  value : Expression?
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn AttributeArgument::key(Self) -> String?
+pub fn AttributeArgument::new(String?, Expression?, @source.Span) -> Self
+pub fn AttributeArgument::span(Self) -> @source.Span
+pub fn AttributeArgument::value(Self) -> Expression?
+
+pub(all) enum BinaryOperator {
+  Or
+  And
+  Equal
+  NotEqual
+  RegexMatch
+  RegexNotMatch
+  ListConcat
+  Concat
+  Join
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Dependency {
+  name : String
+  arguments : Array[Expression]
+  starred : Bool
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Dependency::arguments(Self) -> ArrayView[Expression]
+pub fn Dependency::name(Self) -> String
+pub fn Dependency::new(String, Array[Expression], Bool, @source.Span) -> Self
+pub fn Dependency::span(Self) -> @source.Span
+pub fn Dependency::starred(Self) -> Bool
+
+pub(all) enum Expression {
+  String(StringLiteral)
+  Backtick(StringLiteral)
+  Boolean(value~ : Bool, span~ : @source.Span)
+  Variable(name~ : String, span~ : @source.Span)
+  Call(name~ : String, arguments~ : Array[Expression], span~ : @source.Span)
+  List(elements~ : Array[Expression], span~ : @source.Span)
+  Unary(operator~ : UnaryOperator, operand~ : Expression, span~ : @source.Span)
+  Binary(operator~ : BinaryOperator, lhs~ : Expression, rhs~ : Expression, span~ : @source.Span)
+  Conditional(condition~ : Expression, then_branch~ : Expression, else_branch~ : Expression?, span~ : @source.Span)
+  Format(start~ : StringLiteral, parts~ : Array[FormatPart], span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+pub fn Expression::kind(Self) -> String
+pub fn Expression::span(Self) -> @source.Span
+
+pub(all) struct FormatPart {
+  expression : Expression
+  literal : StringLiteral
+} derive(Eq, @debug.Debug)
+pub fn FormatPart::expression(Self) -> Expression
+pub fn FormatPart::literal(Self) -> StringLiteral
+pub fn FormatPart::new(Expression, StringLiteral) -> Self
+
+pub(all) struct Import {
+  path : StringLiteral
+  optional : Bool
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Import::new(StringLiteral, Bool, @source.Span) -> Self
+pub fn Import::optional(Self) -> Bool
+pub fn Import::path(Self) -> StringLiteral
+pub fn Import::span(Self) -> @source.Span
+
+pub(all) enum Item {
+  Assignment(Assignment)
+  Alias(Alias)
+  Recipe(Recipe)
+  Setting(Setting)
+  Attribute(Attribute)
+  Import(Import)
+  Module(Module)
+  Unexport(name~ : String, span~ : @source.Span)
+  Comment(text~ : String, span~ : @source.Span)
+  Blank(span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+pub fn Item::name(Self) -> String?
+pub fn Item::span(Self) -> @source.Span
+
+pub(all) struct Module {
+  name : String
+  path : StringLiteral?
+  optional : Bool
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Module::name(Self) -> String
+pub fn Module::new(String, StringLiteral?, Bool, @source.Span) -> Self
+pub fn Module::optional(Self) -> Bool
+pub fn Module::path(Self) -> StringLiteral?
+pub fn Module::span(Self) -> @source.Span
+
+pub(all) struct Parameter {
+  name : String
+  default_value : Expression?
+  variadic : Bool
+  exported : Bool
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Parameter::default_value(Self) -> Expression?
+pub fn Parameter::exported(Self) -> Bool
+pub fn Parameter::name(Self) -> String
+pub fn Parameter::new(String, Expression?, Bool, Bool, @source.Span) -> Self
+pub fn Parameter::span(Self) -> @source.Span
+pub fn Parameter::variadic(Self) -> Bool
+
+pub(all) struct Recipe {
+  name : String
+  quiet : Bool
+  parameters : Array[Parameter]
+  dependencies : Array[Dependency]
+  subsequent_dependencies : Array[Dependency]
+  lines : Array[RecipeLine]
+  attributes : Array[Attribute]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Recipe::attributes(Self) -> ArrayView[Attribute]
+pub fn Recipe::dependencies(Self) -> ArrayView[Dependency]
+pub fn Recipe::lines(Self) -> ArrayView[RecipeLine]
+pub fn Recipe::name(Self) -> String
+pub fn Recipe::new(String, Bool, Array[Parameter], Array[Dependency], Array[Dependency], Array[RecipeLine], Array[Attribute], @source.Span) -> Self
+pub fn Recipe::parameters(Self) -> ArrayView[Parameter]
+pub fn Recipe::quiet(Self) -> Bool
+pub fn Recipe::span(Self) -> @source.Span
+pub fn Recipe::subsequent_dependencies(Self) -> ArrayView[Dependency]
+
+pub(all) enum RecipeFragment {
+  Text(text~ : String, span~ : @source.Span)
+  Interpolation(expression~ : Expression, span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecipeLine {
+  fragments : Array[RecipeFragment]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn RecipeLine::fragments(Self) -> ArrayView[RecipeFragment]
+pub fn RecipeLine::new(Array[RecipeFragment], @source.Span) -> Self
+pub fn RecipeLine::span(Self) -> @source.Span
+
+pub(all) struct Setting {
+  name : String
+  value : Expression?
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Setting::name(Self) -> String
+pub fn Setting::new(String, Expression?, @source.Span) -> Self
+pub fn Setting::span(Self) -> @source.Span
+pub fn Setting::value(Self) -> Expression?
+
+pub(all) enum StringKind {
+  Raw
+  Cooked
+  Backtick
+  TripleRaw
+  TripleCooked
+} derive(Eq, @debug.Debug)
+
+pub(all) struct StringLiteral {
+  raw : String
+  cooked : String
+  kind : StringKind
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn StringLiteral::cooked(Self) -> String
+pub fn StringLiteral::kind(Self) -> StringKind
+pub fn StringLiteral::new(String, String, StringKind, @source.Span) -> Self
+pub fn StringLiteral::raw(Self) -> String
+pub fn StringLiteral::span(Self) -> @source.Span
+
+pub(all) enum UnaryOperator {
+  Not
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
