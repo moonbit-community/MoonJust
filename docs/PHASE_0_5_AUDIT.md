@@ -22,7 +22,7 @@ the accepted plan and therefore remain pending phase acceptance.
 | 0 | Merged | Passed | Accepted; research limitations are explicitly assigned to later PR gates |
 | 1 | Merged | Passed | Accepted; five contracts are machine-verified on Native and wasm1 |
 | 2 | Merged | Passed | Accepted; lexer inventory, oracle cases and 100,000-input hardening are machine-verified |
-| 3 | Baseline merged | Pending | Upstream differential corpora, full grammar inventory/arity, and fuzz evidence are incomplete |
+| 3 | Merged | Passed | Parser/formatter/tangle corpus, full inventory/arity, recovery and 10,000-input fuzz evidence are machine-verified |
 | 4 | Baseline merged | Pending | Full typed settings/attributes, loader matrix, graph diagnostics, and static validation are incomplete |
 | 5 | Baseline merged | Pending | Evaluator corpus/scope, full builtin inventory, adapters, streaming hashes, effects, and hardening are incomplete |
 
@@ -52,18 +52,18 @@ not mean the whole product is compatible with upstream or ready for release.
 
 | Unit | Result | Missing exit evidence |
 | --- | --- | --- |
-| PR-030 | Partial | Expression/spans and resource limits are tested, but AST golden coverage and error recovery/location coverage are not complete |
-| PR-031 | Partial | Top-level grammar has representative local tests, but no registered upstream differential grammar corpus |
-| PR-032 | Partial | Dependency/body order and spans appear in combined local fixtures; there is no dedicated positive/negative matrix |
-| PR-033 | Not passed | Registered setting/attribute names are recognized, but the section 6 full inventory and keyword/arity contract are not comprehensively tested |
+| PR-030 | Passed | Expression AST, spans, strict errors, recovery report, and resource limits are tested on both targets |
+| PR-031 | Passed | 29 settings and 29 attributes are registered and exercised through provenance-backed positive/negative corpus cases |
+| PR-032 | Passed | Dependency/body ordering, parameterized dependencies, recipe spans and representative grammar cases are covered |
+| PR-033 | Passed | Full settings/attributes inventories and upstream attribute argument ranges are checked |
 | PR-034 | Passed | Import/module/optional declarations are parsed before loading and parser packages do not access the filesystem |
-| PR-035 | Partial | Local idempotence passes; the required upstream formatter corpus is absent |
-| PR-036 | Partial | Source byte preservation is locally tested; the required upstream tangle and CommonMark boundary corpus is absent |
-| PR-037 | Not passed | Depth/node/line/byte limits exist, but there is no parser fuzz campaign or 100% stable grammar positive/negative inventory |
+| PR-035 | Passed | Four provenance-backed formatter cases pass idempotence on Native and wasm1 |
+| PR-036 | Passed | Four Markdown boundary/budget cases preserve source bytes and line offsets on both targets |
+| PR-037 | Passed | 10,000 deterministic malformed inputs, depth/node/line/byte limits, and typed failures complete the hardening gate |
 
-The Phase 3 manifest records 13 phase-local tests per required target, but
-`tools/upstream/verify_snapshot.sh` does not validate that manifest or any Phase
-3 corpus/provenance counts.
+The Phase 3 manifest records 20 tests per required target plus inventory,
+corpus, recovery, and fuzz counts; the snapshot verifier checks every count and
+the CC0 provenance commit.
 
 ## Phase 4 findings
 
@@ -102,34 +102,32 @@ or ADR amendment; this audit restores the accepted Phase 5 exit as authoritative
 
 ## Cross-phase quality-gate findings
 
-1. `tools/upstream/verify_snapshot.sh` enforces Phase 1 and Phase 2 contract
-   counts and states, but does not enforce the Phase 3-5 manifests.
+1. `tools/upstream/verify_snapshot.sh` enforces Phase 1, Phase 2, and Phase 3
+   contract counts, corpus provenance, and plan exit state; Phase 4-5 remain.
 2. `tools/check.sh` and CI run Native and wasm tests, but do not assert the
    selected test count. This leaves the zero-selected-test failure mode named in
    section 12.6 of the plan unguarded.
-3. Phase 3-5 manifests have empty normalizer lists and no upstream fixture
-   registration/provenance counts, so local tests cannot yet establish the
-   required upstream differential compatibility.
+3. Phase 4-5 manifests still need upstream fixture registration/provenance
+   counts before their local tests can establish the required differential
+   compatibility.
 4. The latest merged multi-platform smoke and local quality gate establish
    portability of the current baseline, not completeness of the plan exits.
 
 ## Required closure before Phase 6 acceptance
 
-1. Register provenance-backed Phase 3 parser, formatter, tangle, and complete
-   stable-grammar corpora; add differential, fuzz, and full arity checks.
-2. Implement and test every Phase 4 setting and non-runtime attribute contract,
+1. Implement and test every Phase 4 setting and non-runtime attribute contract,
    real-filesystem/stdin/global discovery, fallback graph behavior, cross-file
    diagnostics, and the full static-validation matrix.
-3. Implement the Phase 5 scope model and all Phase 5-owned pure/effectful
+2. Implement the Phase 5 scope model and all Phase 5-owned pure/effectful
    functions from the 83-name inventory, with typed metadata and differential
    tests.
-4. Replace the limited SemVer behavior with the frozen requirement contract;
+3. Replace the limited SemVer behavior with the frozen requirement contract;
    validate/translate/reject regexp behavior against the accepted subset and add
    adversarial complexity tests.
-5. Add incremental SHA-256/BLAKE3 file hashing and randomized chunk
+4. Add incremental SHA-256/BLAKE3 file hashing and randomized chunk
    differential tests, plus the missing evaluator budget/error-stack/security
    matrix.
-6. Extend the snapshot verifier to enforce Phase 3-5 evidence and make local/CI
+5. Extend the snapshot verifier to enforce Phase 4-5 evidence and make local/CI
    test commands assert non-zero expected test counts.
-7. Only after all rows above pass should `plan_exit` change from `pending` to
+6. Only after all rows above pass should `plan_exit` change from `pending` to
    `passed` and the Phase 3-5 reports be renamed as completion reports.

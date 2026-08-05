@@ -2,7 +2,7 @@ schema_version = 1
 phase = 3
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "pending"
+plan_exit = "passed"
 audit = "docs/PHASE_0_5_AUDIT.md"
 
 [contracts]
@@ -13,6 +13,16 @@ markdown_tangle = "top-level just fences with source-byte preservation"
 hardening = "depth/node/line/byte limits; typed errors"
 
 [evidence]
-native_tests = 13
-wasm_tests = 13
+native_tests = 20
+wasm_tests = 20
+registered_settings = 29
+registered_attributes = 29
+positive_inventory_cases = 58
+negative_cases = 9
+recovered_errors = 2
+fuzz_inputs = 10000
+formatter_cases = 4
+markdown_tests = 4
+provenance = "tests/upstream/NOTICE.md"
+corpus = "tests/upstream/just-1.57.0/phase-3.toml"
 normalizers = []

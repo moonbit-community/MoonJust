@@ -10,13 +10,19 @@ import {
 }
 
 // Values
+pub fn attribute_names() -> ArrayView[String]
+
 pub fn parse(@source.Source, limits? : ParserLimits) -> @syntax.Ast raise ParserError
 
 pub fn parse_expression(@source.Source, limits? : ParserLimits) -> @syntax.Expression raise ParserError
 
 pub fn parse_expression_tokens(@source.Source, @lexer.TokenStream, limits? : ParserLimits) -> @syntax.Expression raise ParserError
 
+pub fn parse_recovering(@source.Source, limits? : ParserLimits) -> ParseReport raise ParserError
+
 pub fn parse_tokens(@source.Source, @lexer.TokenStream, limits? : ParserLimits) -> @syntax.Ast raise ParserError
+
+pub fn setting_names() -> ArrayView[String]
 
 // Errors
 pub(all) suberror ParserConfigurationError {
@@ -31,6 +37,8 @@ pub(all) suberror ParserError {
   UnknownSetting(name~ : String, span~ : @source.Span)
   UnknownAttribute(name~ : String, span~ : @source.Span)
   InvalidAttributeArity(name~ : String, span~ : @source.Span)
+  InvalidAttributeArgument(name~ : String, span~ : @source.Span)
+  UnknownAttributeKey(attribute~ : String, key~ : String, span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
   ExtraneousInput(span~ : @source.Span)
@@ -41,6 +49,13 @@ pub fn ParserError::span(Self) -> @source.Span
 pub fn ParserError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
 
 // Types and methods
+pub struct ParseReport {
+  ast : @syntax.Ast
+  errors : Array[ParserError]
+} derive(@debug.Debug)
+pub fn ParseReport::ast(Self) -> @syntax.Ast
+pub fn ParseReport::errors(Self) -> ArrayView[ParserError]
+
 pub struct ParserLimits {
   max_depth : Int
   max_nodes : Int

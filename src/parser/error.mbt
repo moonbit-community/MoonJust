@@ -12,6 +12,8 @@ pub(all) suberror ParserError {
   UnknownSetting(name~ : String, span~ : @source.Span)
   UnknownAttribute(name~ : String, span~ : @source.Span)
   InvalidAttributeArity(name~ : String, span~ : @source.Span)
+  InvalidAttributeArgument(name~ : String, span~ : @source.Span)
+  UnknownAttributeKey(attribute~ : String, key~ : String, span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
   ExtraneousInput(span~ : @source.Span)
@@ -27,9 +29,11 @@ pub fn ParserError::code(self : ParserError) -> String {
     UnknownSetting(_) => "MJ-PARSE-0004"
     UnknownAttribute(_) => "MJ-PARSE-0005"
     InvalidAttributeArity(_) => "MJ-PARSE-0006"
-    RecursionLimitExceeded(_) => "MJ-PARSE-0007"
-    NodeLimitExceeded(_) => "MJ-PARSE-0008"
-    ExtraneousInput(_) => "MJ-PARSE-0009"
+    InvalidAttributeArgument(_) => "MJ-PARSE-0007"
+    UnknownAttributeKey(_) => "MJ-PARSE-0008"
+    RecursionLimitExceeded(_) => "MJ-PARSE-0009"
+    NodeLimitExceeded(_) => "MJ-PARSE-0010"
+    ExtraneousInput(_) => "MJ-PARSE-0011"
   }
 }
 
@@ -43,6 +47,8 @@ pub fn ParserError::span(self : ParserError) -> @source.Span {
     UnknownSetting(span~, ..) => span
     UnknownAttribute(span~, ..) => span
     InvalidAttributeArity(span~, ..) => span
+    InvalidAttributeArgument(span~, ..) => span
+    UnknownAttributeKey(span~, ..) => span
     RecursionLimitExceeded(span~, ..) => span
     NodeLimitExceeded(span~, ..) => span
     ExtraneousInput(span~) => span
@@ -62,6 +68,10 @@ pub fn ParserError::message(self : ParserError) -> String {
     UnknownAttribute(name~, ..) => "unknown attribute `" + name + "`"
     InvalidAttributeArity(name~, ..) =>
       "invalid arguments for attribute `" + name + "`"
+    InvalidAttributeArgument(name~, ..) =>
+      "attribute `" + name + "` requires a string literal argument"
+    UnknownAttributeKey(attribute~, key~, ..) =>
+      "unknown key `" + key + "` for attribute `" + attribute + "`"
     RecursionLimitExceeded(limit~, ..) =>
       "parser recursion limit " + limit.to_string() + " exceeded"
     NodeLimitExceeded(limit~, ..) =>

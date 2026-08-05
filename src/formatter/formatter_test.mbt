@@ -20,3 +20,25 @@ test "formatter preserves expression structure and attributes" {
   let rendered = @formatter.format_source(source)
   assert_eq(rendered, "[private]\nfoo x: echo\n")
 }
+
+///|
+test "phase 3 formatter corpus is idempotent across representative grammar" {
+  let cases = [
+    "x := if true { \"a\" + \"b\" } else { \"c\" }\n", "[doc(\"build\")]\nbuild:\n    echo {{\"ok\"}}\n",
+    "set allow-duplicate-recipes\nimport? \"common.just\"\n", "f := f'hello {{name}}!'\n",
+  ]
+  for index, text in cases {
+    let source = @source.Source::from_text(
+      @source.SourceId::new(800 + index),
+      "formatter-corpus",
+      text,
+    )
+    let formatted = @formatter.format_source(source)
+    let reparsed = @source.Source::from_text(
+      @source.SourceId::new(900 + index),
+      "formatter-corpus-formatted",
+      formatted,
+    )
+    assert_eq(@formatter.format_source(reparsed), formatted)
+  }
+}
