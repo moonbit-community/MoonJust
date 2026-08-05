@@ -2,6 +2,8 @@ schema_version = 1
 phase = 4
 upstream = "just 1.57.0"
 status = "implemented"
+plan_exit = "pending"
+audit = "docs/PHASE_0_5_AUDIT.md"
 
 [contracts]
 symbols = "ordered variables, recipes and aliases with duplicate settings"

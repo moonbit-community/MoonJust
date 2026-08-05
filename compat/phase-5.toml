@@ -2,6 +2,8 @@ schema_version = 1
 phase = 5
 upstream = "just 1.57.0"
 status = "implemented"
+plan_exit = "pending"
+audit = "docs/PHASE_0_5_AUDIT.md"
 
 [contracts]
 value = "typed string/list/bool values with stable rendering and type errors"

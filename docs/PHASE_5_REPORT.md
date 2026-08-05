@@ -1,10 +1,17 @@
-# Phase 5 completion report
+# Phase 5 implementation report
 
-- Status: Complete
+- Status: Implementation baseline merged; original Phase 5 exit pending
+- Strict review: 2026-08-05 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: runtime values, pure/effectful expression evaluation, typed builtins,
   cryptographic hashes, host capability calls, and evaluator hardening
+
+This report records the implementation that was merged for Phase 5. It is not
+evidence that every original `PROJECT_PLAN.md` exit condition has passed. The
+strict review found that the full expression/function corpora, scope model,
+83-function compatibility table, regexp/SemVer contract, streaming hash
+evidence, effectful builtin matrix, and hardening matrix remain incomplete.
 
 ## Delivered contracts
 
@@ -30,21 +37,21 @@
   to the builtin package. BLAKE3 is a self-contained specification port because
   no approved cross-target MoonBit package met the plan's contract.
 - The regexp adapter is exact-version `moonbitlang/regexp@0.3.5`; compilation
-  failures are mapped to a stable typed requirement error. The package is not
+  failures are mapped to `EvaluationError::InvalidPattern`. The package is not
   exposed through the root facade.
 - File hashes read bytes through `HostFs`; they do not bypass the capability
   boundary or silently fall back to an ambient filesystem.
 
 ## Compatibility boundary
 
-Phase 5 establishes the evaluator and the stable typed builtin registry. The
-full upstream list of 83 just functions is intentionally delivered across the
-later file, context, CLI, and execution phases in `PROJECT_PLAN.md`; no name is
-silently accepted before its contract exists. `src/builtin.names()` therefore
-lists only pure functions implemented in this phase, while effectful names are
-dispatched by `EffectEvaluator`.
+Phase 5 establishes an evaluator and an initial typed builtin dispatch surface.
+The accepted plan assigns the corresponding pure and effectful function exits
+to PR-052, PR-055, and PR-056. The current subset therefore remains an open
+Phase 5 exit rather than a completed contract. No name is silently accepted
+before its implementation exists: `src/builtin.names()` lists the implemented
+pure subset, while effectful names are dispatched by `EffectEvaluator`.
 
-## Exit evidence
+## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
 - `moon test --target native`: 78 passed, 0 failed.

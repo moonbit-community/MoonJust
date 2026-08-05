@@ -1,9 +1,16 @@
-# Phase 3 completion report
+# Phase 3 implementation report
 
-- Status: Complete
+- Status: Implementation baseline merged; original Phase 3 exit pending
+- Strict review: 2026-08-05 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: parser-owned AST, recursive-descent grammar, canonical formatter, and source-aware Markdown tangle
+
+This report records the implementation that was merged for Phase 3. It is not
+evidence that every original `PROJECT_PLAN.md` exit condition has passed. The
+strict review found missing upstream parser/formatter/tangle differential
+corpora, incomplete full-inventory arity evidence, and no fuzz-backed positive
+and negative coverage for the complete stable grammar.
 
 ## Delivered contracts
 
@@ -24,7 +31,7 @@
 - Markdown tangle replaces excluded line bytes with spaces and preserves line terminators, so diagnostics keep original byte offsets.
 - Formatter output is deterministic, uses four-space recipe indentation, and is idempotent.
 
-## Exit evidence
+## Current verification evidence
 
 - All parser and formatter package tests pass on Native and wasm1.
 - `moon check --target all --warn-list +73` passes without warnings.
