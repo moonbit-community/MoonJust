@@ -1,0 +1,18 @@
+schema_version = 1
+phase = 4
+upstream = "just 1.57.0"
+status = "implemented"
+
+[contracts]
+symbols = "ordered variables, recipes and aliases with duplicate settings"
+settings = "typed values and all registered conflict pairs"
+attributes = "recipe metadata, platform selectors and static conflicts"
+loader = "ceiling/explicit discovery, source parsing and capability mapping"
+graph = "optional imports/modules, canonical paths and cycle diagnostics"
+validation = "undefined names, dependency cycles and parameter cardinality"
+api = "immutable Compilation query facade"
+
+[evidence]
+native_tests = 5
+wasm_tests = 5
+normalizers = []
