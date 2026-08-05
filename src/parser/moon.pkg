@@ -1,0 +1,6 @@
+import {
+  "moonbit-community/MoonJust/src/diagnostic",
+  "moonbit-community/MoonJust/src/lexer",
+  "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/src/syntax",
+}
