@@ -251,6 +251,20 @@ pub fn blake3_bytes(bytes : Bytes) -> String {
 }
 
 ///|
+/// Hash a sequence of chunks using the same canonical byte concatenation as
+/// the one-shot API. The chunk boundary is intentionally not part of the
+/// digest, which makes adapters and in-memory test hosts interchangeable.
+pub fn blake3_chunks(chunks : ArrayView[Bytes]) -> String {
+  let bytes : Array[Byte] = []
+  for chunk in chunks {
+    for byte in chunk {
+      bytes.push(byte)
+    }
+  }
+  blake3_bytes(Bytes::from_array(bytes))
+}
+
+///|
 pub fn sha256_bytes(bytes : Bytes) -> String {
   let digest = @crypto.sha256(bytes)
   let builder = StringBuilder()
@@ -258,4 +272,15 @@ pub fn sha256_bytes(bytes : Bytes) -> String {
     builder.write_string(byte.to_hex())
   }
   builder.to_string()
+}
+
+///|
+pub fn sha256_chunks(chunks : ArrayView[Bytes]) -> String {
+  let bytes : Array[Byte] = []
+  for chunk in chunks {
+    for byte in chunk {
+      bytes.push(byte)
+    }
+  }
+  sha256_bytes(Bytes::from_array(bytes))
 }

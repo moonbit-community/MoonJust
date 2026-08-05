@@ -23,6 +23,47 @@ pub fn EvaluationLimits::new(
 }
 
 ///|
+/// Invocation facts kept separate from pure expression evaluation. Effect
+/// adapters may use these values when evaluating the same expression in a
+/// recipe, module, or imported source.
+pub(all) struct EvaluationContext {
+  cwd : @path.PathValue?
+  recipe : String?
+  module_name : String?
+  source : @source.SourceId?
+} derive(Eq, Debug)
+
+///|
+pub fn EvaluationContext::new(
+  cwd? : @path.PathValue? = None,
+  recipe? : String? = None,
+  module_name? : String? = None,
+  source? : @source.SourceId? = None,
+) -> EvaluationContext {
+  { cwd, recipe, module_name, source }
+}
+
+///|
+pub fn EvaluationContext::cwd(self : EvaluationContext) -> @path.PathValue? {
+  self.cwd
+}
+
+///|
+pub fn EvaluationContext::recipe(self : EvaluationContext) -> String? {
+  self.recipe
+}
+
+///|
+pub fn EvaluationContext::module_name(self : EvaluationContext) -> String? {
+  self.module_name
+}
+
+///|
+pub fn EvaluationContext::source(self : EvaluationContext) -> @source.SourceId? {
+  self.source
+}
+
+///|
 priv struct Evaluator {
   environment : Environment
   limits : EvaluationLimits
@@ -126,7 +167,7 @@ fn Evaluator::eval_binary(
 }
 
 ///|
-fn Evaluator::eval(
+fn Evaluator::eval_inner(
   self : Evaluator,
   expression : @syntax.Expression,
 ) -> Value raise EvaluationError {
@@ -142,6 +183,9 @@ fn Evaluator::eval(
         None => raise UndefinedVariable(name~, span~)
       }
     Call(name~, arguments~, ..) => {
+      if @builtin.is_effectful(name) {
+        raise EffectRequired(effect=name, span~)
+      }
       let values : Array[Value] = []
       for argument in arguments {
         values.push(self.eval(argument))
@@ -184,6 +228,27 @@ fn Evaluator::eval(
 }
 
 ///|
+/// Keep the mutable depth counter balanced even when a nested evaluation
+/// raises. This is important when a caller reuses an evaluator after a
+/// recoverable diagnostic.
+fn Evaluator::eval(
+  self : Evaluator,
+  expression : @syntax.Expression,
+) -> Value raise EvaluationError {
+  let before = self.depth
+  try self.eval_inner(expression) catch {
+    error => {
+      if self.depth > before {
+        self.leave()
+      }
+      raise error
+    }
+  } noraise {
+    value => value
+  }
+}
+
+///|
 /// Evaluate one expression without host capabilities.
 pub fn evaluate(
   expression : @syntax.Expression,
@@ -192,6 +257,17 @@ pub fn evaluate(
 ) -> Value raise EvaluationError {
   let evaluator : Evaluator = { environment, limits, depth: 0, nodes: 0 }
   evaluator.eval(expression)
+}
+
+///|
+pub fn evaluate_with_context(
+  expression : @syntax.Expression,
+  context : EvaluationContext,
+  environment? : Environment = Environment::new(),
+  limits? : EvaluationLimits = EvaluationLimits::default(),
+) -> Value raise EvaluationError {
+  ignore(context)
+  evaluate(expression, environment~, limits~)
 }
 
 ///|
@@ -216,6 +292,9 @@ pub fn evaluate_compilation(
       } noraise {
         value => {
           environment.set(name, value)
+          if assignment.exported() {
+            environment.mark_exported(name)
+          }
           completed.add(name)
           progress = true
         }

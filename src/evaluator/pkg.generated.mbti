@@ -11,18 +11,21 @@ import {
   "moonbit-community/MoonJust/src/syntax",
   "moonbit-community/MoonJust/src/value",
   "moonbitlang/core/debug",
+  "moonbitlang/core/set",
 }
 
 // Values
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess] call_effect(T, String, Array[@value.Value], @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform] call_effect(T, String, Array[@value.Value], @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
 pub fn evaluate(@syntax.Expression, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
 pub fn evaluate_compilation(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits) -> Environment raise EvaluationError
 
 pub fn evaluate_source(@source.Source, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
+
+pub fn evaluate_with_context(@syntax.Expression, EvaluationContext, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
 // Errors
 pub(all) suberror EvaluationError {
@@ -47,11 +50,29 @@ pub fn EvaluationError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @dia
 // Types and methods
 pub struct Environment {
   values : Map[String, @value.Value]
+  ordered : Array[String]
+  exported : @set.Set[String]
 } derive(@debug.Debug)
+pub fn Environment::child(Self) -> Self
 pub fn Environment::contains(Self, String) -> Bool
 pub fn Environment::get(Self, String) -> @value.Value?
+pub fn Environment::is_exported(Self, String) -> Bool
+pub fn Environment::mark_exported(Self, String) -> Unit
+pub fn Environment::names(Self) -> ArrayView[String]
 pub fn Environment::new() -> Self
 pub fn Environment::set(Self, String, @value.Value) -> Unit
+
+pub(all) struct EvaluationContext {
+  cwd : @path.PathValue?
+  recipe : String?
+  module_name : String?
+  source : @source.SourceId?
+} derive(Eq, @debug.Debug)
+pub fn EvaluationContext::cwd(Self) -> @path.PathValue?
+pub fn EvaluationContext::module_name(Self) -> String?
+pub fn EvaluationContext::new(cwd? : @path.PathValue?, recipe? : String?, module_name? : String?, source? : @source.SourceId?) -> Self
+pub fn EvaluationContext::recipe(Self) -> String?
+pub fn EvaluationContext::source(Self) -> @source.SourceId?
 
 pub(all) struct EvaluationLimits {
   max_depth : Int
