@@ -1,9 +1,16 @@
-# Phase 4 completion report
+# Phase 4 implementation report
 
-- Status: Complete
+- Status: Implementation baseline merged; original Phase 4 exit pending
+- Strict review: 2026-08-05 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: semantic compilation, typed settings/attributes, capability-backed loading, and import/module graph validation
+
+This report records the implementation that was merged for Phase 4. It is not
+evidence that every original `PROJECT_PLAN.md` exit condition has passed. The
+strict review found that the complete settings and attributes inventories are
+still marked planned, loader coverage is memory-host-only, and the full static
+validation and cross-file diagnostic matrix is not yet present.
 
 ## Delivered contracts
 
@@ -25,7 +32,7 @@
 - Import and module identities are normalized `PathValue` values, and optional declarations are skipped only when the file is absent.
 - Static dependency and alias cycles are rejected before any evaluator or process layer is involved.
 
-## Exit evidence
+## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
 - `moon test --target native`: 71 passed, 0 failed.

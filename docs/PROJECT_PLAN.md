@@ -2,6 +2,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
+> 最近严格复核：2026-08-05（Phase 0-5 结论见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)）
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -28,8 +29,8 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
 - 模块名：`moonbit-community/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
 - 当前首选目标：`wasm`。
-- Phase 0 已建立 `cmd/just` smoke、Native/wasm1 测试、兼容快照、差分 harness 和隔离的生态尖峰。
-- Phase 2 已实现 Source/Span 之上的完整 justfile lexer，包括普通 Token、字符串、缩进、recipe/interpolation、格式字符串、资源限制和跨目标 hardening；尚未实现 parser、AST、formatter 或执行。
+- Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
+- Phase 3-5 的 parser/AST/formatter、语义/加载和 evaluator/builtin 实现基线已经合并；2026-08-05 严格复核确认其原计划阶段出口尚未全部闭合，不能据此声称完整兼容或可执行 recipe。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -567,6 +568,8 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-036 | Markdown tangle | source-aware fenced `just` 提取 | 上游 tangle + CommonMark 边界；保持原行号 |
 | PR-037 | Parser hardening | fuzz、深度/大小限制、全 grammar inventory | 稳定 grammar 100% 有正反测试，无 panic |
 
+执行状态：Phase 3 已于 2026-08-05 完成首轮实现并合并。严格复核确认原计划出口尚未全部闭合，当前状态为“实现基线完成、阶段验收待补”；现有实现、公开 API 和限制见 [`PHASE_3_REPORT.md`](PHASE_3_REPORT.md)，逐 PR 缺口与闭环条件见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+
 ### Phase 4：语义分析和加载图
 
 | PR | 内容 | 交付物 | 出口条件 |
@@ -578,6 +581,8 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-044 | import/module graph | canonical identity、optional、fallback、cycle | 跨文件 span/source chain 和循环诊断 |
 | PR-045 | recipe/alias/dependency validation | 缺失名称、循环、参数静态检查 | 不启动进程即可发现全部静态错误 |
 | PR-046 | Compilation API | immutable semantic model、query facade | 黑盒 API 文档测试；`.mbti` 审查 |
+
+执行状态：Phase 4 已于 2026-08-05 完成首轮实现并合并。严格复核确认原计划出口尚未全部闭合，当前状态为“实现基线完成、阶段验收待补”；现有实现、公开 API 和限制见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)，逐 PR 缺口与闭环条件见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 5：值、求值与内建函数
 
@@ -591,6 +596,8 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-055 | env/fs/context builtins | EffectEvaluator 和 fake host | capability/error/path 行为差分 |
 | PR-056 | clock/uuid/shell builtins | HostClock/Random/Process 接入 | deterministic tests + 目标矩阵 |
 | PR-057 | evaluator hardening | recursion/size budget、error stack | 无未控制递归和敏感环境泄漏 |
+
+执行状态：Phase 5 已于 2026-08-05 完成首轮实现并合并。严格复核确认原计划出口尚未全部闭合，当前状态为“实现基线完成、阶段验收待补”；现有实现、公开 API 和限制见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)，逐 PR 缺口与闭环条件见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。在这些缺口关闭前，不进入 Phase 6 验收。
 
 ### Phase 6：查询型 CLI
 
@@ -1015,7 +1022,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. 以上门禁和 Phase 2 契约均已通过；下一实施单元为 PR-030 表达式 parser。
+10. Phase 0-2 阶段出口已通过；Phase 3-5 实现基线已合并，但必须先关闭 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md) 中的阶段出口缺口，再进入 Phase 6 验收。
 
 ## 20. 参考资料与可复核来源
 

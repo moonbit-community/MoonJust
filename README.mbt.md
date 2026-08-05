@@ -5,8 +5,9 @@ MoonJust is a MoonBit implementation of the
 behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
 backends.
 
-> Status: Phase 5 value evaluation, typed builtins, and explicit host effects
-> complete. Query CLI and recipe execution remain in later phases.
+> Status: Phase 0-2 exits have passed. Phase 3-5 implementation baselines are
+> merged, with original plan exits still pending strict-audit closure. Query CLI
+> and recipe execution remain in later phases.
 
 ## Compatibility scope
 
@@ -19,12 +20,12 @@ backends.
   arbitrary WASI runtimes.
 
 The complete scope, architecture, PR sequence, quality gates, and release
-criteria are defined in [the project plan](docs/PROJECT_PLAN.md). Phase 2 exit
-evidence and known limitations are recorded in
-[the Phase 5 completion report](docs/PHASE_5_REPORT.md),
-[Phase 4 completion report](docs/PHASE_4_REPORT.md), the
-[Phase 3 report](docs/PHASE_3_REPORT.md), and the
-[Phase 1 report](docs/PHASE_1_REPORT.md) remains available for provenance.
+criteria are defined in [the project plan](docs/PROJECT_PLAN.md). The current
+Phase 0-5 verdict and unresolved exits are recorded in the
+[strict audit](docs/PHASE_0_5_AUDIT.md), with implementation evidence in the
+[Phase 5 report](docs/PHASE_5_REPORT.md), [Phase 4 report](docs/PHASE_4_REPORT.md),
+[Phase 3 report](docs/PHASE_3_REPORT.md), [Phase 2 report](docs/PHASE_2_REPORT.md),
+and [Phase 1 report](docs/PHASE_1_REPORT.md).
 
 ## Development
 
