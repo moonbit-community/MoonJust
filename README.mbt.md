@@ -5,8 +5,8 @@ MoonJust is a MoonBit implementation of the
 behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
 backends.
 
-> Status: Phase 2 lexer complete; Phase 3 parser work is next. MoonJust cannot
-> execute justfiles yet.
+> Status: Phase 3 parser, AST, formatter, and Markdown tangle complete. Semantic
+> analysis and execution are still under development.
 
 ## Compatibility scope
 

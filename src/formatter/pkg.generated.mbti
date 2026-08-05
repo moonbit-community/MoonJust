@@ -1,0 +1,64 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/formatter"
+
+import {
+  "moonbit-community/MoonJust/src/diagnostic",
+  "moonbit-community/MoonJust/src/parser",
+  "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/src/syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@source.Source) -> CheckResult raise FormatterError
+
+pub fn diff(@source.Source) -> String raise FormatterError
+
+pub fn format(@syntax.Ast) -> String
+
+pub fn format_source(@source.Source) -> String raise FormatterError
+
+pub fn is_formatted(@source.Source) -> Bool raise FormatterError
+
+pub fn tangle(@source.Source, limits? : MarkdownLimits) -> TangledSource raise MarkdownError
+
+// Errors
+pub(all) suberror FormatterError {
+  Parse(@parser.ParserError)
+  InvalidInput(String)
+} derive(Eq, @debug.Debug)
+pub fn FormatterError::code(Self) -> String
+pub fn FormatterError::message(Self) -> String
+pub fn FormatterError::span(Self) -> @source.Span?
+pub fn FormatterError::to_diagnostic(Self, @source.Source) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+
+pub(all) suberror MarkdownError {
+  InvalidLimit
+  LimitExceeded(limit~ : Int, span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+
+// Types and methods
+pub struct CheckResult {
+  formatted : String
+  changed : Bool
+} derive(Eq, @debug.Debug)
+pub fn CheckResult::changed(Self) -> Bool
+pub fn CheckResult::formatted(Self) -> String
+
+pub struct MarkdownLimits {
+  max_lines : Int
+  max_bytes : Int
+} derive(Eq, @debug.Debug)
+pub fn MarkdownLimits::default() -> Self
+pub fn MarkdownLimits::new(Int, Int) -> Self raise MarkdownError
+
+pub struct TangledSource {
+  source : @source.Source
+  selected_blocks : Int
+} derive(@debug.Debug)
+pub fn TangledSource::selected_blocks(Self) -> Int
+pub fn TangledSource::source(Self) -> @source.Source
+
+// Type aliases
+
+// Traits

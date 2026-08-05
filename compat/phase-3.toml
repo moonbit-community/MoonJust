@@ -1,0 +1,16 @@
+schema_version = 1
+phase = 3
+upstream = "just 1.57.0"
+status = "implemented"
+
+[contracts]
+expression_parser = "precedence/call/list/conditional/string escapes"
+top_level_parser = "assignment/alias/recipe/dependency/settings/attributes/import/module"
+formatter = "canonical output and idempotence"
+markdown_tangle = "top-level just fences with source-byte preservation"
+hardening = "depth/node/line/byte limits; typed errors"
+
+[evidence]
+native_tests = 13
+wasm_tests = 13
+normalizers = []
