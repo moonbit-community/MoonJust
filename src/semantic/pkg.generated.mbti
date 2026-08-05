@@ -1,0 +1,132 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/semantic"
+
+import {
+  "moonbit-community/MoonJust/src/diagnostic",
+  "moonbit-community/MoonJust/src/parser",
+  "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/src/syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compile(@syntax.Ast, platform? : TargetPlatform) -> Compilation raise SemanticError
+
+pub fn compile_source(@source.Source) -> Compilation raise SemanticError
+
+// Errors
+pub(all) suberror SemanticError {
+  Parse(@parser.ParserError)
+  DuplicateRecipe(name~ : String, first~ : @source.Span, second~ : @source.Span)
+  DuplicateVariable(name~ : String, first~ : @source.Span, second~ : @source.Span)
+  UndefinedRecipe(name~ : String, span~ : @source.Span)
+  UndefinedVariable(name~ : String, span~ : @source.Span)
+  AliasCycle(name~ : String, span~ : @source.Span)
+  DependencyCycle(name~ : String, span~ : @source.Span)
+  InvalidParameters(name~ : String, span~ : @source.Span)
+  SettingConflict(first~ : String, second~ : String, span~ : @source.Span)
+  AttributeConflict(first~ : String, second~ : String, span~ : @source.Span)
+  UnsupportedPlatform(name~ : String, span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+pub fn SemanticError::code(Self) -> String
+pub fn SemanticError::message(Self) -> String
+pub fn SemanticError::span(Self) -> @source.Span
+pub fn SemanticError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+
+// Types and methods
+pub struct Compilation {
+  source_id : @source.SourceId
+  settings : CompiledSettings
+  symbols : Array[Symbol]
+  variables : Array[@syntax.Assignment]
+  recipes : Array[@syntax.Recipe]
+  aliases : Array[@syntax.Alias]
+  attributes : Map[String, RecipeAttributes]
+} derive(@debug.Debug)
+pub fn Compilation::alias_target(Self, String) -> String?
+pub fn Compilation::recipe(Self, String) -> @syntax.Recipe?
+pub fn Compilation::recipe_attributes(Self, String) -> RecipeAttributes?
+pub fn Compilation::recipe_names(Self) -> ArrayView[String]
+pub fn Compilation::settings(Self) -> CompiledSettings
+pub fn Compilation::source_id(Self) -> @source.SourceId
+pub fn Compilation::symbols(Self) -> ArrayView[Symbol]
+pub fn Compilation::variable(Self, String) -> @syntax.Assignment?
+pub fn Compilation::variable_names(Self) -> ArrayView[String]
+
+pub struct CompiledSettings {
+  values : Map[String, SettingValue]
+  ordered : Array[String]
+} derive(@debug.Debug)
+pub fn CompiledSettings::bool(Self, String) -> Bool
+pub fn CompiledSettings::get(Self, String) -> SettingValue?
+pub fn CompiledSettings::has(Self, String) -> Bool
+pub fn CompiledSettings::names(Self) -> ArrayView[String]
+
+pub struct RecipeAttributes {
+  names : Array[String]
+  platform : TargetOs?
+  private : Bool
+  doc : String?
+  group : String?
+  working_directory : @syntax.Expression?
+  shell : Array[@syntax.Expression]
+  script : Bool
+} derive(@debug.Debug)
+pub fn RecipeAttributes::doc(Self) -> String?
+pub fn RecipeAttributes::group(Self) -> String?
+pub fn RecipeAttributes::matches(Self, TargetPlatform) -> Bool
+pub fn RecipeAttributes::names(Self) -> ArrayView[String]
+pub fn RecipeAttributes::platform(Self) -> TargetOs?
+pub fn RecipeAttributes::private(Self) -> Bool
+pub fn RecipeAttributes::script(Self) -> Bool
+pub fn RecipeAttributes::shell(Self) -> ArrayView[@syntax.Expression]
+pub fn RecipeAttributes::working_directory(Self) -> @syntax.Expression?
+
+pub(all) enum SettingValue {
+  Flag
+  Boolean(Bool)
+  Text(String)
+  Expression(@syntax.Expression)
+} derive(Eq, @debug.Debug)
+pub fn SettingValue::as_bool(Self) -> Bool?
+
+pub(all) struct Symbol {
+  name : String
+  kind : SymbolKind
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Symbol::kind(Self) -> SymbolKind
+pub fn Symbol::name(Self) -> String
+pub fn Symbol::new(String, SymbolKind, @source.Span) -> Self
+pub fn Symbol::span(Self) -> @source.Span
+
+pub(all) enum SymbolKind {
+  Variable
+  Recipe
+  Alias
+} derive(Eq, @debug.Debug)
+
+pub(all) enum TargetOs {
+  Linux
+  Macos
+  Windows
+  Android
+  Dragonfly
+  Freebsd
+  Netbsd
+  Openbsd
+  Unix
+  Other(String)
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct TargetPlatform {
+  operating_system : TargetOs
+  is_unix : Bool
+} derive(Eq, @debug.Debug)
+pub fn TargetPlatform::is_unix(Self) -> Bool
+pub fn TargetPlatform::new(TargetOs, Bool) -> Self
+pub fn TargetPlatform::operating_system(Self) -> TargetOs
+
+// Type aliases
+
+// Traits
