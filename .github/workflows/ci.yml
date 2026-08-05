@@ -62,10 +62,10 @@ jobs:
           git diff --exit-code
 
       - name: Test Native
-        run: moon test --target native
+        run: ./tools/test_with_count.sh native
 
       - name: Test wasm1
-        run: moon test --target wasm
+        run: ./tools/test_with_count.sh wasm
 
       - name: Smoke-test Native CLI
         run: moon run --target native cmd/just -- --version
@@ -96,7 +96,7 @@ jobs:
         run: moon update
 
       - name: Test Native
-        run: moon test --target native
+        run: ./tools/test_with_count.sh native
 
       - name: Smoke-test Native CLI
         run: moon run --target native cmd/just -- --version

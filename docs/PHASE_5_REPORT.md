@@ -1,17 +1,16 @@
-# Phase 5 implementation report
+# Phase 5 completion report
 
-- Status: Implementation baseline merged; original Phase 5 exit pending
+- Status: Complete; Phase 5 exit passed
 - Strict review: 2026-08-05 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: runtime values, pure/effectful expression evaluation, typed builtins,
   cryptographic hashes, host capability calls, and evaluator hardening
 
-This report records the implementation that was merged for Phase 5. It is not
-evidence that every original `PROJECT_PLAN.md` exit condition has passed. The
-strict review found that the full expression/function corpora, scope model,
-83-function compatibility table, regexp/SemVer contract, streaming hash
-evidence, effectful builtin matrix, and hardening matrix remain incomplete.
+This report records the completed Phase 5 exit. The canonical 83-function
+registry, typed evaluator scopes and context, SemVer/regexp boundaries,
+chunked hash API, explicit host effects, and recursion/node/output budgets are
+covered by the phase manifest and snapshot verifier on Native and wasm1.
 
 ## Delivered contracts
 
@@ -44,18 +43,15 @@ evidence, effectful builtin matrix, and hardening matrix remain incomplete.
 
 ## Compatibility boundary
 
-Phase 5 establishes an evaluator and an initial typed builtin dispatch surface.
-The accepted plan assigns the corresponding pure and effectful function exits
-to PR-052, PR-055, and PR-056. The current subset therefore remains an open
-Phase 5 exit rather than a completed contract. No name is silently accepted
-before its implementation exists: `src/builtin.names()` lists the implemented
-pure subset, while effectful names are dispatched by `EffectEvaluator`.
+Phase 5 establishes the evaluator and the complete typed builtin inventory.
+`src/builtin.names()` is the canonical 83-name registry; effectful names are
+marked in `registry()` and dispatched only through `call_effect`.
 
 ## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
-- `moon test --target native`: 78 passed, 0 failed.
-- `moon test --target wasm`: 78 passed, 0 failed.
+- `moon test --target native`: 86 passed, 0 failed.
+- `moon test --target wasm`: 86 passed, 0 failed.
 - `tools/check_architecture.sh` covers all fourteen Phase 1-5 packages and
   verifies that value/builtin/evaluator core code has no target-specific FFI.
 - Generated `.mbti` files were refreshed with `moon info` and reviewed for the

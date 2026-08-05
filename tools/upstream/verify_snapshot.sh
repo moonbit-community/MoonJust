@@ -15,6 +15,12 @@ expected_phase_three_attributes=29
 expected_phase_three_positive=58
 expected_phase_three_negative=9
 expected_phase_three_fuzz=10000
+expected_phase_four_tests=7
+expected_phase_five_tests=10
+expected_phase_four_settings=29
+expected_phase_four_attributes=29
+expected_phase_four_loader_cases=4
+expected_phase_five_registry=83
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
@@ -117,5 +123,49 @@ grep -q "^upstream_commit = \"$expected_commit\"$" "$phase_three_corpus" 2>/dev/
   fail "Phase 3 corpus upstream commit changed"
 grep -q '^license = "CC0-1.0"$' "$phase_three_corpus" || \
   fail "Phase 3 corpus license changed"
+
+phase_four_manifest="$repo_root/compat/phase-4.toml"
+grep -q '^status = "implemented"$' "$phase_four_manifest" || \
+  fail "Phase 4 implementation status changed"
+grep -q '^plan_exit = "passed"$' "$phase_four_manifest" || \
+  fail "Phase 4 plan exit is not passed"
+grep -q "^native_tests = $expected_phase_four_tests$" "$phase_four_manifest" || \
+  fail "Phase 4 Native evidence count changed"
+grep -q "^wasm_tests = $expected_phase_four_tests$" "$phase_four_manifest" || \
+  fail "Phase 4 wasm evidence count changed"
+grep -q "^settings = $expected_phase_four_settings$" "$phase_four_manifest" || \
+  fail "Phase 4 settings evidence changed"
+grep -q "^attributes = $expected_phase_four_attributes$" "$phase_four_manifest" || \
+  fail "Phase 4 attributes evidence changed"
+grep -q "^loader_cases = $expected_phase_four_loader_cases$" "$phase_four_manifest" || \
+  fail "Phase 4 loader evidence changed"
+grep -q '^status = "implemented"$' "$repo_root/compat/settings.toml" || \
+  fail "settings compatibility registry is not implemented"
+grep -q '^status = "implemented"$' "$repo_root/compat/attributes.toml" || \
+  fail "attributes compatibility registry is not implemented"
+phase_four_corpus="$repo_root/tests/upstream/just-1.57.0/phase-4.toml"
+grep -q "^upstream_commit = \"$expected_commit\"$" "$phase_four_corpus" || \
+  fail "Phase 4 corpus upstream commit changed"
+grep -q '^license = "CC0-1.0"$' "$phase_four_corpus" || \
+  fail "Phase 4 corpus license changed"
+
+phase_five_manifest="$repo_root/compat/phase-5.toml"
+grep -q '^status = "implemented"$' "$phase_five_manifest" || \
+  fail "Phase 5 implementation status changed"
+grep -q '^plan_exit = "passed"$' "$phase_five_manifest" || \
+  fail "Phase 5 plan exit is not passed"
+grep -q "^native_tests = $expected_phase_five_tests$" "$phase_five_manifest" || \
+  fail "Phase 5 Native evidence count changed"
+grep -q "^wasm_tests = $expected_phase_five_tests$" "$phase_five_manifest" || \
+  fail "Phase 5 wasm evidence count changed"
+grep -q "^canonical_builtins = $expected_phase_five_registry$" "$phase_five_manifest" || \
+  fail "Phase 5 builtin registry evidence changed"
+grep -q '^status = "implemented"$' "$repo_root/compat/builtins.toml" || \
+  fail "builtin compatibility registry is not implemented"
+phase_five_corpus="$repo_root/tests/upstream/just-1.57.0/phase-5.toml"
+grep -q "^upstream_commit = \"$expected_commit\"$" "$phase_five_corpus" || \
+  fail "Phase 5 corpus upstream commit changed"
+grep -q '^license = "CC0-1.0"$' "$phase_five_corpus" || \
+  fail "Phase 5 corpus license changed"
 
 echo "compatibility snapshot verified"
