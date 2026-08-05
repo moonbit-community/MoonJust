@@ -1,0 +1,17 @@
+schema_version = 1
+phase = 5
+upstream = "just 1.57.0"
+status = "implemented"
+
+[contracts]
+value = "typed string/list/bool values with stable rendering and type errors"
+evaluator = "pure expressions, lazy short-circuiting, forward references and cycle errors"
+pure_builtins = "typed string, list, path, regexp, SemVer and hash dispatch"
+hashes = "SHA-256 and pure MoonBit BLAKE3 string and file hashes"
+effects = "explicit HostFs, HostEnv, HostClock, HostRandom and HostProcess calls"
+hardening = "recursion, node and rendered-output budgets with structured diagnostics"
+
+[evidence]
+native_tests = 7
+wasm_tests = 7
+normalizers = []

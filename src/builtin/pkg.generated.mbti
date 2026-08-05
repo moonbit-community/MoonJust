@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/builtin"
+
+import {
+  "moonbit-community/MoonJust/src/value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn blake3_bytes(Bytes) -> String
+
+pub fn call(String, Array[@value.Value]) -> @value.Value raise BuiltinError
+
+pub fn names() -> ArrayView[String]
+
+pub fn sha256_bytes(Bytes) -> String
+
+// Errors
+pub(all) suberror BuiltinError {
+  Unknown(name~ : String)
+  Arity(name~ : String, expected~ : String, actual~ : Int)
+  Type(name~ : String, expected~ : String, actual~ : String)
+  InvalidPath(value~ : String)
+  InvalidRequirement(value~ : String)
+  InvalidPattern(value~ : String)
+  Unsupported(name~ : String)
+} derive(Eq, @debug.Debug)
+pub fn BuiltinError::message(Self) -> String
+
+// Types and methods
+
+// Type aliases
+
+// Traits

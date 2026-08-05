@@ -1,8 +1,26 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbit-community/MoonJust"
 
+import {
+  "moonbit-community/MoonJust/src/evaluator",
+  "moonbit-community/MoonJust/src/formatter",
+  "moonbit-community/MoonJust/src/parser",
+  "moonbit-community/MoonJust/src/semantic",
+  "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/src/syntax",
+  "moonbit-community/MoonJust/src/value",
+}
+
 // Values
 pub fn compatible_just_version() -> String
+
+pub fn compile_source(@source.Source) -> @semantic.Compilation raise @semantic.SemanticError
+
+pub fn evaluate_expression(@syntax.Expression, environment? : @evaluator.Environment, limits? : @evaluator.EvaluationLimits) -> @value.Value raise @evaluator.EvaluationError
+
+pub fn format_source(@source.Source) -> String raise @formatter.FormatterError
+
+pub fn parse(@source.Source) -> @syntax.Ast raise @parser.ParserError
 
 pub fn version() -> String
 
