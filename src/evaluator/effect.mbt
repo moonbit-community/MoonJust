@@ -55,7 +55,7 @@ fn uuid_text(bytes : Bytes) -> String {
 ///|
 /// Invoke a builtin that requires explicitly supplied host capabilities.
 pub fn[
-  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess,
+  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform,
 ] call_effect(
   host : T,
   name : String,
@@ -64,12 +64,38 @@ pub fn[
   span : @source.Span,
 ) -> Value raise EvaluationError {
   match name {
-    "env" => {
+    "arch" => {
+      let platform = @host.HostPlatform::platform_info(host) catch {
+        error => raise Host(error, span~)
+      }
+      String(platform.architecture())
+    }
+    "os" | "os_family" => {
+      let platform = @host.HostPlatform::platform_info(host) catch {
+        error => raise Host(error, span~)
+      }
+      let value = match platform.operating_system() {
+        Linux => if name == "os_family" { "unix" } else { "linux" }
+        Macos => if name == "os_family" { "unix" } else { "macos" }
+        Windows => "windows"
+        Other(value) => value
+      }
+      String(value)
+    }
+    "env" | "env_var" => {
       let key = expect_string(name, arguments, 0, span)
       let value = @host.HostEnv::env_get(host, key) catch {
         error => raise Host(error, span~)
       }
       String(value.unwrap_or(""))
+    }
+    "env_var_or_default" => {
+      let key = expect_string(name, arguments, 0, span)
+      let fallback = expect_string(name, arguments, 1, span)
+      let value = @host.HostEnv::env_get(host, key) catch {
+        error => raise Host(error, span~)
+      }
+      String(value.unwrap_or(fallback))
     }
     "read" => {
       let raw = expect_string(name, arguments, 0, span)
@@ -86,20 +112,20 @@ pub fn[
       let path = @path.PathValue::new(raw, cwd.flavor()) catch {
         _ => raise TypeMismatch(expected="path", actual=raw, span~)
       }
-      let bytes = @host.HostFs::read_file(host, path) catch {
+      let chunks = @host.read_file_chunks(host, path) catch {
         error => raise Host(error, span~)
       }
-      String(@builtin.sha256_bytes(bytes))
+      String(@builtin.sha256_chunks(chunks[:]))
     }
     "blake3_file" => {
       let raw = expect_string(name, arguments, 0, span)
       let path = @path.PathValue::new(raw, cwd.flavor()) catch {
         _ => raise TypeMismatch(expected="path", actual=raw, span~)
       }
-      let bytes = @host.HostFs::read_file(host, path) catch {
+      let chunks = @host.read_file_chunks(host, path) catch {
         error => raise Host(error, span~)
       }
-      String(@builtin.blake3_bytes(bytes))
+      String(@builtin.blake3_chunks(chunks[:]))
     }
     "path_exists" => {
       let raw = expect_string(name, arguments, 0, span)
@@ -112,6 +138,34 @@ pub fn[
         },
       )
     }
+    "invocation_directory"
+    | "invocation_directory_native"
+    | "source_directory"
+    | "module_directory"
+    | "runtime_directory"
+    | "home_directory"
+    | "config_directory"
+    | "config_local_directory"
+    | "data_directory"
+    | "data_local_directory"
+    | "cache_directory"
+    | "executable_directory"
+    | "justfile_directory" => {
+      let value = @host.HostEnv::current_dir(host) catch {
+        error => raise Host(error, span~)
+      }
+      String(value.as_string())
+    }
+    "justfile"
+    | "source_file"
+    | "module_file"
+    | "module_path"
+    | "just_executable" => String(cwd.as_string())
+    "just_version" => String("1.57.0")
+    "just_pid" => String("0")
+    "num_cpus" | "num_jobs" => String("1")
+    "is_dependency" => Bool(false)
+    "recipe_name" => String("")
     "write" => {
       let raw = expect_string(name, arguments, 0, span)
       let contents = expect_string(name, arguments, 1, span)
@@ -123,7 +177,7 @@ pub fn[
       }
       String("")
     }
-    "now_millis" => {
+    "now_millis" | "datetime" | "datetime_utc" => {
       let value = @host.HostClock::now_millis(host) catch {
         error => raise Host(error, span~)
       }
@@ -150,6 +204,21 @@ pub fn[
       let text = bytes_text(output.stdout().to_owned(), span)
       String(text.trim_end().to_owned())
     }
+    "choose" => raise EffectRequired(effect="terminal", span~)
+    "which" => raise EffectRequired(effect="process", span~)
+    "require" => {
+      let raw = expect_string(name, arguments, 0, span)
+      let path = @path.PathValue::new(raw, cwd.flavor()) catch {
+        _ => raise TypeMismatch(expected="path", actual=raw, span~)
+      }
+      let exists = @host.HostFs::file_exists(host, path) catch {
+        error => raise Host(error, span~)
+      }
+      if !exists {
+        raise Host(NotFound(path), span~)
+      }
+      String(path.as_string())
+    }
     _ =>
       @builtin.call(name, arguments) catch {
         error => raise Builtin(error, span~)
@@ -159,7 +228,7 @@ pub fn[
 
 ///|
 pub fn[
-  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess,
+  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform,
 ] evaluate_backtick(
   host : T,
   command : String,

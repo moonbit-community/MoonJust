@@ -8,6 +8,7 @@ import {
 }
 
 // Values
+pub fn[T : HostFs] read_file_chunks(T, @path.PathValue, chunk_size? : Int) -> Array[Bytes] raise HostError
 
 // Errors
 pub(all) suberror HostError {

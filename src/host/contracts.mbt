@@ -7,6 +7,32 @@ pub(open) trait HostFs {
 }
 
 ///|
+/// Adapter-neutral chunked view used by hashing and other bounded consumers.
+/// Hosts that can stream may replace this helper at their boundary; the
+/// default remains deterministic for the in-memory implementation.
+pub fn[T : HostFs] read_file_chunks(
+  host : T,
+  path : @path.PathValue,
+  chunk_size? : Int = 64 * 1024,
+) -> Array[Bytes] raise HostError {
+  if chunk_size <= 0 {
+    raise InvalidInput("chunk size must be positive")
+  }
+  let bytes = HostFs::read_file(host, path)
+  let chunks : Array[Bytes] = []
+  let mut offset = 0
+  while offset < bytes.length() {
+    let end = Int::min(offset + chunk_size, bytes.length())
+    chunks.push(bytes[offset:end].to_owned())
+    offset = end
+  }
+  if chunks.is_empty() {
+    chunks.push(b"")
+  }
+  chunks
+}
+
+///|
 /// Environment lookup and the invocation working directory.
 pub(open) trait HostEnv {
   fn env_get(Self, String) -> String? raise HostError

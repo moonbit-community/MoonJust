@@ -7,6 +7,10 @@ test "pure builtins cover string, path, regex and semver contracts" {
     String("hio"),
   )
   assert_eq(
+    call("replace_regex", [String("hello"), String("h."), String("y")]),
+    String("yllo"),
+  )
+  assert_eq(
     call("regex_matches", [String("hello"), String("h[ae]llo")]),
     Bool(true),
   )
@@ -15,6 +19,12 @@ test "pure builtins cover string, path, regex and semver contracts" {
     _ => fail("expected invalid regexp error")
   } noraise {
     _ => fail("expected invalid regexp error")
+  }
+  try call("regex_matches", [String("hello"), String("(h)\\1")]) catch {
+    InvalidPattern(_) => ()
+    _ => fail("expected unsupported regexp error")
+  } noraise {
+    _ => fail("expected unsupported regexp error")
   }
   assert_eq(
     call("semver_matches", [String("1.5.0"), String(">=1.4")]),
@@ -36,5 +46,70 @@ test "pure builtins cover string, path, regex and semver contracts" {
   assert_eq(
     call("blake3", [String("a".repeat(1025))]),
     String("c59d2e12583df14d951e757a42f1734d355c8c5b1db6b6a33ab2bfabeed40c7d"),
+  )
+}
+
+///|
+test "builtin registry freezes canonical inventory and purity metadata" {
+  assert_eq(@builtin.names().length(), 83)
+  assert_eq(@builtin.registry().length(), 83)
+  assert_true(
+    @builtin.registry()
+    .iter()
+    .any(fn(spec) { spec.name() == "shell" && spec.purity() is Effect }),
+  )
+  assert_true(
+    @builtin.registry()
+    .iter()
+    .any(fn(spec) { spec.name() == "join" && spec.purity() is Pure }),
+  )
+}
+
+///|
+test "semver handles prerelease, wildcard and range operators" {
+  assert_eq(
+    call("semver_matches", [String("1.2.3-alpha"), String("<1.2.3")]),
+    Bool(true),
+  )
+  assert_eq(
+    call("semver_matches", [String("1.9.0"), String("^1.2.3")]),
+    Bool(true),
+  )
+  assert_eq(
+    call("semver_matches", [String("2.0.0"), String("^1.2.3")]),
+    Bool(false),
+  )
+  assert_eq(
+    call("semver_matches", [String("1.2.9"), String("~1.2.3")]),
+    Bool(true),
+  )
+  assert_eq(
+    call("semver_matches", [String("1.3.0"), String("1.2.x")]),
+    Bool(false),
+  )
+  assert_eq(
+    call("semver_matches", [String("1.8.0"), String(">=1.0.0 <2.0.0")]),
+    Bool(true),
+  )
+}
+
+///|
+test "canonical string and list builtins are deterministic" {
+  assert_eq(
+    call("append", [List([String("a")]), String("b")]),
+    List([String("a"), String("b")]),
+  )
+  assert_eq(
+    call("prepend", [String("a"), List([String("b")])]),
+    List([String("a"), String("b")]),
+  )
+  assert_eq(
+    call("split", [String("a,b"), String(",")]),
+    List([String("a"), String("b")]),
+  )
+  assert_eq(call("kebabcase", [String("Hello_world")]), String("hello-world"))
+  assert_eq(
+    call("trim_start_match", [String("prefix-value"), String("prefix-")]),
+    String("value"),
   )
 }

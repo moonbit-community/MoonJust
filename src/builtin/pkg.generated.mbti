@@ -9,11 +9,19 @@ import {
 // Values
 pub fn blake3_bytes(Bytes) -> String
 
+pub fn blake3_chunks(ArrayView[Bytes]) -> String
+
 pub fn call(String, Array[@value.Value]) -> @value.Value raise BuiltinError
+
+pub fn is_effectful(String) -> Bool
 
 pub fn names() -> ArrayView[String]
 
+pub fn registry() -> ArrayView[BuiltinSpec]
+
 pub fn sha256_bytes(Bytes) -> String
+
+pub fn sha256_chunks(ArrayView[Bytes]) -> String
 
 // Errors
 pub(all) suberror BuiltinError {
@@ -24,10 +32,22 @@ pub(all) suberror BuiltinError {
   InvalidRequirement(value~ : String)
   InvalidPattern(value~ : String)
   Unsupported(name~ : String)
+  Failure(message~ : String)
 } derive(Eq, @debug.Debug)
 pub fn BuiltinError::message(Self) -> String
 
 // Types and methods
+pub(all) enum BuiltinPurity {
+  Pure
+  Effect
+} derive(Eq, @debug.Debug)
+
+pub(all) struct BuiltinSpec {
+  name : String
+  purity : BuiltinPurity
+} derive(Eq, @debug.Debug)
+pub fn BuiltinSpec::name(Self) -> String
+pub fn BuiltinSpec::purity(Self) -> BuiltinPurity
 
 // Type aliases
 

@@ -7,6 +7,7 @@ pub(all) suberror BuiltinError {
   InvalidRequirement(value~ : String)
   InvalidPattern(value~ : String)
   Unsupported(name~ : String)
+  Failure(message~ : String)
 } derive(Eq, Debug)
 
 ///|
@@ -27,5 +28,6 @@ pub fn BuiltinError::message(self : BuiltinError) -> String {
     InvalidPattern(value~) => "invalid regular expression `" + value + "`"
     Unsupported(name~) =>
       "builtin `" + name + "` is not available on this target"
+    Failure(message~) => message
   }
 }
