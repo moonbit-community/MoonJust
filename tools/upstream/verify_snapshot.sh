@@ -2,6 +2,7 @@
 set -eu
 
 expected_tests=2417
+expected_commit=e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f
 expected_test_sha=34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9
 expected_options=50
 expected_commands=19
@@ -9,6 +10,11 @@ expected_builtins=83
 expected_phase_one_contracts=5
 expected_phase_two_contracts=5
 expected_lexer_registrations=93
+expected_phase_three_settings=29
+expected_phase_three_attributes=29
+expected_phase_three_positive=58
+expected_phase_three_negative=9
+expected_phase_three_fuzz=10000
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
@@ -89,5 +95,27 @@ grep -q '^adapted_success_cases = 16$' "$phase_two_manifest" || \
   fail "Phase 2 manifest success oracle count changed"
 grep -q '^adapted_error_cases = 5$' "$phase_two_manifest" || \
   fail "Phase 2 manifest error oracle count changed"
+
+phase_three_manifest="$repo_root/compat/phase-3.toml"
+grep -q '^status = "implemented"$' "$phase_three_manifest" || \
+  fail "Phase 3 implementation status changed"
+grep -q '^plan_exit = "passed"$' "$phase_three_manifest" || \
+  fail "Phase 3 plan exit is not passed"
+grep -q "^registered_settings = $expected_phase_three_settings$" "$phase_three_manifest" || \
+  fail "Phase 3 settings inventory changed"
+grep -q "^registered_attributes = $expected_phase_three_attributes$" "$phase_three_manifest" || \
+  fail "Phase 3 attributes inventory changed"
+grep -q "^positive_inventory_cases = $expected_phase_three_positive$" "$phase_three_manifest" || \
+  fail "Phase 3 positive grammar corpus changed"
+grep -q "^negative_cases = $expected_phase_three_negative$" "$phase_three_manifest" || \
+  fail "Phase 3 negative grammar corpus changed"
+grep -q "^fuzz_inputs = $expected_phase_three_fuzz$" "$phase_three_manifest" || \
+  fail "Phase 3 fuzz input count changed"
+
+phase_three_corpus="$repo_root/tests/upstream/just-1.57.0/phase-3.toml"
+grep -q "^upstream_commit = \"$expected_commit\"$" "$phase_three_corpus" 2>/dev/null || \
+  fail "Phase 3 corpus upstream commit changed"
+grep -q '^license = "CC0-1.0"$' "$phase_three_corpus" || \
+  fail "Phase 3 corpus license changed"
 
 echo "compatibility snapshot verified"

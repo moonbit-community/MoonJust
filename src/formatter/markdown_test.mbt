@@ -25,3 +25,35 @@ test "markdown tangle excludes nested, indented, and commented fences" {
   assert_eq(result.selected_blocks(), 1)
   assert_eq(result.source().line_text(15), "selected:")
 }
+
+///|
+test "phase 3 markdown corpus preserves CommonMark fence boundaries" {
+  let text = "before\n```text\njust-not-selected: \n```\n" +
+    "~~~just\nselected: \n    echo ok\n~~~\n" +
+    "<!--\n```just\ncommented: \n```\n-->\n"
+  let source = @source.Source::from_text(
+    @source.SourceId::new(610),
+    "markdown-corpus.md",
+    text,
+  )
+  let tangled = try! tangle(source)
+  assert_eq(tangled.selected_blocks(), 1)
+  assert_true(tangled.source().text().contains("selected:"))
+  assert_true(!tangled.source().text().contains("just-not-selected"))
+}
+
+///|
+test "phase 3 markdown hardening rejects line and byte budgets" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(611),
+    "large.md",
+    "```just\nrecipe:\n```\n",
+  )
+  let limits = try! MarkdownLimits::new(2, source.length())
+  try tangle(source, limits~) catch {
+    LimitExceeded(_) => ()
+    _ => fail("unexpected Markdown error")
+  } noraise {
+    _ => fail("expected Markdown line limit")
+  }
+}

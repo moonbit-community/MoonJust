@@ -195,38 +195,20 @@ fn Parser::parse_recipe(
 
 ///|
 fn setting_known(name : String) -> Bool {
-  match name {
-    "allow-duplicate-recipes"
-    | "allow-duplicate-variables"
-    | "default-list"
-    | "default-script"
-    | "dotenv-command"
-    | "dotenv-filename"
-    | "dotenv-load"
-    | "dotenv-override"
-    | "dotenv-path"
-    | "dotenv-required"
-    | "export"
-    | "fallback"
-    | "guards"
-    | "ignore-comments"
-    | "indentation"
-    | "lazy"
-    | "lists"
-    | "minimum-version"
-    | "no-cd"
-    | "no-exit-message"
-    | "positional-arguments"
-    | "quiet"
-    | "script-interpreter"
-    | "shell"
-    | "tempdir"
-    | "unstable"
-    | "windows-powershell"
-    | "windows-shell"
-    | "working-directory" => true
-    _ => false
-  }
+  setting_names().contains(name)
+}
+
+///|
+/// Return the complete stable settings inventory from `just 1.57.0`.
+pub fn setting_names() -> ArrayView[String] {
+  [
+    "allow-duplicate-recipes", "allow-duplicate-variables", "default-list", "default-script",
+    "dotenv-command", "dotenv-filename", "dotenv-load", "dotenv-override", "dotenv-path",
+    "dotenv-required", "export", "fallback", "guards", "ignore-comments", "indentation",
+    "lazy", "lists", "minimum-version", "no-cd", "no-exit-message", "positional-arguments",
+    "quiet", "script-interpreter", "shell", "tempdir", "unstable", "windows-powershell",
+    "windows-shell", "working-directory",
+  ][:]
 }
 
 ///|
@@ -337,7 +319,7 @@ fn Parser::parse_item(
       self.advance() |> ignore
       Assignment(self.parse_assignment(start, false, true))
     }
-    None | Some(X) if self.peek_kind_at(1) == Some(ColonEquals) =>
+    _ if self.peek_kind_at(1) == Some(ColonEquals) =>
       Assignment(self.parse_assignment(start, false, false))
     Some(Alias) => Alias(self.parse_alias(start))
     Some(Set) => Setting(self.parse_setting(start))

@@ -568,7 +568,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-036 | Markdown tangle | source-aware fenced `just` 提取 | 上游 tangle + CommonMark 边界；保持原行号 |
 | PR-037 | Parser hardening | fuzz、深度/大小限制、全 grammar inventory | 稳定 grammar 100% 有正反测试，无 panic |
 
-执行状态：Phase 3 已于 2026-08-05 完成首轮实现并合并。严格复核确认原计划出口尚未全部闭合，当前状态为“实现基线完成、阶段验收待补”；现有实现、公开 API 和限制见 [`PHASE_3_REPORT.md`](PHASE_3_REPORT.md)，逐 PR 缺口与闭环条件见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+执行状态：Phase 3 已于 2026-08-05 完成并通过阶段验收。逐项 parser/AST、formatter、Markdown、恢复、语料和 hardening 证据见 [`PHASE_3_REPORT.md`](PHASE_3_REPORT.md)；跨阶段核验记录见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 4：语义分析和加载图
 
