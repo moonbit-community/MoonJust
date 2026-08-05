@@ -21,5 +21,7 @@ Future copied or adapted fixtures must append a row:
 | `src/parser/corpus_test.mbt` | `src/parser.rs`, `src/attribute.rs` | Adapted stable grammar inventory, attribute argument ranges, error locations, and recovery cases to MoonBit AST tests | `MJ-PARSE-ORACLE-1.57.0` |
 | `src/formatter/formatter_test.mbt` | `src/formatter.rs`, `src/parser.rs` | Adapted representative canonical/idempotence cases without copying Rust AST internals | `MJ-FMT-ORACLE-1.57.0` |
 | `src/formatter/markdown_test.mbt` | `src/tangle.rs` | Adapted fenced block, info string, ignored block, source-offset, and budget boundaries | `MJ-TANGLE-ORACLE-1.57.0` |
+| `src/semantic/semantic_test.mbt`, `src/loader/loader_test.mbt` | `src/settings.rs`, `src/attribute.rs`, `src/analyzer.rs`, `src/search.rs`, `src/loader.rs`, `src/module.rs` | Adapted setting/attribute inventories, static checks, discovery, graph, and source-chain cases to capability-backed MoonBit tests | `MJ-SEM-LOAD-ORACLE-1.57.0` |
+| `src/builtin/builtin_test.mbt`, `src/evaluator/evaluator_test.mbt` | `src/evaluator.rs`, `src/value.rs`, `src/function.rs`, `src/function/semver.rs`, `src/function/sha256.rs` | Adapted value, scope, builtin registry, SemVer/regexp, hash, effect, and budget cases without copying Rust implementation | `MJ-EVAL-BUILTIN-ORACLE-1.57.0` |
 
 No upstream implementation source has been copied into MoonJust during Phase 0.

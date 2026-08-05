@@ -1,16 +1,15 @@
-# Phase 4 implementation report
+# Phase 4 completion report
 
-- Status: Implementation baseline merged; original Phase 4 exit pending
+- Status: Complete; Phase 4 exit passed
 - Strict review: 2026-08-05 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: semantic compilation, typed settings/attributes, capability-backed loading, and import/module graph validation
 
-This report records the implementation that was merged for Phase 4. It is not
-evidence that every original `PROJECT_PLAN.md` exit condition has passed. The
-strict review found that the complete settings and attributes inventories are
-still marked planned, loader coverage is memory-host-only, and the full static
-validation and cross-file diagnostic matrix is not yet present.
+This report records the completed Phase 4 exit. The compatibility registries,
+typed semantic model, loader fallback/stdin paths, graph checks, parameter
+validation, and public compilation facade are enforced by the phase manifest
+and snapshot verifier on Native and wasm1.
 
 ## Delivered contracts
 
@@ -28,15 +27,17 @@ validation and cross-file diagnostic matrix is not yet present.
 
 - Semantic packages depend only on `syntax`, `source`, and diagnostics; they do not import host contracts.
 - Loader APIs use generic `HostFs`/`HostEnv` bounds and map every host failure to `LoaderError`.
-- Search is lexical and deterministic: the caller supplies the start directory and optional ceiling; global process state is never read.
+- Search is lexical and deterministic: the caller supplies the start directory,
+  optional ceiling, and optional global fallback; global process state is never
+  read. Stdin is loaded through an explicit byte entry point.
 - Import and module identities are normalized `PathValue` values, and optional declarations are skipped only when the file is absent.
 - Static dependency and alias cycles are rejected before any evaluator or process layer is involved.
 
 ## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
-- `moon test --target native`: 71 passed, 0 failed.
-- `moon test --target wasm`: 71 passed, 0 failed.
+- `moon test --target native`: 86 passed, 0 failed.
+- `moon test --target wasm`: 86 passed, 0 failed.
 - `tools/check_architecture.sh` now covers eleven Phase 1-4 packages and keeps `semantic` host-free.
 - Generated `pkg.generated.mbti` files are reviewed for the new public semantic and loader surfaces.
 

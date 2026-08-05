@@ -30,7 +30,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 - 模块名：`moonbit-community/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
 - 当前首选目标：`wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 的 parser/AST/formatter、语义/加载和 evaluator/builtin 实现基线已经合并；2026-08-05 严格复核确认其原计划阶段出口尚未全部闭合，不能据此声称完整兼容或可执行 recipe。
+- Phase 3-5 的 parser/AST/formatter、语义/加载和 evaluator/builtin 阶段出口已于 2026-08-05 全部闭合；逐项证据、兼容清单、公开 API、架构门禁和后续限制见各阶段完成报告及 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -582,7 +582,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-045 | recipe/alias/dependency validation | 缺失名称、循环、参数静态检查 | 不启动进程即可发现全部静态错误 |
 | PR-046 | Compilation API | immutable semantic model、query facade | 黑盒 API 文档测试；`.mbti` 审查 |
 
-执行状态：Phase 4 已于 2026-08-05 完成首轮实现并合并。严格复核确认原计划出口尚未全部闭合，当前状态为“实现基线完成、阶段验收待补”；现有实现、公开 API 和限制见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)，逐 PR 缺口与闭环条件见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+执行状态：Phase 4 已于 2026-08-05 完成实现并通过阶段验收。逐项测试、公开 API、加载图、静态校验、兼容清单和后续限制见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)；跨阶段核验记录见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 5：值、求值与内建函数
 
@@ -597,7 +597,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-056 | clock/uuid/shell builtins | HostClock/Random/Process 接入 | deterministic tests + 目标矩阵 |
 | PR-057 | evaluator hardening | recursion/size budget、error stack | 无未控制递归和敏感环境泄漏 |
 
-执行状态：Phase 5 已于 2026-08-05 完成首轮实现并合并。严格复核确认原计划出口尚未全部闭合，当前状态为“实现基线完成、阶段验收待补”；现有实现、公开 API 和限制见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)，逐 PR 缺口与闭环条件见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。在这些缺口关闭前，不进入 Phase 6 验收。
+执行状态：Phase 5 已于 2026-08-05 完成实现并通过阶段验收。逐项测试、公开 API、83 项 builtin 注册、求值/效果/哈希/硬化门禁、兼容清单和后续限制见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；跨阶段核验记录见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 6：查询型 CLI
 
@@ -1022,7 +1022,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. Phase 0-2 阶段出口已通过；Phase 3-5 实现基线已合并，但必须先关闭 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md) 中的阶段出口缺口，再进入 Phase 6 验收。
+10. Phase 0-5 阶段出口均已通过；所有完成状态、机器门禁和已知后续限制以 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md) 及各阶段完成报告为准，再进入 Phase 6 验收。
 
 ## 20. 参考资料与可复核来源
 

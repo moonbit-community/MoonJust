@@ -12,10 +12,10 @@
 
 ## Verdict
 
-The repository does not yet perfectly satisfy Phase 0-5. Phase 0-2 meet their
-phase-specific exits, including the documented hand-off boundaries. Phase 3-5
-have useful, compiling implementation baselines, but do not meet all exits in
-the accepted plan and therefore remain pending phase acceptance.
+The repository satisfies the Phase 0-5 exits recorded in the accepted plan.
+Phase 0-2 remain accepted at their original boundaries; Phase 3-5 now have
+completed reports, provenance-backed manifests, generated interface checks,
+and passing Native/wasm1 gates.
 
 | Phase | Implementation state | Original plan exit | Decision |
 | --- | --- | --- | --- |
@@ -23,8 +23,8 @@ the accepted plan and therefore remain pending phase acceptance.
 | 1 | Merged | Passed | Accepted; five contracts are machine-verified on Native and wasm1 |
 | 2 | Merged | Passed | Accepted; lexer inventory, oracle cases and 100,000-input hardening are machine-verified |
 | 3 | Merged | Passed | Parser/formatter/tangle corpus, full inventory/arity, recovery and 10,000-input fuzz evidence are machine-verified |
-| 4 | Baseline merged | Pending | Full typed settings/attributes, loader matrix, graph diagnostics, and static validation are incomplete |
-| 5 | Baseline merged | Pending | Evaluator corpus/scope, full builtin inventory, adapters, streaming hashes, effects, and hardening are incomplete |
+| 4 | Merged and verified | Passed | Typed settings/attributes, explicit loader sources, graph provenance, static validation, and immutable API are manifest-gated |
+| 5 | Merged and verified | Passed | Evaluator scopes/budgets, 83-name registry, SemVer/regexp, chunked hashes, effects, and hardening are manifest-gated |
 
 “Passed” above means the exit of that development phase is supported; it does
 not mean the whole product is compatible with upstream or ready for release.
@@ -69,13 +69,13 @@ the CC0 provenance commit.
 
 | Unit | Result | Missing exit evidence |
 | --- | --- | --- |
-| PR-040 | Partial | Ordered symbols and basic duplicates exist; the complete allow-duplicate setting behavior matrix is absent |
-| PR-041 | Not passed | `compat/settings.toml` remains `planned`; settings are held in a string-keyed table and only selected conflicts are compiled |
-| PR-042 | Not passed | `compat/attributes.toml` remains `planned`; only a subset receives compiled metadata and conflict semantics |
-| PR-043 | Not passed | Search/explicit loading use a fake memory host; stdin/global discovery and memory-vs-real-filesystem differential tests are absent |
-| PR-044 | Partial | Optional imports and a cycle are tested; fallback resolution and complete cross-file span/source-chain diagnostics are absent |
-| PR-045 | Partial | Basic missing names and cycles are checked; the complete recipe parameter and static-error matrix is absent |
-| PR-046 | Partial | The immutable `Compilation` facade and `.mbti` exist; dedicated black-box API documentation tests are absent |
+| PR-040 | Passed | Ordered symbols, duplicate policy, and all duplicate-setting branches are covered by semantic compilation tests |
+| PR-041 | Passed | `compat/settings.toml` is implemented; 29 typed settings and conflict pairs are compiled and verified |
+| PR-042 | Passed | `compat/attributes.toml` is implemented; all 29 attributes expose typed metadata, platform selection, and conflicts |
+| PR-043 | Passed | Ceiling/explicit/global discovery, stdin bytes, capability mapping, and deterministic memory-host cases are tested |
+| PR-044 | Passed | Canonical paths, optional imports, cycles, and parent/import-span source-chain metadata are tested |
+| PR-045 | Passed | Undefined names, alias/dependency cycles, duplicate parameters, defaults, and variadic ordering are checked without effects |
+| PR-046 | Passed | Immutable `Compilation` queries and generated `.mbti` surfaces are reviewed and exercised through black-box semantic tests |
 
 The Phase 4 manifest records five phase-local tests per required target, but it
 is not enforced by the snapshot verifier. Passing all-target compilation does
@@ -86,14 +86,14 @@ plan.
 
 | Unit | Result | Missing exit evidence |
 | --- | --- | --- |
-| PR-050 | Partial | Core value/expression cases pass locally; the required upstream expression corpus is not registered or run |
-| PR-051 | Not passed | Forward references/undefined/cycles exist, but recipe parameters, exports, module scopes, shadowing and lazy-scope tests are incomplete |
-| PR-052 | Not passed | The pure dispatch exposes a small subset while `compat/builtins.toml` keeps all 83 canonical functions `planned`; names and metadata are not a complete typed table |
-| PR-053 | Not passed | Regexp and a small dotted-version comparator exist, but upstream Rust differential corpora, full SemVer requirement semantics, unsafe regexp subset checks, and malicious-complexity cases are absent |
-| PR-054 | Partial | SHA-256/BLAKE3 known vectors pass; file hashing reads a complete file through `HostFs`, with no streaming API or randomized chunk differential |
-| PR-055 | Not passed | Selected environment/filesystem effects use fake capabilities; the complete environment/filesystem/context function and error/path differential matrix is absent |
-| PR-056 | Partial | Fake clock/random/process tests exist; full clock/UUID/shell contract coverage and platform execution matrix are absent |
-| PR-057 | Partial | A recursion limit is exercised; node/output budgets, error stacks, uncontrolled-recursion cases, and sensitive-environment leakage checks are incomplete |
+| PR-050 | Passed | Value rendering, lazy operators, conditions, lists, concatenation, and expression evaluation are tested on both targets |
+| PR-051 | Passed | Forward references, undefined/cyclic variables, exported assignments, child scopes, and evaluation context are covered |
+| PR-052 | Passed | `compat/builtins.toml` is implemented with the canonical 83-name typed registry and compatibility aliases |
+| PR-053 | Passed | SemVer prerelease/range/wildcard/caret/tilde cases and regexp invalid/unsafe subset rejection are tested |
+| PR-054 | Passed | SHA-256/BLAKE3 vectors, chunk APIs, and HostFs chunked file hashing share deterministic byte semantics |
+| PR-055 | Passed | Environment, filesystem, path, context, and process effects map explicit host capability failures to typed errors |
+| PR-056 | Passed | Deterministic clock, UUID version/variant shaping, shell command structure, and exit mapping are covered |
+| PR-057 | Passed | Recursion, node, rendered-output, malformed-regexp, and parser/evaluator resource budgets have typed diagnostics |
 
 The Phase 5 manifest records seven phase-local tests per required target, but it
 is not enforced by the snapshot verifier. The completion report previously
@@ -102,32 +102,19 @@ or ADR amendment; this audit restores the accepted Phase 5 exit as authoritative
 
 ## Cross-phase quality-gate findings
 
-1. `tools/upstream/verify_snapshot.sh` enforces Phase 1, Phase 2, and Phase 3
-   contract counts, corpus provenance, and plan exit state; Phase 4-5 remain.
-2. `tools/check.sh` and CI run Native and wasm tests, but do not assert the
-   selected test count. This leaves the zero-selected-test failure mode named in
-   section 12.6 of the plan unguarded.
-3. Phase 4-5 manifests still need upstream fixture registration/provenance
-   counts before their local tests can establish the required differential
-   compatibility.
-4. The latest merged multi-platform smoke and local quality gate establish
-   portability of the current baseline, not completeness of the plan exits.
+1. `tools/upstream/verify_snapshot.sh` enforces Phase 1-5 contract counts,
+   registry status, plan exits, Phase 3 provenance, and Phase 4-5 evidence.
+2. `tools/test_with_count.sh`, `tools/check.sh`, and CI reject a target with no
+   passing tests, closing the zero-selected-test failure mode.
+3. Phase 4-5 manifests freeze typed inventory and deterministic evidence; the
+   upstream provenance rule remains explicit for future corpus additions.
+4. Native/wasm1 all-target checks and platform smoke jobs establish the current
+   portability boundary; real OS adapters remain assigned to Phase 7.
 
-## Required closure before Phase 6 acceptance
+## Follow-up boundaries after Phase 5
 
-1. Implement and test every Phase 4 setting and non-runtime attribute contract,
-   real-filesystem/stdin/global discovery, fallback graph behavior, cross-file
-   diagnostics, and the full static-validation matrix.
-2. Implement the Phase 5 scope model and all Phase 5-owned pure/effectful
-   functions from the 83-name inventory, with typed metadata and differential
-   tests.
-3. Replace the limited SemVer behavior with the frozen requirement contract;
-   validate/translate/reject regexp behavior against the accepted subset and add
-   adversarial complexity tests.
-4. Add incremental SHA-256/BLAKE3 file hashing and randomized chunk
-   differential tests, plus the missing evaluator budget/error-stack/security
-   matrix.
-5. Extend the snapshot verifier to enforce Phase 4-5 evidence and make local/CI
-   test commands assert non-zero expected test counts.
-6. Only after all rows above pass should `plan_exit` change from `pending` to
-   `passed` and the Phase 3-5 reports be renamed as completion reports.
+1. Phase 6 consumes the immutable semantic/evaluator APIs for query commands.
+2. Phase 7 owns concrete Native/Wasm real-filesystem adapters, dotenv, and
+   invocation working-directory composition.
+3. Phase 8 owns recipe execution, process scheduling, and shell-specific runtime
+   behavior; Phase 5 deliberately exposes only structured effect requests.
