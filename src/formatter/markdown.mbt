@@ -45,24 +45,29 @@ pub fn TangledSource::selected_blocks(self : TangledSource) -> Int {
 ///|
 fn fence_open(line : String) -> (Char, Int, String)? {
   let chars = line.to_array()
-  if chars.length() < 3 {
+  let mut indent = 0
+  while indent < chars.length() && chars[indent] == ' ' {
+    indent += 1
+  }
+  if indent > 3 || chars.length() - indent < 3 {
     return None
   }
-  let character = chars[0]
+  let character = chars[indent]
   if character != '`' && character != '~' {
     return None
   }
   let mut count = 0
-  while count < chars.length() && chars[count] == character {
+  while indent + count < chars.length() && chars[indent + count] == character {
     count += 1
   }
   if count < 3 {
     return None
   }
-  let info = if count == chars.length() {
+  let info_start = indent + count
+  let info = if info_start == chars.length() {
     ""
   } else {
-    line[count:].trim().to_owned()
+    line[info_start:].trim().to_owned()
   }
   Some((character, count, info))
 }
@@ -70,17 +75,23 @@ fn fence_open(line : String) -> (Char, Int, String)? {
 ///|
 fn fence_close(line : String, character : Char, minimum : Int) -> Bool {
   let chars = line.to_array()
-  if chars.length() < minimum || chars[0] != character {
+  let mut indent = 0
+  while indent < chars.length() && chars[indent] == ' ' {
+    indent += 1
+  }
+  if indent > 3 ||
+    chars.length() - indent < minimum ||
+    chars[indent] != character {
     return false
   }
   let mut count = 0
-  while count < chars.length() && chars[count] == character {
+  while indent + count < chars.length() && chars[indent + count] == character {
     count += 1
   }
   if count < minimum {
     return false
   }
-  for index in count..<chars.length() {
+  for index in (indent + count)..<chars.length() {
     if !chars[index].is_ascii_whitespace() {
       return false
     }

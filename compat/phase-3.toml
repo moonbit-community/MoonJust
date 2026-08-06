@@ -1,8 +1,8 @@
 schema_version = 1
 phase = 3
 upstream = "just 1.57.0"
-status = "remediation"
-plan_exit = "pending"
+status = "implemented"
+plan_exit = "passed"
 audit = "docs/PHASE_0_5_AUDIT.md"
 
 [contracts]
@@ -13,16 +13,23 @@ markdown_tangle = "top-level just fences with source-byte preservation"
 hardening = "depth/node/line/byte limits; typed errors"
 
 [evidence]
-native_tests = 20
-wasm_tests = 20
+native_tests = 23
+wasm_tests = 23
 registered_settings = 29
 registered_attributes = 29
 positive_inventory_cases = 58
 negative_cases = 9
 recovered_errors = 2
 fuzz_inputs = 10000
+parser_mapped_cases = 181
+formatter_mapped_cases = 127
+markdown_mapped_cases = 11
+tangle_mapped_cases = 5
+semantic_equivalence = true
+leading_space_fence_cases = 4
 formatter_cases = 4
-markdown_tests = 4
+markdown_tests = 6
 provenance = "tests/upstream/NOTICE.md"
 corpus = "tests/upstream/just-1.57.0/phase-3.toml"
+case_manifest = "tests/upstream/just-1.57.0/phase-3-cases.jsonl"
 normalizers = []

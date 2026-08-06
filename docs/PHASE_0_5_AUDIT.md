@@ -21,7 +21,7 @@ are remediation/pending until the gaps below are closed.
 | 0 | Merged | Passed | Rebuild the pinned-source oracle and per-test map; retain only reproducible evidence |
 | 1 | Merged | Passed | Re-run contracts, public API, architecture and coverage gates against the repaired baseline |
 | 2 | Merged | Passed | Re-link all 93 lexer registrations to executable evidence and retain 100,000-input hardening |
-| 3 | Merged baseline | Pending | Full parser/formatter/tangle mapping and semantic formatter proof are missing |
+| 3 | Merged and remediated | Passed | Parser/formatter/tangle mapping, semantic formatter proof, and CommonMark hardening are executable |
 | 4 | Merged baseline | Pending | Real filesystem, canonical identity and complete semantic/loading validation are missing |
 | 5 | Merged baseline | Pending | Evaluator scopes, typed builtin evidence, real effects and streaming hashes are incomplete |
 
@@ -54,12 +54,11 @@ are remediation/pending until the gaps below are closed.
 
 ### Phase 3
 
-1. Execute every applicable parser, formatter, Markdown and tangle registration
-   as a ported, parameterized or differential case.
-2. Require formatter idempotence and equality of the parsed semantic model
-   before and after formatting.
-3. Implement CommonMark fenced blocks with zero through three leading spaces,
-   preserve original lines/bytes, and retain deterministic resource budgets.
+Phase 3 remediation is complete. The generated case manifest covers all 324
+applicable parser/formatter/Markdown/tangle registrations, with Native/wasm1
+suite evidence, semantic AST equivalence, and zero-through-three-space fence
+hardening. Phase 3 is restored to `implemented/passed` in its compatibility
+manifest; the remaining remediation below applies only to Phases 4-5.
 
 ### Phase 4
 

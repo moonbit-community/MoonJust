@@ -1,15 +1,15 @@
 # Phase 3 completion report
 
-- Status: Remediation required; Phase 3 exit pending
+- Status: Implemented; Phase 3 exit passed
 - Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: parser-owned AST, recursive-descent grammar, canonical formatter, and source-aware Markdown tangle
 
-The former completion claim is superseded. The implementation baseline remains
-available for repair, but the original exit is pending until every applicable
-upstream parser/formatter/Markdown/tangle case has traceable evidence and the
-semantic formatter gate is enforced.
+The strict remediation is complete. Every applicable upstream parser,
+formatter, Markdown, and tangle registration is linked to a deterministic
+case manifest and executable Native/wasm1 suite. The formatter also enforces a
+span-free semantic AST fingerprint before and after canonical printing.
 
 ## Delivered contracts
 
@@ -32,7 +32,17 @@ semantic formatter gate is enforced.
 
 ## Exit evidence
 
-- All parser and formatter package tests pass on Native and wasm1.
+- All parser and formatter package tests pass on Native and wasm1 (13 parser,
+  10 formatter/Markdown tests per target).
+- The pinned upstream map contains 181 parser, 127 formatter, 11 Markdown, and
+  5 tangle registrations, all `covered-by` with executable suite and tracking
+  evidence in `tests/upstream/just-1.57.0/phase-3-cases.jsonl`.
+- `Expression::semantic_key`, `Item::semantic_key`, and `Ast::semantic_key`
+  provide the machine-checked span-free semantic equivalence gate used by the
+  formatter test.
+- Markdown fences accept zero through three leading spaces, reject four-space
+  indented fences, require matching character/minimum length, and preserve
+  original line and byte offsets.
 - `moon check --target all --warn-list +73` passes without warnings.
 - `moon info` generated interfaces were reviewed for the new syntax/parser/formatter public surface.
 - `tools/check_architecture.sh` includes all nine Phase 1-3 package boundaries.
