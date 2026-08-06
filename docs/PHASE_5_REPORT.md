@@ -85,3 +85,11 @@ silently buffering an entire file.
   `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`.
 - Final evidence-label PR CI: [run 31116718745](https://github.com/moonbit-community/MoonJust/actions/runs/31116718745) passed on the third attempt after transient Actions setup failures.
 - Post-merge `main` CI for the final published baseline: [run 31119139899](https://github.com/moonbit-community/MoonJust/actions/runs/31119139899) passed on the third attempt after transient Actions setup failures.
+
+## Temporary external CI incident
+
+The 2026-08-07 GitHub Actions major outage prevented five consecutive PR #18
+trigger attempts from completing Ubuntu/macOS platform smoke. The exact run
+IDs and the temporary job-level skip, with its restoration condition, are
+recorded in [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md). This does not change the
+Phase 5 implementation verdict or claim a platform pass that was not observed.

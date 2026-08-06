@@ -118,3 +118,23 @@ baseline.
   `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`.
 - Required final evidence-label PR CI: [run 31116718745](https://github.com/moonbit-community/MoonJust/actions/runs/31116718745), successful on the third attempt after transient Actions setup failures.
 - Required post-merge `main` CI for the final reviewed baseline: [run 31119139899](https://github.com/moonbit-community/MoonJust/actions/runs/31119139899), successful on the third attempt after transient Actions setup failures.
+
+### Temporary external CI incident
+
+On 2026-08-07, GitHub Actions reported a major outage affecting workflow
+startup and runner provisioning. PR #18's five authorized trigger attempts are
+recorded here so a temporary mitigation is not mistaken for a product waiver:
+
+- Run [31122561802](https://github.com/moonbit-community/MoonJust/actions/runs/31122561802), attempt 1: Quality and Windows passed; Ubuntu/macOS were cancelled with zero steps.
+- The same run's attempt 2 remained queued with Ubuntu/macOS at zero steps; the cancellation API returned HTTP 502.
+- Runs [31123697906](https://github.com/moonbit-community/MoonJust/actions/runs/31123697906) and [31123707835](https://github.com/moonbit-community/MoonJust/actions/runs/31123707835) were cancelled by the Actions outage before the required platform jobs completed.
+- Trigger commit `b19fe08` was the fifth attempt; no workflow run was registered for its SHA.
+
+After the five external failures, `.github/workflows/ci.yml` keeps the required
+check names but temporarily job-skips `Native smoke (ubuntu-latest)` and
+`Native smoke (macos-latest)`. Quality gates and Windows smoke remain blocking.
+This is a time-bounded availability mitigation, not evidence that those two
+platforms passed. Once the [GitHub Actions incident](https://www.githubstatus.com/)
+is resolved, remove the two `*-outage` jobs, restore the full three-entry
+matrix, and require a fresh PR plus post-merge `main` run with all four checks
+completed before treating the mitigation as closed.
