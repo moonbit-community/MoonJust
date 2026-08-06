@@ -1,8 +1,11 @@
 # Phase 0-5 strict exit audit
 
 - Review date: 2026-08-07
-- Reviewed baseline: `origin/main` at
+- Reviewed implementation and evidence baseline: `origin/main` at
   `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`
+- Publication-only documentation commits after this hash do not change the
+  reviewed implementation verdict; they still require their own PR and
+  post-merge `main` CI, reported with the publication handoff.
 - Accepted specification: `docs/PROJECT_PLAN.md` v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
