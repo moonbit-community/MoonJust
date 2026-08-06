@@ -129,6 +129,9 @@ recorded here so a temporary mitigation is not mistaken for a product waiver:
 - The same run's attempt 2 remained queued with Ubuntu/macOS at zero steps; the cancellation API returned HTTP 502.
 - Runs [31123697906](https://github.com/moonbit-community/MoonJust/actions/runs/31123697906) and [31123707835](https://github.com/moonbit-community/MoonJust/actions/runs/31123707835) were cancelled by the Actions outage before the required platform jobs completed.
 - Trigger commit `b19fe08` was the fifth attempt; no workflow run was registered for its SHA.
+- Mitigation commit `fd3e1ce` added the documented job-level skips; the
+  continuing outage also registered no workflow for that SHA, so its local
+  gates are recorded separately and no remote pass is claimed.
 
 After the five external failures, `.github/workflows/ci.yml` keeps the required
 check names but temporarily job-skips `Native smoke (ubuntu-latest)` and
