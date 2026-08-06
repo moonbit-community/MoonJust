@@ -5,6 +5,7 @@ moon fmt --check
 ./tools/check_architecture.sh
 ./tools/upstream/verify_snapshot.sh
 ./tools/differential/self_test.sh
+./tools/differential/real_smoke.sh
 ./tools/spikes/check_host_async.sh
 ./tools/spikes/check_ecosystem.sh
 moon check --target all --warn-list +73

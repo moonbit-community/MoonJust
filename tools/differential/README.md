@@ -35,3 +35,13 @@ normalizer requires a reviewed compatibility change.
 The v0 tree snapshot records directory, regular-file hash, and symlink target.
 Permissions, mtimes, process trees, signals, and TTY behavior are added in the
 later platform harness; v0 must not be cited as evidence for those surfaces.
+
+CI runs `tools/differential/real_smoke.sh`, which builds the pinned upstream
+source oracle and the current Native candidate before executing every baseline
+case. Cases owned by later phases may remain explicit `XDIFF` entries, but an
+unexpected match, difference, timeout, exit status, or fixture-tree change
+fails the run.
+
+The ownership and reason for every current `XDIFF` are recorded in
+`tests/differential/cases.toml`. A Phase 0-5 case may not be hidden there as an
+expected difference; it must be fixed before its phase exit is restored.

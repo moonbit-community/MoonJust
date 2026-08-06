@@ -31,3 +31,13 @@ Regenerate and verify the map with:
 python3 tools/upstream/test_map.py --write
 python3 tools/upstream/test_map.py
 ```
+
+The real oracle is built from the same pinned source with:
+
+```bash
+./tools/upstream/build_oracle.sh
+```
+
+The builder verifies the annotated tag's peeled commit, `Cargo.lock` digest,
+release version, and emits the resulting binary digest. It never accepts a
+downloaded or prebuilt `just` executable as compatibility evidence.

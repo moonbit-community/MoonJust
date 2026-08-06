@@ -36,8 +36,8 @@ validation coverage.
 ## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
-- `moon test --target native`: 86 passed, 0 failed.
-- `moon test --target wasm`: 86 passed, 0 failed.
+- Current implementation baseline: `moon test --target native`: 92 passed, 0 failed.
+- Current implementation baseline: `moon test --target wasm`: 92 passed, 0 failed.
 - `tools/check_architecture.sh` now covers eleven Phase 1-4 packages and keeps `semantic` host-free.
 - Generated `pkg.generated.mbti` files are reviewed for the new public semantic and loader surfaces.
 

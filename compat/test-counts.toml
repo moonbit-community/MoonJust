@@ -1,0 +1,5 @@
+schema_version = 1
+
+[total]
+native = 92
+wasm1 = 92

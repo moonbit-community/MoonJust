@@ -14,6 +14,15 @@ strings, indentation, recipe text, recipe interpolation, and format strings.
 It does not parse expressions, validate parser-owned string escape syntax,
 construct an AST, format a justfile, or execute recipes.
 
+The 2026-08-06 re-certification links all 93 pinned lexer registrations to the
+machine-readable upstream map, verifies the 20 lexer package tests on Native
+and wasm1, and retains the 100,000-input hardening budget. The Rust-private
+`presume_error` helper remains explicitly not applicable.
+
+Coverage note: the lexer hardening count is machine-verified; uncovered parser
+and evaluator branches belong to their remediation PRs and are not waived by
+this Phase 2 re-certification.
+
 ## Work units
 
 | Plan unit | Commit | Delivered evidence |

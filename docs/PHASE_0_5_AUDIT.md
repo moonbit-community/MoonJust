@@ -36,6 +36,10 @@ are remediation/pending until the gaps below are closed.
   21 adapted oracle cases and 100,000 deterministic hardening inputs.
 - Architecture checks keep parser/semantic/evaluator core packages independent
   from concrete host adapters.
+- Native coverage instrumentation still reports uncovered branches in the
+  Phase 3-5 implementation baseline; this PR records that result instead of
+  treating 92 passing tests as a coverage waiver. The core-package 90% gate is
+  restored only by the phase PR that adds the missing tests and machine check.
 
 ## Required remediation
 

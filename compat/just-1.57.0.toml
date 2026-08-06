@@ -6,6 +6,8 @@ tag = "1.57.0"
 commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 release_date = "2026-07-19"
 license = "CC0-1.0"
+cargo_lock_sha256 = "907adacb2b2a3db5ed6be6f130e18aec6f869bdc8b5dc64a9ecb98484fbfb550"
+oracle_builder = "tools/upstream/build_oracle.sh"
 
 [test_inventory]
 command = "cargo test -- --list"
@@ -32,3 +34,4 @@ attributes = "compat/attributes.toml"
 provenance = "tests/upstream/NOTICE.md"
 phase_1 = "compat/phase-1.toml"
 phase_2 = "compat/phase-2.toml"
+differential_cases = "tests/differential/cases.toml"

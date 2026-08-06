@@ -50,8 +50,8 @@ marked in `registry()` and dispatched only through `call_effect`.
 ## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
-- `moon test --target native`: 86 passed, 0 failed.
-- `moon test --target wasm`: 86 passed, 0 failed.
+- Current implementation baseline: `moon test --target native`: 92 passed, 0 failed.
+- Current implementation baseline: `moon test --target wasm`: 92 passed, 0 failed.
 - `tools/check_architecture.sh` covers all fourteen Phase 1-5 packages and
   verifies that value/builtin/evaluator core code has no target-specific FFI.
 - Generated `.mbti` files were refreshed with `moon info` and reviewed for the
