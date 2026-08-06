@@ -72,7 +72,7 @@ silently buffering an entire file.
 - Implementation PR: [#13](https://github.com/moonbit-community/MoonJust/pull/13), squash-merged at
   `cee01fd202ec4a60c6cb8815f1af5b9cce953294`.
 - PR CI: [run 31101620775](https://github.com/moonbit-community/MoonJust/actions/runs/31101620775) passed all required jobs.
-- Post-merge `main` CI: [run 31101791384](https://github.com/moonbit-community/MoonJust/actions/runs/31101791384) passed all required jobs.
+- Post-merge `main` CI for the Phase 5 implementation baseline: [run 31101791384](https://github.com/moonbit-community/MoonJust/actions/runs/31101791384) passed all required jobs.
 - Audit-remediation PR: [#15](https://github.com/moonbit-community/MoonJust/pull/15), squash-merged at
   `b8e6d2c617ee9e941f31837da4e71ff93ff313f7`.
 - Audit-remediation PR CI: [run 31107368869](https://github.com/moonbit-community/MoonJust/actions/runs/31107368869) passed all required jobs.

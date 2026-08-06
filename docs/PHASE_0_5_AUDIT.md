@@ -102,7 +102,7 @@ baseline.
 - Phase 5 implementation PR: [#13](https://github.com/moonbit-community/MoonJust/pull/13), squash-merged as
   `cee01fd202ec4a60c6cb8815f1af5b9cce953294`.
 - Required Phase 5 PR CI: [run 31101620775](https://github.com/moonbit-community/MoonJust/actions/runs/31101620775) passed all quality, Ubuntu, macOS and Windows jobs.
-- Required post-merge `main` CI: [run 31101791384](https://github.com/moonbit-community/MoonJust/actions/runs/31101791384) passed all required jobs for the reviewed baseline.
+- Required post-merge `main` CI for the Phase 5 implementation baseline: [run 31101791384](https://github.com/moonbit-community/MoonJust/actions/runs/31101791384) passed all required jobs.
 - Audit-remediation PR: [#15](https://github.com/moonbit-community/MoonJust/pull/15), squash-merged as
   `b8e6d2c617ee9e941f31837da4e71ff93ff313f7`.
 - Required audit-remediation PR CI: [run 31107368869](https://github.com/moonbit-community/MoonJust/actions/runs/31107368869) passed all quality, Ubuntu, macOS and Windows jobs.
