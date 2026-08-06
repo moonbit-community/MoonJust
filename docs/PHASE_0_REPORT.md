@@ -44,7 +44,7 @@ are required after the bootstrap sequence.
 | Clean, independent repository | Own `.git`, `origin` at `moonbit-community/MoonJust`, generated template debris removed | Pass |
 | Product identity | Module `moonbit-community/MoonJust`; executable package `cmd/just`; upstream baseline reported by `--version` | Pass |
 | Cross-target build | `moon check --target all --warn-list +73` | Pass |
-| Native and wasm1 smoke | Root tests select 1/1 per target; CLI version smoke on both targets | Pass |
+| Native and wasm1 smoke | Root tests select 2/2 per target at the final audit; CLI version smoke on both targets | Pass |
 | Platform smoke | GitHub-hosted Linux, macOS, and Windows Native jobs | Pass |
 | Public API stability check | `moon info` followed by a clean diff in CI | Pass |
 | Upstream provenance | Exact tag, commit, release metadata, test-list hash, and CC0 fixture notice | Pass |
@@ -96,9 +96,10 @@ discarded as noise.
   implement replacement semantics, and pass a Rust oracle.
 - Local time-zone discovery, DST behavior, and chrono-format compatibility are
   deferred to the time adapter and builtin phases.
-- The compatibility inventory is indexed, not yet fully classified as ported,
-  differential, covered-by, not-applicable, or blocked. Classification proceeds
-  with implementation and is a 1.0 gate.
+- At the original Phase 0 entry, the compatibility inventory was only indexed.
+  The final Phase 0-5 audit now classifies Phase 2-5 rows as `covered-by` or
+  `not-applicable`, with later Phase 6-10 rows remaining explicitly `planned`.
+  Future classification remains a 1.0 gate.
 
 No open item above blocks Phase 1. Each blocks the later feature or release tier
 named in the project plan and cannot be silently treated as supported.

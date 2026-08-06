@@ -58,6 +58,32 @@ def selected_tests(target: str, path: str | None = None) -> int:
     )
 
 
+def validate_test_anchor(
+    repo: Path,
+    row_id: str,
+    anchor: object,
+    source_cache: dict[str, str],
+) -> None:
+    expect(isinstance(anchor, dict), f"{row_id} has no executable test anchor")
+    expect(set(anchor) == {"suite", "test_name"}, f"{row_id} has an invalid test anchor schema")
+    suite = anchor["suite"]
+    test_name = anchor["test_name"]
+    expect(isinstance(suite, str) and suite, f"{row_id} has no test suite path")
+    expect(isinstance(test_name, str) and test_name, f"{row_id} has no test name")
+    if suite not in source_cache:
+        path = repo / suite
+        expect(path.is_file(), f"{row_id} test suite is missing: {suite}")
+        source_cache[suite] = path.read_text(encoding="utf-8")
+    declaration = re.compile(
+        rf'^\s*test\s+"{re.escape(test_name)}"\s*\{{',
+        re.MULTILINE,
+    )
+    expect(
+        declaration.search(source_cache[suite]) is not None,
+        f"{row_id} test declaration is missing: {suite}::{test_name}",
+    )
+
+
 def validate_map() -> None:
     repo = root()
     test_list = repo / "tests/upstream/just-1.57.0/test-list.txt"
@@ -68,6 +94,7 @@ def validate_map() -> None:
     expect(len(names) == EXPECTED_REGISTRATIONS, "upstream registration count changed")
     rows = [json.loads(line) for line in test_map.read_text(encoding="utf-8").splitlines()]
     expect(len(rows) == len(names), "upstream mapping row count does not match registrations")
+    source_cache: dict[str, str] = {}
     for index, (row, name) in enumerate(zip(rows, names), start=1):
         expect(row["id"] == f"JUST-1.57.0-{index:04d}", f"invalid mapping id at row {index}")
         expect(row["upstream_name"] == name, f"mapping mismatch at row {index}")
@@ -76,6 +103,9 @@ def validate_map() -> None:
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
+        if row["owner_phase"] in {3, 4, 5}:
+            validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
+            expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
         if row["owner_phase"] in {3, 4, 5}:
             expect(row["disposition"] == "covered-by", f"Phase {row['owner_phase']} row {index} is not executable")
             expect(row["targets"] == ["native", "wasm1"], f"Phase {row['owner_phase']} row {index} target matrix is incomplete")
@@ -93,7 +123,12 @@ def validate_map() -> None:
         rows_for_phase = [row for row in rows if row["owner_phase"] == phase]
         case_rows = [json.loads(line) for line in cases.read_text(encoding="utf-8").splitlines()]
         expect(len(case_rows) == len(rows_for_phase), f"Phase {phase} case manifest count changed")
-        expect(all(case["disposition"] == "covered-by" for case in case_rows), f"Phase {phase} has non-executable cases")
+        expected_by_id = {row["id"]: row for row in rows_for_phase}
+        for case in case_rows:
+            expect(case["disposition"] == "covered-by", f"Phase {phase} has non-executable cases")
+            expected = expected_by_id.get(case.get("case_id"))
+            expect(expected is not None, f"Phase {phase} case has an unknown id")
+            expect(case.get("test_anchor") == expected.get("test_anchor"), f"Phase {phase} case anchor differs from test map")
 
 
 def validate_differential_cases() -> None:

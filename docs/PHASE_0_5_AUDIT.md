@@ -32,7 +32,9 @@ the pinned Rust oracle, target checks, and the Native C-binding sanitizer run.
   portable `x/fs` adapter explicitly reports missing range capability.
 - The exact upstream commit and 2,417 test names are pinned. Every applicable
   Phase 3-5 row is `covered-by`, has Native/wasm1 targets, and points to an
-  executable suite and phase manifest.
+  executable phase manifest plus a verifier-checked `suite`/`test_name` anchor.
+  Repeated anchors are explicitly family-level evidence, not independent
+  oracle rows.
 - Phase 1 exposes five contracts and Phase 2 records 93 lexer registrations,
   21 adapted oracle cases and 100,000 deterministic hardening inputs.
 - Architecture checks keep parser/semantic/evaluator core packages independent
@@ -40,8 +42,9 @@ the pinned Rust oracle, target checks, and the Native C-binding sanitizer run.
 - The Native C-binding ASan run executes all 109 tests without memory errors or
   leaks. The evaluator and hash tests include adversarial recursion, empty,
   boundary, large-input and capability-denial cases.
-- `moon test --target native --enable-coverage` followed by `moon coverage
-  report -f summary` records 4,202/6,055 instrumented points (69.4%). This is a
+- After `moon coverage clean`, `moon test --target native --enable-coverage`
+  followed by `moon coverage report -f summary --ignore-missing-files` records
+  4,273/6,085 instrumented points (70.2%). This is a
   transparent Phase 0-5 baseline, not a claim that the separate 1.0 release
   threshold of 90% core/80% host coverage has already been met. Native FFI is
   not instrumented and is covered by the real-filesystem test plus ASan run.

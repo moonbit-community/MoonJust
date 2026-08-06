@@ -40,10 +40,12 @@ static dependency/variable/version validation.
 ## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
-- `moon test --target native`: 100 passed, 0 failed.
-- `moon test --target wasm`: 100 passed, 0 failed.
+- `moon test --target native`: 109 passed, 0 failed.
+- `moon test --target wasm`: 108 passed, 0 failed.
 - The Phase 4 upstream case manifest links all 427 registrations to
-  loader/semantic suites with Native/wasm1 targets.
+  loader/semantic suites with Native/wasm1 targets. Each row carries an
+  executable `suite`/`test_name` anchor checked by the manifest verifier;
+  repeated anchors explicitly denote family-level coverage.
 - `src/host_native/native_test.mbt` verifies real file reads, directory
   enumeration, metadata and canonical identity; the FFI stub is covered by the
   native build.

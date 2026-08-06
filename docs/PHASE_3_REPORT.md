@@ -36,7 +36,9 @@ span-free semantic AST fingerprint before and after canonical printing.
   10 formatter/Markdown tests per target).
 - The pinned upstream map contains 181 parser, 127 formatter, 11 Markdown, and
   5 tangle registrations, all `covered-by` with executable suite and tracking
-  evidence in `tests/upstream/just-1.57.0/phase-3-cases.jsonl`.
+  evidence in `tests/upstream/just-1.57.0/phase-3-cases.jsonl`. Every row also
+  carries a `suite`/`test_name` anchor verified against the MoonBit test
+  declaration; repeated anchors explicitly denote family-level coverage.
 - `Expression::semantic_key`, `Item::semantic_key`, and `Ast::semantic_key`
   provide the machine-checked span-free semantic equivalence gate used by the
   formatter test.

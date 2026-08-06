@@ -54,10 +54,17 @@ silently buffering an entire file.
 - `tools/upstream/phase5_oracle.py`: 20/20 pinned Rust oracle cases passed.
 - `python3 .../moonbit-c-binding/scripts/run-asan.py --repo-root ... --pkg
   src/host_native/moon.pkg`: 109 Native tests passed with no ASan or leak error.
-- Native coverage snapshot: evaluator 579/994, builtin 733/1,057, value 36/55,
+- Native coverage snapshot: evaluator 579/994, builtin 616/926, value 36/55,
   Host contracts/fake 156/183. These numbers are recorded evidence, not a claim
   that the later 1.0 release-coverage threshold is complete; Native FFI is
   validated by its black-box test and ASan because it is not instrumented.
+- After `moon coverage clean`, the reproducible total is 4,273/6,085 (70.2%);
+  the current builtin package is 616/926. The per-package values above are
+  retained only where they match this clean run; the total and builtin values
+  supersede the earlier pre-clean snapshot.
+- Every Phase 5 case row carries an executable `suite`/`test_name` anchor that
+  the manifest verifier resolves to a declared MoonBit test. Repeated anchors
+  explicitly denote family-level coverage rather than independent oracle rows.
 - `moon info` regenerated and reviewed all changed `.mbti` interfaces.
 
 ## Publication evidence
