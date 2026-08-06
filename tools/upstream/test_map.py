@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -161,6 +162,84 @@ PHASE_PREFIXES = {
 }
 
 
+PHASE_TEST_ANCHORS = {
+    3: {
+        "parser": (
+            "src/parser/top_level_test.mbt",
+            "top-level parser builds assignments aliases settings recipes and imports",
+        ),
+        "format": (
+            "src/formatter/formatter_test.mbt",
+            "phase 3 formatter corpus is idempotent across representative grammar",
+        ),
+        "markdown": (
+            "src/formatter/markdown_test.mbt",
+            "phase 3 markdown corpus preserves CommonMark fence boundaries",
+        ),
+        "tangle": (
+            "src/formatter/markdown_test.mbt",
+            "markdown tangle requires matching fence character and minimum length",
+        ),
+    },
+    4: {
+        "semantic": (
+            "src/semantic/semantic_test.mbt",
+            "compilation exposes ordered symbols and typed settings",
+        ),
+        "validation": (
+            "src/semantic/semantic_test.mbt",
+            "semantic validation checks minimum version, dependency arity, and recipe variables",
+        ),
+        "settings": (
+            "src/semantic/semantic_test.mbt",
+            "settings and attributes expose complete typed contracts",
+        ),
+        "loader_search": (
+            "src/loader/loader_test.mbt",
+            "search ascends to the project ceiling and loads through host",
+        ),
+        "loader_global": (
+            "src/loader/loader_test.mbt",
+            "global fallback and stdin loading are explicit",
+        ),
+        "loader_graph": (
+            "src/loader/loader_test.mbt",
+            "optional imports are skipped and cycles are reported",
+        ),
+    },
+    5: {
+        "pure": (
+            "src/builtin/builtin_test.mbt",
+            "pure builtins cover string, path, regex and semver contracts",
+        ),
+        "builtin_collections": (
+            "src/builtin/builtin_test.mbt",
+            "canonical string and list builtins are deterministic",
+        ),
+        "effect": (
+            "src/evaluator/evaluator_test.mbt",
+            "effect context connects fs random clock process terminal and PATH facts",
+        ),
+        "evaluation": (
+            "src/evaluator/evaluator_test.mbt",
+            "pure evaluation supports conditions, lists, concatenation and builtins",
+        ),
+        "lazy": (
+            "src/evaluator/evaluator_test.mbt",
+            "lazy assignments expose states and redact cycle diagnostics",
+        ),
+        "scope": (
+            "src/evaluator/evaluator_test.mbt",
+            "recipe and module scopes implement defaults variadics shadowing and exports",
+        ),
+        "limits": (
+            "src/evaluator/evaluator_test.mbt",
+            "evaluation limits reject adversarial depth",
+        ),
+    },
+}
+
+
 def repository_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
@@ -172,6 +251,81 @@ def phase_for(category: str) -> int:
             f"category {category!r} must have exactly one owner phase, found {matches}"
         )
     return matches[0]
+
+
+def anchor_for(phase: int, category: str) -> tuple[str, str]:
+    """Return the executable family test that owns an upstream category."""
+    if phase == 3:
+        return PHASE_TEST_ANCHORS[3][category]
+    if phase == 4:
+        if category in {
+            "ceiling",
+            "search",
+            "search_arguments",
+            "search_error",
+        }:
+            return PHASE_TEST_ANCHORS[4]["loader_search"]
+        if category in {"fallback", "global"}:
+            return PHASE_TEST_ANCHORS[4]["loader_global"]
+        if category in {"imports", "modulepath", "modules"}:
+            return PHASE_TEST_ANCHORS[4]["loader_graph"]
+        if category in {
+            "settings",
+            "minimum_version",
+            "no_dependencies",
+            "os_attributes",
+            "attribute",
+            "attributes",
+            "arg_attribute",
+        }:
+            return PHASE_TEST_ANCHORS[4]["settings"]
+        if category in {
+            "alias",
+            "allow_duplicate_recipes",
+            "allow_duplicate_variables",
+            "analyzer",
+            "compiler",
+            "dependencies",
+            "mapped_dependencies",
+            "parameters",
+            "recipe_resolver",
+            "subsequents",
+            "undefined_variables",
+            "variable_resolver",
+        }:
+            return PHASE_TEST_ANCHORS[4]["validation"]
+        return PHASE_TEST_ANCHORS[4]["semantic"]
+    if phase == 5:
+        if category in {"datetime", "directories", "which_function"}:
+            return PHASE_TEST_ANCHORS[5]["effect"]
+        if category in {"functions", "string", "quote", "regexes", "function"}:
+            return PHASE_TEST_ANCHORS[5]["pure"]
+        if category in {"list_literals", "unindent"}:
+            return PHASE_TEST_ANCHORS[5]["builtin_collections"]
+        if category == "lazy":
+            return PHASE_TEST_ANCHORS[5]["lazy"]
+        if category in {"scope", "shadowing_parameters", "function_definitions"}:
+            return PHASE_TEST_ANCHORS[5]["scope"]
+        if category == "recursion_limit":
+            return PHASE_TEST_ANCHORS[5]["limits"]
+        return PHASE_TEST_ANCHORS[5]["evaluation"]
+    raise ValueError(f"phase {phase} has no executable anchor mapping")
+
+
+def anchor_exists(repo: Path, anchor: dict[str, str]) -> bool:
+    suite = repo / anchor["suite"]
+    if not suite.is_file():
+        return False
+    declaration = re.compile(
+        rf'^\s*test\s+"{re.escape(anchor["test_name"])}"\s*\{{',
+        re.MULTILINE,
+    )
+    return declaration.search(suite.read_text(encoding="utf-8")) is not None
+
+
+def anchor_dict(phase: int, category: str) -> dict[str, str]:
+    suite, test_name = anchor_for(phase, category)
+    return {"suite": suite, "test_name": test_name}
 
 
 def build_rows(names: list[str]) -> list[dict[str, object]]:
@@ -224,34 +378,17 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="MJ-LEX-HARDEN-0001",
             )
         elif phase <= 5:
-            if phase == 3:
-                suite = {
-                    "parser": "src/parser/corpus_test.mbt",
-                    "format": "src/formatter/formatter_test.mbt",
-                    "markdown": "src/formatter/markdown_test.mbt",
-                    "tangle": "src/formatter/markdown_test.mbt",
-                }[category]
-            elif phase == 4:
-                suite = (
-                    "src/loader/loader_test.mbt"
-                    if category in {"ceiling", "fallback", "global", "imports", "modulepath", "modules", "search", "search_arguments", "search_error"}
-                    else "src/semantic/semantic_test.mbt"
-                )
-            else:
-                suite = (
-                    "src/builtin/builtin_test.mbt"
-                    if category in {"backticks", "datetime", "directories", "function", "function_definitions", "functions", "quote", "regexes", "string", "which_function"}
-                    else "src/evaluator/evaluator_test.mbt"
-                )
+            test_anchor = anchor_dict(phase, category)
             row.update(
                 disposition="covered-by",
                 targets=["native", "wasm1"],
                 evidence=[
                     f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl",
-                    suite,
+                    test_anchor["suite"],
                     f"docs/PHASE_{phase}_REPORT.md",
                 ],
                 tracking=f"MJ-PHASE-{phase}-CORPUS",
+                test_anchor=test_anchor,
             )
         rows.append(row)
     return rows
@@ -279,6 +416,7 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
                     "disposition": row["disposition"],
                     "targets": row["targets"],
                     "suite": row["evidence"][1],
+                    "test_anchor": row["test_anchor"],
                     "tracking": row["tracking"],
                 },
                 ensure_ascii=True,
@@ -303,6 +441,8 @@ def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
                 raise ValueError(f"Phase {phase} case manifest is not deterministic")
             if case["disposition"] != "covered-by" or not case["suite"]:
                 raise ValueError(f"Phase {phase} case lacks executable evidence")
+            if case.get("test_anchor") != row.get("test_anchor"):
+                raise ValueError(f"Phase {phase} case anchor differs from test map")
 
 
 def load_names(path: Path) -> list[str]:
@@ -350,6 +490,19 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} has no evidence list")
         if not isinstance(row.get("tracking"), str) or not row["tracking"]:
             raise ValueError(f"row {expected_id} has no tracking owner")
+        if row.get("owner_phase") in {3, 4, 5}:
+            anchor = row.get("test_anchor")
+            if not isinstance(anchor, dict) or set(anchor) != {"suite", "test_name"}:
+                raise ValueError(f"row {expected_id} has no executable test anchor")
+            if not all(isinstance(value, str) and value for value in anchor.values()):
+                raise ValueError(f"row {expected_id} has an invalid executable test anchor")
+            if anchor["suite"] != row["evidence"][1]:
+                raise ValueError(f"row {expected_id} anchor suite differs from evidence")
+            if not anchor_exists(repository_root(), anchor):
+                raise ValueError(
+                    f"row {expected_id} points to a missing test declaration "
+                    f"{anchor['suite']}::{anchor['test_name']}"
+                )
         if row["disposition"] in {"not-applicable", "excluded-completion"} and not row.get(
             "reason"
         ):

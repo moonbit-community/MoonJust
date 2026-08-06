@@ -5,8 +5,8 @@ MoonJust is a MoonBit implementation of the
 behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
 backends.
 
-> Status: Phase 0-2 exits have passed. Phase 3-5 implementation baselines are
-> merged, but strict remediation is active and their original exits are pending.
+> Status: Phase 0-5 exits have passed. Phase 3-5 strict remediation is merged
+> and re-certified against executable manifests and the pinned oracle.
 > Query CLI and recipe execution remain in later phases.
 
 ## Compatibility scope
@@ -21,7 +21,7 @@ backends.
 
 The complete scope, architecture, PR sequence, quality gates, and release
 criteria are defined in [the project plan](docs/PROJECT_PLAN.md). The current
-Phase 0-5 verdict and unresolved exits are recorded in the
+Phase 0-5 verdict and resolved exit evidence are recorded in the
 [strict audit](docs/PHASE_0_5_AUDIT.md), with implementation evidence in the
 [Phase 5 report](docs/PHASE_5_REPORT.md), [Phase 4 report](docs/PHASE_4_REPORT.md),
 [Phase 3 report](docs/PHASE_3_REPORT.md), [Phase 2 report](docs/PHASE_2_REPORT.md),

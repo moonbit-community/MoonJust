@@ -21,9 +21,10 @@ The command fails rather than updating the snapshot if the commit or expected
 compatibility PR; do not change the expected count to make CI green.
 
 `test_map.py` generates one deterministic JSONL row for every pinned
-registration. During remediation, Phase 3-5 rows remain `unverified`; later
-phase rows remain `planned`. Both states require an explicit tracking owner and
-cannot satisfy a completed phase exit.
+registration. Phase 3-5 rows are `covered-by` and carry an executable
+`suite`/`test_name` anchor. The verifier reads the referenced MoonBit source and
+checks that the named test declaration exists. Later phase rows remain
+`planned`; both planned and excluded rows retain explicit tracking owners.
 
 Regenerate and verify the map with:
 

@@ -30,9 +30,11 @@ boundary.
 ## Consequences
 
 The evaluator remains cross-target and deterministic, and the hash functions
-can be tested with fake hosts. The current file-hash implementation obtains the
-complete file through `HostFs`; a future streaming HostFs API can optimize this
-without changing the builtin contract.
+can be tested with fake hosts. Native file hashes use `HostFs::stream_file`
+backed by bounded `read_file_range` calls; the portable adapter reports an
+explicit unavailable range capability instead of buffering the complete file.
+Future host implementations can optimize the range primitive without changing
+the builtin contract.
 
 ## Rollback
 
