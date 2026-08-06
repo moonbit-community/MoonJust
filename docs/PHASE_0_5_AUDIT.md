@@ -1,7 +1,8 @@
 # Phase 0-5 strict exit audit
 
 - Review date: 2026-08-06
-- Reviewed baseline: Phase 5 repair branch at the final local verification point
+- Reviewed baseline: `origin/main` at
+  `cee01fd202ec4a60c6cb8815f1af5b9cce953294`
 - Accepted specification: `docs/PROJECT_PLAN.md` v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
@@ -90,4 +91,12 @@ range capability instead of buffering whole files.
 `compat/phase-3.toml` through `compat/phase-5.toml` are `implemented/passed`.
 No applicable Phase 0-5 Tier A test remains `unsupported`, `blocked-platform`,
 `unverified` or without executable evidence. The Phase 5 PR and its post-merge
-`main` CI must remain green before this audit is considered published.
+`main` CI are green, so this audit is published against the merged `main`
+baseline.
+
+## Publication verification
+
+- Phase 5 implementation PR: [#13](https://github.com/moonbit-community/MoonJust/pull/13), squash-merged as
+  `cee01fd202ec4a60c6cb8815f1af5b9cce953294`.
+- Required Phase 5 PR CI: [run 31101620775](https://github.com/moonbit-community/MoonJust/actions/runs/31101620775) passed all quality, Ubuntu, macOS and Windows jobs.
+- Required post-merge `main` CI: [run 31101791384](https://github.com/moonbit-community/MoonJust/actions/runs/31101791384) passed all required jobs for the reviewed baseline.
