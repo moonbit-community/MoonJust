@@ -19,3 +19,15 @@ Or let the script create and clean a temporary clone:
 The command fails rather than updating the snapshot if the commit or expected
 2,417 registrations differ. Review and update the baseline through a dedicated
 compatibility PR; do not change the expected count to make CI green.
+
+`test_map.py` generates one deterministic JSONL row for every pinned
+registration. During remediation, Phase 3-5 rows remain `unverified`; later
+phase rows remain `planned`. Both states require an explicit tracking owner and
+cannot satisfy a completed phase exit.
+
+Regenerate and verify the map with:
+
+```bash
+python3 tools/upstream/test_map.py --write
+python3 tools/upstream/test_map.py
+```

@@ -6,8 +6,8 @@ behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
 backends.
 
 > Status: Phase 0-2 exits have passed. Phase 3-5 implementation baselines are
-> merged, with original plan exits still pending strict-audit closure. Query CLI
-> and recipe execution remain in later phases.
+> merged, but strict remediation is active and their original exits are pending.
+> Query CLI and recipe execution remain in later phases.
 
 ## Compatibility scope
 

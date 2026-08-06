@@ -1,15 +1,15 @@
 # Phase 4 completion report
 
-- Status: Complete; Phase 4 exit passed
-- Strict review: 2026-08-05 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
+- Status: Remediation required; Phase 4 exit pending
+- Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: semantic compilation, typed settings/attributes, capability-backed loading, and import/module graph validation
 
-This report records the completed Phase 4 exit. The compatibility registries,
-typed semantic model, loader fallback/stdin paths, graph checks, parameter
-validation, and public compilation facade are enforced by the phase manifest
-and snapshot verifier on Native and wasm1.
+The former completion claim is superseded. The implementation baseline remains
+available for repair, but the exit is pending real-filesystem differential
+evidence, canonical source identity, complete loader behavior, and full static
+validation coverage.
 
 ## Delivered contracts
 

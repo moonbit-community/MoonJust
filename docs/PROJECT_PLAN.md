@@ -30,7 +30,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 - 模块名：`moonbit-community/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
 - 当前首选目标：`wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 的 parser/AST/formatter、语义/加载和 evaluator/builtin 阶段出口已于 2026-08-05 全部闭合；逐项证据、兼容清单、公开 API、架构门禁和后续限制见各阶段完成报告及 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+- Phase 3-5 的实现基线已合并，但 2026-08-06 严格复核发现阶段出口证据不完整，当前统一处于 remediation/pending；逐项缺口和修复顺序见各阶段报告及 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -568,7 +568,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-036 | Markdown tangle | source-aware fenced `just` 提取 | 上游 tangle + CommonMark 边界；保持原行号 |
 | PR-037 | Parser hardening | fuzz、深度/大小限制、全 grammar inventory | 稳定 grammar 100% 有正反测试，无 panic |
 
-执行状态：Phase 3 已于 2026-08-05 完成并通过阶段验收。逐项 parser/AST、formatter、Markdown、恢复、语料和 hardening 证据见 [`PHASE_3_REPORT.md`](PHASE_3_REPORT.md)；跨阶段核验记录见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+执行状态：Phase 3 正在 remediation，尚未通过阶段验收。缺失的 parser/AST、formatter、Markdown、恢复、语料和 hardening 证据见 [`PHASE_3_REPORT.md`](PHASE_3_REPORT.md)；修复总审计见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 4：语义分析和加载图
 
@@ -582,7 +582,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-045 | recipe/alias/dependency validation | 缺失名称、循环、参数静态检查 | 不启动进程即可发现全部静态错误 |
 | PR-046 | Compilation API | immutable semantic model、query facade | 黑盒 API 文档测试；`.mbti` 审查 |
 
-执行状态：Phase 4 已于 2026-08-05 完成实现并通过阶段验收。逐项测试、公开 API、加载图、静态校验、兼容清单和后续限制见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)；跨阶段核验记录见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+执行状态：Phase 4 正在 remediation，尚未通过阶段验收。缺失的真实 HostFs、加载图、静态校验、公开 API 和兼容证据见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)；修复总审计见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 5：值、求值与内建函数
 
@@ -597,7 +597,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-056 | clock/uuid/shell builtins | HostClock/Random/Process 接入 | deterministic tests + 目标矩阵 |
 | PR-057 | evaluator hardening | recursion/size budget、error stack | 无未控制递归和敏感环境泄漏 |
 
-执行状态：Phase 5 已于 2026-08-05 完成实现并通过阶段验收。逐项测试、公开 API、83 项 builtin 注册、求值/效果/哈希/硬化门禁、兼容清单和后续限制见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；跨阶段核验记录见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+执行状态：Phase 5 正在 remediation，尚未通过阶段验收。缺失的 evaluator scope、83 项 builtin、求值/效果/哈希/硬化和目标矩阵证据见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；修复总审计见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 6：查询型 CLI
 
@@ -1022,7 +1022,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. Phase 0-5 阶段出口均已通过；所有完成状态、机器门禁和已知后续限制以 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md) 及各阶段完成报告为准，再进入 Phase 6 验收。
+10. Phase 0-2 保持已通过；Phase 3-5 必须完成 remediation 并由机器证据重新恢复为通过，所有状态、门禁和后续限制以 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md) 及各阶段报告为准，再进入 Phase 6 验收。
 
 ## 20. 参考资料与可复核来源
 

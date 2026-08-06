@@ -1,14 +1,15 @@
 # Phase 3 completion report
 
-- Status: Complete
-- Review date: 2026-08-05
+- Status: Remediation required; Phase 3 exit pending
+- Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: parser-owned AST, recursive-descent grammar, canonical formatter, and source-aware Markdown tangle
 
-Phase 3 is accepted against the original plan exits. Its provenance-backed
-grammar, formatter, Markdown, recovery, and fuzz evidence is frozen in
-`compat/phase-3.toml` and enforced by `tools/upstream/verify_snapshot.sh`.
+The former completion claim is superseded. The implementation baseline remains
+available for repair, but the original exit is pending until every applicable
+upstream parser/formatter/Markdown/tangle case has traceable evidence and the
+semantic formatter gate is enforced.
 
 ## Delivered contracts
 
