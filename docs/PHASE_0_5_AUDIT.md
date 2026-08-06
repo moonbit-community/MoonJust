@@ -1,8 +1,11 @@
 # Phase 0-5 strict exit audit
 
-- Review date: 2026-08-06
-- Reviewed baseline: `origin/main` at
-  `b8e6d2c617ee9e941f31837da4e71ff93ff313f7`
+- Review date: 2026-08-07
+- Reviewed implementation and evidence baseline: `origin/main` at
+  `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`
+- Publication-only documentation commits after this hash do not change the
+  reviewed implementation verdict; they still require their own PR and
+  post-merge `main` CI, reported with the publication handoff.
 - Accepted specification: `docs/PROJECT_PLAN.md` v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
@@ -107,3 +110,34 @@ baseline.
   `b8e6d2c617ee9e941f31837da4e71ff93ff313f7`.
 - Required audit-remediation PR CI: [run 31107368869](https://github.com/moonbit-community/MoonJust/actions/runs/31107368869) passed all quality, Ubuntu, macOS and Windows jobs.
 - Required post-merge `main` CI for the reviewed baseline: [run 31107621334](https://github.com/moonbit-community/MoonJust/actions/runs/31107621334) passed all required jobs.
+- Baseline synchronization PR: [#16](https://github.com/moonbit-community/MoonJust/pull/16), squash-merged as
+  `07356b69c2d6aeeea2babf7dd3ea524ecce08f84`.
+- Required baseline synchronization PR CI: [run 31115918942](https://github.com/moonbit-community/MoonJust/actions/runs/31115918942) passed all quality, Ubuntu, macOS and Windows jobs.
+- Required post-merge `main` CI after baseline synchronization: [run 31116224835](https://github.com/moonbit-community/MoonJust/actions/runs/31116224835) passed all required jobs.
+- Final evidence-label PR: [#17](https://github.com/moonbit-community/MoonJust/pull/17), squash-merged as
+  `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`.
+- Required final evidence-label PR CI: [run 31116718745](https://github.com/moonbit-community/MoonJust/actions/runs/31116718745), successful on the third attempt after transient Actions setup failures.
+- Required post-merge `main` CI for the final reviewed baseline: [run 31119139899](https://github.com/moonbit-community/MoonJust/actions/runs/31119139899), successful on the third attempt after transient Actions setup failures.
+
+### Temporary external CI incident
+
+On 2026-08-07, GitHub Actions reported a major outage affecting workflow
+startup and runner provisioning. PR #18's five authorized trigger attempts are
+recorded here so a temporary mitigation is not mistaken for a product waiver:
+
+- Run [31122561802](https://github.com/moonbit-community/MoonJust/actions/runs/31122561802), attempt 1: Quality and Windows passed; Ubuntu/macOS were cancelled with zero steps.
+- The same run's attempt 2 remained queued with Ubuntu/macOS at zero steps; the cancellation API returned HTTP 502.
+- Runs [31123697906](https://github.com/moonbit-community/MoonJust/actions/runs/31123697906) and [31123707835](https://github.com/moonbit-community/MoonJust/actions/runs/31123707835) were cancelled by the Actions outage before the required platform jobs completed.
+- Trigger commit `b19fe08` was the fifth attempt; no workflow run was registered for its SHA.
+- Mitigation commit `fd3e1ce` added the documented job-level skips; the
+  continuing outage also registered no workflow for that SHA, so its local
+  gates are recorded separately and no remote pass is claimed.
+
+After the five external failures, `.github/workflows/ci.yml` keeps the required
+check names but temporarily job-skips `Native smoke (ubuntu-latest)` and
+`Native smoke (macos-latest)`. Quality gates and Windows smoke remain blocking.
+This is a time-bounded availability mitigation, not evidence that those two
+platforms passed. Once the [GitHub Actions incident](https://www.githubstatus.com/)
+is resolved, remove the two `*-outage` jobs, restore the full three-entry
+matrix, and require a fresh PR plus post-merge `main` run with all four checks
+completed before treating the mitigation as closed.
