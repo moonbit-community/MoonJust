@@ -15,7 +15,7 @@ test "markdown tangle selects direct just fences and preserves byte offsets" {
 }
 
 ///|
-test "markdown tangle excludes nested, indented, and commented fences" {
+test "markdown tangle excludes nested, four-space, and commented fences" {
   let source = @source.Source::from_text(
     @source.SourceId::new(37),
     "README.md",
@@ -24,6 +24,38 @@ test "markdown tangle excludes nested, indented, and commented fences" {
   let result = @formatter.tangle(source)
   assert_eq(result.selected_blocks(), 1)
   assert_eq(result.source().line_text(15), "selected:")
+}
+
+///|
+test "markdown tangle accepts zero through three leading spaces" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(38),
+    "README.md",
+    "```just\nzero:\n```\n" +
+    " ```just\none:\n ```\n" +
+    "  ~~~just\ntwo:\n  ~~~\n" +
+    "   ```just\nthree:\n   ```\n" +
+    "    ```just\nignored:\n    ```\n",
+  )
+  let result = @formatter.tangle(source)
+  assert_eq(result.selected_blocks(), 4)
+  assert_true(result.source().text().contains("zero:"))
+  assert_true(result.source().text().contains("one:"))
+  assert_true(result.source().text().contains("two:"))
+  assert_true(result.source().text().contains("three:"))
+  assert_false(result.source().text().contains("ignored:"))
+}
+
+///|
+test "markdown tangle requires matching fence character and minimum length" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(39),
+    "README.md",
+    "```just\nrecipe:\n~~~\nstill selected\n````\n",
+  )
+  let result = @formatter.tangle(source)
+  assert_eq(result.selected_blocks(), 1)
+  assert_true(result.source().text().contains("still selected"))
 }
 
 ///|

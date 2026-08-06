@@ -76,6 +76,9 @@ def validate_map() -> None:
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
+        if row["owner_phase"] in {3, 4, 5}:
+            expect(row["disposition"] == "covered-by", f"Phase {row['owner_phase']} row {index} is not executable")
+            expect(row["targets"] == ["native", "wasm1"], f"Phase {row['owner_phase']} row {index} target matrix is incomplete")
 
     lexer_names = [name for name in names if name.startswith("lexer::tests::")]
     expect(len(lexer_names) == EXPECTED_LEXER_REGISTRATIONS, "lexer registration count changed")
@@ -85,6 +88,12 @@ def validate_map() -> None:
         all(row["disposition"] in {"covered-by", "not-applicable"} for row in phase2_rows),
         "Phase 2 contains an unclassified upstream registration",
     )
+    for phase in (3, 4, 5):
+        cases = repo / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
+        rows_for_phase = [row for row in rows if row["owner_phase"] == phase]
+        case_rows = [json.loads(line) for line in cases.read_text(encoding="utf-8").splitlines()]
+        expect(len(case_rows) == len(rows_for_phase), f"Phase {phase} case manifest count changed")
+        expect(all(case["disposition"] == "covered-by" for case in case_rows), f"Phase {phase} has non-executable cases")
 
 
 def validate_differential_cases() -> None:
@@ -154,8 +163,12 @@ def validate() -> None:
 
     for phase in (3, 4, 5):
         manifest = load(repo / f"compat/phase-{phase}.toml")
-        expect(manifest["status"] == "remediation", f"Phase {phase} status is not remediation")
-        expect(manifest["plan_exit"] == "pending", f"Phase {phase} exit is not pending")
+        if phase == 3:
+            expect(manifest["status"] == "implemented", "Phase 3 status is not implemented")
+            expect(manifest["plan_exit"] == "passed", "Phase 3 exit is not passed")
+        else:
+            expect(manifest["status"] == "remediation", f"Phase {phase} status is not remediation")
+            expect(manifest["plan_exit"] == "pending", f"Phase {phase} exit is not pending")
         corpus = load(repo / f"tests/upstream/just-1.57.0/phase-{phase}.toml")
         expect(corpus["upstream_commit"] == EXPECTED_COMMIT, f"Phase {phase} corpus commit changed")
         expect(corpus["license"] == "CC0-1.0", f"Phase {phase} corpus license changed")

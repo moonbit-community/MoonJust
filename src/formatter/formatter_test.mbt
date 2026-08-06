@@ -42,3 +42,20 @@ test "phase 3 formatter corpus is idempotent across representative grammar" {
     assert_eq(@formatter.format_source(reparsed), formatted)
   }
 }
+
+///|
+test "formatter preserves the complete semantic AST model" {
+  let source = formatter_source(
+    "export greeting := f'hello {name}'\n" +
+    "[doc(\"build\"), group(\"ci\")]\n" +
+    "build name +rest: deploy name && cleanup\n" +
+    "  @echo {{name}}\n" +
+    "set shell := [\"sh\", \"-cu\"]\n" +
+    "import? \"common.just\"\n" +
+    "mod? tools \"tools.just\"\n",
+  )
+  let original = try! @parser.parse(source)
+  let formatted = @formatter.format_source(source)
+  let reparsed = try! @parser.parse(formatter_source(formatted))
+  assert_eq(original.semantic_key(), reparsed.semantic_key())
+}

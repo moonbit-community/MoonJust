@@ -42,6 +42,7 @@ pub(all) struct Ast {
 } derive(Eq, @debug.Debug)
 pub fn Ast::items(Self) -> ArrayView[Item]
 pub fn Ast::new(@source.SourceId, Array[Item], @source.Span) -> Self
+pub fn Ast::semantic_key(Self) -> String
 pub fn Ast::source_id(Self) -> @source.SourceId
 pub fn Ast::span(Self) -> @source.Span
 
@@ -102,6 +103,7 @@ pub(all) enum Expression {
   Format(start~ : StringLiteral, parts~ : Array[FormatPart], span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn Expression::kind(Self) -> String
+pub fn Expression::semantic_key(Self) -> String
 pub fn Expression::span(Self) -> @source.Span
 
 pub(all) struct FormatPart {
@@ -135,6 +137,7 @@ pub(all) enum Item {
   Blank(span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn Item::name(Self) -> String?
+pub fn Item::semantic_key(Self) -> String
 pub fn Item::span(Self) -> @source.Span
 
 pub(all) struct Module {

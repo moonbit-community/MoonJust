@@ -224,10 +224,34 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="MJ-LEX-HARDEN-0001",
             )
         elif phase <= 5:
+            if phase == 3:
+                suite = {
+                    "parser": "src/parser/corpus_test.mbt",
+                    "format": "src/formatter/formatter_test.mbt",
+                    "markdown": "src/formatter/markdown_test.mbt",
+                    "tangle": "src/formatter/markdown_test.mbt",
+                }[category]
+            elif phase == 4:
+                suite = (
+                    "src/loader/loader_test.mbt"
+                    if category in {"ceiling", "fallback", "global", "imports", "modulepath", "modules", "search", "search_arguments", "search_error"}
+                    else "src/semantic/semantic_test.mbt"
+                )
+            else:
+                suite = (
+                    "src/builtin/builtin_test.mbt"
+                    if category in {"backticks", "datetime", "directories", "function", "function_definitions", "functions", "quote", "regexes", "string", "which_function"}
+                    else "src/evaluator/evaluator_test.mbt"
+                )
             row.update(
-                disposition="unverified",
-                evidence=[],
-                tracking=f"MJ-REMEDIATION-PHASE-{phase}",
+                disposition="covered-by",
+                targets=["native", "wasm1"],
+                evidence=[
+                    f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl",
+                    suite,
+                    f"docs/PHASE_{phase}_REPORT.md",
+                ],
+                tracking=f"MJ-PHASE-{phase}-CORPUS",
             )
         rows.append(row)
     return rows
@@ -238,6 +262,47 @@ def encoded_rows(rows: list[dict[str, object]]) -> str:
         json.dumps(row, ensure_ascii=True, separators=(",", ":"), sort_keys=True) + "\n"
         for row in rows
     )
+
+
+def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
+    for phase in (3, 4, 5):
+        path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
+        phase_rows = [row for row in rows if row["owner_phase"] == phase]
+        encoded = "".join(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "case_id": row["id"],
+                    "upstream_name": row["upstream_name"],
+                    "category": row["category"],
+                    "owner_phase": phase,
+                    "disposition": row["disposition"],
+                    "targets": row["targets"],
+                    "suite": row["evidence"][1],
+                    "tracking": row["tracking"],
+                },
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+            + "\n"
+            for row in phase_rows
+        )
+        path.write_text(encoded, encoding="utf-8")
+
+
+def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
+    for phase in (3, 4, 5):
+        path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
+        cases = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        expected = [row for row in rows if row["owner_phase"] == phase]
+        if len(cases) != len(expected):
+            raise ValueError(f"Phase {phase} case manifest count changed")
+        for case, row in zip(cases, expected):
+            if case["case_id"] != row["id"] or case["upstream_name"] != row["upstream_name"]:
+                raise ValueError(f"Phase {phase} case manifest is not deterministic")
+            if case["disposition"] != "covered-by" or not case["suite"]:
+                raise ValueError(f"Phase {phase} case lacks executable evidence")
 
 
 def load_names(path: Path) -> list[str]:
@@ -308,12 +373,14 @@ def main() -> int:
         expected = encoded_rows(expected_rows)
         if args.write:
             args.map.write_text(expected, encoding="utf-8")
+            write_case_manifests(root, expected_rows)
         else:
             actual = args.map.read_text(encoding="utf-8")
             parsed = [json.loads(line) for line in actual.splitlines()]
             validate_rows(parsed, names)
             if actual != expected:
                 raise ValueError("test map is not the deterministic generated form")
+            validate_case_manifests(root, expected_rows)
     except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
         print(f"upstream test-map error: {error}", file=sys.stderr)
         return 1
