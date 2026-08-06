@@ -30,7 +30,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 - 模块名：`moonbit-community/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
 - 当前首选目标：`wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 的实现基线已合并，但 2026-08-06 严格复核发现阶段出口证据不完整，当前统一处于 remediation/pending；逐项缺口和修复顺序见各阶段报告及 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+- Phase 3-4 已于 2026-08-06 完成严格 remediation 并恢复为通过；Phase 5 的实现基线仍处于 remediation/pending。逐项证据和剩余修复见各阶段报告及 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -582,7 +582,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-045 | recipe/alias/dependency validation | 缺失名称、循环、参数静态检查 | 不启动进程即可发现全部静态错误 |
 | PR-046 | Compilation API | immutable semantic model、query facade | 黑盒 API 文档测试；`.mbti` 审查 |
 
-执行状态：Phase 4 正在 remediation，尚未通过阶段验收。缺失的真实 HostFs、加载图、静态校验、公开 API 和兼容证据见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)；修复总审计见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+执行状态：Phase 4 已于 2026-08-06 完成实现并通过阶段验收。逐项 semantic、HostFs、loader、加载图、静态校验和公开 API 证据见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)。
 
 ### Phase 5：值、求值与内建函数
 

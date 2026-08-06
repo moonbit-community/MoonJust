@@ -1,5 +1,14 @@
 import {
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/path",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/x/fs",
 }
+
+options(
+  "native-stub": [ "realpath.c" ],
+  targets: {
+    "canonical_native.mbt": [ "native", "llvm" ],
+    "canonical_portable.mbt": [ "wasm", "wasm-gc", "js" ],
+  },
+)

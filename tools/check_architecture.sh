@@ -37,4 +37,10 @@ if grep -nE 'src/host_(native|wasm)' "$repo_root/src/host/moon.pkg"; then
   fail "host contracts import a concrete host adapter"
 fi
 
-echo "architecture boundaries verified for fourteen Phase 1-5 packages"
+[ -f "$repo_root/src/host_native/moon.pkg" ] || fail "missing native host adapter package"
+[ -f "$repo_root/src/host_native/pkg.generated.mbti" ] || fail "missing native host adapter interface"
+if grep -nE 'src/(semantic|evaluator|builtin|parser|formatter)' "$repo_root/src/host_native/moon.pkg"; then
+  fail "native host adapter imports core implementation packages"
+fi
+
+echo "architecture boundaries verified for fourteen core packages and one host adapter leaf"

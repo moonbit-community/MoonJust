@@ -1,17 +1,19 @@
 ///|
 /// Native/wasm filesystem adapter backed by the approved `moonbitlang/x/fs`
 /// package. Core packages depend only on `@host.HostFs` and never on this leaf.
-pub struct NativeFs {}
+pub struct NativeFs {
+  marker : Unit
+}
 
 ///|
 pub fn NativeFs::new() -> NativeFs {
-  NativeFs::{  }
+  { marker: () }
 }
 
 ///|
 fn io_error(error : @fs.IOError) -> @host.HostError {
   match error {
-    @fs.IOError(detail) => @host.InvalidInput(detail)
+    IOError(detail) => InvalidInput(detail)
   }
 }
 
@@ -70,7 +72,7 @@ pub impl @host.HostFs for NativeFs with fn metadata(
   } else if is_directory {
     @host.FileMetadata::new(false, true, 0L)
   } else {
-    raise @host.NotFound(path)
+    raise NotFound(path)
   }
 }
 
@@ -79,8 +81,11 @@ pub impl @host.HostFs for NativeFs with fn canonicalize(
   _self : NativeFs,
   path : @path.PathValue,
 ) -> @path.PathValue raise @host.HostError {
-  // x/fs intentionally exposes portable file operations, not realpath. The
-  // adapter still provides one canonical identity boundary; native realpath
-  // can be added without changing loader or semantic APIs.
-  path
+  match canonical_path_string(path.as_string()) {
+    None => raise NotFound(path)
+    Some(value) =>
+      @path.PathValue::new(value, path.flavor()) catch {
+        _ => raise InvalidInput("canonical path has an invalid representation")
+      }
+  }
 }

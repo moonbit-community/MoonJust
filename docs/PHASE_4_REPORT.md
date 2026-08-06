@@ -1,15 +1,16 @@
 # Phase 4 completion report
 
-- Status: Remediation required; Phase 4 exit pending
+- Status: Implemented; Phase 4 exit passed
 - Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: semantic compilation, typed settings/attributes, capability-backed loading, and import/module graph validation
 
-The former completion claim is superseded. The implementation baseline remains
-available for repair, but the exit is pending real-filesystem differential
-evidence, canonical source identity, complete loader behavior, and full static
-validation coverage.
+The strict remediation is complete. The semantic and loader contracts now
+have executable Native/wasm1 evidence, including a real `moonbitlang/x/fs`
+adapter, native `realpath` identity, case-insensitive justfile discovery,
+source-unified stdin/Markdown loading, cycle chains with import spans, and
+static dependency/variable/version validation.
 
 ## Delivered contracts
 
@@ -27,18 +28,27 @@ validation coverage.
 
 - Semantic packages depend only on `syntax`, `source`, and diagnostics; they do not import host contracts.
 - Loader APIs use generic `HostFs`/`HostEnv` bounds and map every host failure to `LoaderError`.
-- Search is lexical and deterministic: the caller supplies the start directory,
-  optional ceiling, and optional global fallback; global process state is never
-  read. Stdin is loaded through an explicit byte entry point.
-- Import and module identities are normalized `PathValue` values, and optional declarations are skipped only when the file is absent.
+- Search is deterministic across `justfile`, `.justfile`, and case variants;
+  the caller supplies the start directory, optional ceiling, and optional
+  global fallback; global process state is never read.
+- Explicit, stdin, Markdown, filesystem, import, and module sources share the
+  same source/parser boundary.
+- Import and module identities use HostFs canonicalization, and optional
+  declarations are skipped only when the file is absent.
 - Static dependency and alias cycles are rejected before any evaluator or process layer is involved.
 
 ## Current verification evidence
 
 - `moon check --target all --warn-list +73` passes without warnings.
-- Current implementation baseline: `moon test --target native`: 92 passed, 0 failed.
-- Current implementation baseline: `moon test --target wasm`: 92 passed, 0 failed.
-- `tools/check_architecture.sh` now covers eleven Phase 1-4 packages and keeps `semantic` host-free.
+- `moon test --target native`: 100 passed, 0 failed.
+- `moon test --target wasm`: 100 passed, 0 failed.
+- The Phase 4 upstream case manifest links all 427 registrations to
+  loader/semantic suites with Native/wasm1 targets.
+- `src/host_native/native_test.mbt` verifies real file reads, directory
+  enumeration, metadata and canonical identity; the FFI stub is covered by the
+  native build.
+- `tools/check_architecture.sh` verifies fourteen core packages plus the host
+  adapter leaf and keeps `semantic` host-free.
 - Generated `pkg.generated.mbti` files are reviewed for the new public semantic and loader surfaces.
 
 Phase 5 may consume `Compilation`, `Expression`, `SettingValue`, and host traits without reaching into parser or loader internals.
