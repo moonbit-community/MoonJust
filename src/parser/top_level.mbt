@@ -149,8 +149,12 @@ fn Parser::parse_recipe(
   while self.peek_kind() == Identifier || self.peek_kind() == Dollar {
     parameters.push(self.parse_parameter(false))
   }
-  if self.accept(Plus) is Some(_) || self.accept(Asterisk) is Some(_) {
+  if self.accept(Plus) is Some(_) {
     parameters.push(self.parse_parameter(true))
+  } else if self.accept(Asterisk) is Some(_) {
+    let exported = self.accept(Dollar) is Some(_)
+    let (name, token) = self.expect_identifier()
+    parameters.push(@syntax.Parameter::new_star(name, exported, token.span()))
   }
   self.expect(Colon) |> ignore
   let dependencies : Array[@syntax.Dependency] = []

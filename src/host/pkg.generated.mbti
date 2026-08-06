@@ -10,6 +10,8 @@ import {
 // Values
 pub fn[T : HostFs] read_file_chunks(T, @path.PathValue, chunk_size? : Int) -> Array[Bytes] raise HostError
 
+pub fn[T : HostFs] stream_file(T, @path.PathValue, (Bytes) -> Unit, chunk_size? : Int) -> Unit raise HostError
+
 // Errors
 pub(all) suberror HostError {
   CapabilityDenied(HostCapability)
@@ -166,6 +168,7 @@ pub(open) trait HostEnv {
 
 pub(open) trait HostFs {
   fn read_file(Self, @path.PathValue) -> Bytes raise HostError
+  fn read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   fn file_exists(Self, @path.PathValue) -> Bool raise HostError
   fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError

@@ -15,11 +15,15 @@ import {
 }
 
 // Values
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform] call_effect(T, String, Array[@value.Value], @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
+pub fn bind_recipe_parameters(@syntax.Recipe, Array[@value.Value], Environment, limits? : EvaluationLimits) -> Environment raise EvaluationError
+
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect(T, String, Array[@value.Value], @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
+
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect_with_context(T, String, Array[@value.Value], EvaluationContext, @source.Span) -> @value.Value raise EvaluationError
 
 pub fn evaluate(@syntax.Expression, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
 pub fn evaluate_compilation(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits) -> Environment raise EvaluationError
 
@@ -31,7 +35,7 @@ pub fn evaluate_with_context(@syntax.Expression, EvaluationContext, environment?
 pub(all) suberror EvaluationError {
   Parse(@parser.ParserError)
   UndefinedVariable(name~ : String, span~ : @source.Span)
-  VariableCycle(name~ : String, span~ : @source.Span)
+  VariableCycle(name~ : String, stack~ : Array[String], span~ : @source.Span)
   TypeMismatch(expected~ : String, actual~ : String, span~ : @source.Span)
   Builtin(@moonbit-community/MoonJust/src/builtin.BuiltinError, span~ : @source.Span)
   EffectRequired(effect~ : String, span~ : @source.Span)
@@ -41,6 +45,8 @@ pub(all) suberror EvaluationError {
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
   OutputLimitExceeded(limit~ : Int, span~ : @source.Span)
+  MissingContext(fact~ : String, span~ : @source.Span)
+  ArgumentCount(recipe~ : String, expected~ : String, actual~ : Int, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn EvaluationError::code(Self) -> String
 pub fn EvaluationError::message(Self) -> String
@@ -58,6 +64,7 @@ pub fn Environment::contains(Self, String) -> Bool
 pub fn Environment::get(Self, String) -> @value.Value?
 pub fn Environment::is_exported(Self, String) -> Bool
 pub fn Environment::mark_exported(Self, String) -> Unit
+pub fn Environment::module_scope(Self) -> Self
 pub fn Environment::names(Self) -> ArrayView[String]
 pub fn Environment::new() -> Self
 pub fn Environment::set(Self, String, @value.Value) -> Unit
@@ -67,12 +74,52 @@ pub(all) struct EvaluationContext {
   recipe : String?
   module_name : String?
   source : @source.SourceId?
+  justfile : @path.PathValue?
+  source_file : @path.PathValue?
+  module_file : @path.PathValue?
+  module_path : String?
+  executable : @path.PathValue?
+  executable_directory : @path.PathValue?
+  invocation_directory : @path.PathValue?
+  invocation_directory_native : @path.PathValue?
+  home_directory : @path.PathValue?
+  config_directory : @path.PathValue?
+  config_local_directory : @path.PathValue?
+  data_directory : @path.PathValue?
+  data_local_directory : @path.PathValue?
+  cache_directory : @path.PathValue?
+  runtime_directory : @path.PathValue?
+  pid : Int?
+  num_cpus : Int?
+  num_jobs : Int?
+  is_dependency : Bool
+  utc_offset_seconds : Int?
 } derive(Eq, @debug.Debug)
+pub fn EvaluationContext::cache_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::config_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::config_local_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::cwd(Self) -> @path.PathValue?
+pub fn EvaluationContext::data_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::data_local_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::executable(Self) -> @path.PathValue?
+pub fn EvaluationContext::executable_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::home_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::invocation_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::invocation_directory_native(Self) -> @path.PathValue?
+pub fn EvaluationContext::is_dependency(Self) -> Bool
+pub fn EvaluationContext::justfile(Self) -> @path.PathValue?
+pub fn EvaluationContext::module_file(Self) -> @path.PathValue?
 pub fn EvaluationContext::module_name(Self) -> String?
-pub fn EvaluationContext::new(cwd? : @path.PathValue?, recipe? : String?, module_name? : String?, source? : @source.SourceId?) -> Self
+pub fn EvaluationContext::module_path(Self) -> String?
+pub fn EvaluationContext::new(cwd? : @path.PathValue, recipe? : String, module_name? : String, source? : @source.SourceId, justfile? : @path.PathValue, source_file? : @path.PathValue, module_file? : @path.PathValue, module_path? : String, executable? : @path.PathValue, executable_directory? : @path.PathValue, invocation_directory? : @path.PathValue, invocation_directory_native? : @path.PathValue, home_directory? : @path.PathValue, config_directory? : @path.PathValue, config_local_directory? : @path.PathValue, data_directory? : @path.PathValue, data_local_directory? : @path.PathValue, cache_directory? : @path.PathValue, runtime_directory? : @path.PathValue, pid? : Int, num_cpus? : Int, num_jobs? : Int, is_dependency? : Bool, utc_offset_seconds? : Int) -> Self
+pub fn EvaluationContext::num_cpus(Self) -> Int?
+pub fn EvaluationContext::num_jobs(Self) -> Int?
+pub fn EvaluationContext::pid(Self) -> Int?
 pub fn EvaluationContext::recipe(Self) -> String?
+pub fn EvaluationContext::runtime_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::source(Self) -> @source.SourceId?
+pub fn EvaluationContext::source_file(Self) -> @path.PathValue?
+pub fn EvaluationContext::utc_offset_seconds(Self) -> Int?
 
 pub(all) struct EvaluationLimits {
   max_depth : Int
@@ -81,6 +128,25 @@ pub(all) struct EvaluationLimits {
 } derive(Eq, @debug.Debug)
 pub fn EvaluationLimits::default() -> Self
 pub fn EvaluationLimits::new(Int, Int, Int) -> Self
+
+pub struct LazyEnvironment {
+  compilation : @semantic.Compilation
+  environment : Environment
+  states : Map[String, LazyState]
+  stack : Array[String]
+  limits : EvaluationLimits
+}
+pub fn LazyEnvironment::environment(Self) -> Environment
+pub fn LazyEnvironment::materialize(Self) -> Environment raise EvaluationError
+pub fn LazyEnvironment::new(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits) -> Self
+pub fn LazyEnvironment::resolve(Self, String) -> @value.Value raise EvaluationError
+pub fn LazyEnvironment::state(Self, String) -> LazyState?
+
+pub(all) enum LazyState {
+  Unevaluated
+  Evaluating
+  Evaluated(@value.Value)
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

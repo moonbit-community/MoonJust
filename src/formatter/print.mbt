@@ -116,7 +116,13 @@ fn parameters_text(parameters : ArrayView[@syntax.Parameter]) -> String {
       builder.write_string(" ")
     }
     if parameter.variadic() {
-      builder.write_string("+")
+      builder.write_string(
+        if parameter.variadic_minimum() == 0 {
+          "*"
+        } else {
+          "+"
+        },
+      )
     }
     if parameter.exported() {
       builder.write_string("$")

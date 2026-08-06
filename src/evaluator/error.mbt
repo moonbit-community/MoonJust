@@ -2,7 +2,7 @@
 pub(all) suberror EvaluationError {
   Parse(@parser.ParserError)
   UndefinedVariable(name~ : String, span~ : @source.Span)
-  VariableCycle(name~ : String, span~ : @source.Span)
+  VariableCycle(name~ : String, stack~ : Array[String], span~ : @source.Span)
   TypeMismatch(expected~ : String, actual~ : String, span~ : @source.Span)
   Builtin(@builtin.BuiltinError, span~ : @source.Span)
   EffectRequired(effect~ : String, span~ : @source.Span)
@@ -12,6 +12,13 @@ pub(all) suberror EvaluationError {
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
   OutputLimitExceeded(limit~ : Int, span~ : @source.Span)
+  MissingContext(fact~ : String, span~ : @source.Span)
+  ArgumentCount(
+    recipe~ : String,
+    expected~ : String,
+    actual~ : Int,
+    span~ : @source.Span
+  )
 } derive(Eq, Debug)
 
 ///|
@@ -29,6 +36,8 @@ pub fn EvaluationError::code(self : EvaluationError) -> String {
     RecursionLimitExceeded(_) => "MJ-EVAL-0009"
     NodeLimitExceeded(_) => "MJ-EVAL-0010"
     OutputLimitExceeded(_) => "MJ-EVAL-0011"
+    MissingContext(_) => "MJ-EVAL-0012"
+    ArgumentCount(_) => "MJ-EVAL-0013"
   }
 }
 
@@ -47,6 +56,8 @@ pub fn EvaluationError::span(self : EvaluationError) -> @source.Span {
     RecursionLimitExceeded(span~, ..) => span
     NodeLimitExceeded(span~, ..) => span
     OutputLimitExceeded(span~, ..) => span
+    MissingContext(span~, ..) => span
+    ArgumentCount(span~, ..) => span
   }
 }
 
@@ -55,7 +66,8 @@ pub fn EvaluationError::message(self : EvaluationError) -> String {
   match self {
     Parse(error) => error.message()
     UndefinedVariable(name~, ..) => "variable `" + name + "` is not defined"
-    VariableCycle(name~, ..) => "variable cycle includes `" + name + "`"
+    VariableCycle(name~, stack~, ..) =>
+      "variable cycle includes `" + name + "`: " + stack.join(" -> ")
     TypeMismatch(expected~, actual~, ..) =>
       "expected " + expected + ", got " + actual
     Builtin(error, ..) => error.message()
@@ -71,6 +83,15 @@ pub fn EvaluationError::message(self : EvaluationError) -> String {
       "evaluation node limit " + limit.to_string() + " exceeded"
     OutputLimitExceeded(limit~, ..) =>
       "evaluation output limit " + limit.to_string() + " exceeded"
+    MissingContext(fact~, ..) =>
+      "evaluation context does not provide `" + fact + "`"
+    ArgumentCount(recipe~, expected~, actual~, ..) =>
+      "recipe `" +
+      recipe +
+      "` expects " +
+      expected +
+      " arguments, got " +
+      actual.to_string()
   }
 }
 

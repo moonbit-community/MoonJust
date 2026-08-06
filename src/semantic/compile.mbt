@@ -252,6 +252,7 @@ fn validate_dependency_graph(
         for parameter in parameters {
           if parameter.variadic() {
             variadic = true
+            required += parameter.variadic_minimum()
           } else if parameter.default_value() is None {
             required += 1
           }

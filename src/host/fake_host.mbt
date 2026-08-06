@@ -172,6 +172,29 @@ pub impl HostFs for FakeHost with fn read_file(
 }
 
 ///|
+pub impl HostFs for FakeHost with fn read_file_range(
+  self : FakeHost,
+  path : @path.PathValue,
+  offset : Int64,
+  length : Int,
+) -> Bytes raise HostError {
+  self.require(FsRead)
+  if offset < 0L || length < 0 {
+    raise InvalidInput("file range must not be negative")
+  }
+  let contents = match self.files.get(path) {
+    Some(value) => value
+    None => raise NotFound(path)
+  }
+  if offset >= contents.length().to_int64() || length == 0 {
+    return b""
+  }
+  let start = offset.to_int()
+  let end = Int::min(start + length, contents.length())
+  contents[start:end].to_owned()
+}
+
+///|
 pub impl HostFs for FakeHost with fn write_file(
   self : FakeHost,
   path : @path.PathValue,

@@ -6,6 +6,7 @@ moon fmt --check
 ./tools/upstream/verify_snapshot.sh
 ./tools/differential/self_test.sh
 ./tools/differential/real_smoke.sh
+python3 ./tools/upstream/phase5_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
 ./tools/spikes/check_host_async.sh
 ./tools/spikes/check_ecosystem.sh
 moon check --target all --warn-list +73

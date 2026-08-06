@@ -91,6 +91,8 @@ fn parameter_key(parameter : Parameter) -> String {
   ":" +
   parameter.variadic().to_string() +
   ":" +
+  parameter.variadic_minimum().to_string() +
+  ":" +
   parameter.exported().to_string() +
   ":" +
   parameter.default_value().map(Expression::semantic_key).unwrap_or("")

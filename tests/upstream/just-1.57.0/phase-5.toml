@@ -4,14 +4,15 @@ upstream_commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 license = "CC0-1.0"
 
 [evaluator]
-native_tests = 10
-wasm_tests = 10
+native_tests = 12
+wasm_tests = 12
 budget_cases = 3
 sources = ["src/evaluator.rs", "src/value.rs"]
 
 [builtins]
 canonical = 83
-semver_cases = 6
-regex_rejections = 2
+rust_oracle_cases = 20
+semver_cases = 16
+regex_cases = 4
 hash_vectors = 4
 sources = ["src/function.rs", "src/function/semver.rs", "src/function/sha256.rs"]

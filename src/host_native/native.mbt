@@ -28,6 +28,22 @@ pub impl @host.HostFs for NativeFs with fn read_file(
 }
 
 ///|
+pub impl @host.HostFs for NativeFs with fn read_file_range(
+  _self : NativeFs,
+  path : @path.PathValue,
+  offset : Int64,
+  length : Int,
+) -> Bytes raise @host.HostError {
+  if offset < 0L || length < 0 {
+    raise InvalidInput("file range must not be negative")
+  }
+  match read_file_range_value(path.as_string(), offset, length) {
+    Some(bytes) => bytes
+    None => raise CapabilityUnavailable(FsRead)
+  }
+}
+
+///|
 pub impl @host.HostFs for NativeFs with fn write_file(
   _self : NativeFs,
   path : @path.PathValue,
@@ -65,10 +81,11 @@ pub impl @host.HostFs for NativeFs with fn metadata(
   let is_file = @fs.is_file(value) catch { error => raise io_error(error) }
   let is_directory = @fs.is_dir(value) catch { error => raise io_error(error) }
   if is_file {
-    let size = @fs.read_file_to_bytes(value) catch {
-      error => raise io_error(error)
+    let size = match file_size_value(value) {
+      Some(size) => size
+      None => raise CapabilityUnavailable(FsRead)
     }
-    @host.FileMetadata::new(true, false, size.length().to_int64())
+    @host.FileMetadata::new(true, false, size)
   } else if is_directory {
     @host.FileMetadata::new(false, true, 0L)
   } else {

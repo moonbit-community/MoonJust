@@ -23,50 +23,10 @@ pub fn EvaluationLimits::new(
 }
 
 ///|
-/// Invocation facts kept separate from pure expression evaluation. Effect
-/// adapters may use these values when evaluating the same expression in a
-/// recipe, module, or imported source.
-pub(all) struct EvaluationContext {
-  cwd : @path.PathValue?
-  recipe : String?
-  module_name : String?
-  source : @source.SourceId?
-} derive(Eq, Debug)
-
-///|
-pub fn EvaluationContext::new(
-  cwd? : @path.PathValue? = None,
-  recipe? : String? = None,
-  module_name? : String? = None,
-  source? : @source.SourceId? = None,
-) -> EvaluationContext {
-  { cwd, recipe, module_name, source }
-}
-
-///|
-pub fn EvaluationContext::cwd(self : EvaluationContext) -> @path.PathValue? {
-  self.cwd
-}
-
-///|
-pub fn EvaluationContext::recipe(self : EvaluationContext) -> String? {
-  self.recipe
-}
-
-///|
-pub fn EvaluationContext::module_name(self : EvaluationContext) -> String? {
-  self.module_name
-}
-
-///|
-pub fn EvaluationContext::source(self : EvaluationContext) -> @source.SourceId? {
-  self.source
-}
-
-///|
 priv struct Evaluator {
   environment : Environment
   limits : EvaluationLimits
+  context : EvaluationContext?
   mut depth : Int
   mut nodes : Int
 }
@@ -182,18 +142,30 @@ fn Evaluator::eval_inner(
         Some(value) => value
         None => raise UndefinedVariable(name~, span~)
       }
-    Call(name~, arguments~, ..) => {
+    Call(name~, arguments~, ..) =>
       if @builtin.is_effectful(name) {
-        raise EffectRequired(effect=name, span~)
+        match self.context {
+          None => raise EffectRequired(effect=name, span~)
+          Some(context) => {
+            let values : Array[Value] = []
+            for argument in arguments {
+              values.push(self.eval(argument))
+            }
+            match context_builtin(name, values, context, span) {
+              Some(value) => value
+              None => raise EffectRequired(effect=name, span~)
+            }
+          }
+        }
+      } else {
+        let values : Array[Value] = []
+        for argument in arguments {
+          values.push(self.eval(argument))
+        }
+        @builtin.call(name, values) catch {
+          error => raise Builtin(error, span~)
+        }
       }
-      let values : Array[Value] = []
-      for argument in arguments {
-        values.push(self.eval(argument))
-      }
-      @builtin.call(name, values) catch {
-        error => raise Builtin(error, span~)
-      }
-    }
     List(elements~, ..) => {
       let values : Array[Value] = []
       for element in elements {
@@ -255,7 +227,13 @@ pub fn evaluate(
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
 ) -> Value raise EvaluationError {
-  let evaluator : Evaluator = { environment, limits, depth: 0, nodes: 0 }
+  let evaluator : Evaluator = {
+    environment,
+    limits,
+    context: None,
+    depth: 0,
+    nodes: 0,
+  }
   evaluator.eval(expression)
 }
 
@@ -266,8 +244,14 @@ pub fn evaluate_with_context(
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
 ) -> Value raise EvaluationError {
-  ignore(context)
-  evaluate(expression, environment~, limits~)
+  let evaluator : Evaluator = {
+    environment,
+    limits,
+    context: Some(context),
+    depth: 0,
+    nodes: 0,
+  }
+  evaluator.eval(expression)
 }
 
 ///|
@@ -277,41 +261,7 @@ pub fn evaluate_compilation(
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
 ) -> Environment raise EvaluationError {
-  let completed : Set[String] = Set([])
-  let names = compilation.variable_names()
-  while completed.length() < names.length() {
-    let mut progress = false
-    for name in names {
-      if completed.contains(name) {
-        continue
-      }
-      let assignment = compilation.variable(name).unwrap()
-      try evaluate(assignment.value(), environment~, limits~) catch {
-        UndefinedVariable(_) => ()
-        error => raise error
-      } noraise {
-        value => {
-          environment.set(name, value)
-          if assignment.exported() {
-            environment.mark_exported(name)
-          }
-          completed.add(name)
-          progress = true
-        }
-      }
-    }
-    if !progress {
-      for name in names {
-        if !completed.contains(name) {
-          raise VariableCycle(
-            name~,
-            span=compilation.variable(name).unwrap().span(),
-          )
-        }
-      }
-    }
-  }
-  environment
+  LazyEnvironment::new(compilation, environment~, limits~).materialize()
 }
 
 ///|

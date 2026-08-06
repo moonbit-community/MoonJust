@@ -27,12 +27,20 @@ test "top-level parser builds assignments aliases settings recipes and imports" 
   guard items[4] is Recipe(recipe) else { fail("expected recipe") }
   assert_eq(recipe.name(), "greet")
   assert_eq(recipe.parameters().length(), 2)
+  assert_eq(recipe.parameters()[1].variadic_minimum(), 1)
   assert_eq(recipe.dependencies().length(), 1)
   assert_eq(recipe.subsequent_dependencies().length(), 1)
   assert_eq(recipe.lines().length(), 1)
   assert_true(recipe.lines()[0].fragments()[0] is Text(..))
   guard items[5] is Recipe(deploy) else { fail("expected deploy") }
   assert_eq(deploy.name(), "deploy")
+
+  let star = @parser.parse(justfile_source("collect *items:\n"))
+  guard star.items()[0] is Recipe(star_recipe) else {
+    fail("expected star-variadic recipe")
+  }
+  assert_true(star_recipe.parameters()[0].variadic())
+  assert_eq(star_recipe.parameters()[0].variadic_minimum(), 0)
 }
 
 ///|
