@@ -2,7 +2,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-06，已发布基线为 `main@b8e6d2c617ee9e941f31837da4e71ff93ff313f7`；Phase 0-5 结论见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+> 最近严格复核：2026-08-07，已发布基线为 `main@dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`；Phase 0-5 结论见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）

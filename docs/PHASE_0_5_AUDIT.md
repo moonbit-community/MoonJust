@@ -1,8 +1,8 @@
 # Phase 0-5 strict exit audit
 
-- Review date: 2026-08-06
+- Review date: 2026-08-07
 - Reviewed baseline: `origin/main` at
-  `b8e6d2c617ee9e941f31837da4e71ff93ff313f7`
+  `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`
 - Accepted specification: `docs/PROJECT_PLAN.md` v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
@@ -107,3 +107,11 @@ baseline.
   `b8e6d2c617ee9e941f31837da4e71ff93ff313f7`.
 - Required audit-remediation PR CI: [run 31107368869](https://github.com/moonbit-community/MoonJust/actions/runs/31107368869) passed all quality, Ubuntu, macOS and Windows jobs.
 - Required post-merge `main` CI for the reviewed baseline: [run 31107621334](https://github.com/moonbit-community/MoonJust/actions/runs/31107621334) passed all required jobs.
+- Baseline synchronization PR: [#16](https://github.com/moonbit-community/MoonJust/pull/16), squash-merged as
+  `07356b69c2d6aeeea2babf7dd3ea524ecce08f84`.
+- Required baseline synchronization PR CI: [run 31115918942](https://github.com/moonbit-community/MoonJust/actions/runs/31115918942) passed all quality, Ubuntu, macOS and Windows jobs.
+- Required post-merge `main` CI after baseline synchronization: [run 31116224835](https://github.com/moonbit-community/MoonJust/actions/runs/31116224835) passed all required jobs.
+- Final evidence-label PR: [#17](https://github.com/moonbit-community/MoonJust/pull/17), squash-merged as
+  `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`.
+- Required final evidence-label PR CI: [run 31116718745](https://github.com/moonbit-community/MoonJust/actions/runs/31116718745), successful on the third attempt after transient Actions setup failures.
+- Required post-merge `main` CI for the final reviewed baseline: [run 31119139899](https://github.com/moonbit-community/MoonJust/actions/runs/31119139899), successful on the third attempt after transient Actions setup failures.
