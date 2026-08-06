@@ -1,16 +1,16 @@
 # Phase 5 completion report
 
-- Status: Complete; Phase 5 exit passed
-- Strict review: 2026-08-05 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
+- Status: Remediation required; Phase 5 exit pending
+- Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: runtime values, pure/effectful expression evaluation, typed builtins,
   cryptographic hashes, host capability calls, and evaluator hardening
 
-This report records the completed Phase 5 exit. The canonical 83-function
-registry, typed evaluator scopes and context, SemVer/regexp boundaries,
-chunked hash API, explicit host effects, and recursion/node/output budgets are
-covered by the phase manifest and snapshot verifier on Native and wasm1.
+The former completion claim is superseded. The implementation baseline remains
+available for repair, but the exit is pending complete evaluator scopes,
+non-placeholder effect builtins, per-builtin evidence, streaming hash proof,
+Rust differential corpora, and the target capability matrix.
 
 ## Delivered contracts
 
