@@ -9,4 +9,6 @@ import {
   "moonbit-community/MoonJust/src/syntax",
   "moonbit-community/MoonJust/src/value",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+  "moonbitlang/x/time",
 }

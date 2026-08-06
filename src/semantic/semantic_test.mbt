@@ -83,6 +83,15 @@ test "semantic validation checks minimum version, dependency arity, and recipe v
   } noraise {
     _ => fail("expected dependency arity error")
   }
+  let plus = try! @parser.parse(source("build +args:\nrun: build\n"))
+  try compile(plus) catch {
+    InvalidDependencyArguments(name="build", actual=0, ..) => ()
+    _ => fail("unexpected plus-variadic arity error")
+  } noraise {
+    _ => fail("expected plus-variadic arity error")
+  }
+  let star = try! @parser.parse(source("build *args:\nrun: build\n"))
+  ignore(try! compile(star))
   let undefined = try! @parser.parse(source("build:\n  echo {{missing}}\n"))
   try compile(undefined) catch {
     UndefinedVariable(name~, ..) => assert_eq(name, "missing")

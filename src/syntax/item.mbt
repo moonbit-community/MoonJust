@@ -3,6 +3,7 @@ pub(all) struct Parameter {
   name : String
   default_value : Expression?
   variadic : Bool
+  variadic_minimum : Int
   exported : Bool
   span : @source.Span
 } derive(Eq, Debug)
@@ -15,7 +16,35 @@ pub fn Parameter::new(
   exported : Bool,
   span : @source.Span,
 ) -> Parameter {
-  { name, default_value, variadic, exported, span }
+  {
+    name,
+    default_value,
+    variadic,
+    variadic_minimum: if variadic {
+      1
+    } else {
+      0
+    },
+    exported,
+    span,
+  }
+}
+
+///|
+/// Construct a `*name` parameter which accepts zero or more arguments.
+pub fn Parameter::new_star(
+  name : String,
+  exported : Bool,
+  span : @source.Span,
+) -> Parameter {
+  {
+    name,
+    default_value: None,
+    variadic: true,
+    variadic_minimum: 0,
+    exported,
+    span,
+  }
 }
 
 ///|
@@ -31,6 +60,11 @@ pub fn Parameter::default_value(self : Parameter) -> Expression? {
 ///|
 pub fn Parameter::variadic(self : Parameter) -> Bool {
   self.variadic
+}
+
+///|
+pub fn Parameter::variadic_minimum(self : Parameter) -> Int {
+  self.variadic_minimum
 }
 
 ///|

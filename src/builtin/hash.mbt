@@ -251,17 +251,99 @@ pub fn blake3_bytes(bytes : Bytes) -> String {
 }
 
 ///|
-/// Hash a sequence of chunks using the same canonical byte concatenation as
-/// the one-shot API. The chunk boundary is intentionally not part of the
-/// digest, which makes adapters and in-memory test hosts interchangeable.
-pub fn blake3_chunks(chunks : ArrayView[Bytes]) -> String {
-  let bytes : Array[Byte] = []
-  for chunk in chunks {
-    for byte in chunk {
-      bytes.push(byte)
-    }
+pub struct Blake3StackEntry {
+  level : Int
+  chaining_value : Array[UInt]
+}
+
+///|
+pub struct Blake3Hasher {
+  pending : Array[Byte]
+  stack : Array[Blake3StackEntry]
+  mut chunk_counter : UInt64
+}
+
+///|
+pub fn Blake3Hasher::new() -> Blake3Hasher {
+  { pending: [], stack: [], chunk_counter: 0UL }
+}
+
+///|
+fn push_chunk_chaining_value(
+  stack : Array[Blake3StackEntry],
+  chaining_value : Array[UInt],
+) -> Unit {
+  let mut current = chaining_value
+  let mut level = 0
+  while !stack.is_empty() && stack[stack.length() - 1].level == level {
+    let left = stack.pop().unwrap()
+    current = output_chaining_value(parent_output(left.chaining_value, current))
+    level += 1
   }
-  blake3_bytes(Bytes::from_array(bytes))
+  stack.push({ level, chaining_value: current })
+}
+
+///|
+fn blake3_root_hex(output : Blake3Output) -> String {
+  let words = compress(
+    output.input_cv,
+    output.block,
+    output.counter,
+    output.block_len,
+    output.flags | ROOT,
+  )
+  let builder = StringBuilder()
+  for index in 0..<8 {
+    hex_word(words[index], builder)
+  }
+  builder.to_string()
+}
+
+///|
+pub fn Blake3Hasher::update(self : Blake3Hasher, bytes : Bytes) -> Unit {
+  for byte in bytes {
+    if self.pending.length() == 1024 {
+      let leaf = chunk_output(
+        Bytes::from_array(self.pending.copy()),
+        0,
+        1024,
+        self.chunk_counter,
+      )
+      push_chunk_chaining_value(self.stack, output_chaining_value(leaf))
+      self.chunk_counter += 1UL
+      self.pending.clear()
+    }
+    self.pending.push(byte)
+  }
+}
+
+///|
+pub fn Blake3Hasher::finalize(self : Blake3Hasher) -> String {
+  let mut output = chunk_output(
+    Bytes::from_array(self.pending.copy()),
+    0,
+    self.pending.length(),
+    self.chunk_counter,
+  )
+  for index = self.stack.length() - 1; index >= 0; index = index - 1 {
+    output = parent_output(
+      self.stack[index].chaining_value,
+      output_chaining_value(output),
+    )
+  }
+  blake3_root_hex(output)
+}
+
+///|
+/// Incremental BLAKE3 hashing. At most one 1024-byte leaf chunk and a
+/// logarithmic stack of subtree chaining values are retained, independent of
+/// the total input size.
+pub fn blake3_chunks(chunks : ArrayView[Bytes]) -> String {
+  let hasher = Blake3Hasher::new()
+  for chunk in chunks {
+    hasher.update(chunk)
+  }
+  hasher.finalize()
 }
 
 ///|
@@ -275,12 +357,34 @@ pub fn sha256_bytes(bytes : Bytes) -> String {
 }
 
 ///|
-pub fn sha256_chunks(chunks : ArrayView[Bytes]) -> String {
-  let bytes : Array[Byte] = []
-  for chunk in chunks {
-    for byte in chunk {
-      bytes.push(byte)
-    }
+pub struct Sha256Hasher {
+  state : @crypto.SHA256
+}
+
+///|
+pub fn Sha256Hasher::new() -> Sha256Hasher {
+  { state: @crypto.SHA256::new() }
+}
+
+///|
+pub fn Sha256Hasher::update(self : Sha256Hasher, bytes : Bytes) -> Unit {
+  self.state.update(bytes)
+}
+
+///|
+pub fn Sha256Hasher::finalize(self : Sha256Hasher) -> String {
+  let builder = StringBuilder()
+  for byte in self.state.finalize() {
+    builder.write_string(byte.to_hex())
   }
-  sha256_bytes(Bytes::from_array(bytes))
+  builder.to_string()
+}
+
+///|
+pub fn sha256_chunks(chunks : ArrayView[Bytes]) -> String {
+  let hasher = Sha256Hasher::new()
+  for chunk in chunks {
+    hasher.update(chunk)
+  }
+  hasher.finalize()
 }

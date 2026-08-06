@@ -156,6 +156,7 @@ pub(all) struct Parameter {
   name : String
   default_value : Expression?
   variadic : Bool
+  variadic_minimum : Int
   exported : Bool
   span : @source.Span
 } derive(Eq, @debug.Debug)
@@ -163,8 +164,10 @@ pub fn Parameter::default_value(Self) -> Expression?
 pub fn Parameter::exported(Self) -> Bool
 pub fn Parameter::name(Self) -> String
 pub fn Parameter::new(String, Expression?, Bool, Bool, @source.Span) -> Self
+pub fn Parameter::new_star(String, Bool, @source.Span) -> Self
 pub fn Parameter::span(Self) -> @source.Span
 pub fn Parameter::variadic(Self) -> Bool
+pub fn Parameter::variadic_minimum(Self) -> Int
 
 pub(all) struct Recipe {
   name : String

@@ -21,6 +21,29 @@ pub fn Environment::child(parent : Environment) -> Environment {
       None => ()
     }
   }
+  for name in parent.ordered {
+    if parent.exported.contains(name) {
+      result.mark_exported(name)
+    }
+  }
+  result
+}
+
+///|
+/// Create a module scope containing only explicitly exported parent values.
+pub fn Environment::module_scope(parent : Environment) -> Environment {
+  let result = Environment::new()
+  for name in parent.ordered {
+    if parent.exported.contains(name) {
+      match parent.values.get(name) {
+        Some(value) => {
+          result.set(name, value)
+          result.mark_exported(name)
+        }
+        None => ()
+      }
+    }
+  }
   result
 }
 

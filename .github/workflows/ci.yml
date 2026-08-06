@@ -65,6 +65,9 @@ jobs:
       - name: Test real upstream differential smoke
         run: ./tools/differential/real_smoke.sh
 
+      - name: Verify Phase 5 Rust builtin oracle
+        run: python3 ./tools/upstream/phase5_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
+
       - name: Check all stable backends
         run: moon check --target all --warn-list +73
 

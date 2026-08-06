@@ -2,6 +2,7 @@
 /// File operations required by the pure application core.
 pub(open) trait HostFs {
   fn read_file(Self, @path.PathValue) -> Bytes raise HostError
+  fn read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   fn file_exists(Self, @path.PathValue) -> Bool raise HostError
   fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
@@ -10,9 +11,43 @@ pub(open) trait HostFs {
 }
 
 ///|
-/// Adapter-neutral chunked view used by hashing and other bounded consumers.
-/// Hosts that can stream may replace this helper at their boundary; the
-/// default remains deterministic for the in-memory implementation.
+/// Pull a file through a bounded buffer. The callback observes chunks in file
+/// order and never receives more than `chunk_size` bytes.
+pub fn[T : HostFs] stream_file(
+  host : T,
+  path : @path.PathValue,
+  consume : (Bytes) -> Unit,
+  chunk_size? : Int = 64 * 1024,
+) -> Unit raise HostError {
+  if chunk_size <= 0 {
+    raise InvalidInput("chunk size must be positive")
+  }
+  let metadata = HostFs::metadata(host, path)
+  if !metadata.is_file() {
+    raise InvalidInput("stream source must be a file")
+  }
+  let mut offset = 0L
+  while offset < metadata.size() {
+    let remaining = metadata.size() - offset
+    let length = if remaining < chunk_size.to_int64() {
+      remaining.to_int()
+    } else {
+      chunk_size
+    }
+    let bytes = HostFs::read_file_range(host, path, offset, length)
+    if bytes.length() == 0 || bytes.length() > length {
+      raise InvalidInput("host returned an invalid file range")
+    }
+    consume(bytes)
+    offset += bytes.length().to_int64()
+  }
+  if metadata.size() == 0L {
+    consume(b"")
+  }
+}
+
+///|
+/// Compatibility collector for callers that explicitly need all chunks.
 pub fn[T : HostFs] read_file_chunks(
   host : T,
   path : @path.PathValue,
@@ -21,17 +56,8 @@ pub fn[T : HostFs] read_file_chunks(
   if chunk_size <= 0 {
     raise InvalidInput("chunk size must be positive")
   }
-  let bytes = HostFs::read_file(host, path)
   let chunks : Array[Bytes] = []
-  let mut offset = 0
-  while offset < bytes.length() {
-    let end = Int::min(offset + chunk_size, bytes.length())
-    chunks.push(bytes[offset:end].to_owned())
-    offset = end
-  }
-  if chunks.is_empty() {
-    chunks.push(b"")
-  }
+  stream_file(host, path, fn(bytes) { chunks.push(bytes) }, chunk_size~)
   chunks
 }
 

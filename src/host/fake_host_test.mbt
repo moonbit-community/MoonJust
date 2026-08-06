@@ -32,6 +32,25 @@ test "memory filesystem is isolated and capability checked" {
 }
 
 ///|
+test "file ranges and stream helper keep chunk sizes bounded" {
+  let host = fake()
+  let path = @path.PathValue::new("/workspace/data", Unix)
+  host.put_file(path, b"0123456789abcdef")
+  assert_eq(host.read_file_range(path, 3L, 5), b"34567")
+  assert_eq(host.read_file_range(path, 14L, 8), b"ef")
+  let collected : Array[Byte] = []
+  let max_chunk = Ref(0)
+  @host.stream_file(host, path, chunk_size=3, fn(bytes) {
+    max_chunk.val = Int::max(max_chunk.val, bytes.length())
+    for byte in bytes {
+      collected.push(byte)
+    }
+  })
+  assert_eq(Bytes::from_array(collected), b"0123456789abcdef")
+  assert_eq(max_chunk.val, 3)
+}
+
+///|
 test "environment and working directory are deterministic" {
   let host = fake()
   host.set_env("MODE", "test")

@@ -16,9 +16,9 @@ test "formatter is idempotent and canonicalizes recipe indentation" {
 
 ///|
 test "formatter preserves expression structure and attributes" {
-  let source = formatter_source("[private]\nfoo x: echo\n")
+  let source = formatter_source("[private]\nfoo x: echo\ncollect *items:\n")
   let rendered = @formatter.format_source(source)
-  assert_eq(rendered, "[private]\nfoo x: echo\n")
+  assert_eq(rendered, "[private]\nfoo x: echo\ncollect *items:\n")
 }
 
 ///|

@@ -160,3 +160,352 @@ test "child environments snapshot and track exports" {
   assert_true(child.is_exported("B"))
   assert_eq(child.names(), ["A", "B"])
 }
+
+///|
+test "evaluation context supplies invocation facts without ambient fallbacks" {
+  let context = EvaluationContext::new(
+    cwd=@path.PathValue::new("/work", Unix),
+    recipe="build",
+    module_name="tools",
+    source=@source.SourceId::new(60),
+    justfile=@path.PathValue::new("/work/justfile", Unix),
+    source_file=@path.PathValue::new("/work/imports/tasks.just", Unix),
+    module_file=@path.PathValue::new("/work/modules/tools.just", Unix),
+    module_path="tools",
+    executable=@path.PathValue::new("/bin/just", Unix),
+    executable_directory=@path.PathValue::new("/opt/bin", Unix),
+    invocation_directory=@path.PathValue::new("/invoked", Unix),
+    invocation_directory_native=@path.PathValue::new("/native-invoked", Unix),
+    pid=4242,
+    num_cpus=8,
+    num_jobs=3,
+    is_dependency=true,
+  )
+  assert_eq(
+    evaluate_with_context(
+      expression("recipe_name() + \"@\" + module_path()"),
+      context,
+    ),
+    String("build@tools"),
+  )
+  assert_eq(
+    evaluate_with_context(expression("source_directory()"), context),
+    String("/work/imports"),
+  )
+  assert_eq(
+    evaluate_with_context(expression("absolute_path(\"a/../b\")"), context),
+    String("/work/b"),
+  )
+  assert_eq(
+    evaluate_with_context(expression("is_dependency()"), context),
+    Bool(true),
+  )
+  assert_eq(
+    evaluate_with_context(expression("executable_directory()"), context),
+    String("/opt/bin"),
+  )
+  assert_eq(
+    evaluate_with_context(expression("invocation_directory_native()"), context),
+    String("/native-invoked"),
+  )
+  try
+    evaluate_with_context(expression("just_pid()"), EvaluationContext::new())
+  catch {
+    MissingContext(fact="just_pid", ..) => ()
+    _ => fail("unexpected missing-context error")
+  } noraise {
+    _ => fail("expected missing context")
+  }
+}
+
+///|
+test "effect context connects fs random clock process terminal and PATH facts" {
+  let host = fake()
+  let cwd = @path.PathValue::new("/workspace", Unix)
+  let span = try! @source.Span::new(@source.SourceId::new(61), 0, 0)
+  let context = EvaluationContext::new(
+    cwd~,
+    invocation_directory=cwd,
+    justfile=@path.PathValue::new("/workspace/justfile", Unix),
+    executable=@path.PathValue::new("/bin/just", Unix),
+    pid=99,
+    num_cpus=4,
+    num_jobs=2,
+    utc_offset_seconds=3600,
+  )
+  host.set_env("PATH", "/bin:/usr/bin")
+  host.put_file(@path.PathValue::new("/usr/bin/tool", Unix), b"binary")
+  host.put_file(@path.PathValue::new("/workspace/input", Unix), b"abc")
+  host.set_canonical(
+    @path.PathValue::new("/workspace/link", Unix),
+    @path.PathValue::new("/workspace/input", Unix),
+  )
+  host.set_clock_millis(0L)
+  host.set_random_stream(
+    b"\x00\x00\x00\x00\x01\x00\x00\x00\x02\x00\x00\x00" + b"1234567890123456",
+  )
+  host.set_terminal(@host.TerminalInfo::new(true, true, true, true))
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "canonicalize",
+      [String("link")],
+      context,
+      span,
+    ),
+    String("/workspace/input"),
+  )
+  assert_eq(
+    call_effect_with_context(host, "which", [String("tool")], context, span),
+    String("/usr/bin/tool"),
+  )
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "choose",
+      [String("3"), String("abc")],
+      context,
+      span,
+    ),
+    String("abc"),
+  )
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "datetime",
+      [String("%Y-%m-%d %H:%M:%S %z")],
+      context,
+      span,
+    ),
+    String("1970-01-01 01:00:00 +0100"),
+  )
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "datetime_utc",
+      [String("%Y-%m-%dT%H:%M:%S%:z")],
+      context,
+      span,
+    ),
+    String("1970-01-01T00:00:00+00:00"),
+  )
+  try
+    call_effect_with_context(
+      host,
+      "datetime",
+      [String("%Y")],
+      EvaluationContext::new(cwd~),
+      span,
+    )
+  catch {
+    MissingContext(fact="utc_offset_seconds", ..) => ()
+    _ => fail("unexpected local-time context error")
+  } noraise {
+    _ => fail("expected explicit local-time offset")
+  }
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "style",
+      [List([String("bold"), String("red")]), String("alert")],
+      context,
+      span,
+    ),
+    String("\u{001b}[1;31malert\u{001b}[0m"),
+  )
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "style",
+      [List([String("bg:blue"), String("#0f0")]), String("ok")],
+      context,
+      span,
+    ),
+    String("\u{001b}[44;38;2;0;255;0mok\u{001b}[0m"),
+  )
+  let command = @host.CommandSpec::new("sh", ["-c", "printf %s $1", "--", "ok"])
+  command.set_cwd(cwd)
+  host.expect_process(command, @host.ProcessOutput::new(0, b"ok\n", b""))
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "shell",
+      [String("printf %s $1"), String("ok")],
+      context,
+      span,
+    ),
+    String("ok"),
+  )
+  assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
+test "effect failures preserve typed capability and arity diagnostics" {
+  let host = fake()
+  let cwd = @path.PathValue::new("/workspace", Unix)
+  let span = try! @source.Span::new(@source.SourceId::new(62), 0, 0)
+  let context = EvaluationContext::new(cwd~, invocation_directory=cwd)
+  try
+    call_effect_with_context(host, "choose", [String("1")], context, span)
+  catch {
+    Builtin(Arity(name="choose", expected="2", actual=1), ..) => ()
+    _ => fail("unexpected arity error")
+  } noraise {
+    _ => fail("expected arity error")
+  }
+  host.deny(FsRead)
+  try
+    call_effect_with_context(
+      host,
+      "path_exists",
+      [String("input")],
+      context,
+      span,
+    )
+  catch {
+    Host(CapabilityDenied(FsRead), ..) => ()
+    _ => fail("unexpected capability error")
+  } noraise {
+    _ => fail("expected denied filesystem capability")
+  }
+  try
+    call_effect_with_context(
+      host,
+      "style",
+      [String("not-a-style"), String("text")],
+      context,
+      span,
+    )
+  catch {
+    Builtin(Failure(message="invalid style: `not-a-style`"), ..) => ()
+    _ => fail("unexpected style validation error")
+  } noraise {
+    _ => fail("expected style validation error")
+  }
+}
+
+///|
+test "lazy assignments expose states and redact cycle diagnostics" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(63),
+    "justfile",
+    "a := b + \"!\"\nb := \"ok\"\n",
+  )
+  let lazy_env = LazyEnvironment::new(try! @semantic.compile_source(source))
+  assert_true(lazy_env.state("a") is Some(Unevaluated))
+  assert_eq(lazy_env.resolve("a"), String("ok!"))
+  assert_true(lazy_env.state("a") is Some(Evaluated(String("ok!"))))
+  assert_true(lazy_env.state("b") is Some(Evaluated(String("ok"))))
+
+  let conditional = @source.Source::from_text(
+    @source.SourceId::new(69),
+    "justfile",
+    "selected := if true { \"ok\" } else { bad }\n" +
+    "bad := error(\"unreachable\")\n",
+  )
+  let lazy_env = LazyEnvironment::new(
+    try! @semantic.compile_source(conditional),
+  )
+  assert_eq(lazy_env.resolve("selected"), String("ok"))
+
+  let cyclic = @source.Source::from_text(
+    @source.SourceId::new(64),
+    "justfile",
+    "secret := \"must-not-leak\"\na := b\nb := a\n",
+  )
+  let lazy_env = LazyEnvironment::new(try! @semantic.compile_source(cyclic))
+  try ignore(lazy_env.resolve("a")) catch {
+    VariableCycle(name="a", stack=["a", "b", "a"], ..) as error =>
+      assert_true(!error.message().contains("must-not-leak"))
+    _ => fail("unexpected cycle stack")
+  } noraise {
+    _ => fail("expected cycle")
+  }
+  assert_true(lazy_env.state("a") is Some(Unevaluated))
+  assert_true(lazy_env.state("b") is Some(Unevaluated))
+}
+
+///|
+test "lazy assignments separate undefined names and bound recursion depth" {
+  let undefined = @source.Source::from_text(
+    @source.SourceId::new(65),
+    "justfile",
+    "a := \"ok\"\n",
+  )
+  let lazy_env = LazyEnvironment::new(try! @semantic.compile_source(undefined))
+  try lazy_env.resolve("missing") catch {
+    UndefinedVariable(name="missing", ..) => ()
+    _ => fail("unexpected undefined-variable error")
+  } noraise {
+    _ => fail("expected undefined variable")
+  }
+  let deep = @source.Source::from_text(
+    @source.SourceId::new(66),
+    "justfile",
+    "a := b\nb := c\nc := \"ok\"\n",
+  )
+  let lazy_env = LazyEnvironment::new(
+    try! @semantic.compile_source(deep),
+    limits=EvaluationLimits::new(2, 100, 100),
+  )
+  try lazy_env.resolve("a") catch {
+    RecursionLimitExceeded(limit=2, ..) => ()
+    _ => fail("unexpected lazy recursion error")
+  } noraise {
+    _ => fail("expected bounded lazy recursion")
+  }
+}
+
+///|
+test "recipe and module scopes implement defaults variadics shadowing and exports" {
+  let parent = Environment::new()
+  parent.set("base", String("release"))
+  parent.set("private", String("hidden"))
+  parent.set("public", String("visible"))
+  parent.mark_exported("public")
+  let defaults = @source.Source::from_text(
+    @source.SourceId::new(67),
+    "justfile",
+    "base := \"release\"\nbuild $mode=base:\n",
+  )
+  let recipe = try! @semantic.compile_source(defaults).recipe("build").unwrap()
+  let scope = bind_recipe_parameters(recipe, [], parent)
+  assert_eq(scope.get("mode"), Some(String("release")))
+  assert_true(scope.is_exported("mode"))
+  scope.set("base", String("debug"))
+  assert_eq(parent.get("base"), Some(String("release")))
+
+  let variadic = @source.Source::from_text(
+    @source.SourceId::new(68),
+    "justfile",
+    "pack first +rest:\n",
+  )
+  let recipe = try! @semantic.compile_source(variadic).recipe("pack").unwrap()
+  let scope = bind_recipe_parameters(
+    recipe,
+    [String("a"), String("b"), String("c")],
+    parent,
+  )
+  assert_eq(scope.get("first"), Some(String("a")))
+  assert_eq(scope.get("rest"), Some(List([String("b"), String("c")])))
+  try bind_recipe_parameters(recipe, [], parent) catch {
+    ArgumentCount(recipe="pack", ..) => ()
+    _ => fail("unexpected recipe arity error")
+  } noraise {
+    _ => fail("expected required variadic argument")
+  }
+
+  let star = @source.Source::from_text(
+    @source.SourceId::new(70),
+    "justfile",
+    "collect *items:\n",
+  )
+  let recipe = try! @semantic.compile_source(star).recipe("collect").unwrap()
+  let scope = bind_recipe_parameters(recipe, [], parent)
+  assert_eq(scope.get("items"), Some(List([])))
+
+  let module_env = Environment::module_scope(parent)
+  assert_eq(module_env.get("public"), Some(String("visible")))
+  assert_eq(module_env.get("private"), None)
+  assert_true(module_env.is_exported("public"))
+}

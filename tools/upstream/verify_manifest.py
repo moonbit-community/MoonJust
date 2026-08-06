@@ -113,6 +113,46 @@ def validate_differential_cases() -> None:
         expect((case_dir / "compat-id").read_text(encoding="utf-8").strip() == case_id, f"case {case_id} id mismatch")
 
 
+def validate_builtins(manifest: dict) -> None:
+    repo = root()
+    subprocess.run(
+        [sys.executable, str(repo / "tools/upstream/builtin_manifest.py"), "--check"],
+        cwd=repo,
+        check=True,
+    )
+    registry = manifest["registry"]
+    path = repo / registry["typed_manifest"]
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    names = registry["canonical"]
+    expect(len(rows) == 83, "typed builtin manifest count changed")
+    expect([row["name"] for row in rows] == names, "typed builtin order differs from canonical inventory")
+    for index, row in enumerate(rows, start=1):
+        expect(row["schema_version"] == 1, f"builtin row {index} schema changed")
+        expect(row["index"] == index, f"builtin row {index} index changed")
+        expect(row["min_arguments"] >= 0, f"builtin row {index} has invalid minimum arity")
+        maximum = row["max_arguments"]
+        expect(maximum is None or maximum >= row["min_arguments"], f"builtin row {index} has invalid maximum arity")
+        expect(row["purity"] in {"pure", "effect"}, f"builtin row {index} has invalid purity")
+        expect((row["purity"] == "effect") == bool(row["capabilities"]), f"builtin row {index} purity/capability mismatch")
+        expect(row["targets"] == ["native", "wasm1"], f"builtin row {index} target matrix incomplete")
+        expect(row["tracking"] == f"MJ-BUILTIN-{index:03d}", f"builtin row {index} tracking id changed")
+        for alias in row["aliases"]:
+            expect(alias.endswith("_dir") or alias.endswith("_dir_native"), f"builtin row {index} has invalid alias")
+        for evidence in row["evidence"]:
+            expect((repo / evidence).exists(), f"builtin row {index} lacks evidence {evidence}")
+    oracle = repo / "tests/upstream/just-1.57.0/phase-5-oracle.jsonl"
+    oracle_rows = [json.loads(line) for line in oracle.read_text(encoding="utf-8").splitlines()]
+    expect(len(oracle_rows) == 20, "Phase 5 Rust oracle count changed")
+    expect(len({row["id"] for row in oracle_rows}) == 20, "Phase 5 Rust oracle ids are not unique")
+    expect(all(row["schema_version"] == 1 for row in oracle_rows), "Phase 5 Rust oracle schema changed")
+    expect(sum(row["id"].startswith("MJ-P5-SEMVER-") for row in oracle_rows) == 16, "Phase 5 SemVer oracle count changed")
+    expect(sum(row["id"].startswith("MJ-P5-REGEX-") for row in oracle_rows) == 4, "Phase 5 regexp oracle count changed")
+    for row in oracle_rows:
+        expect(row["builtin"] in {"semver_matches", "replace_regex"}, f"invalid Phase 5 oracle builtin {row['builtin']}")
+        expect(isinstance(row["arguments"], list), f"Phase 5 oracle {row['id']} arguments are not structured")
+        expect(("expected" in row) != ("expected_error" in row), f"Phase 5 oracle {row['id']} has an ambiguous outcome")
+
+
 def validate() -> None:
     repo = root()
     upstream = load(repo / "compat/just-1.57.0.toml")
@@ -130,6 +170,7 @@ def validate() -> None:
     expect(builtins["registry"]["canonical_count"] == 83, "builtin count changed")
     expect(len(builtins["registry"]["canonical"]) == 83, "builtin inventory length changed")
     expect(len(set(builtins["registry"]["canonical"])) == 83, "builtin inventory contains duplicates")
+    validate_builtins(builtins)
 
     phase1 = load(repo / "compat/phase-1.toml")
     contracts1 = phase1["contract"]
@@ -167,8 +208,8 @@ def validate() -> None:
             expect(manifest["status"] == "implemented", f"Phase {phase} status is not implemented")
             expect(manifest["plan_exit"] == "passed", f"Phase {phase} exit is not passed")
         else:
-            expect(manifest["status"] == "remediation", f"Phase {phase} status is not remediation")
-            expect(manifest["plan_exit"] == "pending", f"Phase {phase} exit is not pending")
+            expect(manifest["status"] == "implemented", f"Phase {phase} status is not implemented")
+            expect(manifest["plan_exit"] == "passed", f"Phase {phase} exit is not passed")
         corpus = load(repo / f"tests/upstream/just-1.57.0/phase-{phase}.toml")
         expect(corpus["upstream_commit"] == EXPECTED_COMMIT, f"Phase {phase} corpus commit changed")
         expect(corpus["license"] == "CC0-1.0", f"Phase {phase} corpus license changed")
@@ -177,7 +218,7 @@ def validate() -> None:
         manifest = load(repo / "compat" / registry)
         expect(manifest["status"] == "implemented", f"{registry} is not implemented")
     builtins = load(repo / "compat/builtins.toml")
-    expect(builtins["registry"]["status"] == "remediation", "builtins.toml is not in remediation")
+    expect(builtins["registry"]["status"] == "implemented", "builtins.toml is not implemented")
 
     counts = load(repo / "compat/test-counts.toml")["total"]
     expect(selected_tests("native") == counts["native"], "Native test outline count changed")

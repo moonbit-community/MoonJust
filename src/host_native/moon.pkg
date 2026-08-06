@@ -10,5 +10,8 @@ options(
   targets: {
     "canonical_native.mbt": [ "native", "llvm" ],
     "canonical_portable.mbt": [ "wasm", "wasm-gc", "js" ],
+    "range_native.mbt": [ "native", "llvm" ],
+    "range_portable.mbt": [ "wasm", "wasm-gc", "js" ],
+    "native_test.mbt": [ "native", "llvm" ],
   },
 )
