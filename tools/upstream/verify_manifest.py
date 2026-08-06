@@ -163,9 +163,9 @@ def validate() -> None:
 
     for phase in (3, 4, 5):
         manifest = load(repo / f"compat/phase-{phase}.toml")
-        if phase == 3:
-            expect(manifest["status"] == "implemented", "Phase 3 status is not implemented")
-            expect(manifest["plan_exit"] == "passed", "Phase 3 exit is not passed")
+        if phase in {3, 4}:
+            expect(manifest["status"] == "implemented", f"Phase {phase} status is not implemented")
+            expect(manifest["plan_exit"] == "passed", f"Phase {phase} exit is not passed")
         else:
             expect(manifest["status"] == "remediation", f"Phase {phase} status is not remediation")
             expect(manifest["plan_exit"] == "pending", f"Phase {phase} exit is not pending")
@@ -173,10 +173,11 @@ def validate() -> None:
         expect(corpus["upstream_commit"] == EXPECTED_COMMIT, f"Phase {phase} corpus commit changed")
         expect(corpus["license"] == "CC0-1.0", f"Phase {phase} corpus license changed")
 
-    for registry in ("settings.toml", "attributes.toml", "builtins.toml"):
+    for registry in ("settings.toml", "attributes.toml"):
         manifest = load(repo / "compat" / registry)
-        section = manifest.get("registry", manifest)
-        expect(section["status"] == "remediation", f"{registry} is not in remediation")
+        expect(manifest["status"] == "implemented", f"{registry} is not implemented")
+    builtins = load(repo / "compat/builtins.toml")
+    expect(builtins["registry"]["status"] == "remediation", "builtins.toml is not in remediation")
 
     counts = load(repo / "compat/test-counts.toml")["total"]
     expect(selected_tests("native") == counts["native"], "Native test outline count changed")

@@ -22,7 +22,7 @@ are remediation/pending until the gaps below are closed.
 | 1 | Merged | Passed | Re-run contracts, public API, architecture and coverage gates against the repaired baseline |
 | 2 | Merged | Passed | Re-link all 93 lexer registrations to executable evidence and retain 100,000-input hardening |
 | 3 | Merged and remediated | Passed | Parser/formatter/tangle mapping, semantic formatter proof, and CommonMark hardening are executable |
-| 4 | Merged baseline | Pending | Real filesystem, canonical identity and complete semantic/loading validation are missing |
+| 4 | Merged and remediated | Passed | Real HostFs, canonical identity, source loading, and semantic/loading validation are executable |
 | 5 | Merged baseline | Pending | Evaluator scopes, typed builtin evidence, real effects and streaming hashes are incomplete |
 
 ## Confirmed baseline
@@ -62,12 +62,12 @@ manifest; the remaining remediation below applies only to Phases 4-5.
 
 ### Phase 4
 
-1. Implement a real HostFs adapter and differential search for `justfile` and
-   `.justfile`, including case-insensitive matches, ceilings and explicit paths.
-2. Use canonical filesystem identity for imports/modules, including symlink
-   aliases, optional/fallback behavior and span-bearing cycle chains.
-3. Unify explicit, search, stdin, global, Markdown, import and module sources;
-   complete setting/attribute conflict and dependency-arity validation.
+Phase 4 remediation is complete. The HostFs contract has a real `x/fs` adapter
+with native `realpath`, search covers `justfile`/`.justfile` case variants and
+ceilings, source loading is unified across filesystem/stdin/Markdown paths, and
+the graph records canonical identities and span-bearing cycle chains. Semantic
+tests cover minimum-version, false `no-cd`, dependency arity, recipe variable
+references and static cycles. Phase 4 is restored to `implemented/passed`.
 
 ### Phase 5
 
