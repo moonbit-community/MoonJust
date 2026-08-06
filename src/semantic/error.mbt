@@ -13,8 +13,19 @@ pub(all) suberror SemanticError {
   AliasCycle(name~ : String, span~ : @source.Span)
   DependencyCycle(name~ : String, span~ : @source.Span)
   InvalidParameters(name~ : String, span~ : @source.Span)
+  InvalidDependencyArguments(
+    name~ : String,
+    expected~ : String,
+    actual~ : Int,
+    span~ : @source.Span
+  )
   SettingConflict(first~ : String, second~ : String, span~ : @source.Span)
   InvalidSettingValue(name~ : String, span~ : @source.Span)
+  MinimumVersionUnsatisfied(
+    required~ : String,
+    current~ : String,
+    span~ : @source.Span
+  )
   AttributeConflict(first~ : String, second~ : String, span~ : @source.Span)
   UnsupportedPlatform(name~ : String, span~ : @source.Span)
 } derive(Eq, Debug)
@@ -30,10 +41,12 @@ pub fn SemanticError::code(self : SemanticError) -> String {
     AliasCycle(_) => "MJ-SEM-0005"
     DependencyCycle(_) => "MJ-SEM-0006"
     InvalidParameters(_) => "MJ-SEM-0007"
-    SettingConflict(_) => "MJ-SEM-0008"
-    InvalidSettingValue(_) => "MJ-SEM-0009"
-    AttributeConflict(_) => "MJ-SEM-0010"
-    UnsupportedPlatform(_) => "MJ-SEM-0011"
+    InvalidDependencyArguments(_) => "MJ-SEM-0008"
+    SettingConflict(_) => "MJ-SEM-0009"
+    InvalidSettingValue(_) => "MJ-SEM-0010"
+    MinimumVersionUnsatisfied(_) => "MJ-SEM-0011"
+    AttributeConflict(_) => "MJ-SEM-0012"
+    UnsupportedPlatform(_) => "MJ-SEM-0013"
   }
 }
 
@@ -48,8 +61,10 @@ pub fn SemanticError::span(self : SemanticError) -> @source.Span {
     AliasCycle(span~, ..) => span
     DependencyCycle(span~, ..) => span
     InvalidParameters(span~, ..) => span
+    InvalidDependencyArguments(span~, ..) => span
     SettingConflict(span~, ..) => span
     InvalidSettingValue(span~, ..) => span
+    MinimumVersionUnsatisfied(span~, ..) => span
     AttributeConflict(span~, ..) => span
     UnsupportedPlatform(span~, ..) => span
   }
@@ -69,10 +84,23 @@ pub fn SemanticError::message(self : SemanticError) -> String {
     DependencyCycle(name~, ..) => "dependency cycle includes `" + name + "`"
     InvalidParameters(name~, ..) =>
       "invalid parameters for recipe `" + name + "`"
+    InvalidDependencyArguments(name~, expected~, actual~, ..) =>
+      "dependency `" +
+      name +
+      "` expects " +
+      expected +
+      " arguments, got " +
+      actual.to_string()
     SettingConflict(first~, second~, ..) =>
       "settings `" + first + "` and `" + second + "` cannot be used together"
     InvalidSettingValue(name~, ..) =>
       "setting `" + name + "` has a value of the wrong type"
+    MinimumVersionUnsatisfied(required~, current~, ..) =>
+      "minimum version `" +
+      required +
+      "` is newer than MoonJust `" +
+      current +
+      "`"
     AttributeConflict(first~, second~, ..) =>
       "attributes `" + first + "` and `" + second + "` cannot be used together"
     UnsupportedPlatform(name~, ..) =>

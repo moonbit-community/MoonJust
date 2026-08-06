@@ -269,7 +269,18 @@ fn compile_settings(
   for pair in conflicts {
     let first = pair.0
     let second = pair.1
-    if values.contains(first) && values.contains(second) {
+    let first_enabled = match values.get(first) {
+      Some(value) => value.as_bool().unwrap_or(true)
+      None => false
+    }
+    let second_enabled = match values.get(second) {
+      Some(value) => value.as_bool().unwrap_or(true)
+      None => false
+    }
+    if values.contains(first) &&
+      values.contains(second) &&
+      (first != "no-cd" || first_enabled) &&
+      (second != "no-cd" || second_enabled) {
       let span = settings[settings.length() - 1].span()
       raise SettingConflict(first~, second~, span~)
     }

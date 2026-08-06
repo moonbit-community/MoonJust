@@ -136,6 +136,65 @@ fn recipe_dependencies(
 }
 
 ///|
+fn version_parts(value : String) -> (Int, Int, Int)? {
+  let text = value.trim()
+  let numbers : Array[Int] = [0, 0, 0]
+  let mut part = 0
+  let mut number = 0
+  let mut has_digit = false
+  for character in text {
+    if character == '.' {
+      if part >= 2 || !has_digit {
+        return None
+      }
+      numbers[part] = number
+      part += 1
+      number = 0
+      has_digit = false
+    } else if character.is_ascii_digit() {
+      number = number * 10 + character.to_int() - 48
+      has_digit = true
+    } else {
+      return None
+    }
+  }
+  if part != 2 || !has_digit {
+    return None
+  }
+  numbers[2] = number
+  Some((numbers[0], numbers[1], numbers[2]))
+}
+
+///|
+fn version_greater(left : (Int, Int, Int), right : (Int, Int, Int)) -> Bool {
+  if left.0 != right.0 {
+    return left.0 > right.0
+  }
+  if left.1 != right.1 {
+    return left.1 > right.1
+  }
+  left.2 > right.2
+}
+
+///|
+fn validate_minimum_version(
+  settings : CompiledSettings,
+  setting_nodes : Array[@syntax.Setting],
+) -> Unit raise SemanticError {
+  match settings.get("minimum-version") {
+    Some(Text(required)) =>
+      match version_parts(required) {
+        Some(requested) if version_greater(requested, (1, 57, 0)) => {
+          let span = setting_nodes[setting_nodes.length() - 1].span()
+          raise MinimumVersionUnsatisfied(required~, current="1.57.0", span~)
+        }
+        _ => ()
+      }
+    _ => ()
+  }
+}
+
+///|
 fn validate_alias(
   definition : @syntax.Alias,
   alias_names : Map[String, String],
@@ -186,8 +245,33 @@ fn validate_dependency_graph(
     }
     match recipes.get(target) {
       None => raise UndefinedRecipe(name=target, span=dependency.span())
-      Some(next_recipe) =>
+      Some(next_recipe) => {
+        let parameters = next_recipe.parameters()
+        let mut required = 0
+        let mut variadic = false
+        for parameter in parameters {
+          if parameter.variadic() {
+            variadic = true
+          } else if parameter.default_value() is None {
+            required += 1
+          }
+        }
+        let actual = dependency.arguments().length()
+        if actual < required || (!variadic && actual > parameters.length()) {
+          let expected = if variadic {
+            "at least " + required.to_string()
+          } else {
+            required.to_string() + ".." + parameters.length().to_string()
+          }
+          raise InvalidDependencyArguments(
+            name=target,
+            expected~,
+            actual~,
+            span=dependency.span(),
+          )
+        }
         validate_dependency_graph(next_recipe, recipes, aliases, states)
+      }
     }
   }
   states[name] = 2
@@ -215,6 +299,46 @@ fn validate_parameters(recipe : @syntax.Recipe) -> Unit raise SemanticError {
     }
     if parameter.default_value() is Some(_) {
       saw_default = true
+    }
+  }
+}
+
+///|
+fn recipe_expression_variables(
+  recipe : @syntax.Recipe,
+  result : Array[String],
+) -> Unit {
+  for parameter in recipe.parameters() {
+    match parameter.default_value() {
+      Some(value) => expression_variables(value, result)
+      None => ()
+    }
+  }
+  for dependency in recipe.dependencies() {
+    for argument in dependency.arguments() {
+      expression_variables(argument, result)
+    }
+  }
+  for dependency in recipe.subsequent_dependencies() {
+    for argument in dependency.arguments() {
+      expression_variables(argument, result)
+    }
+  }
+  for line in recipe.lines() {
+    for fragment in line.fragments() {
+      match fragment {
+        Interpolation(expression~, ..) =>
+          expression_variables(expression, result)
+        Text(_) => ()
+      }
+    }
+  }
+  for attribute in recipe.attributes() {
+    for argument in attribute.arguments() {
+      match argument.value() {
+        Some(value) => expression_variables(value, result)
+        None => ()
+      }
     }
   }
 }
@@ -291,6 +415,7 @@ pub fn compile(
     }
   }
   let settings = compile_settings(settings_nodes)
+  validate_minimum_version(settings, settings_nodes)
   let recipe_map : Map[String, @syntax.Recipe] = Map([])
   for recipe in recipes {
     recipe_map[recipe.name()] = recipe
@@ -301,6 +426,19 @@ pub fn compile(
   let variable_names : Set[String] = Set([])
   for variable in variables {
     variable_names.add(variable.name())
+  }
+  for recipe in recipes {
+    let parameter_names : Set[String] = Set([])
+    for parameter in recipe.parameters() {
+      parameter_names.add(parameter.name())
+    }
+    let references : Array[String] = []
+    recipe_expression_variables(recipe, references)
+    for name in references {
+      if !variable_names.contains(name) && !parameter_names.contains(name) {
+        raise UndefinedVariable(name~, span=recipe.span())
+      }
+    }
   }
   for variable in variables {
     let references : Array[String] = []

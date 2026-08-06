@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/host_native"
+
+import {
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/path",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct NativeFs {
+}
+pub fn NativeFs::new() -> Self
+pub impl @host.HostFs for NativeFs
+
+// Type aliases
+
+// Traits

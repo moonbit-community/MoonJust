@@ -4,6 +4,9 @@ pub(open) trait HostFs {
   fn read_file(Self, @path.PathValue) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   fn file_exists(Self, @path.PathValue) -> Bool raise HostError
+  fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
+  fn metadata(Self, @path.PathValue) -> FileMetadata raise HostError
+  fn canonicalize(Self, @path.PathValue) -> @path.PathValue raise HostError
 }
 
 ///|

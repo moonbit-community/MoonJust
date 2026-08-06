@@ -40,6 +40,7 @@ pub fn SearchOptions::global(self : SearchOptions) -> @path.PathValue? {
 ///|
 pub(all) struct LoadedSource {
   path : @path.PathValue
+  canonical_path : @path.PathValue
   source : @source.Source
   ast : @syntax.Ast
   parent : @path.PathValue?
@@ -81,6 +82,11 @@ pub fn LoadedSource::path(self : LoadedSource) -> @path.PathValue {
 }
 
 ///|
+pub fn LoadedSource::canonical_path(self : LoadedSource) -> @path.PathValue {
+  self.canonical_path
+}
+
+///|
 pub fn LoadedSource::source(self : LoadedSource) -> @source.Source {
   self.source
 }
@@ -106,7 +112,14 @@ fn LoadedSource::with_parent(
   parent : @path.PathValue?,
   import_span : @source.Span?,
 ) -> LoadedSource {
-  { path: self.path, source: self.source, ast: self.ast, parent, import_span }
+  {
+    path: self.path,
+    canonical_path: self.canonical_path,
+    source: self.source,
+    ast: self.ast,
+    parent,
+    import_span,
+  }
 }
 
 ///|
@@ -123,12 +136,82 @@ pub fn load_stdin(
   let path = @path.PathValue::new(display_name, Unix) catch {
     _ => raise Host(InvalidInput("invalid stdin display name"))
   }
-  { path, source, ast, parent: None, import_span: None }
+  { path, canonical_path: path, source, ast, parent: None, import_span: None }
 }
 
 ///|
 fn parent_or_self(path : @path.PathValue) -> @path.PathValue? {
   path.parent()
+}
+
+///|
+fn lower_ascii(value : String) -> String {
+  let builder = StringBuilder()
+  for character in value {
+    if character.is_ascii_uppercase() {
+      builder.write_char((character.to_int() + 32).to_char().unwrap())
+    } else {
+      builder.write_char(character)
+    }
+  }
+  builder.to_string()
+}
+
+///|
+fn candidate_names(filename : String) -> Array[String] {
+  let result : Array[String] = [filename]
+  if filename == "justfile" {
+    result.push(".justfile")
+    result.push("Justfile")
+    result.push(".Justfile")
+    result.push("JUSTFILE")
+    result.push(".JUSTFILE")
+  }
+  result
+}
+
+///|
+fn[T : @host.HostFs] find_candidate(
+  host : T,
+  directory : @path.PathValue,
+  filename : String,
+) -> @path.PathValue? raise LoaderError {
+  for name in candidate_names(filename) {
+    let candidate = @path.PathValue::new(name, directory.flavor()) catch {
+      _ => raise Host(InvalidInput("invalid justfile name"))
+    }
+    let path = directory.join(candidate) catch {
+      _ => raise Host(InvalidInput("path flavor mismatch"))
+    }
+    let exists = @host.HostFs::file_exists(host, path) catch {
+      error => raise Host(error)
+    }
+    if exists {
+      return Some(path)
+    }
+  }
+  let entries = @host.HostFs::read_dir(host, directory) catch {
+    error => raise Host(error)
+  }
+  let expected = lower_ascii(filename)
+  for entry in entries {
+    if lower_ascii(entry) == expected ||
+      (filename == "justfile" && lower_ascii(entry) == ".justfile") {
+      let child = @path.PathValue::new(entry, directory.flavor()) catch {
+        _ => raise Host(InvalidInput("invalid directory entry"))
+      }
+      let path = directory.join(child) catch {
+        _ => raise Host(InvalidInput("path flavor mismatch"))
+      }
+      let exists = @host.HostFs::file_exists(host, path) catch {
+        error => raise Host(error)
+      }
+      if exists {
+        return Some(path)
+      }
+    }
+  }
+  None
 }
 
 ///|
@@ -152,17 +235,9 @@ pub fn[T : @host.HostFs] discover(
   }
   let mut current = start
   while true {
-    let candidate = @path.PathValue::new(options.filename(), start.flavor()) catch {
-      _ => raise Host(InvalidInput("invalid filename"))
-    }
-    let path = current.join(candidate) catch {
-      _ => raise Host(InvalidInput("path flavor mismatch"))
-    }
-    let exists = @host.HostFs::file_exists(host, path) catch {
-      error => raise Host(error)
-    }
-    if exists {
-      return path
+    match find_candidate(host, current, options.filename()) {
+      Some(path) => return path
+      None => ()
     }
     match options.ceiling() {
       Some(ceiling) if current == ceiling => break
@@ -202,7 +277,48 @@ pub fn[T : @host.HostFs] load(
     error => raise InvalidSource(error)
   }
   let ast = @parser.parse(source) catch { error => raise Parse(error) }
-  { path, source, ast, parent: None, import_span: None }
+  let canonical_path = @host.HostFs::canonicalize(host, path) catch {
+    error => raise Host(error)
+  }
+  { path, canonical_path, source, ast, parent: None, import_span: None }
+}
+
+///|
+/// Load an in-memory source through the same parser boundary as filesystem input.
+pub fn load_bytes(
+  bytes : Bytes,
+  source_id : @source.SourceId,
+  display_name : String,
+) -> LoadedSource raise LoaderError {
+  let source = @source.Source::from_bytes(source_id, display_name, bytes) catch {
+    error => raise InvalidSource(error)
+  }
+  let ast = @parser.parse(source) catch { error => raise Parse(error) }
+  let path = @path.PathValue::new(display_name, Unix) catch {
+    _ => raise Host(InvalidInput("invalid source display name"))
+  }
+  { path, canonical_path: path, source, ast, parent: None, import_span: None }
+}
+
+///|
+/// Load a Markdown source after source-aware fenced-just tangling.
+pub fn load_markdown(
+  bytes : Bytes,
+  source_id : @source.SourceId,
+  display_name? : String = "README.md",
+) -> LoadedSource raise LoaderError {
+  let raw = @source.Source::from_bytes(source_id, display_name, bytes) catch {
+    error => raise InvalidSource(error)
+  }
+  let tangled = @formatter.tangle(raw) catch {
+    _ => raise Host(InvalidInput("invalid Markdown source"))
+  }
+  let source = tangled.source()
+  let ast = @parser.parse(source) catch { error => raise Parse(error) }
+  let path = @path.PathValue::new(display_name, Unix) catch {
+    _ => raise Host(InvalidInput("invalid Markdown display name"))
+  }
+  { path, canonical_path: path, source, ast, parent: None, import_span: None }
 }
 
 ///|
@@ -244,22 +360,27 @@ pub fn[T : @host.HostFs] load_graph(
   let files : Array[LoadedSource] = []
   let active : Set[@path.PathValue] = Set([])
   let visited : Set[@path.PathValue] = Set([])
+  let active_stack : Array[@path.PathValue] = []
   fn visit(
     path : @path.PathValue,
     next_id : @source.SourceId,
     parent : @path.PathValue?,
     import_span : @source.Span?,
   ) -> Unit raise LoaderError {
-    if active.contains(path) {
-      raise ImportCycle(path~)
+    let canonical = @host.HostFs::canonicalize(host, path) catch {
+      error => raise Host(error)
     }
-    if visited.contains(path) {
+    if active.contains(canonical) {
+      raise ImportCycle(path~, chain=active_stack.copy(), span=import_span)
+    }
+    if visited.contains(canonical) {
       return
     }
     if files.length() >= limits.max_files {
       raise Host(InvalidInput("import graph file limit exceeded"))
     }
-    active.add(path)
+    active.add(canonical)
+    active_stack.push(path)
     let loaded = load(host, path, next_id).with_parent(parent, import_span)
     files.push(loaded)
     for item in loaded.ast().items() {
@@ -305,8 +426,9 @@ pub fn[T : @host.HostFs] load_graph(
         _ => ()
       }
     }
-    active.remove(path)
-    visited.add(path)
+    active.remove(canonical)
+    active_stack.pop() |> ignore
+    visited.add(canonical)
   }
   visit(root, source_id, None, None)
   { files, }

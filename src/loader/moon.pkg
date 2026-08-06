@@ -1,5 +1,6 @@
 import {
   "moonbit-community/MoonJust/src/diagnostic",
+  "moonbit-community/MoonJust/src/formatter",
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/parser",
   "moonbit-community/MoonJust/src/path",

@@ -13,6 +13,38 @@ pub(all) enum HostCapability {
 } derive(Eq, Hash, Debug)
 
 ///|
+/// Filesystem facts exposed without leaking adapter-specific stat types.
+pub(all) struct FileMetadata {
+  is_file : Bool
+  is_directory : Bool
+  size : Int64
+} derive(Eq, Debug)
+
+///|
+pub fn FileMetadata::new(
+  is_file : Bool,
+  is_directory : Bool,
+  size : Int64,
+) -> FileMetadata {
+  { is_file, is_directory, size }
+}
+
+///|
+pub fn FileMetadata::is_file(self : FileMetadata) -> Bool {
+  self.is_file
+}
+
+///|
+pub fn FileMetadata::is_directory(self : FileMetadata) -> Bool {
+  self.is_directory
+}
+
+///|
+pub fn FileMetadata::size(self : FileMetadata) -> Int64 {
+  self.size
+}
+
+///|
 pub(all) enum OperatingSystem {
   Linux
   Macos
