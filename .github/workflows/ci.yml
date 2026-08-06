@@ -53,6 +53,18 @@ jobs:
       - name: Verify parser ecosystem spike
         run: ./tools/spikes/check_ecosystem.sh
 
+      - name: Cache pinned upstream oracle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            _build/upstream/just-1.57.0
+          key: just-1.57.0-e01a6bd7-907adacb
+
+      - name: Test real upstream differential smoke
+        run: ./tools/differential/real_smoke.sh
+
       - name: Check all stable backends
         run: moon check --target all --warn-list +73
 

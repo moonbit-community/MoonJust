@@ -1,0 +1,72 @@
+schema_version = 1
+upstream = "just 1.57.0"
+
+[[case]]
+id = "MJ-COMPAT-0001"
+directory = "01-version"
+owner_phase = 6
+status = "expected-difference"
+reason = "Version/query CLI composition is owned by Phase 6."
+
+[[case]]
+id = "MJ-COMPAT-0002"
+directory = "02-help"
+owner_phase = 6
+status = "expected-difference"
+reason = "Help rendering is owned by Phase 6."
+
+[[case]]
+id = "MJ-COMPAT-0003"
+directory = "03-missing-justfile"
+owner_phase = 7
+status = "expected-difference"
+reason = "CLI search and working-directory composition are owned by Phase 7."
+
+[[case]]
+id = "MJ-COMPAT-0004"
+directory = "04-list"
+owner_phase = 6
+status = "expected-difference"
+reason = "List query output is owned by Phase 6."
+
+[[case]]
+id = "MJ-COMPAT-0005"
+directory = "05-evaluate"
+owner_phase = 6
+status = "expected-difference"
+reason = "Evaluate query output is owned by Phase 6."
+
+[[case]]
+id = "MJ-COMPAT-0006"
+directory = "06-summary"
+owner_phase = 6
+status = "expected-difference"
+reason = "Summary query output is owned by Phase 6."
+
+[[case]]
+id = "MJ-COMPAT-0007"
+directory = "07-dry-run"
+owner_phase = 8
+status = "expected-difference"
+reason = "Recipe dry-run and process composition are owned by Phase 8."
+
+[[case]]
+id = "MJ-COMPAT-0008"
+directory = "08-explicit-justfile"
+owner_phase = 7
+status = "expected-difference"
+reason = "CLI explicit-file and invocation-directory composition are owned by Phase 7."
+
+[[case]]
+id = "MJ-COMPAT-0009"
+directory = "09-exit-status"
+owner_phase = 8
+status = "expected-difference"
+reason = "Recipe process exit propagation is owned by Phase 8."
+
+[[case]]
+id = "MJ-COMPAT-0010"
+directory = "10-side-effect"
+owner_phase = 8
+status = "expected-difference"
+reason = "Recipe side effects are owned by Phase 8."

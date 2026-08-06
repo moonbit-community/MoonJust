@@ -14,6 +14,12 @@ not implement justfile parsing or recipe execution. MoonJust remains an
 `0.1.0-alpha.0` foundation and must not yet be presented as a replacement for
 `just`.
 
+The 2026-08-06 re-certification adds a deterministic JSONL row for every
+upstream registration, a fixed-source `just 1.57.0` Cargo oracle builder, and
+structured TOML/outline validation. The historical Phase 0 decision remains
+valid only for the pinned research baseline; these scripts are the evidence
+used by all subsequent phase exits.
+
 ## Work units
 
 The repository was empty when work began, so Phase 0 bootstrap units were
