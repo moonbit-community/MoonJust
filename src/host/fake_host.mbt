@@ -4,6 +4,7 @@ pub struct FakeHost {
   denied : Set[HostCapability]
   unavailable : Set[HostCapability]
   files : Map[@path.PathValue, Bytes]
+  canonical_paths : Map[@path.PathValue, @path.PathValue]
   environment : Map[String, String]
   mut cwd : @path.PathValue
   mut clock_millis : Int64
@@ -26,6 +27,7 @@ pub fn FakeHost::new(
     denied: Set([]),
     unavailable: Set([]),
     files: Map([]),
+    canonical_paths: Map([]),
     environment: Map([]),
     cwd,
     clock_millis: 0L,
@@ -86,6 +88,16 @@ pub fn FakeHost::put_file(
   contents : Bytes,
 ) -> Unit {
   self.files[path] = contents
+}
+
+///|
+/// Configure a deterministic symlink-like identity for graph tests.
+pub fn FakeHost::set_canonical(
+  self : FakeHost,
+  path : @path.PathValue,
+  canonical : @path.PathValue,
+) -> Unit {
+  self.canonical_paths[path] = canonical
 }
 
 ///|
@@ -176,6 +188,54 @@ pub impl HostFs for FakeHost with fn file_exists(
 ) -> Bool raise HostError {
   self.require(FsRead)
   self.files.contains(path)
+}
+
+///|
+pub impl HostFs for FakeHost with fn read_dir(
+  self : FakeHost,
+  path : @path.PathValue,
+) -> Array[String] raise HostError {
+  self.require(FsRead)
+  let prefix = if path.as_string() == "." {
+    "."
+  } else {
+    path.as_string() + path.flavor().separator().to_string()
+  }
+  let result : Array[String] = []
+  for file in self.files.keys() {
+    let value = file.as_string()
+    if value.has_prefix(prefix) {
+      let rest = value.view(start_offset=prefix.length()).to_owned()
+      if !rest.contains(path.flavor().separator().to_string()) &&
+        !result.contains(rest) {
+        result.push(rest)
+      }
+    }
+  }
+  result.sort()
+  result
+}
+
+///|
+pub impl HostFs for FakeHost with fn metadata(
+  self : FakeHost,
+  path : @path.PathValue,
+) -> FileMetadata raise HostError {
+  self.require(FsRead)
+  match self.files.get(path) {
+    Some(contents) =>
+      FileMetadata::new(true, false, contents.length().to_int64())
+    None => raise NotFound(path)
+  }
+}
+
+///|
+pub impl HostFs for FakeHost with fn canonicalize(
+  self : FakeHost,
+  path : @path.PathValue,
+) -> @path.PathValue raise HostError {
+  self.require(FsRead)
+  self.canonical_paths.get(path).unwrap_or(path)
 }
 
 ///|

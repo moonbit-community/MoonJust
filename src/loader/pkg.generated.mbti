@@ -16,9 +16,13 @@ pub fn[T : @host.HostFs] discover(T, @path.PathValue, options? : SearchOptions) 
 
 pub fn[T : @host.HostFs] load(T, @path.PathValue, @source.SourceId) -> LoadedSource raise LoaderError
 
+pub fn load_bytes(Bytes, @source.SourceId, String) -> LoadedSource raise LoaderError
+
 pub fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(T, @source.SourceId, options? : SearchOptions) -> LoadedSource raise LoaderError
 
 pub fn[T : @host.HostFs] load_graph(T, @path.PathValue, @source.SourceId, limits? : GraphLimits) -> LoadedGraph raise LoaderError
+
+pub fn load_markdown(Bytes, @source.SourceId, display_name? : String) -> LoadedSource raise LoaderError
 
 pub fn load_stdin(Bytes, @source.SourceId, display_name? : String) -> LoadedSource raise LoaderError
 
@@ -30,7 +34,7 @@ pub(all) suberror LoaderError {
   Host(@host.HostError)
   InvalidSource(@source.SourceError)
   Parse(@parser.ParserError)
-  ImportCycle(path~ : @path.PathValue)
+  ImportCycle(path~ : @path.PathValue, chain~ : Array[@path.PathValue], span~ : @source.Span?)
 } derive(Eq, @debug.Debug)
 pub fn LoaderError::code(Self) -> String
 pub fn LoaderError::message(Self) -> String
@@ -51,12 +55,14 @@ pub fn LoadedGraph::files(Self) -> ArrayView[LoadedSource]
 
 pub(all) struct LoadedSource {
   path : @path.PathValue
+  canonical_path : @path.PathValue
   source : @source.Source
   ast : @syntax.Ast
   parent : @path.PathValue?
   import_span : @source.Span?
 } derive(@debug.Debug)
 pub fn LoadedSource::ast(Self) -> @syntax.Ast
+pub fn LoadedSource::canonical_path(Self) -> @path.PathValue
 pub fn LoadedSource::import_span(Self) -> @source.Span?
 pub fn LoadedSource::parent(Self) -> @path.PathValue?
 pub fn LoadedSource::path(Self) -> @path.PathValue

@@ -63,3 +63,40 @@ test "settings and attributes expose complete typed contracts" {
   assert_eq(attributes.env().length(), 1)
   assert_eq(attributes.metadata(), ["ci"])
 }
+
+///|
+test "semantic validation checks minimum version, dependency arity, and recipe variables" {
+  let too_new = @parser.parse(source("set minimum-version := \"9.0.0\"\n"))
+  try compile(too_new) catch {
+    MinimumVersionUnsatisfied(required~, ..) => assert_eq(required, "9.0.0")
+    _ => fail("unexpected minimum-version error")
+  } noraise {
+    _ => fail("expected minimum-version error")
+  }
+  let arity = try! @parser.parse(source("build arg:\nrun: build\n"))
+  try compile(arity) catch {
+    InvalidDependencyArguments(name~, actual~, ..) => {
+      assert_eq(name, "build")
+      assert_eq(actual, 0)
+    }
+    _ => fail("unexpected dependency arity error")
+  } noraise {
+    _ => fail("expected dependency arity error")
+  }
+  let undefined = try! @parser.parse(source("build:\n  echo {{missing}}\n"))
+  try compile(undefined) catch {
+    UndefinedVariable(name~, ..) => assert_eq(name, "missing")
+    _ => fail("unexpected recipe variable error")
+  } noraise {
+    _ => fail("expected recipe variable error")
+  }
+}
+
+///|
+test "false no-cd does not conflict with working-directory" {
+  let ast = try! @parser.parse(
+    source("set no-cd := false\nset working-directory := \"sub\"\n"),
+  )
+  let compiled = try! compile(ast)
+  assert_false(compiled.settings().bool("no-cd"))
+}

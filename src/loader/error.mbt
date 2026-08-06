@@ -7,7 +7,11 @@ pub(all) suberror LoaderError {
   Host(@host.HostError)
   InvalidSource(@source.SourceError)
   Parse(@parser.ParserError)
-  ImportCycle(path~ : @path.PathValue)
+  ImportCycle(
+    path~ : @path.PathValue,
+    chain~ : Array[@path.PathValue],
+    span~ : @source.Span?
+  )
 } derive(Eq, Debug)
 
 ///|
@@ -28,11 +32,11 @@ pub fn LoaderError::span(self : LoaderError) -> @source.Span? {
   match self {
     InvalidLimit => None
     Parse(error) => Some(error.span())
-    NoJustfileFound(_)
-    | ExplicitFileMissing(_)
-    | Host(_)
-    | InvalidSource(_)
-    | ImportCycle(_) => None
+    NoJustfileFound(_) => None
+    ExplicitFileMissing(_) => None
+    Host(_) => None
+    InvalidSource(_) => None
+    ImportCycle(span~, ..) => span
   }
 }
 
@@ -47,7 +51,11 @@ pub fn LoaderError::message(self : LoaderError) -> String {
     Host(_) => "host error while loading"
     InvalidSource(_) => "invalid source"
     Parse(error) => error.message()
-    ImportCycle(path~) => "import cycle includes " + path.as_string()
+    ImportCycle(path~, chain~, ..) =>
+      "import cycle includes " +
+      chain.map(@path.PathValue::as_string).join(" -> ") +
+      " -> " +
+      path.as_string()
   }
 }
 

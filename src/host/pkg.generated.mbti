@@ -45,6 +45,7 @@ pub struct FakeHost {
   denied : @set.Set[HostCapability]
   unavailable : @set.Set[HostCapability]
   files : Map[@path.PathValue, Bytes]
+  canonical_paths : Map[@path.PathValue, @path.PathValue]
   environment : Map[String, String]
   mut cwd : @path.PathValue
   mut clock_millis : Int64
@@ -67,6 +68,7 @@ pub fn FakeHost::pending_process_expectations(Self) -> Int
 pub fn FakeHost::process_calls(Self) -> ArrayView[CommandSpec]
 pub fn FakeHost::push_signal(Self, SignalKind) -> Unit
 pub fn FakeHost::put_file(Self, @path.PathValue, Bytes) -> Unit
+pub fn FakeHost::set_canonical(Self, @path.PathValue, @path.PathValue) -> Unit
 pub fn FakeHost::set_clock_millis(Self, Int64) -> Unit
 pub fn FakeHost::set_current_dir(Self, @path.PathValue) -> Unit
 pub fn FakeHost::set_env(Self, String, String) -> Unit
@@ -81,6 +83,16 @@ pub impl HostProcess for FakeHost
 pub impl HostRandom for FakeHost
 pub impl HostSignal for FakeHost
 pub impl HostTerminal for FakeHost
+
+pub(all) struct FileMetadata {
+  is_file : Bool
+  is_directory : Bool
+  size : Int64
+} derive(Eq, @debug.Debug)
+pub fn FileMetadata::is_directory(Self) -> Bool
+pub fn FileMetadata::is_file(Self) -> Bool
+pub fn FileMetadata::new(Bool, Bool, Int64) -> Self
+pub fn FileMetadata::size(Self) -> Int64
 
 pub(all) enum HostCapability {
   FsRead
@@ -156,6 +168,9 @@ pub(open) trait HostFs {
   fn read_file(Self, @path.PathValue) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   fn file_exists(Self, @path.PathValue) -> Bool raise HostError
+  fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
+  fn metadata(Self, @path.PathValue) -> FileMetadata raise HostError
+  fn canonicalize(Self, @path.PathValue) -> @path.PathValue raise HostError
 }
 
 pub(open) trait HostPlatform {

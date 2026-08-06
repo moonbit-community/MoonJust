@@ -28,6 +28,22 @@ test "search ascends to the project ceiling and loads through host" {
 }
 
 ///|
+test "search accepts dotfile and case-insensitive justfile names" {
+  let host = fake()
+  let dotfile = @path.PathValue::new("/workspace/.JUSTFILE", Unix)
+  host.put_file(dotfile, b"build:\n")
+  let found = try! discover(
+    host,
+    @path.PathValue::new("/workspace/project", Unix),
+  )
+  assert_eq(found, dotfile)
+  assert_eq(
+    try! load(host, dotfile, @source.SourceId::new(10)).canonical_path(),
+    dotfile,
+  )
+}
+
+///|
 test "explicit missing and capability errors remain typed" {
   let host = fake()
   let missing = @path.PathValue::new("/workspace/nope", Unix)
@@ -63,10 +79,35 @@ test "optional imports are skipped and cycles are reported" {
   assert_true(graph.files()[1].import_span() is Some(_))
   host.put_file(child, b"import \"justfile\"\n")
   try load_graph(host, root, @source.SourceId::new(30)) catch {
-    ImportCycle(path~) => assert_eq(path, root)
+    ImportCycle(path~, chain~, span~) => {
+      assert_eq(path, root)
+      assert_eq(chain, [root, child])
+      assert_true(span is Some(_))
+    }
     _ => fail("unexpected graph error")
   } noraise {
     _ => fail("expected import cycle")
+  }
+}
+
+///|
+test "canonical identities collapse symlink-like import aliases" {
+  let host = fake()
+  let root = @path.PathValue::new("/workspace/justfile", Unix)
+  let alias_path = @path.PathValue::new("/workspace/alias.just", Unix)
+  let canonical = @path.PathValue::new("/workspace/common.just", Unix)
+  host.put_file(root, b"import \"alias.just\"\n")
+  host.put_file(alias_path, b"import \"justfile\"\n")
+  host.put_file(canonical, b"common:\n")
+  host.set_canonical(alias_path, canonical)
+  try load_graph(host, root, @source.SourceId::new(40)) catch {
+    ImportCycle(path~, chain~, ..) => {
+      assert_eq(path, root)
+      assert_eq(chain.length(), 2)
+    }
+    _ => fail("unexpected graph error")
+  } noraise {
+    _ => fail("expected canonical import cycle")
   }
 }
 
@@ -84,4 +125,9 @@ test "global fallback and stdin loading are explicit" {
   let loaded = try! load_stdin(b"stdin:\n", @source.SourceId::new(99))
   assert_eq(loaded.source().name(), "<stdin>")
   assert_eq(loaded.path().as_string(), "<stdin>")
+  let markdown = try! load_markdown(
+    b"```just\nfrom_markdown:\n```\n",
+    @source.SourceId::new(100),
+  )
+  assert_true(markdown.source().text().contains("from_markdown:"))
 }
