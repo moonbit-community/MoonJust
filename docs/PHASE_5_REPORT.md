@@ -2,6 +2,7 @@
 
 - Status: Implemented; Phase 5 exit passed
 - Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
+- Published baseline: `main` at `cee01fd202ec4a60c6cb8815f1af5b9cce953294`
 - Upstream baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Required implementation targets: Native and wasm1
 - Scope: runtime values, pure/effectful expression evaluation, typed builtins,
@@ -58,3 +59,10 @@ silently buffering an entire file.
   that the later 1.0 release-coverage threshold is complete; Native FFI is
   validated by its black-box test and ASan because it is not instrumented.
 - `moon info` regenerated and reviewed all changed `.mbti` interfaces.
+
+## Publication evidence
+
+- Implementation PR: [#13](https://github.com/moonbit-community/MoonJust/pull/13), squash-merged at
+  `cee01fd202ec4a60c6cb8815f1af5b9cce953294`.
+- PR CI: [run 31101620775](https://github.com/moonbit-community/MoonJust/actions/runs/31101620775) passed all required jobs.
+- Post-merge `main` CI: [run 31101791384](https://github.com/moonbit-community/MoonJust/actions/runs/31101791384) passed all required jobs.
