@@ -165,3 +165,97 @@ test "groups are deduplicated and Unicode list padding uses display width" {
   )
   assert_eq(groups.stdout(), b"Recipe groups:\n    ci\n")
 }
+
+///|
+test "variables and evaluate match stable upstream ordering and newlines" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"z := \"z\"\na := \"a\"\njoined := a + z\n")
+  let variables = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--variables"], {}),
+    context,
+  )
+  assert_eq(variables.stdout(), b"a joined z\n")
+  let all = @application.execute_inspect_command(
+    host,
+    @cli.parse_arguments(["--evaluate"], {}),
+    context,
+  )
+  assert_eq(
+    all.stdout(),
+    b"a      := \"a\"\njoined := \"az\"\nz      := \"z\"\n",
+  )
+  let one = @application.execute_inspect_command(
+    host,
+    @cli.parse_arguments(["--evaluate", "joined"], {}),
+    context,
+  )
+  assert_eq(one.stdout(), b"az")
+}
+
+///|
+test "evaluate shell escapes output and excludes private variables" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"export public-name := \"$HOME\"\n_hidden := `echo secret`\n",
+  )
+  let response = @application.execute_inspect_command(
+    host,
+    @cli.parse_arguments(["--evaluate", "--evaluate-format", "shell"], {}),
+    context,
+  )
+  assert_eq(response.stdout(), b"export public_name=\"\\$HOME\"\n")
+  assert_eq(host.process_calls().length(), 0)
+}
+
+///|
+test "requested effectful evaluation fails without process capability" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"danger := `echo secret`\n")
+  let arguments = try! @cli.parse_arguments(["--evaluate", "danger"], {})
+  try @application.execute_inspect_command(host, arguments, context) catch {
+    Evaluation(error) =>
+      assert_true(error is EffectRequired(effect="process", ..))
+    error => fail("unexpected evaluation error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected process effect rejection")
+  }
+  assert_eq(host.process_calls().length(), 0)
+}
+
+///|
+test "dump and JSON inspect are deterministic and schema-pinned" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"x := \"a\"\njoined := x + \"b\"\nbuild target=\"dev\":\n  echo {{target}}\n",
+  )
+  let dump = @application.execute_inspect_command(
+    host,
+    @cli.parse_arguments(["--dump"], {}),
+    context,
+  )
+  assert_true(
+    (try! @utf8.decode(dump.stdout())).contains("joined := x + \"b\""),
+  )
+  let arguments = @cli.parse_arguments(["--json"], {})
+  let first = @application.execute_inspect_command(host, arguments, context)
+  let second = @application.execute_inspect_command(host, arguments, context)
+  assert_eq(first.stdout(), second.stdout())
+  let parsed = try! @json.parse(try! @utf8.decode(first.stdout()))
+  guard parsed is Object(root) else { fail("expected JSON object") }
+  assert_true(root.contains("assignments"))
+  assert_true(root.contains("recipes"))
+  assert_true(root.contains("settings"))
+  assert_eq(@application.inspect_json_schema_version(), 1)
+  let dump_json = @application.execute_inspect_command(
+    host,
+    @cli.parse_arguments(["--dump", "--dump-format", "json"], {}),
+    context,
+  )
+  assert_eq(dump_json.stdout(), first.stdout())
+  assert_eq(host.process_calls().length(), 0)
+}
