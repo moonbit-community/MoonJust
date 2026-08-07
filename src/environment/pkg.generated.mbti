@@ -1,0 +1,72 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/environment"
+
+import {
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/path",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn[T : @host.HostFs + @host.HostProcess] load_dotenv(T, @path.PathValue, EnvTable, DotenvOptions) -> EnvTable raise DotenvError
+
+pub fn[T : @host.HostProcess] load_dotenv_commands(T, @path.PathValue, EnvTable, DotenvOptions) -> EnvTable raise DotenvError
+
+pub fn[T : @host.HostFs] load_dotenv_files(T, @path.PathValue, EnvTable, DotenvOptions) -> EnvTable raise DotenvError
+
+pub fn parse_dotenv(String, ambient? : EnvTable) -> EnvTable raise DotenvError
+
+pub fn[T : @host.HostEnv] snapshot(T, name_mode? : EnvNameMode) -> EnvTable raise @host.HostError
+
+// Errors
+pub(all) suberror DotenvError {
+  InvalidUtf8(path~ : @path.PathValue)
+  Parse(line~ : Int, column~ : Int)
+  HostDenied(@host.HostCapability)
+  HostUnavailable(@host.HostCapability)
+  SourceAccess
+  InvalidPath
+  Required
+  ArgumentsRequireLists
+  CommandUnavailable(index~ : Int)
+  CommandFailed(index~ : Int, exit_code~ : Int)
+} derive(Eq, @debug.Debug)
+pub fn DotenvError::exit_code(Self) -> Int
+pub fn DotenvError::message(Self) -> String
+
+// Types and methods
+pub struct DotenvOptions {
+  load : Bool
+  override_environment : Bool
+  required : Bool
+  lists : Bool
+  dry_run : Bool
+  filenames : Array[String]
+  paths : Array[String]
+  commands : Array[@host.CommandSpec]
+}
+pub fn DotenvOptions::new(load? : Bool, override_environment? : Bool, required? : Bool, lists? : Bool, dry_run? : Bool, filenames? : Array[String], paths? : Array[String], commands? : Array[@host.CommandSpec]) -> Self
+
+pub(all) enum EnvNameMode {
+  Sensitive
+  AsciiInsensitive
+} derive(Eq, @debug.Debug)
+
+pub struct EnvTable {
+  values : Map[String, String]
+  ordered : Array[String]
+  name_mode : EnvNameMode
+}
+pub fn EnvTable::contains(Self, String) -> Bool
+pub fn EnvTable::entries(Self) -> Array[(String, String)]
+pub fn EnvTable::from_entries(ArrayView[(String, String)], name_mode? : EnvNameMode) -> Self
+pub fn EnvTable::get(Self, String) -> String?
+pub fn EnvTable::keys(Self) -> Array[String]
+pub fn EnvTable::merge(Self, Self, override_existing? : Bool) -> Unit
+pub fn EnvTable::name_mode(Self) -> EnvNameMode
+pub fn EnvTable::new(name_mode? : EnvNameMode) -> Self
+pub fn EnvTable::set(Self, String, String) -> Unit
+
+// Type aliases
+
+// Traits

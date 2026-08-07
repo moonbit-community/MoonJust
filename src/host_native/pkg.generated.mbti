@@ -16,6 +16,7 @@ pub struct NativeFs {
 }
 pub fn NativeFs::new() -> Self
 pub impl @host.HostAtomicFs for NativeFs
+pub impl @host.HostEnv for NativeFs
 pub impl @host.HostFs for NativeFs
 pub impl @host.HostTemp for NativeFs
 

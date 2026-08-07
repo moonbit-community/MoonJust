@@ -114,6 +114,7 @@ pub fn[T : HostFs] read_file_chunks(
 /// Environment lookup and the invocation working directory.
 pub(open) trait HostEnv {
   fn env_get(Self, String) -> String? raise HostError
+  fn env_entries(Self) -> Array[(String, String)] raise HostError
   fn current_dir(Self) -> @path.PathValue raise HostError
 }
 

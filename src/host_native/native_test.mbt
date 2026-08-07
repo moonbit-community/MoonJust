@@ -129,3 +129,27 @@ test "native canonical identity follows filesystem symlinks" {
   @fs.remove_file(link.as_string())
   @fs.remove_file(target.as_string())
 }
+
+///|
+test "native environment adapter exposes deterministic snapshots and cwd" {
+  let host = NativeFs::new()
+  let entries = @host.HostEnv::env_entries(host)
+  for index in 1..<entries.length() {
+    let left = entries[index - 1].0
+    let right = entries[index].0
+    let length = Int::min(left.length(), right.length())
+    let mut order = 0
+    for offset in 0..<length {
+      order = left.unsafe_get(offset).compare(right.unsafe_get(offset))
+      if order != 0 {
+        break
+      }
+    }
+    if order == 0 {
+      order = left.length().compare(right.length())
+    }
+    assert_true(order <= 0)
+  }
+  let cwd = @host.HostEnv::current_dir(host)
+  assert_true(cwd.as_string() != "")
+}

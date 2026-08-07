@@ -37,6 +37,7 @@ host adapter. Target-specific `#cfg` and FFI are restricted to host adapters.
 | `semantic` | settings, attributes, symbols, static validation | host side effects |
 | `loader` | source discovery and import/module graph | direct target FFI |
 | `evaluator` | pure and explicitly effectful expression evaluation | arbitrary global environment reads; implicit host access |
+| `environment` | dotenvy-compatible parsing, redacted errors, environment precedence and source loading | global environment mutation or direct process/filesystem access |
 | `invocation` | recipe argument and option parsing | global CLI parsing |
 | `planner` | ordered dependency DAG and execution plan | process spawning |
 | `runtime` | scheduler, cache state machine, execution orchestration | backend-specific calls |

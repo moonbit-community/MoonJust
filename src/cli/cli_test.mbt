@@ -186,3 +186,30 @@ test "query format choices are validated and ignored options are unsupported" {
     }
   }
 }
+
+///|
+test "dotenv options append values and enforce upstream conflicts" {
+  let parsed = try! parse_arguments(
+    ["--dotenv-path", "one.env", "-E", "two.env"],
+    {},
+  )
+  assert_eq(parsed.values("dotenv-path"), ["one.env", "two.env"])
+  let filenames = try! parse_arguments(
+    ["-F", ".env.one", "--dotenv-filename=.env.two"],
+    {},
+  )
+  assert_eq(filenames.values("dotenv-filename"), [".env.one", ".env.two"])
+  for
+    arguments in [
+      ["--dotenv-command", "true", "--no-dotenv"],
+      ["--dotenv-command", "true", "--dotenv-path", ".env"],
+      ["--dotenv-filename", ".env", "--dotenv-path", ".other"],
+    ] {
+    try parse_arguments(arguments, {}) catch {
+      Invalid(_) => ()
+      error => fail("unexpected dotenv CLI error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected dotenv CLI conflict")
+    }
+  }
+}

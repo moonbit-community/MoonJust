@@ -261,7 +261,6 @@ fn compile_settings(
   let conflicts = [
     ("dotenv-command", "dotenv-filename"),
     ("dotenv-command", "dotenv-load"),
-    ("dotenv-command", "dotenv-override"),
     ("dotenv-command", "dotenv-path"),
     ("dotenv-command", "dotenv-required"),
     ("no-cd", "working-directory"),
@@ -279,8 +278,8 @@ fn compile_settings(
     }
     if values.contains(first) &&
       values.contains(second) &&
-      (first != "no-cd" || first_enabled) &&
-      (second != "no-cd" || second_enabled) {
+      first_enabled &&
+      second_enabled {
       let span = settings[settings.length() - 1].span()
       raise SettingConflict(first~, second~, span~)
     }

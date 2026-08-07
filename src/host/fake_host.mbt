@@ -351,6 +351,25 @@ pub impl HostEnv for FakeHost with fn env_get(self : FakeHost, key : String) -> 
 }
 
 ///|
+pub impl HostEnv for FakeHost with fn env_entries(self : FakeHost) -> Array[
+  (String, String),
+] raise HostError {
+  self.require(Environment)
+  let keys = self.environment.keys().collect()
+  keys.sort_by(fn(left, right) {
+    let length = Int::min(left.length(), right.length())
+    for index in 0..<length {
+      let order = left.unsafe_get(index).compare(right.unsafe_get(index))
+      if order != 0 {
+        return order
+      }
+    }
+    left.length().compare(right.length())
+  })
+  keys.map(fn(key) { (key, self.environment[key]) })
+}
+
+///|
 pub impl HostEnv for FakeHost with fn current_dir(self : FakeHost) -> @path.PathValue raise HostError {
   self.require(Environment)
   self.cwd

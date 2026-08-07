@@ -1,0 +1,10 @@
+import {
+  "moonbit-community/MoonJust/src/environment",
+  "moonbitlang/async",
+  "moonbitlang/async/stdio",
+  "moonbitlang/core/encoding/utf8",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "native"
