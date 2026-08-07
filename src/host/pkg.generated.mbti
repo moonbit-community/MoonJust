@@ -12,6 +12,8 @@ pub fn[T : HostFs] read_file_chunks(T, @path.PathValue, chunk_size? : Int) -> Ar
 
 pub fn[T : HostFs] stream_file(T, @path.PathValue, (Bytes) -> Unit, chunk_size? : Int) -> Unit raise HostError
 
+pub fn[T : HostFs + HostTemp] write_file_atomic(T, @path.PathValue, Bytes, overwrite? : Bool) -> Unit raise HostError
+
 // Errors
 pub(all) suberror HostError {
   CapabilityDenied(HostCapability)
@@ -47,6 +49,8 @@ pub struct FakeHost {
   denied : @set.Set[HostCapability]
   unavailable : @set.Set[HostCapability]
   files : Map[@path.PathValue, Bytes]
+  mut temp_serial : Int
+  mut fail_next_persist : Bool
   canonical_paths : Map[@path.PathValue, @path.PathValue]
   environment : Map[String, String]
   mut cwd : @path.PathValue
@@ -63,6 +67,7 @@ pub struct FakeHost {
 pub fn FakeHost::allow(Self, HostCapability) -> Unit
 pub fn FakeHost::deny(Self, HostCapability) -> Unit
 pub fn FakeHost::expect_process(Self, CommandSpec, ProcessOutput) -> Unit
+pub fn FakeHost::fail_next_persist(Self) -> Unit
 pub fn FakeHost::mark_available(Self, HostCapability) -> Unit
 pub fn FakeHost::mark_unavailable(Self, HostCapability) -> Unit
 pub fn FakeHost::new(@path.PathValue, PlatformInfo) -> Self
@@ -77,6 +82,7 @@ pub fn FakeHost::set_env(Self, String, String) -> Unit
 pub fn FakeHost::set_platform(Self, PlatformInfo) -> Unit
 pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
 pub fn FakeHost::set_terminal(Self, TerminalInfo) -> Unit
+pub impl HostAtomicFs for FakeHost
 pub impl HostClock for FakeHost
 pub impl HostEnv for FakeHost
 pub impl HostFs for FakeHost
@@ -84,6 +90,7 @@ pub impl HostPlatform for FakeHost
 pub impl HostProcess for FakeHost
 pub impl HostRandom for FakeHost
 pub impl HostSignal for FakeHost
+pub impl HostTemp for FakeHost
 pub impl HostTerminal for FakeHost
 
 pub(all) struct FileMetadata {
@@ -157,6 +164,10 @@ pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
 // Type aliases
 
 // Traits
+pub(open) trait HostAtomicFs {
+  async fn write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise HostError
+}
+
 pub(open) trait HostClock {
   fn now_millis(Self) -> Int64 raise HostError
 }
@@ -174,6 +185,7 @@ pub(open) trait HostFs {
   fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
   fn metadata(Self, @path.PathValue) -> FileMetadata raise HostError
   fn canonicalize(Self, @path.PathValue) -> @path.PathValue raise HostError
+  fn persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise HostError
 }
 
 pub(open) trait HostPlatform {
@@ -190,6 +202,11 @@ pub(open) trait HostRandom {
 
 pub(open) trait HostSignal {
   fn pending_signal(Self) -> SignalKind? raise HostError
+}
+
+pub(open) trait HostTemp {
+  fn create_temp_file(Self, @path.PathValue, String, Bytes) -> @path.PathValue raise HostError
+  fn remove_temp_file(Self, @path.PathValue) -> Unit raise HostError
 }
 
 pub(open) trait HostTerminal {

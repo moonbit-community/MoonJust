@@ -1,6 +1,6 @@
 ///|
 /// Dispatch one validated Phase 6 command without granting process capability.
-pub fn[T : @host.HostFs] execute_command(
+pub fn[T : @host.HostFs + @host.HostTemp] execute_command(
   host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,

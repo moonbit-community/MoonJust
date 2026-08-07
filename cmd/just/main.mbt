@@ -37,7 +37,7 @@ fn failure(message : String, exit_code : Int) -> @cli.ApplicationResponse {
 }
 
 ///|
-fn[T : @host.HostFs] run_cli(
+fn[T : @host.HostFs + @host.HostTemp] run_cli(
   host : T,
   argv : ArrayView[String],
   stdin : Bytes,

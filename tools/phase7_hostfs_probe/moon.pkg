@@ -1,0 +1,12 @@
+import {
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/host_wasm/transaction",
+  "moonbit-community/MoonJust/src/path",
+  "moonbitlang/async",
+  "moonbitlang/async/fs" @async_fs,
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "-all+wasm"

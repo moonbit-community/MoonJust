@@ -8,6 +8,55 @@ pub(open) trait HostFs {
   fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
   fn metadata(Self, @path.PathValue) -> FileMetadata raise HostError
   fn canonicalize(Self, @path.PathValue) -> @path.PathValue raise HostError
+  fn persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise HostError
+}
+
+///|
+/// Lifecycle for temporary files created beside their eventual destination.
+/// Keeping this separate from `HostFs` makes cleanup an explicit obligation.
+pub(open) trait HostTemp {
+  fn create_temp_file(Self, @path.PathValue, String, Bytes) -> @path.PathValue raise HostError
+  fn remove_temp_file(Self, @path.PathValue) -> Unit raise HostError
+}
+
+///|
+/// Atomic filesystem transaction available to asynchronous host adapters.
+/// Wasm implementations use this contract so moonrun can enforce filesystem
+/// policy around create, remove, and rename operations.
+pub(open) trait HostAtomicFs {
+  async fn write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise HostError
+}
+
+///|
+/// Persist bytes through a same-directory temporary file. Adapters must create
+/// the temporary file exclusively and commit it atomically. A failed commit is
+/// followed by a best-effort cleanup without hiding the original failure.
+pub fn[T : HostFs + HostTemp] write_file_atomic(
+  host : T,
+  path : @path.PathValue,
+  contents : Bytes,
+  overwrite? : Bool = true,
+) -> Unit raise HostError {
+  let directory = match path.parent() {
+    Some(value) => value
+    None =>
+      raise InvalidInput("atomic write target must have a parent directory")
+  }
+  let temporary = HostTemp::create_temp_file(
+    host, directory, ".moonjust.tmp.", contents,
+  )
+  try HostFs::persist_temp_file(host, temporary, path, overwrite) catch {
+    error => {
+      try HostTemp::remove_temp_file(host, temporary) catch {
+        _ => ()
+      } noraise {
+        _ => ()
+      }
+      raise error
+    }
+  } noraise {
+    _ => ()
+  }
 }
 
 ///|

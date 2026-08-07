@@ -19,9 +19,12 @@ for package in $phase_packages; do
   for file in "$package_dir"/*.mbt "$package_dir/moon.pkg"; do
     [ -f "$file" ] || continue
     if grep -nE \
-      '#cfg|#external|extern[[:space:]]+"|native-stub|moonbitlang/async|async[[:space:]]+fn' \
+      '#cfg|#external|extern[[:space:]]+"|native-stub|moonbitlang/async' \
       "$file"; then
       fail "target-specific implementation found in src/$package"
+    fi
+    if [ "$package" != host ] && grep -nE 'async[[:space:]]+fn' "$file"; then
+      fail "async implementation found in src/$package"
     fi
   done
 done
@@ -54,4 +57,13 @@ grep -Eq '^write = \[\]$' "$repo_root/policies/inspect.toml" || \
 grep -Eq '^spawn = false$' "$repo_root/policies/inspect.toml" || \
   fail "Wasm inspect policy grants process spawn"
 
-echo "architecture boundaries verified for fifteen core packages and two host adapter leaves"
+transaction_dir="$repo_root/src/host_wasm/transaction"
+[ -f "$transaction_dir/moon.pkg" ] || fail "missing Wasm transaction adapter package"
+grep -Eq '^supported_targets = "-all\+wasm"$' "$transaction_dir/moon.pkg" || \
+  fail "Wasm transaction adapter is not wasm1-only"
+if grep -nE 'Host(Process|Env|Clock|Terminal|Signal)|wasi_snapshot_preview1' \
+  "$transaction_dir"/*.mbt "$transaction_dir/moon.pkg"; then
+  fail "Wasm transaction adapter crosses its capability boundary"
+fi
+
+echo "architecture boundaries verified for fifteen core packages and host adapter leaves"

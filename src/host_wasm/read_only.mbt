@@ -84,3 +84,41 @@ pub impl @host.HostFs for ReadOnlyFs with fn canonicalize(
 ) -> @path.PathValue raise @host.HostError {
   @host.HostFs::canonicalize(self.inner, path)
 }
+
+///|
+pub impl @host.HostFs for ReadOnlyFs with fn persist_temp_file(
+  _self : ReadOnlyFs,
+  _temporary : @path.PathValue,
+  _destination : @path.PathValue,
+  _overwrite : Bool,
+) -> Unit raise @host.HostError {
+  raise CapabilityDenied(FsWrite)
+}
+
+///|
+pub impl @host.HostTemp for ReadOnlyFs with fn create_temp_file(
+  _self : ReadOnlyFs,
+  _directory : @path.PathValue,
+  _prefix : String,
+  _contents : Bytes,
+) -> @path.PathValue raise @host.HostError {
+  raise CapabilityDenied(FsWrite)
+}
+
+///|
+pub impl @host.HostTemp for ReadOnlyFs with fn remove_temp_file(
+  _self : ReadOnlyFs,
+  _path : @path.PathValue,
+) -> Unit raise @host.HostError {
+  raise CapabilityDenied(FsWrite)
+}
+
+///|
+pub impl @host.HostAtomicFs for ReadOnlyFs with fn write_file_atomic(
+  _self : ReadOnlyFs,
+  _path : @path.PathValue,
+  _contents : Bytes,
+  _overwrite : Bool,
+) -> Unit raise @host.HostError {
+  raise CapabilityDenied(FsWrite)
+}
