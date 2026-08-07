@@ -9,11 +9,19 @@ import {
 }
 
 // Values
+pub fn parse_arguments(ArrayView[String], Map[String, String]) -> CliArguments raise CliParseError
+
+pub fn render_help() -> String
 
 // Errors
 pub(all) suberror CliContractError {
   InvalidRecipeExitCode(Int)
   InvalidSignalNumber(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) suberror CliParseError {
+  Invalid(String)
+  Unsupported(String)
 } derive(Eq, @debug.Debug)
 
 // Types and methods
@@ -48,6 +56,34 @@ pub fn ApplicationResponse::new(Bytes, Bytes, Int) -> Self
 pub fn ApplicationResponse::stderr(Self) -> BytesView
 pub fn ApplicationResponse::stdout(Self) -> BytesView
 pub fn ApplicationResponse::success(stdout? : Bytes, stderr? : Bytes) -> Self
+
+pub struct CliArguments {
+  command : CommandKind
+  flags : Map[String, Bool]
+  values : Map[String, Array[String]]
+  positional : Array[String]
+} derive(@debug.Debug)
+pub fn CliArguments::command(Self) -> CommandKind
+pub fn CliArguments::flag(Self, String) -> Bool
+pub fn CliArguments::positional(Self) -> ArrayView[String]
+pub fn CliArguments::value(Self, String) -> String?
+pub fn CliArguments::values(Self, String) -> ArrayView[String]
+
+pub(all) enum CommandKind {
+  RunCommand
+  CheckCommand
+  FormatCommand
+  InitCommand
+  ListCommand
+  ShowCommand
+  SummaryCommand
+  UsageCommand
+  VariablesCommand
+  DumpCommand
+  JsonCommand
+  EvaluateCommand
+  GroupsCommand
+} derive(Eq, @debug.Debug)
 
 pub(all) enum FailureKind {
   Usage

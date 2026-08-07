@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/core/argparse",
   "moonbit-community/MoonJust/src/diagnostic",
   "moonbit-community/MoonJust/src/path",
   "moonbit-community/MoonJust/src/source",
