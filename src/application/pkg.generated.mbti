@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/application"
+
+import {
+  "moonbit-community/MoonJust/src/cli",
+  "moonbit-community/MoonJust/src/formatter",
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/loader",
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/source",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn[T : @host.HostFs] execute_file_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError
+
+// Errors
+pub(all) suberror ApplicationError {
+  Cli(@cli.CliParseError)
+  Load(@loader.LoaderError)
+  Format(@formatter.FormatterError)
+  Host(@host.HostError)
+  Path(@path.PathError)
+  AlreadyExists(@path.PathValue)
+  UnsupportedCommand(String)
+} derive(@debug.Debug)
+pub fn ApplicationError::exit_code(Self) -> Int
+pub fn ApplicationError::message(Self) -> String
+
+// Types and methods
+pub struct ApplicationContext {
+  cwd : @path.PathValue
+  stdin : Bytes
+  source_id : @source.SourceId
+} derive(@debug.Debug)
+pub fn ApplicationContext::cwd(Self) -> @path.PathValue
+pub fn ApplicationContext::new(@path.PathValue, stdin? : Bytes, source_id? : @source.SourceId) -> Self
+pub fn ApplicationContext::source_id(Self) -> @source.SourceId
+pub fn ApplicationContext::stdin(Self) -> BytesView
+
+// Type aliases
+
+// Traits

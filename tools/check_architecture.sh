@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator"
+phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator application"
 
 fail() {
   echo "architecture boundary error: $1" >&2
@@ -43,4 +43,4 @@ if grep -nE 'src/(semantic|evaluator|builtin|parser|formatter)' "$repo_root/src/
   fail "native host adapter imports core implementation packages"
 fi
 
-echo "architecture boundaries verified for fourteen core packages and one host adapter leaf"
+echo "architecture boundaries verified for fifteen core packages and one host adapter leaf"
