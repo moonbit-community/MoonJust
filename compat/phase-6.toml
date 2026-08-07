@@ -2,8 +2,9 @@ schema_version = 1
 phase = 6
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "pending-remote-ci-and-audit"
+plan_exit = "passed"
 report = "docs/PHASE_6_REPORT.md"
+audit = "docs/PHASE_6_REPORT.md"
 
 [contracts]
 arguments = "69-option/command inventory with requires, conflicts, aliases, validated formats, and stable unsupported errors"
@@ -16,7 +17,7 @@ wasm = "read-only HostFs, deny-by-default moonrun policy, exact stdout/stderr, a
 native = "pass: 134 tests"
 wasm1 = "pass: 133 tests"
 wasm_policy = "pass: list succeeds; format write and effectful evaluate fail without mutation"
-native_platforms = "pending remote Ubuntu/macOS/Windows CI"
+native_platforms = "pass: Ubuntu/macOS/Windows on main run 31163576694"
 
 [evidence]
 native_tests = 134

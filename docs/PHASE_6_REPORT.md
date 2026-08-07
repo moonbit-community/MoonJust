@@ -1,7 +1,9 @@
 # Phase 6 completion report
 
-- Status: Implementation complete; remote CI and second audit pending
+- Status: Implemented; Phase 6 exit passed
 - Date: 2026-08-07
+- Strict second review: passed against `main` at
+  `8e9a3830d5e643c0e209db5a142c27d457932bb9`
 - Upstream baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Required targets: Native and wasm1
 - Release identity: `0.3.0-alpha.0`
@@ -20,6 +22,7 @@ receive `HostProcess`.
 | PR-062 | list/show/summary/usage/groups, aliases, docs, private/group filtering, source and lexical order, Unicode width | `src/application/query.mbt`, application and white-box width tests |
 | PR-063 | pure evaluate, variables, canonical dump, versioned stable JSON, shell output, effect rejection | `src/application/inspect.mbt`, schema and deterministic-output tests |
 | PR-064 | Native CLI composition, Wasm read-only adapter and deny-by-default inspect policy | `src/host_wasm`, `policies/inspect.toml`, `tools/check_phase6_inspect.sh` |
+| Second-audit remediation | Query error contracts, repeated groups, option-aware list/usage, init path selection, fmt/init streams, complete root JSON fields, honest case ownership | 24 Native/Wasm oracle cases and 134/133 full tests |
 
 ## Compatibility evidence
 
@@ -73,5 +76,30 @@ The executable policy test builds the real wasm CLI and verifies:
 
 ## Publication evidence
 
-PR URLs, remote CI runs, merge commits, post-merge CI, and the independent
-second-audit verdict are recorded here after the remote delivery cycle.
+| Delivery | Merge commit | PR CI | Post-merge `main` CI |
+| --- | --- | --- | --- |
+| [PR #21 / PR-060](https://github.com/moonbit-community/MoonJust/pull/21) | `1e90e3724f9871aa292dc63348c12caa6f27b791` | [31157708464](https://github.com/moonbit-community/MoonJust/actions/runs/31157708464) | [31157971210](https://github.com/moonbit-community/MoonJust/actions/runs/31157971210) |
+| [PR #22 / PR-061](https://github.com/moonbit-community/MoonJust/pull/22) | `f18a3e269e2c9a260bf5f543d6a0795a7db06ab4` | [31157988228](https://github.com/moonbit-community/MoonJust/actions/runs/31157988228) | [31158135642](https://github.com/moonbit-community/MoonJust/actions/runs/31158135642) |
+| [PR #23 / PR-062](https://github.com/moonbit-community/MoonJust/pull/23) | `4420c87fbedfe06354f29632169bcf9ec803e77a` | [31158151375](https://github.com/moonbit-community/MoonJust/actions/runs/31158151375) | [31158330793](https://github.com/moonbit-community/MoonJust/actions/runs/31158330793) |
+| [PR #24 / PR-063](https://github.com/moonbit-community/MoonJust/pull/24) | `9546ba0898dfbf636f7ffd14d70f30042d1f7901` | [31158348742](https://github.com/moonbit-community/MoonJust/actions/runs/31158348742) | [31158510455](https://github.com/moonbit-community/MoonJust/actions/runs/31158510455) |
+| [PR #25 / PR-064](https://github.com/moonbit-community/MoonJust/pull/25) | `9397a9828b0834c7a2d3c4f072ea5e1b09b6d137` | [31158530290](https://github.com/moonbit-community/MoonJust/actions/runs/31158530290) | [31158848996](https://github.com/moonbit-community/MoonJust/actions/runs/31158848996) |
+| [PR #26 / second-audit remediation](https://github.com/moonbit-community/MoonJust/pull/26) | `8e9a3830d5e643c0e209db5a142c27d457932bb9` | [31163416512](https://github.com/moonbit-community/MoonJust/actions/runs/31163416512) | [31163576694](https://github.com/moonbit-community/MoonJust/actions/runs/31163576694) |
+
+Every listed PR run and post-merge run completed Quality gates plus the
+Ubuntu, macOS, and Windows native smoke jobs successfully.
+
+## Second-audit verdict
+
+The independent second pass reproduced the command surface against the pinned
+`just 1.57.0` binary and found real gaps in query argument rejection, multiple
+group membership, option rendering, init path selection, output streams, and
+JSON parameter/recipe serialization. PR #26 fixed those gaps, expanded the
+byte-for-byte oracle from 12 to 24 Native/Wasm cases, and reran the full gates.
+
+The audit also corrected the upstream ownership map: 86 registrations whose
+prerequisites are present are backed by Phase 6 executable anchors, 30 shell
+completion registrations are excluded, and five maintenance-only registrations
+are not applicable. Cases requiring module graph composition, filesystem search
+state, invocation parsing, recipe execution, or terminal styling remain planned
+in their owning later phases. No unresolved gap remains inside the declared
+Phase 6 scope, so the Phase 6 exit is passed.
