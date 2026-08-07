@@ -1,0 +1,9 @@
+import {
+  "moonbit-community/MoonJust/src/cli",
+  "moonbit-community/MoonJust/src/formatter",
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/loader",
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/source",
+  "moonbitlang/core/encoding/utf8",
+}

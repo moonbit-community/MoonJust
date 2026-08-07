@@ -377,7 +377,9 @@ fn supported_option(token : String) -> Bool {
     | "--evaluate-format"
     | "--indentation"
     | "--justfile"
-    | "-f" => true
+    | "-f"
+    | "--dry-run"
+    | "-n" => true
     _ => false
   }
 }

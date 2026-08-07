@@ -137,12 +137,9 @@ test "argparse composition enforces command relationships" {
   } noraise {
     _ => fail("expected check to require fmt")
   }
-  try @cli.parse_arguments(["--dry-run"], {}) catch {
-    Unsupported(name) => assert_eq(name, "--dry-run")
-    Invalid(_) => fail("expected stable unsupported diagnostic")
-  } noraise {
-    _ => fail("expected unsupported dry-run")
-  }
+  let dry_run = @cli.parse_arguments(["--fmt", "--dry-run"], {})
+  assert_eq(dry_run.command(), FormatCommand)
+  assert_true(dry_run.flag("dry-run"))
 }
 
 ///|
