@@ -6,6 +6,7 @@ pub(all) suberror ApplicationError {
   Format(@formatter.FormatterError)
   Host(@host.HostError)
   Path(@path.PathError)
+  Semantic(@semantic.SemanticError)
   AlreadyExists(@path.PathValue)
   UnsupportedCommand(String)
 } derive(Debug)
@@ -14,7 +15,8 @@ pub(all) suberror ApplicationError {
 pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
   match self {
     Cli(_) | UnsupportedCommand(_) => 2
-    Load(_) | Format(_) | Host(_) | Path(_) | AlreadyExists(_) => 1
+    Load(_) | Format(_) | Host(_) | Path(_) | Semantic(_) | AlreadyExists(_) =>
+      1
   }
 }
 
@@ -27,6 +29,7 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
     Format(error) => "error[\{error.code()}]: \{error.message()}"
     Host(error) => "error: host operation failed: \{Repr(error)}"
     Path(error) => "error: invalid path: \{Repr(error)}"
+    Semantic(error) => "error[\{error.code()}]: \{error.message()}"
     AlreadyExists(path) => "error: refusing to overwrite '\{path.as_string()}'"
     UnsupportedCommand(name) => "error: command '\{name}' is not supported yet"
   }

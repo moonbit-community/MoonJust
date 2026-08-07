@@ -86,3 +86,82 @@ test "format surfaces write denial and accepts upstream dry-run semantics" {
   ignore(@application.execute_file_command(host, arguments, context))
   assert_eq(host.read_file(file), b"x := \"y\"\n")
 }
+
+///|
+test "list renders docs aliases groups and hides private recipes" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"# greeting\nhello:\n\n[group(\"ci\")]\n[doc(\"build docs\")]\nbuild target:\n\n[private]\nsecret:\n\nalias b := build\n",
+  )
+  let arguments = @cli.parse_arguments(["--list", "--unsorted"], {})
+  let response = @application.execute_query_command(host, arguments, context)
+  let text = try! @utf8.decode(response.stdout())
+  assert_true(text.contains("hello"))
+  assert_true(text.contains("# greeting"))
+  assert_true(text.contains("[ci]\n"))
+  assert_true(text.contains("build target # build docs [alias: b]"))
+  assert_false(text.contains("secret"))
+}
+
+///|
+test "summary supports sorted and source-order output" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"zeta:\n\nalpha:\n")
+  let sorted = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--summary"], {}),
+    context,
+  )
+  assert_eq(sorted.stdout(), b"alpha zeta\n")
+  let source_order = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--summary", "--unsorted"], {}),
+    context,
+  )
+  assert_eq(source_order.stdout(), b"zeta alpha\n")
+}
+
+///|
+test "show and usage resolve aliases without executing recipes" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"build target +rest:\n  echo {{target}}\n\nalias b := build\n",
+  )
+  let shown = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--show", "b"], {}),
+    context,
+  )
+  assert_true(
+    (try! @utf8.decode(shown.stdout())).contains("build target +rest:"),
+  )
+  let usage = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--usage", "b"], {}),
+    context,
+  )
+  assert_eq(
+    usage.stdout(),
+    b"Usage: just build target rest...\n\nArguments:\n  target\n  rest...\n",
+  )
+  assert_eq(host.process_calls().length(), 0)
+}
+
+///|
+test "groups are deduplicated and Unicode list padding uses display width" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file,
+    @utf8.encode("[group(\"ci\")]\nalpha:\n\n[group(\"ci\")]\nwide_name:\n"),
+  )
+  let groups = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--groups"], {}),
+    context,
+  )
+  assert_eq(groups.stdout(), b"Recipe groups:\n    ci\n")
+}
