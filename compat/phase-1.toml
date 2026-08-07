@@ -49,5 +49,5 @@ status = "implemented"
 package = "src/cli"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 6
-evidence = "usage, compilation, capability, recipe exit, signal exit, immutable requests, binary streams"
+black_box_tests = 9
+evidence = "usage, compilation, capability, recipe exit, signal exit, immutable requests, binary streams, argparse composition"

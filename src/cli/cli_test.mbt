@@ -119,3 +119,38 @@ test "successful responses preserve arbitrary byte streams" {
   assert_eq(response.stdout(), b"ok\x00")
   assert_eq(response.stderr(), b"warning\xff")
 }
+
+///|
+test "argparse composition preserves query flags and values" {
+  let parsed = @cli.parse_arguments(["--list", "--group", "ci", "build"], {})
+  assert_eq(parsed.command(), ListCommand)
+  assert_eq(parsed.value("group"), Some("ci"))
+  assert_eq(parsed.positional(), ["build"])
+  assert_true(parsed.flag("list"))
+}
+
+///|
+test "argparse composition enforces command relationships" {
+  try @cli.parse_arguments(["--check"], {}) catch {
+    Invalid(message) => assert_true(message.contains("required argument"))
+    Unsupported(_) => fail("expected argparse relationship failure")
+  } noraise {
+    _ => fail("expected check to require fmt")
+  }
+  try @cli.parse_arguments(["--dry-run"], {}) catch {
+    Unsupported(name) => assert_eq(name, "--dry-run")
+    Invalid(_) => fail("expected stable unsupported diagnostic")
+  } noraise {
+    _ => fail("expected unsupported dry-run")
+  }
+}
+
+///|
+test "argparse composition rejects unknown options without side effects" {
+  try @cli.parse_arguments(["--definitely-unknown"], {}) catch {
+    Invalid(_) => fail("unknown options should be classified as unsupported")
+    Unsupported(name) => assert_eq(name, "--definitely-unknown")
+  } noraise {
+    _ => fail("expected unknown option failure")
+  }
+}
