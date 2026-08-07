@@ -146,3 +146,52 @@ pub impl @host.HostAtomicFs for NativeFs with fn write_file_atomic(
 ) -> Unit raise @host.HostError {
   @host.write_file_atomic(self, path, contents, overwrite~)
 }
+
+///|
+pub impl @host.HostEnv for NativeFs with fn env_get(
+  _self : NativeFs,
+  key : String,
+) -> String? raise @host.HostError {
+  @env.get_env_var(key)
+}
+
+///|
+pub impl @host.HostEnv for NativeFs with fn env_entries(_self : NativeFs) -> Array[
+  (String, String),
+] raise @host.HostError {
+  let variables = @env.get_env_vars()
+  let keys = variables.keys().collect()
+  keys.sort_by(fn(left, right) {
+    let length = Int::min(left.length(), right.length())
+    for index in 0..<length {
+      let order = left.unsafe_get(index).compare(right.unsafe_get(index))
+      if order != 0 {
+        return order
+      }
+    }
+    left.length().compare(right.length())
+  })
+  keys.map(fn(key) { (key, variables[key]) })
+}
+
+///|
+#cfg(platform="windows")
+fn native_path_flavor() -> @path.PathFlavor {
+  Windows
+}
+
+///|
+#cfg(not(platform="windows"))
+fn native_path_flavor() -> @path.PathFlavor {
+  Unix
+}
+
+///|
+pub impl @host.HostEnv for NativeFs with fn current_dir(_self : NativeFs) -> @path.PathValue raise @host.HostError {
+  guard @env.current_dir() is Some(value) else {
+    raise CapabilityUnavailable(Environment)
+  }
+  @path.PathValue::new(value, native_path_flavor()) catch {
+    _ => raise InvalidInput("current directory has an invalid representation")
+  }
+}

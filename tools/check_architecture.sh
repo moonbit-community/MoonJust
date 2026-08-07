@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator application"
+phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment application"
 
 fail() {
   echo "architecture boundary error: $1" >&2
@@ -66,4 +66,4 @@ if grep -nE 'Host(Process|Env|Clock|Terminal|Signal)|wasi_snapshot_preview1' \
   fail "Wasm transaction adapter crosses its capability boundary"
 fi
 
-echo "architecture boundaries verified for fifteen core packages and host adapter leaves"
+echo "architecture boundaries verified for sixteen core packages and host adapter leaves"

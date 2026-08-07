@@ -174,18 +174,24 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       "dotenv-command",
       long="dotenv-command",
       about="Load environment from command",
+      action=Append,
+      conflicts=["dotenv-filename", "dotenv-path", "no-dotenv"],
     ),
     option(
       "dotenv-filename",
       short='F',
       long="dotenv-filename",
       about="Environment filename",
+      action=Append,
+      conflicts=["dotenv-command", "dotenv-path"],
     ),
     option(
       "dotenv-path",
       short='E',
       long="dotenv-path",
       about="Environment path",
+      action=Append,
+      conflicts=["dotenv-command", "dotenv-filename"],
     ),
     option("dump-format", long="dump-format", about="Dump format", defaults=[
       "just",
@@ -380,6 +386,12 @@ fn supported_option(token : String) -> Bool {
     | "--evaluate-format"
     | "--justfile"
     | "-f"
+    | "--dotenv-command"
+    | "--dotenv-filename"
+    | "-F"
+    | "--dotenv-path"
+    | "-E"
+    | "--no-dotenv"
     | "--dry-run"
     | "-n" => true
     _ => false
@@ -419,6 +431,11 @@ fn supported_value_option(name : String) -> Bool {
     | "--group"
     | "--justfile"
     | "-f"
+    | "--dotenv-command"
+    | "--dotenv-filename"
+    | "-F"
+    | "--dotenv-path"
+    | "-E"
     | "--list-heading"
     | "--list-prefix" => true
     _ => false

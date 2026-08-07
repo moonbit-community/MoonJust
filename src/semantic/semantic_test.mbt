@@ -128,3 +128,34 @@ test "false no-cd does not conflict with working-directory" {
   let compiled = try! compile(ast)
   assert_false(compiled.settings().bool("no-cd"))
 }
+
+///|
+test "dotenv command composes with override and false boolean settings" {
+  let ast = try! @parser.parse(
+    source(
+      "set dotenv-command := \"echo KEY=value\"\n" +
+      "set dotenv-load := false\n" +
+      "set dotenv-required := false\n" +
+      "set dotenv-override\n",
+    ),
+  )
+  let settings = (try! compile(ast)).settings()
+  assert_true(settings.has("dotenv-command"))
+  assert_true(settings.bool("dotenv-override"))
+}
+
+///|
+test "dotenv command rejects enabled file loading settings" {
+  for setting in ["dotenv-load", "dotenv-required"] {
+    let ast = try! @parser.parse(
+      source("set dotenv-command := \"echo KEY=value\"\nset \{setting}\n"),
+    )
+    try compile(ast) catch {
+      SettingConflict(first="dotenv-command", second~, ..) =>
+        assert_eq(second, setting)
+      error => fail("unexpected dotenv conflict: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected dotenv setting conflict")
+    }
+  }
+}
