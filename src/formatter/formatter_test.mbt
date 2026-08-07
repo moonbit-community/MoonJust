@@ -24,7 +24,7 @@ test "formatter preserves expression structure and attributes" {
 ///|
 test "phase 3 formatter corpus is idempotent across representative grammar" {
   let cases = [
-    "x := if true { \"a\" + \"b\" } else { \"c\" }\n", "[doc(\"build\")]\nbuild:\n    echo {{\"ok\"}}\n",
+    "x := if true { \"a\" + \"b\" } else { \"c\" }\n", "[doc(\"build\")]\nbuild:\n    echo {{ \"ok\" }}\n",
     "set allow-duplicate-recipes\nimport? \"common.just\"\n", "f := f'hello {{name}}!'\n",
   ]
   for index, text in cases {

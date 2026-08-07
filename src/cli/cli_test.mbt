@@ -127,6 +127,8 @@ test "argparse composition preserves query flags and values" {
   assert_eq(parsed.value("group"), Some("ci"))
   assert_eq(parsed.positional(), ["build"])
   assert_true(parsed.flag("list"))
+  let hyphen_value = @cli.parse_arguments(["--list", "--list-prefix", "- "], {})
+  assert_eq(hyphen_value.value("list-prefix"), Some("- "))
 }
 
 ///|
@@ -149,5 +151,38 @@ test "argparse composition rejects unknown options without side effects" {
     Unsupported(name) => assert_eq(name, "--definitely-unknown")
   } noraise {
     _ => fail("expected unknown option failure")
+  }
+}
+
+///|
+test "query format choices are validated and ignored options are unsupported" {
+  let unstable = @cli.parse_arguments(["--unstable", "--json"], {})
+  assert_eq(unstable.command(), JsonCommand)
+  assert_true(unstable.flag("unstable"))
+  for
+    arguments in [
+      ["--dump", "--dump-format", "yaml"],
+      ["--evaluate", "--evaluate-format", "fish"],
+      ["--list", "--alias-style", "center"],
+    ] {
+    try @cli.parse_arguments(arguments, {}) catch {
+      Invalid(message) => assert_true(message.contains("invalid value"))
+      error => fail("unexpected choice error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid query format")
+    }
+  }
+  for
+    arguments in [
+      ["--list", "--list-submodules"],
+      ["--default-list"],
+      ["--dump", "--indentation", "  "],
+    ] {
+    try @cli.parse_arguments(arguments, {}) catch {
+      Unsupported(_) => ()
+      error => fail("unexpected unsupported error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected unsupported option")
+    }
   }
 }

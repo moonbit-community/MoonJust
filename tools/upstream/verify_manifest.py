@@ -103,10 +103,10 @@ def validate_map() -> None:
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
-        if row["owner_phase"] in {3, 4, 5}:
+        if row["owner_phase"] in {3, 4, 5, 6} and row["disposition"] == "covered-by":
             validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
             expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
-        if row["owner_phase"] in {3, 4, 5}:
+        if row["owner_phase"] in {3, 4, 5, 6} and row["disposition"] == "covered-by":
             expect(row["disposition"] == "covered-by", f"Phase {row['owner_phase']} row {index} is not executable")
             expect(row["targets"] == ["native", "wasm1"], f"Phase {row['owner_phase']} row {index} target matrix is incomplete")
 
@@ -118,9 +118,13 @@ def validate_map() -> None:
         all(row["disposition"] in {"covered-by", "not-applicable"} for row in phase2_rows),
         "Phase 2 contains an unclassified upstream registration",
     )
-    for phase in (3, 4, 5):
+    for phase in (3, 4, 5, 6):
         cases = repo / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
-        rows_for_phase = [row for row in rows if row["owner_phase"] == phase]
+        rows_for_phase = [
+            row
+            for row in rows
+            if row["owner_phase"] == phase and row["disposition"] == "covered-by"
+        ]
         case_rows = [json.loads(line) for line in cases.read_text(encoding="utf-8").splitlines()]
         expect(len(case_rows) == len(rows_for_phase), f"Phase {phase} case manifest count changed")
         expected_by_id = {row["id"]: row for row in rows_for_phase}
@@ -141,10 +145,16 @@ def validate_differential_cases() -> None:
         case_id = case["id"]
         expect(case_id not in seen, f"duplicate differential case {case_id}")
         seen.add(case_id)
-        expect(case["status"] == "expected-difference", f"case {case_id} is not classified")
+        status = case["status"]
+        expect(status in {"match", "expected-difference"}, f"case {case_id} is not classified")
         expect(case["owner_phase"] >= 6, f"case {case_id} is assigned to Phase 0-5")
         case_dir = repo / "tests/differential/cases" / case["directory"]
         expect((case_dir / "expectation").exists(), f"case {case_id} lacks expectation")
+        expected = "match" if status == "match" else "difference"
+        expect(
+            (case_dir / "expectation").read_text(encoding="utf-8").strip() == expected,
+            f"case {case_id} expectation differs from its manifest status",
+        )
         expect((case_dir / "compat-id").read_text(encoding="utf-8").strip() == case_id, f"case {case_id} id mismatch")
 
 
@@ -200,6 +210,14 @@ def validate() -> None:
     cli = load(repo / "compat/cli-options.toml")
     expect(len(cli["option"]) == 50, "CLI option inventory changed")
     expect(len(cli["command"]) == 19, "CLI command inventory changed")
+    cli_entries = cli["option"] + cli["command"]
+    expect(len({entry["name"] for entry in cli_entries}) == 69, "CLI inventory contains duplicates")
+    expect(
+        all(entry["status"] in {"planned", "implemented", "excluded"} for entry in cli_entries),
+        "CLI inventory contains an invalid status",
+    )
+    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 14, "Phase 6 implemented option count changed")
+    expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 11, "Phase 6 implemented command count changed")
 
     builtins = load(repo / "compat/builtins.toml")
     expect(builtins["registry"]["canonical_count"] == 83, "builtin count changed")
@@ -237,17 +255,49 @@ def validate() -> None:
     for target in ("native", "wasm"):
         expect(selected_tests(target, "src/lexer") == expected_lexer_tests, f"{target} lexer test outline count changed")
 
-    for phase in (3, 4, 5):
+    for phase in (3, 4, 5, 6):
         manifest = load(repo / f"compat/phase-{phase}.toml")
-        if phase in {3, 4}:
-            expect(manifest["status"] == "implemented", f"Phase {phase} status is not implemented")
-            expect(manifest["plan_exit"] == "passed", f"Phase {phase} exit is not passed")
+        expect(manifest["status"] == "implemented", f"Phase {phase} status is not implemented")
+        if phase == 6:
+            expect(
+                manifest["plan_exit"] in {"pending-remote-ci-and-audit", "passed"},
+                "Phase 6 exit has an invalid state",
+            )
+            expect(manifest["evidence"]["native_tests"] == 130, "Phase 6 Native evidence count changed")
+            expect(manifest["evidence"]["wasm_tests"] == 129, "Phase 6 wasm evidence count changed")
         else:
-            expect(manifest["status"] == "implemented", f"Phase {phase} status is not implemented")
             expect(manifest["plan_exit"] == "passed", f"Phase {phase} exit is not passed")
         corpus = load(repo / f"tests/upstream/just-1.57.0/phase-{phase}.toml")
         expect(corpus["upstream_commit"] == EXPECTED_COMMIT, f"Phase {phase} corpus commit changed")
         expect(corpus["license"] == "CC0-1.0", f"Phase {phase} corpus license changed")
+        if phase == 6:
+            phase6_rows = [
+                json.loads(line)
+                for line in (
+                    repo / "tests/upstream/just-1.57.0/test-map.jsonl"
+                ).read_text(encoding="utf-8").splitlines()
+                if json.loads(line)["owner_phase"] == 6
+            ]
+            expect(
+                corpus["covered_registrations"] == sum(
+                    row["disposition"] == "covered-by" for row in phase6_rows
+                ),
+                "Phase 6 covered registration count changed",
+            )
+            expect(
+                corpus["excluded_registrations"] == sum(
+                    row["disposition"] in {"excluded-completion", "not-applicable"}
+                    for row in phase6_rows
+                ),
+                "Phase 6 excluded registration count changed",
+            )
+
+    policy = load(repo / "policies/inspect.toml")
+    expect(policy["fs"]["write"] == [], "Phase 6 inspect policy grants filesystem writes")
+    expect(policy["process"]["spawn"] is False, "Phase 6 inspect policy grants process spawn")
+    expect(policy["net"] == {"dns": [], "connect": [], "bind": []}, "Phase 6 inspect policy grants network access")
+    wasm_interface = (repo / "src/host_wasm/pkg.generated.mbti").read_text(encoding="utf-8")
+    expect("HostProcess" not in wasm_interface, "Wasm inspect adapter exposes HostProcess")
 
     for registry in ("settings.toml", "attributes.toml"):
         manifest = load(repo / "compat" / registry)

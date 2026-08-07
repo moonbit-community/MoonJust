@@ -612,6 +612,9 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 
 到 Phase 6 结束应发布 `0.3.0-alpha`：可用于编辑器、检查和查询，但明确不能作为生产 recipe runner。
 
+执行状态：Phase 6 已于 2026-08-07 完成实现，正在进行远程 CI 和二次严格复核。交付证据见
+[`PHASE_6_REPORT.md`](PHASE_6_REPORT.md)。当前版本为 `0.3.0-alpha.0`，仍明确禁止作为生产 recipe runner。
+
 ### Phase 7：文件、环境、dotenv 和 invocation
 
 | PR | 内容 | 交付物 | 出口条件 |

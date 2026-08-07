@@ -1,6 +1,6 @@
 name = "moonbit-community/MoonJust"
 
-version = "0.1.0"
+version = "0.3.0"
 
 readme = "README.mbt.md"
 
@@ -15,6 +15,7 @@ preferred_target = "wasm"
 description = "A MoonBit implementation of the just command runner"
 
 import {
+  "moonbitlang/async@0.20.3",
   "moonbitlang/x@0.4.47",
   "moonbitlang/regexp@0.3.5",
 }

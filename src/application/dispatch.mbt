@@ -1,0 +1,21 @@
+///|
+/// Dispatch one validated Phase 6 command without granting process capability.
+pub fn[T : @host.HostFs] execute_command(
+  host : T,
+  arguments : @cli.CliArguments,
+  context : ApplicationContext,
+) -> @cli.ApplicationResponse raise ApplicationError {
+  match arguments.command() {
+    CheckCommand | FormatCommand | InitCommand =>
+      execute_file_command(host, arguments, context)
+    ListCommand
+    | ShowCommand
+    | SummaryCommand
+    | UsageCommand
+    | VariablesCommand
+    | GroupsCommand => execute_query_command(host, arguments, context)
+    DumpCommand | JsonCommand | EvaluateCommand =>
+      execute_inspect_command(host, arguments, context)
+    RunCommand => raise UnsupportedCommand("recipe execution")
+  }
+}

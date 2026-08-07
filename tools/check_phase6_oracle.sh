@@ -1,0 +1,70 @@
+#!/bin/sh
+set -eu
+
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+oracle_root="$repo_root/_build/upstream/just-1.57.0"
+oracle="$oracle_root/target/release/just"
+native="$repo_root/_build/native/debug/build/cmd/just/just.exe"
+wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
+policy="$repo_root/policies/inspect.toml"
+fixture="$repo_root/tests/fixtures/phase-6/query.justfile"
+work=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-phase6-oracle.XXXXXX")
+
+cleanup() {
+  rm -rf "$work"
+}
+trap cleanup EXIT HUP INT TERM
+
+fail() {
+  echo "Phase 6 oracle error: $1" >&2
+  exit 1
+}
+
+compare() {
+  name=$1
+  shift
+  upstream_status=0
+  native_status=0
+  wasm_status=0
+  "$oracle" --justfile "$fixture" "$@" \
+    >"$work/$name.upstream.stdout" 2>"$work/$name.upstream.stderr" || upstream_status=$?
+  "$native" --justfile "$fixture" "$@" \
+    >"$work/$name.native.stdout" 2>"$work/$name.native.stderr" || native_status=$?
+  moonrun --policy "$policy" "$wasm" --justfile "$fixture" "$@" \
+    >"$work/$name.wasm.stdout" 2>"$work/$name.wasm.stderr" || wasm_status=$?
+  [ "$native_status" -eq "$upstream_status" ] || \
+    fail "$name native exit status differs ($native_status != $upstream_status)"
+  [ "$wasm_status" -eq "$upstream_status" ] || \
+    fail "$name wasm exit status differs ($wasm_status != $upstream_status)"
+  cmp -s "$work/$name.upstream.stdout" "$work/$name.native.stdout" || \
+    fail "$name native stdout differs"
+  cmp -s "$work/$name.upstream.stderr" "$work/$name.native.stderr" || \
+    fail "$name native stderr differs"
+  cmp -s "$work/$name.upstream.stdout" "$work/$name.wasm.stdout" || \
+    fail "$name wasm stdout differs"
+  cmp -s "$work/$name.upstream.stderr" "$work/$name.wasm.stderr" || \
+    fail "$name wasm stderr differs"
+}
+
+"$repo_root/tools/upstream/build_oracle.sh" >/dev/null
+moon build --target native cmd/just
+moon build --target wasm cmd/just
+[ -x "$oracle" ] || fail "upstream oracle is missing"
+[ -x "$native" ] || fail "native CLI is missing"
+[ -f "$wasm" ] || fail "wasm CLI is missing"
+
+compare list --list
+compare list-left --list --alias-style left
+compare list-separate --list --alias-style separate
+compare summary --summary
+compare groups --groups
+compare variables --variables
+compare evaluate --evaluate
+compare evaluate-one --evaluate y
+compare dump --dump
+compare json --unstable --json
+compare show --show h
+compare usage --usage h
+
+echo "Phase 6 oracle verified: 12 Native/Wasm query cases match just 1.57.0"

@@ -16,6 +16,8 @@ pub fn diff(@source.Source) -> String raise FormatterError
 
 pub fn format(@syntax.Ast) -> String
 
+pub fn format_expression(@syntax.Expression) -> String
+
 pub fn format_source(@source.Source) -> String raise FormatterError
 
 pub fn is_formatted(@source.Source) -> Bool raise FormatterError

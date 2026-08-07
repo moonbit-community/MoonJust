@@ -22,13 +22,19 @@ for case in cases:
     if case_id in seen:
         raise SystemExit(f"duplicate differential case id: {case_id}")
     seen.add(case_id)
-    if case.get("status") != "expected-difference":
+    status = case.get("status")
+    if status not in {"match", "expected-difference"}:
         raise SystemExit(f"case {case_id} is not explicitly classified")
     if not isinstance(case.get("owner_phase"), int) or case["owner_phase"] < 6:
-        raise SystemExit(f"case {case_id} must be owned by a later phase")
+        raise SystemExit(f"case {case_id} has an invalid owner phase")
     case_dir = Path(sys.argv[1]).parent / "cases" / case["directory"]
-    if not (case_dir / "expectation").exists() or not (case_dir / "compat-id").exists():
-        raise SystemExit(f"case {case_id} is missing expectation or compat-id")
+    if not (case_dir / "expectation").exists():
+        raise SystemExit(f"case {case_id} is missing expectation")
+    expected = "difference" if status == "expected-difference" else "match"
+    if (case_dir / "expectation").read_text(encoding="utf-8").strip() != expected:
+        raise SystemExit(f"case {case_id} expectation does not match manifest status")
+    if not (case_dir / "compat-id").exists():
+        raise SystemExit(f"case {case_id} is missing compat-id")
     if (case_dir / "compat-id").read_text(encoding="utf-8").strip() != case_id:
         raise SystemExit(f"case {case_id} compat-id does not match manifest")
 PY

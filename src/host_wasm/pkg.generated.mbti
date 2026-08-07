@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/host_wasm"
+
+import {
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/host_native",
+  "moonbit-community/MoonJust/src/path",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct ReadOnlyFs {
+  inner : @host_native.NativeFs
+}
+pub fn ReadOnlyFs::new() -> Self
+pub impl @host.HostFs for ReadOnlyFs
+
+// Type aliases
+
+// Traits

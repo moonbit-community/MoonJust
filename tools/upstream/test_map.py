@@ -85,20 +85,14 @@ PHASE_PREFIXES = {
     6: {
         "alias_style",
         "changelog",
-        "clean",
         "dump",
-        "edit",
-        "examples",
-        "explain",
         "groups",
         "init",
         "json",
         "list",
-        "lists",
         "man",
         "readme",
         "show",
-        "style",
         "subcommand",
         "summary",
         "usage",
@@ -130,6 +124,8 @@ PHASE_PREFIXES = {
         "default",
         "delimiters",
         "error_messages",
+        "examples",
+        "explain",
         "executor",
         "export",
         "extension",
@@ -139,6 +135,7 @@ PHASE_PREFIXES = {
         "interpolation",
         "keyword",
         "line_prefixes",
+        "lists",
         "multibyte_char",
         "newline_escape",
         "no_aliases",
@@ -153,12 +150,13 @@ PHASE_PREFIXES = {
         "shell_kind",
         "signal",
         "signals",
+        "style",
         "timestamps",
         "unexport",
         "unstable",
     },
-    9: {"cache"},
-    10: {"choose", "confirm", "count", "parallel"},
+    9: {"cache", "clean"},
+    10: {"choose", "confirm", "count", "edit", "parallel"},
 }
 
 
@@ -237,6 +235,40 @@ PHASE_TEST_ANCHORS = {
             "evaluation limits reject adversarial depth",
         ),
     },
+    6: {
+        "init": (
+            "src/application/application_test.mbt",
+            "init creates the canonical template and refuses overwrite",
+        ),
+        "list": (
+            "src/application/application_test.mbt",
+            "list renders docs aliases groups and hides private recipes",
+        ),
+        "alias_style": (
+            "src/application/application_test.mbt",
+            "list groups recipes once and supports every upstream alias style",
+        ),
+        "groups": (
+            "src/application/application_test.mbt",
+            "groups are deduplicated and Unicode list padding uses display width",
+        ),
+        "show_usage": (
+            "src/application/application_test.mbt",
+            "show and usage resolve aliases without executing recipes",
+        ),
+        "summary": (
+            "src/application/application_test.mbt",
+            "summary supports sorted and source-order output",
+        ),
+        "inspect": (
+            "src/application/application_test.mbt",
+            "dump and JSON inspect are deterministic and schema-pinned",
+        ),
+        "version": (
+            "build_info_test.mbt",
+            "release metadata is explicit",
+        ),
+    },
 }
 
 
@@ -309,6 +341,22 @@ def anchor_for(phase: int, category: str) -> tuple[str, str]:
         if category == "recursion_limit":
             return PHASE_TEST_ANCHORS[5]["limits"]
         return PHASE_TEST_ANCHORS[5]["evaluation"]
+    if phase == 6:
+        if category in {"init", "subcommand"}:
+            return PHASE_TEST_ANCHORS[6]["init"]
+        if category == "alias_style":
+            return PHASE_TEST_ANCHORS[6]["alias_style"]
+        if category == "groups":
+            return PHASE_TEST_ANCHORS[6]["groups"]
+        if category in {"show", "usage"}:
+            return PHASE_TEST_ANCHORS[6]["show_usage"]
+        if category == "summary":
+            return PHASE_TEST_ANCHORS[6]["summary"]
+        if category in {"dump", "json"}:
+            return PHASE_TEST_ANCHORS[6]["inspect"]
+        if category == "version":
+            return PHASE_TEST_ANCHORS[6]["version"]
+        return PHASE_TEST_ANCHORS[6]["list"]
     raise ValueError(f"phase {phase} has no executable anchor mapping")
 
 
@@ -377,7 +425,15 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 ],
                 tracking="MJ-LEX-HARDEN-0001",
             )
-        elif phase <= 5:
+        elif category in {"changelog", "man", "readme"}:
+            row.update(
+                tier="X",
+                disposition="not-applicable",
+                evidence=["docs/adr/0001-product-and-command-name.md"],
+                tracking="ADR-0001",
+                reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
+            )
+        elif phase <= 6:
             test_anchor = anchor_dict(phase, category)
             row.update(
                 disposition="covered-by",
@@ -402,9 +458,13 @@ def encoded_rows(rows: list[dict[str, object]]) -> str:
 
 
 def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5):
+    for phase in (3, 4, 5, 6):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
-        phase_rows = [row for row in rows if row["owner_phase"] == phase]
+        phase_rows = [
+            row
+            for row in rows
+            if row["owner_phase"] == phase and row["disposition"] == "covered-by"
+        ]
         encoded = "".join(
             json.dumps(
                 {
@@ -430,10 +490,14 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
 
 
 def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5):
+    for phase in (3, 4, 5, 6):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         cases = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-        expected = [row for row in rows if row["owner_phase"] == phase]
+        expected = [
+            row
+            for row in rows
+            if row["owner_phase"] == phase and row["disposition"] == "covered-by"
+        ]
         if len(cases) != len(expected):
             raise ValueError(f"Phase {phase} case manifest count changed")
         for case, row in zip(cases, expected):
@@ -490,7 +554,7 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} has no evidence list")
         if not isinstance(row.get("tracking"), str) or not row["tracking"]:
             raise ValueError(f"row {expected_id} has no tracking owner")
-        if row.get("owner_phase") in {3, 4, 5}:
+        if row.get("owner_phase") in {3, 4, 5, 6} and row["disposition"] == "covered-by":
             anchor = row.get("test_anchor")
             if not isinstance(anchor, dict) or set(anchor) != {"suite", "test_name"}:
                 raise ValueError(f"row {expected_id} has no executable test anchor")

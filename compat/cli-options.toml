@@ -7,7 +7,7 @@ upstream = "just 1.57.0"
 [[option]]
 name = "--alias-style"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--allow-missing"
@@ -22,7 +22,7 @@ status = "planned"
 [[option]]
 name = "--check"
 tier = "A"
-status = "planned"
+status = "implemented"
 requires = ["--fmt"]
 
 [[option]]
@@ -82,18 +82,18 @@ status = "planned"
 name = "--dry-run"
 short = "-n"
 tier = "A"
-status = "planned"
+status = "implemented"
 conflicts = ["--quiet"]
 
 [[option]]
 name = "--dump-format"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--evaluate-format"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--explain"
@@ -109,7 +109,7 @@ status = "planned"
 [[option]]
 name = "--group"
 tier = "A"
-status = "planned"
+status = "implemented"
 requires = ["--list"]
 
 [[option]]
@@ -131,7 +131,7 @@ status = "planned"
 name = "--justfile"
 short = "-f"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--justfile-name"
@@ -141,12 +141,12 @@ status = "planned"
 [[option]]
 name = "--list-heading"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--list-prefix"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--list-submodules"
@@ -156,7 +156,7 @@ status = "planned"
 [[option]]
 name = "--no-aliases"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--no-cache"
@@ -235,13 +235,13 @@ status = "planned"
 name = "--unsorted"
 short = "-u"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--unstable"
 tier = "X"
-status = "planned"
-reason = "The flag is recognized; experimental features are classified separately."
+status = "implemented"
+reason = "Recognized as an explicit, side-effect-free gate for unstable inspect formats."
 
 [[option]]
 name = "--verbose"
@@ -265,7 +265,7 @@ status = "planned"
 name = "--help"
 short = "-h"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--version"
@@ -303,7 +303,7 @@ reason = "Completion is outside project scope."
 [[command]]
 name = "--dump"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--edit"
@@ -315,35 +315,35 @@ status = "planned"
 name = "--evaluate"
 aliases = ["--eval"]
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--fmt"
 aliases = ["--format"]
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--groups"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--init"
 aliases = ["--initialize"]
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--json"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--list"
 short = "-l"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--man"
@@ -360,19 +360,19 @@ reason = "Upstream internal testing interface; not a public compatibility promis
 name = "--show"
 short = "-s"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--summary"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--usage"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--variables"
 tier = "A"
-status = "planned"
+status = "implemented"
