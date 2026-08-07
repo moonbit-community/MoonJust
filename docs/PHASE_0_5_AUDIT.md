@@ -133,18 +133,20 @@ recorded here so a temporary mitigation is not mistaken for a product waiver:
   continuing outage also registered no workflow for that SHA, so its local
   gates are recorded separately and no remote pass is claimed.
 
-After the five external failures, `.github/workflows/ci.yml` keeps the required
-check names but temporarily job-skips `Native smoke (ubuntu-latest)` and
-`Native smoke (macos-latest)`. Quality gates and Windows smoke remain blocking.
-This is a time-bounded availability mitigation, not evidence that those two
-platforms passed. Once the [GitHub Actions incident](https://www.githubstatus.com/)
-is resolved, remove the two `*-outage` jobs, restore the full three-entry
-matrix, and require a fresh PR plus post-merge `main` run with all four checks
-completed before treating the mitigation as closed.
+After the five external failures, mitigation commit `fd3e1ce` kept the required
+check names but temporarily job-skipped `Native smoke (ubuntu-latest)` and
+`Native smoke (macos-latest)`. Quality gates and Windows smoke remained
+blocking. This was a time-bounded availability mitigation, not evidence that
+those two platforms passed.
 
-Recovery verification started on 2026-08-07 after GitHub reported Actions as
-operational again. The temporary `*-outage` jobs have been removed and the
-full Ubuntu/macOS/Windows matrix restored. The exception remains open until a
-fresh restoration PR and its post-merge `main` run complete Quality, Ubuntu,
-macOS and Windows successfully; exact closure run IDs will be published in a
-follow-up evidence update.
+The exception was closed on 2026-08-07 after GitHub reported Actions as
+operational again. [Restoration PR #19](https://github.com/moonbit-community/MoonJust/pull/19)
+at `681ec9b0cf9b1c543021e0dc7055951532052e70` removed the temporary
+`*-outage` jobs and restored the full Ubuntu/macOS/Windows matrix. Its
+[PR CI run 31144190399](https://github.com/moonbit-community/MoonJust/actions/runs/31144190399)
+completed Quality gates and all three native platform jobs successfully. The
+PR was squash-merged at `3506164fc04594b2a4c8e3a6a71bccb2e11d653a`; the
+corresponding [post-merge `main` run 31144299133](https://github.com/moonbit-community/MoonJust/actions/runs/31144299133)
+again completed all four required jobs successfully. These two independent
+executions satisfy the documented restoration condition; no platform smoke is
+skipped and the external CI exception is closed.
