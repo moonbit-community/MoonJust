@@ -43,4 +43,15 @@ if grep -nE 'src/(semantic|evaluator|builtin|parser|formatter)' "$repo_root/src/
   fail "native host adapter imports core implementation packages"
 fi
 
-echo "architecture boundaries verified for fifteen core packages and one host adapter leaf"
+[ -f "$repo_root/src/host_wasm/moon.pkg" ] || fail "missing Wasm host adapter package"
+[ -f "$repo_root/src/host_wasm/pkg.generated.mbti" ] || fail "missing Wasm host adapter interface"
+if grep -nE 'Host(Process|Env|Clock|Random|Terminal|Signal)|write_bytes_to_file' \
+  "$repo_root/src/host_wasm"/*.mbt; then
+  fail "Wasm inspect adapter exposes a forbidden capability"
+fi
+grep -Eq '^write = \[\]$' "$repo_root/policies/inspect.toml" || \
+  fail "Wasm inspect policy grants filesystem writes"
+grep -Eq '^spawn = false$' "$repo_root/policies/inspect.toml" || \
+  fail "Wasm inspect policy grants process spawn"
+
+echo "architecture boundaries verified for fifteen core packages and two host adapter leaves"

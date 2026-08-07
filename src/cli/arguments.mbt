@@ -286,7 +286,7 @@ fn parser_command() -> @argparse.Command {
         allow_hyphen_values=true,
       ),
     ],
-    about="Just a command runner implemented in MoonBit",
+    about="MoonJust: a just-compatible command runner implemented in MoonBit",
     disable_help_flag=true,
     disable_version_flag=true,
     groups=[
@@ -366,16 +366,14 @@ fn supported_option(token : String) -> Bool {
     | "--groups"
     | "--group"
     | "--no-aliases"
-    | "--list-submodules"
+    | "--unstable"
     | "--unsorted"
     | "-u"
     | "--list-heading"
     | "--list-prefix"
-    | "--default-list"
     | "--alias-style"
     | "--dump-format"
     | "--evaluate-format"
-    | "--indentation"
     | "--justfile"
     | "-f"
     | "--dry-run"
@@ -409,12 +407,43 @@ fn option_name(token : String) -> String {
 }
 
 ///|
+fn supported_value_option(name : String) -> Bool {
+  match name {
+    "--alias-style"
+    | "--dump-format"
+    | "--evaluate-format"
+    | "--group"
+    | "--justfile"
+    | "-f"
+    | "--list-heading"
+    | "--list-prefix" => true
+    _ => false
+  }
+}
+
+///|
 fn check_supported(argv : ArrayView[String]) -> Unit raise CliParseError {
+  let mut consumes_value = false
+  let mut after_separator = false
   for token in argv {
+    if after_separator {
+      continue
+    }
+    if consumes_value {
+      consumes_value = false
+      continue
+    }
+    if token == "--" {
+      after_separator = true
+      continue
+    }
     if token.has_prefix("-") && token != "-" && token != "--" {
       let name = option_name(token)
       if !supported_option(name) {
         raise Unsupported(name)
+      }
+      if supported_value_option(name) && !token.contains("=") {
+        consumes_value = true
       }
     }
   }
@@ -433,6 +462,22 @@ fn normalize_argv(argv : ArrayView[String]) -> Array[String] {
 }
 
 ///|
+fn validate_choice(
+  matches : @argparse.Matches,
+  name : String,
+  choices : ArrayView[String],
+) -> Unit raise CliParseError {
+  guard matches.values.get(name) is Some(values) else { return }
+  guard values.last() is Some(value) else { return }
+  if !choices.contains(value) {
+    raise Invalid(
+      "error: invalid value '\{value}' for '--\{name}'; expected one of: " +
+      choices.join(", "),
+    )
+  }
+}
+
+///|
 /// Parse argv and environment using the pinned core argparse implementation.
 pub fn parse_arguments(
   argv : ArrayView[String],
@@ -447,6 +492,9 @@ pub fn parse_arguments(
   ) catch {
     error => raise Invalid(error.to_string())
   }
+  validate_choice(matches, "alias-style", ["left", "right", "separate"])
+  validate_choice(matches, "dump-format", ["json", "just"])
+  validate_choice(matches, "evaluate-format", ["just", "shell"])
   {
     command: command_kind(matches),
     flags: matches.flags,

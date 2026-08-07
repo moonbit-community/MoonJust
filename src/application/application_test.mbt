@@ -145,7 +145,7 @@ test "show and usage resolve aliases without executing recipes" {
   )
   assert_eq(
     usage.stdout(),
-    b"Usage: just build target rest...\n\nArguments:\n  target\n  rest...\n",
+    b"alias b := build\nUsage: just b target rest...\n\nArguments:\n  target\n  rest...\n",
   )
   assert_eq(host.process_calls().length(), 0)
 }
@@ -164,6 +164,42 @@ test "groups are deduplicated and Unicode list padding uses display width" {
     context,
   )
   assert_eq(groups.stdout(), b"Recipe groups:\n    ci\n")
+}
+
+///|
+test "list groups recipes once and supports every upstream alias style" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"[group(\"z\")]\nb:\n\n# doc\nx target=\"dev\":\n\n[group(\"z\")]\na:\n\nalias short := x\nalias y := x\n",
+  )
+  let separate = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--alias-style", "separate"], {}),
+    context,
+  )
+  assert_eq(
+    separate.stdout(),
+    b"Available recipes:\n    x target=\"dev\"     # doc\n    short target=\"dev\" # alias for `x`\n    y target=\"dev\"     # alias for `x`\n\n    [z]\n    a\n    b\n",
+  )
+  let left = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--alias-style", "left"], {}),
+    context,
+  )
+  assert_true(
+    (try! @utf8.decode(left.stdout())).contains(
+      "x target=\"dev\" # [aliases: short, y] doc",
+    ),
+  )
+  let unsorted = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--unsorted"], {}),
+    context,
+  )
+  assert_true(
+    (try! @utf8.decode(unsorted.stdout())).contains("[z]\n    b\n    a"),
+  )
 }
 
 ///|

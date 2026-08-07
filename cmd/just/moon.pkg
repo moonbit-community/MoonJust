@@ -1,6 +1,25 @@
 import {
   "moonbit-community/MoonJust" @moonjust,
+  "moonbit-community/MoonJust/src/application",
+  "moonbit-community/MoonJust/src/cli",
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/host_native",
+  "moonbit-community/MoonJust/src/host_wasm",
+  "moonbit-community/MoonJust/src/path",
+  "moonbitlang/async",
+  "moonbitlang/async/io",
+  "moonbitlang/async/stdio",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
 
 pkgtype(kind: "executable")
+
+supported_targets = "-all+native+wasm"
+
+options(
+  targets: {
+    "runtime_native.mbt": [ "native", "llvm" ],
+    "runtime_portable.mbt": [ "wasm", "wasm-gc", "js" ],
+  },
+)

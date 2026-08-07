@@ -178,14 +178,44 @@ fn dependency_json(dependency : @syntax.Dependency) -> Json {
 }
 
 ///|
+fn attribute_json(attribute : @syntax.Attribute) -> Json {
+  let arguments = attribute.arguments()
+  if arguments.is_empty() {
+    return Json::string(attribute.name())
+  }
+  let positional : Array[Json] = []
+  let keyword : Array[(String, Json)] = []
+  for argument in arguments {
+    let value = match argument.value() {
+      Some(value) => expression_json(value)
+      None => Json::null()
+    }
+    match argument.key() {
+      Some(key) => keyword.push((key, value))
+      None => positional.push(value)
+    }
+  }
+  let value = if !keyword.is_empty() {
+    json_object(keyword)
+  } else if positional.length() == 1 {
+    positional[0]
+  } else {
+    Json::array(positional)
+  }
+  json_object([(attribute.name(), value)])
+}
+
+///|
 fn recipe_json(
   recipe : @syntax.Recipe,
   compilation : @semantic.Compilation,
   docs : Map[String, String],
 ) -> Json {
-  let attributes = recipe
-    .attributes()
-    .map(fn(attribute) { Json::string(attribute.name()) })
+  let attribute_nodes = recipe.attributes().to_owned()
+  attribute_nodes.sort_by(fn(left, right) {
+    lexical_compare(left.name(), right.name())
+  })
+  let attributes = attribute_nodes.map(attribute_json)
   let body : Array[Json] = []
   for line in recipe.lines() {
     let fragments : Array[Json] = []
@@ -322,26 +352,14 @@ fn inspect_json(
   alias_entries.sort_by(fn(left, right) { lexical_compare(left.0, right.0) })
   let docs = recipe_docs(loaded.ast())
   let recipe_entries : Array[(String, Json)] = []
-  let recipe_names = compilation.recipe_names().to_owned()
+  let source_recipe_names = compilation.recipe_names()
+  let first = source_recipe_names.get(0)
+  let recipe_names = source_recipe_names.to_owned()
   recipe_names.sort_by(lexical_compare)
-  let groups : Set[String] = Set([])
-  let mut first : String? = None
   for name in recipe_names {
     guard compilation.recipe(name) is Some(recipe) else { continue }
-    guard compilation.recipe_attributes(name) is Some(attributes) else {
-      continue
-    }
-    if first is None && !attributes.private() {
-      first = Some(name)
-    }
-    match attributes.group() {
-      Some(group) => groups.add(group)
-      None => ()
-    }
     recipe_entries.push((name, recipe_json(recipe, compilation, docs)))
   }
-  let group_values = groups.to_array()
-  group_values.sort_by(lexical_compare)
   let unexports : Array[String] = []
   for item in loaded.ast().items() {
     if item is Unexport(name~, ..) {
@@ -353,7 +371,7 @@ fn inspect_json(
     ("assignments", json_object(assignment_entries)),
     ("first", optional_json_string(first)),
     ("doc", Json::null()),
-    ("groups", json_strings(group_values)),
+    ("groups", Json::array([])),
     ("module_path", Json::string("")),
     ("modules", json_object([])),
     ("aliases", json_object(alias_entries)),

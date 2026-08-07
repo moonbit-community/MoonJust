@@ -71,6 +71,12 @@ jobs:
       - name: Check all stable backends
         run: moon check --target all --warn-list +73
 
+      - name: Verify Wasm inspect policy
+        run: ./tools/check_phase6_inspect.sh
+
+      - name: Verify Phase 6 query oracle
+        run: ./tools/check_phase6_oracle.sh
+
       - name: Verify public interfaces
         run: |
           moon info

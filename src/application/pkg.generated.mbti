@@ -14,6 +14,8 @@ import {
 }
 
 // Values
+pub fn[T : @host.HostFs] execute_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError
+
 pub fn[T : @host.HostFs] execute_file_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError
 
 pub fn[T : @host.HostFs] execute_inspect_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError

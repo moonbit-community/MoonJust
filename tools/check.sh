@@ -9,6 +9,8 @@ moon fmt --check
 python3 ./tools/upstream/phase5_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
 ./tools/spikes/check_host_async.sh
 ./tools/spikes/check_ecosystem.sh
+./tools/check_phase6_inspect.sh
+./tools/check_phase6_oracle.sh
 moon check --target all --warn-list +73
 ./tools/test_with_count.sh native
 ./tools/test_with_count.sh wasm

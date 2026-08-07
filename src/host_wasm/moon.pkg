@@ -1,0 +1,5 @@
+import {
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/host_native",
+  "moonbit-community/MoonJust/src/path",
+}

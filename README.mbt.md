@@ -5,9 +5,9 @@ MoonJust is a MoonBit implementation of the
 behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
 backends.
 
-> Status: Phase 0-5 exits have passed. Phase 3-5 strict remediation is merged
-> and re-certified against executable manifests and the pinned oracle.
-> Query CLI and recipe execution remain in later phases.
+> Status: Phase 0-5 exits have passed. Phase 6 query CLI implementation is
+> complete and undergoing remote CI plus independent second review. Recipe
+> execution remains a later-phase capability.
 
 ## Compatibility scope
 
@@ -25,7 +25,8 @@ Phase 0-5 verdict and resolved exit evidence are recorded in the
 [strict audit](docs/PHASE_0_5_AUDIT.md), with implementation evidence in the
 [Phase 5 report](docs/PHASE_5_REPORT.md), [Phase 4 report](docs/PHASE_4_REPORT.md),
 [Phase 3 report](docs/PHASE_3_REPORT.md), [Phase 2 report](docs/PHASE_2_REPORT.md),
-and [Phase 1 report](docs/PHASE_1_REPORT.md).
+[Phase 1 report](docs/PHASE_1_REPORT.md), and the
+[Phase 6 report](docs/PHASE_6_REPORT.md).
 
 ## Development
 
@@ -48,6 +49,7 @@ Run the executable smoke test directly:
 ```bash
 moon run --target native cmd/just -- --version
 moon run --target wasm cmd/just -- --version
+./tools/check_phase6_inspect.sh
 ```
 
 The pre-commit hook can be enabled with:

@@ -130,7 +130,7 @@ fn parameters_text(parameters : ArrayView[@syntax.Parameter]) -> String {
     builder.write_string(parameter.name())
     match parameter.default_value() {
       Some(value) => {
-        builder.write_string(" = ")
+        builder.write_char('=')
         builder.write_string(expression_text(value))
       }
       None => ()
@@ -229,12 +229,17 @@ fn recipe_text(value : @syntax.Recipe) -> String {
       match fragment {
         Text(text~, ..) => builder.write_string(text)
         Interpolation(expression~, ..) => {
-          builder.write_string("{{")
+          builder.write_string("{{ ")
           builder.write_string(expression_text(expression))
-          builder.write_string("}}")
+          builder.write_string(" }}")
         }
       }
     }
   }
   builder.to_string()
+}
+
+///|
+pub fn format_expression(expression : @syntax.Expression) -> String {
+  expression_text(expression)
 }
