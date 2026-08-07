@@ -26,17 +26,21 @@ receive `HostProcess`.
 - All 50 upstream options and 19 command entries are inventoried. Implemented
   entries are marked as such; all other entries are rejected with a stable
   unsupported error or explicitly excluded. No unknown option is ignored.
-- The pinned upstream test map assigns 138 Phase 6 registrations to executable
+- The pinned upstream test map assigns 86 Phase 6 registrations to executable
   Native/wasm anchors, explicitly excludes 30 completion registrations, and
-  records five product-maintenance registrations as not applicable. Runtime,
-  cache, editor, and path-list categories remain owned by their later phases.
+  records five product-maintenance registrations as not applicable. Cases that
+  require module graph composition, search/working-directory state, invocation,
+  terminal rendering, runtime, cache, or editor capabilities remain explicitly
+  owned by their later phases.
 - Baseline differential cases for list, evaluate, summary, and explicit
   justfile queries are byte-for-byte matches. Version remains an intentional
   product-identity difference. Later-phase recipe execution cases remain
   explicit expected differences.
-- JSON schema version 1 covers assignments, aliases, recipes, settings,
-  expression nodes, source identity, groups, unexports, and warnings with
-  deterministic lexical map order.
+- JSON schema version 1 covers root-module assignments, aliases, recipes,
+  settings, expression nodes, source identity, recipe attributes, unexports,
+  and warnings with deterministic lexical map order. Loaded submodule graph
+  serialization remains owned by Phase 7 and is not counted as Phase 6
+  evidence.
 - Effectful evaluate fails with `EffectRequired`; it never receives a process
   capability.
 
@@ -57,12 +61,12 @@ The executable policy test builds the real wasm CLI and verifies:
 ## Verification
 
 - `moon check --target all --warn-list +73`: pass.
-- `moon test --target native`: 130 passed, 0 failed.
-- `moon test --target wasm`: 129 passed, 0 failed.
+- `moon test --target native`: 134 passed, 0 failed.
+- `moon test --target wasm`: 133 passed, 0 failed.
 - `tools/differential/real_smoke.sh`: 4 matches, 6 classified differences,
   0 failures.
 - `tools/check_phase6_inspect.sh`: pass.
-- `tools/check_phase6_oracle.sh`: 12 Native/Wasm query cases match the pinned
+- `tools/check_phase6_oracle.sh`: 24 Native/Wasm query cases match the pinned
   upstream oracle byte-for-byte.
 - `tools/check_architecture.sh`: fifteen core packages and two adapter leaves.
 - `moon info && moon fmt`: generated interfaces refreshed and formatting clean.

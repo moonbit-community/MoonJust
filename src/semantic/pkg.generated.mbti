@@ -75,7 +75,7 @@ pub struct RecipeAttributes {
   platform : TargetOs?
   private : Bool
   doc : String?
-  group : String?
+  groups : Array[String]
   working_directory : @syntax.Expression?
   shell : Array[@syntax.Expression]
   script : Bool
@@ -104,6 +104,7 @@ pub fn RecipeAttributes::env(Self) -> ArrayView[(@syntax.Expression, @syntax.Exp
 pub fn RecipeAttributes::exit_message(Self) -> Bool
 pub fn RecipeAttributes::extension(Self) -> String?
 pub fn RecipeAttributes::group(Self) -> String?
+pub fn RecipeAttributes::groups(Self) -> ArrayView[String]
 pub fn RecipeAttributes::matches(Self, TargetPlatform) -> Bool
 pub fn RecipeAttributes::metadata(Self) -> ArrayView[String]
 pub fn RecipeAttributes::names(Self) -> ArrayView[String]

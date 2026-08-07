@@ -15,6 +15,25 @@ test "compilation exposes ordered symbols and typed settings" {
   assert_eq(compiled.variable_names(), ["NAME"])
   assert_eq(compiled.recipe_names(), ["build"])
   assert_eq(compiled.recipe_attributes("build").unwrap().group(), Some("build"))
+  assert_eq(compiled.recipe_attributes("build").unwrap().groups(), ["build"])
+}
+
+///|
+test "recipe groups allow distinct memberships and reject duplicates" {
+  let ast = try! @parser.parse(
+    source("[group(\"alpha\")]\n[group(\"beta\")]\nbuild:\n"),
+  )
+  let attributes = (try! compile(ast)).recipe_attributes("build").unwrap()
+  assert_eq(attributes.groups(), ["alpha", "beta"])
+  let duplicate = try! @parser.parse(
+    source("[group(\"alpha\")]\n[group(\"alpha\")]\nbuild:\n"),
+  )
+  try compile(duplicate) catch {
+    AttributeConflict(first="group", second="group", ..) => ()
+    error => fail("unexpected duplicate group error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected duplicate group error")
+  }
 }
 
 ///|

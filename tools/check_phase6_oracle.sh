@@ -9,6 +9,10 @@ native="$repo_root/_build/native/debug/build/cmd/just/just.exe"
 wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
 policy="$repo_root/policies/inspect.toml"
 fixture="$repo_root/tests/fixtures/phase-6/query.justfile"
+json_fixture="$repo_root/tests/fixtures/phase-6/json-arg.justfile"
+groups_fixture="$repo_root/tests/fixtures/phase-6/groups.justfile"
+json_settings_fixture="$repo_root/tests/fixtures/phase-6/json-settings.justfile"
+json_attributes_fixture="$repo_root/tests/fixtures/phase-6/json-attributes.justfile"
 work=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-phase6-oracle.XXXXXX")
 
 cleanup() {
@@ -64,7 +68,25 @@ compare evaluate --evaluate
 compare evaluate-one --evaluate y
 compare dump --dump
 compare json --unstable --json
+fixture="$json_fixture"
+compare json-arg --unstable --dump --dump-format json
+compare list-options --unstable --list
+compare usage-options --unstable --usage foo
+fixture="$json_settings_fixture"
+compare json-settings --unstable --dump --dump-format json
+fixture="$json_attributes_fixture"
+compare json-attributes --unstable --dump --dump-format json
+fixture="$groups_fixture"
+compare list-groups --list
+compare list-groups-unsorted --list --unsorted
+compare list-selected-groups --list --group alpha --group beta
+compare multiple-groups --groups
+fixture="$repo_root/tests/fixtures/phase-6/query.justfile"
 compare show --show h
 compare usage --usage h
+compare show-suggestion --show hell
+compare show-no-suggestion --show zzzzzzzz
+fixture="$repo_root/tests/fixtures/phase-6/empty.justfile"
+compare summary-empty --summary
 
-echo "Phase 6 oracle verified: 12 Native/Wasm query cases match just 1.57.0"
+echo "Phase 6 oracle verified: 24 Native/Wasm query cases match just 1.57.0"

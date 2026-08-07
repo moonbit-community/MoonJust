@@ -5,7 +5,7 @@ pub struct RecipeAttributes {
   platform : TargetOs?
   private : Bool
   doc : String?
-  group : String?
+  groups : Array[String]
   working_directory : @syntax.Expression?
   shell : Array[@syntax.Expression]
   script : Bool
@@ -47,7 +47,12 @@ pub fn RecipeAttributes::doc(self : RecipeAttributes) -> String? {
 
 ///|
 pub fn RecipeAttributes::group(self : RecipeAttributes) -> String? {
-  self.group
+  self.groups.get(0)
+}
+
+///|
+pub fn RecipeAttributes::groups(self : RecipeAttributes) -> ArrayView[String] {
+  self.groups[:]
 }
 
 ///|
@@ -166,6 +171,18 @@ fn platform_for(name : String) -> TargetOs? {
 }
 
 ///|
+fn attribute_lexical_compare(left : String, right : String) -> Int {
+  let length = Int::min(left.length(), right.length())
+  for index in 0..<length {
+    let order = left.unsafe_get(index).compare(right.unsafe_get(index))
+    if order != 0 {
+      return order
+    }
+  }
+  left.length().compare(right.length())
+}
+
+///|
 fn compile_attributes(
   attributes : ArrayView[@syntax.Attribute],
 ) -> RecipeAttributes raise SemanticError {
@@ -173,7 +190,7 @@ fn compile_attributes(
   let mut platform : TargetOs? = None
   let mut private = false
   let mut doc : String? = None
-  let mut group : String? = None
+  let groups : Array[String] = []
   let mut working_directory : @syntax.Expression? = None
   let shell : Array[@syntax.Expression] = []
   let mut script = false
@@ -192,7 +209,7 @@ fn compile_attributes(
   let arg : Array[@syntax.AttributeArgument] = []
   let cache : Array[@syntax.AttributeArgument] = []
   let nonrepeatable = [
-    "confirm", "default", "doc", "exit-message", "extension", "group", "no-cd", "no-exit-message",
+    "confirm", "default", "doc", "exit-message", "extension", "no-cd", "no-exit-message",
     "no-quiet", "parallel", "positional-arguments", "private", "script", "shell",
     "working-directory",
   ]
@@ -258,7 +275,17 @@ fn compile_attributes(
             if attribute.arguments().length() > 0 {
               let argument = attribute.arguments()[0]
               match argument.value() {
-                Some(String(value)) => group = Some(value.cooked())
+                Some(String(value)) => {
+                  let group = value.cooked()
+                  if groups.contains(group) {
+                    raise AttributeConflict(
+                      first="group",
+                      second="group",
+                      span=attribute.span(),
+                    )
+                  }
+                  groups.push(group)
+                }
                 _ =>
                   raise AttributeConflict(
                     first="group",
@@ -368,12 +395,13 @@ fn compile_attributes(
       span=attributes[0].span(),
     )
   }
+  groups.sort_by(attribute_lexical_compare)
   {
     names,
     platform,
     private,
     doc,
-    group,
+    groups,
     working_directory,
     shell,
     script,

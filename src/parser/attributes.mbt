@@ -104,9 +104,16 @@ fn Parser::parse_attribute_group(
           )
         } else {
           let value = self.parse_expression_node()
-          arguments.push(
-            @syntax.AttributeArgument::new(None, Some(value), value.span()),
-          )
+          match value {
+            Variable(name=key, ..) if attribute_key_valid(name, key) =>
+              arguments.push(
+                @syntax.AttributeArgument::new(Some(key), None, value.span()),
+              )
+            _ =>
+              arguments.push(
+                @syntax.AttributeArgument::new(None, Some(value), value.span()),
+              )
+          }
         }
         if self.accept(Comma) is None {
           break
@@ -131,11 +138,28 @@ fn Parser::parse_attribute_group(
         }
         None => positional += 1
       }
-      if attribute_requires_literal(name) {
-        match argument.value() {
-          Some(String(_)) => ()
-          _ => raise InvalidAttributeArgument(name~, span=argument.span())
-        }
+      let requires_literal = attribute_requires_literal(name) &&
+        (
+          argument.key() is None ||
+          argument.key() is Some("max" | "min") ||
+          (
+            argument.key() is Some("long" | "short") &&
+            argument.value() is Some(_)
+          )
+        )
+      if requires_literal && !(argument.value() is Some(String(_))) {
+        raise InvalidAttributeArgument(name~, span=argument.span())
+      }
+      match argument.key() {
+        Some("flag" | "multiple") if argument.value() is Some(_) =>
+          raise InvalidAttributeArgument(name~, span=argument.span())
+        Some(key) if key != "flag" &&
+          key != "multiple" &&
+          key != "long" &&
+          key != "short" &&
+          argument.value() is None =>
+          raise InvalidAttributeArgument(name~, span=argument.span())
+        _ => ()
       }
     }
     if arguments.length() > 32 ||

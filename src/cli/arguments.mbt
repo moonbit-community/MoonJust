@@ -193,9 +193,13 @@ fn option_specs() -> Array[@argparse.OptionArg] {
     option("evaluate-format", long="evaluate-format", about="Evaluate format", defaults=[
       "just",
     ]),
-    option("group", long="group", about="Only list recipes in group", requires=[
-      "list",
-    ]),
+    option(
+      "group",
+      long="group",
+      about="Only list recipes in group",
+      action=Append,
+      requires=["list"],
+    ),
     option("indentation", long="indentation", about="Recipe indentation"),
     option("jobs", long="jobs", about="Maximum parallel jobs"),
     option(

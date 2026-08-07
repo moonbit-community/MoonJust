@@ -34,6 +34,7 @@ pub(all) suberror ApplicationError {
   Path(@path.PathError)
   Semantic(@semantic.SemanticError)
   AlreadyExists(@path.PathValue)
+  Query(String)
   UnsupportedCommand(String)
 } derive(@debug.Debug)
 pub fn ApplicationError::exit_code(Self) -> Int

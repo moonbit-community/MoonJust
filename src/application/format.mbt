@@ -4,12 +4,16 @@ fn format_check_response(
 ) -> @cli.ApplicationResponse raise ApplicationError {
   let result = @formatter.check(source) catch { error => raise Format(error) }
   if result.changed() {
-    let output = "-" +
+    let diff = "-" +
       source.text().trim_end().to_owned() +
       "\n+" +
       result.formatted().trim_end().to_owned() +
-      "\nerror: formatted justfile differs from original\n"
-    @cli.ApplicationResponse::new(@utf8.encode(output), b"", 1)
+      "\n"
+    @cli.ApplicationResponse::new(
+      @utf8.encode(diff),
+      b"error: formatted justfile differs from original\n",
+      1,
+    )
   } else {
     @cli.ApplicationResponse::success()
   }
@@ -40,8 +44,8 @@ fn[T : @host.HostFs] format_response(
         }
       }
       @cli.ApplicationResponse::success(
-        stdout=@utf8.encode(
-          "wrote justfile to '\{loaded.path().as_string()}'\n",
+        stderr=@utf8.encode(
+          "wrote justfile to `\{loaded.path().as_string()}`\n",
         ),
       )
     }
@@ -54,12 +58,54 @@ const INIT_TEMPLATE : String = "# https://just.systems\n\ndefault:\n    echo 'He
 ///|
 fn[T : @host.HostFs] init_response(
   host : T,
+  arguments : @cli.CliArguments,
   context : ApplicationContext,
 ) -> @cli.ApplicationResponse raise ApplicationError {
-  let filename = @path.PathValue::new("justfile", context.cwd().flavor()) catch {
-    error => raise Path(error)
+  if arguments.positional().length() > 1 {
+    raise Query(
+      "`--init` used with unexpected argument: `" +
+      arguments.positional()[1] +
+      "`",
+    )
   }
-  let path = context.cwd().join(filename) catch { error => raise Path(error) }
+  let path = match arguments.value("justfile") {
+    Some("-") => raise Query("`--init` cannot write to standard output")
+    Some(value) => {
+      let path = @path.PathValue::new(value, context.cwd().flavor()) catch {
+        error => raise Path(error)
+      }
+      if path.is_absolute() {
+        path
+      } else {
+        context.cwd().join(path) catch {
+          error => raise Path(error)
+        }
+      }
+    }
+    None => {
+      let directory = match arguments.positional().get(0) {
+        Some(value) => {
+          let path = @path.PathValue::new(value, context.cwd().flavor()) catch {
+            error => raise Path(error)
+          }
+          if path.is_absolute() {
+            path
+          } else {
+            context.cwd().join(path) catch {
+              error => raise Path(error)
+            }
+          }
+        }
+        None => context.cwd()
+      }
+      let filename = @path.PathValue::new("justfile", context.cwd().flavor()) catch {
+        error => raise Path(error)
+      }
+      directory.join(filename) catch {
+        error => raise Path(error)
+      }
+    }
+  }
   let exists = @host.HostFs::file_exists(host, path) catch {
     error => raise Host(error)
   }
@@ -70,7 +116,7 @@ fn[T : @host.HostFs] init_response(
     error => raise Host(error)
   }
   @cli.ApplicationResponse::success(
-    stdout=@utf8.encode("wrote justfile to '\{path.as_string()}'\n"),
+    stderr=@utf8.encode("wrote justfile to `\{path.as_string()}`\n"),
   )
 }
 
@@ -87,7 +133,7 @@ pub fn[T : @host.HostFs] execute_file_command(
       format_check_response(loaded.source())
     }
     FormatCommand => format_response(host, arguments, context)
-    InitCommand => init_response(host, context)
+    InitCommand => init_response(host, arguments, context)
     command => raise UnsupportedCommand("\{Repr(command)}")
   }
 }
