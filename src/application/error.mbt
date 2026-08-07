@@ -4,6 +4,7 @@ pub(all) suberror ApplicationError {
   Cli(@cli.CliParseError)
   Load(@loader.LoaderError)
   Format(@formatter.FormatterError)
+  Evaluation(@evaluator.EvaluationError)
   Host(@host.HostError)
   Path(@path.PathError)
   Semantic(@semantic.SemanticError)
@@ -15,8 +16,13 @@ pub(all) suberror ApplicationError {
 pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
   match self {
     Cli(_) | UnsupportedCommand(_) => 2
-    Load(_) | Format(_) | Host(_) | Path(_) | Semantic(_) | AlreadyExists(_) =>
-      1
+    Load(_)
+    | Format(_)
+    | Evaluation(_)
+    | Host(_)
+    | Path(_)
+    | Semantic(_)
+    | AlreadyExists(_) => 1
   }
 }
 
@@ -27,6 +33,7 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
     Cli(Unsupported(name)) => "error: option '\{name}' is not supported yet"
     Load(error) => "error[\{error.code()}]: \{error.message()}"
     Format(error) => "error[\{error.code()}]: \{error.message()}"
+    Evaluation(error) => "error: evaluation failed: \{Repr(error)}"
     Host(error) => "error: host operation failed: \{Repr(error)}"
     Path(error) => "error: invalid path: \{Repr(error)}"
     Semantic(error) => "error[\{error.code()}]: \{error.message()}"

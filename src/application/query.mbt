@@ -56,7 +56,14 @@ fn recipe_signature(recipe : @syntax.Recipe) -> String {
 
 ///|
 fn lexical_compare(left : String, right : String) -> Int {
-  right.compare(left)
+  let length = Int::min(left.length(), right.length())
+  for index in 0..<length {
+    let order = left.unsafe_get(index).compare(right.unsafe_get(index))
+    if order != 0 {
+      return order
+    }
+  }
+  left.length().compare(right.length())
 }
 
 ///|
@@ -240,13 +247,11 @@ fn query_text(
     UsageCommand => usage_text(compilation, arguments)
     VariablesCommand => {
       let values = compilation.variable_names().to_owned()
-      if !arguments.flag("unsorted") {
-        values.sort_by(lexical_compare)
-      }
       if values.is_empty() {
         ""
       } else {
-        values.join("\n") + "\n"
+        values.sort_by(lexical_compare)
+        values.join(" ") + "\n"
       }
     }
     GroupsCommand => {
