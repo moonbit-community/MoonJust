@@ -36,9 +36,100 @@ fn recipe_docs(ast : @syntax.Ast) -> Map[String, String] {
 }
 
 ///|
+priv struct ParameterDisplay {
+  option : Bool
+  flag : Bool
+  help : String?
+  long : String?
+  pattern : Array[String]
+  short : String?
+  value : Bool
+}
+
+///|
+fn parameter_display(
+  recipe : @syntax.Recipe,
+  parameter : @syntax.Parameter,
+) -> ParameterDisplay {
+  let mut flag = false
+  let mut help : String? = None
+  let mut long : String? = None
+  let pattern : Array[String] = []
+  let mut short : String? = None
+  let mut value = false
+  for attribute in recipe.attributes() {
+    if attribute.name() != "arg" {
+      continue
+    }
+    let arguments = attribute.arguments()
+    guard arguments.get(0) is Some(first) else { continue }
+    guard first.value() is Some(String(name)) else { continue }
+    if name.cooked() != parameter.name() {
+      continue
+    }
+    for argument in arguments[1:] {
+      match argument.key() {
+        Some("flag") => flag = true
+        Some("help") =>
+          match argument.value() {
+            Some(String(text)) => help = Some(text.cooked())
+            _ => ()
+          }
+        Some("long") =>
+          match argument.value() {
+            Some(String(text)) => long = Some(text.cooked())
+            None => long = Some(parameter.name())
+            _ => ()
+          }
+        Some("pattern") =>
+          match argument.value() {
+            Some(String(text)) => pattern.push(text.cooked())
+            Some(List(elements~, ..)) =>
+              for element in elements {
+                if element is String(text) {
+                  pattern.push(text.cooked())
+                }
+              }
+            _ => ()
+          }
+        Some("short") =>
+          match argument.value() {
+            Some(String(text)) => short = Some(text.cooked())
+            None => short = Some(parameter.name())
+            _ => ()
+          }
+        Some("value") => value = true
+        _ => ()
+      }
+    }
+  }
+  {
+    option: long is Some(_) || short is Some(_),
+    flag,
+    help,
+    long,
+    pattern,
+    short,
+    value,
+  }
+}
+
+///|
 fn recipe_signature(recipe : @syntax.Recipe) -> String {
   let values : Array[String] = [recipe.name()]
+  let mut has_options = false
   for parameter in recipe.parameters() {
+    if parameter_display(recipe, parameter).option {
+      has_options = true
+    }
+  }
+  if has_options {
+    values.push("[OPTIONS]")
+  }
+  for parameter in recipe.parameters() {
+    if parameter_display(recipe, parameter).option {
+      continue
+    }
     let prefix = if parameter.variadic() {
       if parameter.variadic_minimum() == 0 {
         "*"
@@ -70,16 +161,81 @@ fn lexical_compare(left : String, right : String) -> Int {
 }
 
 ///|
+fn edit_distance(left : String, right : String) -> Int {
+  let a = left.to_array()
+  let b = right.to_array()
+  let previous : Array[Int] = Array::make(b.length() + 1, 0)
+  let current : Array[Int] = Array::make(b.length() + 1, 0)
+  for index in 0..<=b.length() {
+    previous[index] = index
+  }
+  for row in 1..<=a.length() {
+    current[0] = row
+    for column in 1..<=b.length() {
+      let substitution = previous[column - 1] +
+        (if a[row - 1] == b[column - 1] { 0 } else { 1 })
+      current[column] = Int::min(
+        substitution,
+        Int::min(previous[column] + 1, current[column - 1] + 1),
+      )
+    }
+    for column in 0..<=b.length() {
+      previous[column] = current[column]
+    }
+  }
+  previous[b.length()]
+}
+
+///|
+fn unknown_recipe_message(
+  compilation : @semantic.Compilation,
+  requested : String,
+) -> String {
+  let mut suggestion : String? = None
+  let mut suggestion_target : String? = None
+  let mut best = 3
+  let names : Array[String] = []
+  for symbol in compilation.symbols() {
+    if symbol.kind() is Recipe || symbol.kind() is Alias {
+      names.push(symbol.name())
+    }
+  }
+  names.sort_by(lexical_compare)
+  for name in names {
+    let distance = edit_distance(requested, name)
+    if distance < best {
+      best = distance
+      suggestion = Some(name)
+      suggestion_target = compilation.alias_target(name)
+    }
+  }
+  let base = "justfile does not contain recipe `" + requested + "`"
+  match suggestion {
+    Some(name) => {
+      let suffix = match suggestion_target {
+        Some(target) => ", an alias for `" + target + "`?"
+        None => "?"
+      }
+      base + "\nDid you mean `" + name + "`" + suffix
+    }
+    None => base
+  }
+}
+
+///|
 fn visible_recipe_names(
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
 ) -> Array[String] {
   let result : Array[String] = []
-  let group = arguments.value("group")
+  let requested_groups = arguments.values("group")
   for name in compilation.recipe_names() {
     match compilation.recipe_attributes(name) {
       Some(attributes) if !attributes.private() &&
-        (group is None || attributes.group() == group) => result.push(name)
+        (
+          requested_groups.is_empty() ||
+          requested_groups.any(fn(group) { attributes.groups().contains(group) })
+        ) => result.push(name)
       _ => ()
     }
   }
@@ -111,7 +267,7 @@ priv struct ListRow {
   signature : String
   doc : String?
   aliases : Array[String]
-  group : String?
+  groups : Array[String]
 }
 
 ///|
@@ -154,8 +310,20 @@ fn list_text(
   loaded : @loader.LoadedSource,
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
-) -> String {
+) -> String raise ApplicationError {
   let docs = recipe_docs(loaded.ast())
+  for group in arguments.values("group") {
+    let mut found = false
+    for name in compilation.recipe_names() {
+      match compilation.recipe_attributes(name) {
+        Some(attributes) if attributes.groups().contains(group) => found = true
+        _ => ()
+      }
+    }
+    if !found {
+      raise Query("justfile does not contain group `" + group + "`")
+    }
+  }
   let rows : Array[ListRow] = []
   let mut maximum = 0
   let alias_style = arguments.value("alias-style").unwrap_or("right")
@@ -167,7 +335,8 @@ fn list_text(
     let signature = recipe_signature(recipe)
     maximum = Int::max(maximum, display_width(signature))
     let doc = match attributes.doc() {
-      Some(value) => Some(value)
+      Some(value) if !value.trim().is_empty() => Some(value)
+      Some(_) => None
       None => docs.get(name)
     }
     let aliases = if arguments.flag("no-aliases") {
@@ -185,7 +354,13 @@ fn list_text(
         )
       }
     }
-    rows.push({ name, signature, doc, aliases, group: attributes.group() })
+    rows.push({
+      name,
+      signature,
+      doc,
+      aliases,
+      groups: attributes.groups().to_owned(),
+    })
   }
   let builder = StringBuilder()
   builder.write_string(
@@ -194,24 +369,34 @@ fn list_text(
   let prefix = arguments.value("list-prefix").unwrap_or("    ")
   let groups : Array[String] = []
   for row in rows {
-    match row.group {
-      Some(group) if !groups.contains(group) => groups.push(group)
-      _ => ()
+    for group in row.groups {
+      if !groups.contains(group) {
+        groups.push(group)
+      }
     }
   }
   if !arguments.flag("unsorted") {
     groups.sort_by(lexical_compare)
   }
-  let sections : Array[String?] = [None]
-  for group in groups {
-    sections.push(Some(group))
+  let sections : Array[String?] = []
+  if arguments.values("group").is_empty() {
+    sections.push(None)
+    for group in groups {
+      sections.push(Some(group))
+    }
+  } else {
+    for group in arguments.values("group") {
+      sections.push(Some(group))
+    }
   }
   let mut wrote_section = false
   for section in sections {
     let section_rows : Array[ListRow] = []
     for row in rows {
-      if row.group == section {
-        section_rows.push(row)
+      match section {
+        None if row.groups.is_empty() => section_rows.push(row)
+        Some(group) if row.groups.contains(group) => section_rows.push(row)
+        _ => ()
       }
     }
     if section_rows.is_empty() {
@@ -265,12 +450,19 @@ fn show_text(
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
 ) -> String raise ApplicationError {
+  if arguments.positional().length() > 1 {
+    raise Query(
+      "`--show` used with unexpected argument: `" +
+      arguments.positional()[1] +
+      "`",
+    )
+  }
   guard arguments.positional().get(0) is Some(requested) else {
-    raise UnsupportedCommand("--show requires a recipe")
+    raise Query("`--show` requires recipe")
   }
   let name = compilation.alias_target(requested).unwrap_or(requested)
   guard compilation.recipe(name) is Some(recipe) else {
-    raise UnsupportedCommand("unknown recipe " + requested)
+    raise Query(unknown_recipe_message(compilation, requested))
   }
   let items : Array[@syntax.Item] = []
   if name != requested {
@@ -306,12 +498,19 @@ fn usage_text(
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
 ) -> String raise ApplicationError {
+  if arguments.positional().length() > 1 {
+    raise Query(
+      "`--usage` used with unexpected argument: `" +
+      arguments.positional()[1] +
+      "`",
+    )
+  }
   guard arguments.positional().get(0) is Some(requested) else {
-    raise UnsupportedCommand("--usage requires a recipe")
+    raise Query("`--usage` requires recipe")
   }
   let name = compilation.alias_target(requested).unwrap_or(requested)
   guard compilation.recipe(name) is Some(recipe) else {
-    raise UnsupportedCommand("unknown recipe " + requested)
+    raise Query(unknown_recipe_message(compilation, requested))
   }
   let builder = StringBuilder()
   if name != requested {
@@ -323,7 +522,23 @@ fn usage_text(
   }
   builder.write_string("Usage: just ")
   builder.write_string(requested)
+  let mut has_options = false
+  let mut has_arguments = false
   for parameter in recipe.parameters() {
+    let display = parameter_display(recipe, parameter)
+    if display.option {
+      has_options = true
+    } else {
+      has_arguments = true
+    }
+  }
+  if has_options {
+    builder.write_string(" [OPTIONS]")
+  }
+  for parameter in recipe.parameters() {
+    if parameter_display(recipe, parameter).option {
+      continue
+    }
     builder.write_char(' ')
     let label = parameter.name() +
       (if parameter.variadic() { "..." } else { "" })
@@ -335,9 +550,13 @@ fn usage_text(
     }
   }
   builder.write_string("\n")
-  if !recipe.parameters().is_empty() {
+  if has_arguments {
     builder.write_string("\nArguments:\n")
     for parameter in recipe.parameters() {
+      let display = parameter_display(recipe, parameter)
+      if display.option {
+        continue
+      }
       builder.write_string("  ")
       let label = parameter.name() +
         (if parameter.variadic() { "..." } else { "" })
@@ -353,6 +572,64 @@ fn usage_text(
         None if parameter.variadic() && parameter.variadic_minimum() == 0 =>
           builder.write_string("[" + label + "]")
         None => builder.write_string(label)
+      }
+      match display.help {
+        Some(help) => builder.write_string(" " + help)
+        None => ()
+      }
+      if !display.pattern.is_empty() {
+        builder.write_string(
+          " [pattern: '" + display.pattern.join("' | '") + "']",
+        )
+      }
+      builder.write_char('\n')
+    }
+  }
+  if has_options {
+    if has_arguments {
+      builder.write_string("\nOptions:\n")
+    } else {
+      builder.write_string("Options:\n")
+    }
+    for parameter in recipe.parameters() {
+      let display = parameter_display(recipe, parameter)
+      if !display.option {
+        continue
+      }
+      builder.write_string("  ")
+      match display.short {
+        Some(short) => builder.write_string("-" + short)
+        None => builder.write_string("  ")
+      }
+      match display.long {
+        Some(long) => {
+          if display.short is Some(_) {
+            builder.write_string(", ")
+          } else {
+            builder.write_string("  ")
+          }
+          builder.write_string("--" + long)
+        }
+        None => ()
+      }
+      if !display.value && !display.flag {
+        builder.write_string(" " + parameter.name())
+      }
+      match display.help {
+        Some(help) => builder.write_string(" " + help)
+        None => ()
+      }
+      match parameter.default_value() {
+        Some(default) if !display.value =>
+          builder.write_string(
+            " [default: " + @formatter.format_expression(default) + "]",
+          )
+        _ => ()
+      }
+      if !display.pattern.is_empty() {
+        builder.write_string(
+          " [pattern: '" + display.pattern.join("' | '") + "']",
+        )
       }
       builder.write_char('\n')
     }
@@ -382,18 +659,26 @@ fn query_text(
       }
     }
     GroupsCommand => {
-      let groups : Set[String] = Set([])
+      if !arguments.positional().is_empty() {
+        raise Query(
+          "`--groups` used with unexpected argument: `" +
+          arguments.positional()[0] +
+          "`",
+        )
+      }
+      let groups : Array[String] = []
       for name in visible_recipe_names(compilation, arguments) {
-        let group = match compilation.recipe_attributes(name) {
-          Some(value) => value.group()
-          None => None
-        }
-        match group {
-          Some(group) => groups.add(group)
+        match compilation.recipe_attributes(name) {
+          Some(value) =>
+            for group in value.groups() {
+              if !groups.contains(group) {
+                groups.push(group)
+              }
+            }
           None => ()
         }
       }
-      let values = groups.to_array()
+      let values = groups
       if !arguments.flag("unsorted") {
         values.sort_by(lexical_compare)
       }
@@ -401,7 +686,11 @@ fn query_text(
         ""
       } else {
         "Recipe groups:\n" +
-        values.map(fn(value) { "    " + value }).join("\n") +
+        values
+        .map(fn(value) {
+          arguments.value("list-prefix").unwrap_or("    ") + value
+        })
+        .join("\n") +
         "\n"
       }
     }
@@ -417,7 +706,12 @@ pub fn[T : @host.HostFs] execute_query_command(
 ) -> @cli.ApplicationResponse raise ApplicationError {
   let loaded = load_input(host, arguments, context)
   let compilation = compile_loaded(loaded)
-  @cli.ApplicationResponse::success(
-    stdout=@utf8.encode(query_text(loaded, compilation, arguments)),
-  )
+  let output = query_text(loaded, compilation, arguments)
+  let stderr = if arguments.command() == SummaryCommand &&
+    visible_recipe_names(compilation, arguments).is_empty() {
+    b"justfile contains no recipes\n"
+  } else {
+    b""
+  }
+  @cli.ApplicationResponse::success(stdout=@utf8.encode(output), stderr~)
 }

@@ -2,7 +2,7 @@ schema_version = 1
 phase = 6
 upstream_commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 license = "CC0-1.0"
-covered_registrations = 138
+covered_registrations = 86
 excluded_registrations = 35
 
 [cli]

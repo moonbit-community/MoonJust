@@ -17,6 +17,10 @@ test "format check never mutates and reports changed source" {
   let response = @application.execute_file_command(host, arguments, context)
   assert_eq(response.exit_code(), 1)
   assert_true((try! @utf8.decode(response.stdout())).contains("+x := \"y\""))
+  assert_eq(
+    response.stderr(),
+    b"error: formatted justfile differs from original\n",
+  )
   assert_eq(host.read_file(file), b"x:=\"y\"\n")
 }
 
@@ -28,6 +32,9 @@ test "format writes only after a successful parse" {
   let arguments = @cli.parse_arguments(["--fmt"], {})
   let response = @application.execute_file_command(host, arguments, context)
   assert_eq(response.exit_code(), 0)
+  assert_true(
+    (try! @utf8.decode(response.stderr())).contains("wrote justfile to `"),
+  )
   assert_eq(host.read_file(file), b"x := \"y\"\n")
   host.put_file(file, b"x := \"unterminated\n")
   try @application.execute_file_command(host, arguments, context) catch {
@@ -65,6 +72,49 @@ test "init creates the canonical template and refuses overwrite" {
     error => fail("unexpected application error: \{Repr(error)}")
   } noraise {
     _ => fail("expected overwrite refusal")
+  }
+}
+
+///|
+test "init honors explicit files and directories without silent fallback" {
+  let (host, context) = fake_context()
+  let explicit = @application.execute_file_command(
+    host,
+    @cli.parse_arguments(["--init", "--justfile", "custom.just"], {}),
+    context,
+  )
+  assert_eq(explicit.stderr(), b"wrote justfile to `/workspace/custom.just`\n")
+  assert_true(
+    (try! @utf8.decode(
+      host.read_file(@path.PathValue::new("/workspace/custom.just", Unix)),
+    )).contains("default:"),
+  )
+  let nested = @application.execute_file_command(
+    host,
+    @cli.parse_arguments(["--init", "nested"], {}),
+    context,
+  )
+  assert_eq(
+    nested.stderr(),
+    b"wrote justfile to `/workspace/nested/justfile`\n",
+  )
+  assert_true(
+    (try! @utf8.decode(
+      host.read_file(@path.PathValue::new("/workspace/nested/justfile", Unix)),
+    )).contains("default:"),
+  )
+  try
+    @application.execute_file_command(
+      host,
+      @cli.parse_arguments(["--init", "one", "two"], {}),
+      context,
+    )
+  catch {
+    @application.Query(message) =>
+      assert_true(message.contains("unexpected argument"))
+    error => fail("unexpected init argument error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected init to reject extra arguments")
   }
 }
 
@@ -121,6 +171,14 @@ test "summary supports sorted and source-order output" {
     context,
   )
   assert_eq(source_order.stdout(), b"zeta alpha\n")
+  host.put_file(file, b"")
+  let empty = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--summary"], {}),
+    context,
+  )
+  assert_eq(empty.stdout(), b"\n")
+  assert_eq(empty.stderr(), b"justfile contains no recipes\n")
 }
 
 ///|
@@ -148,6 +206,59 @@ test "show and usage resolve aliases without executing recipes" {
     b"alias b := build\nUsage: just b target rest...\n\nArguments:\n  target\n  rest...\n",
   )
   assert_eq(host.process_calls().length(), 0)
+  try
+    @application.execute_query_command(
+      host,
+      @cli.parse_arguments(["--show", "b", "extra"], {}),
+      context,
+    )
+  catch {
+    @application.Query(message) =>
+      assert_true(message.contains("unexpected argument"))
+    error => fail("unexpected show argument error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected show to reject extra arguments")
+  }
+  try
+    @application.execute_query_command(
+      host,
+      @cli.parse_arguments(["--show", "buil"], {}),
+      context,
+    )
+  catch {
+    @application.Query(message) =>
+      assert_true(message.contains("Did you mean `build`?"))
+    error => fail("unexpected show suggestion error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unknown recipe failure")
+  }
+}
+
+///|
+test "list and usage collapse option parameters and render option metadata" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"set lists\n[arg('flag', long, flag, help='toggle')]\n[arg('item', short='i', pattern=['one', 'two'])]\nrun flag item positional='x':\n",
+  )
+  let listed = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list"], {}),
+    context,
+  )
+  assert_eq(
+    listed.stdout(),
+    b"Available recipes:\n    run [OPTIONS] positional='x'\n",
+  )
+  let usage = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--usage", "run"], {}),
+    context,
+  )
+  assert_eq(
+    usage.stdout(),
+    b"Usage: just run [OPTIONS] [positional]\n\nArguments:\n  [positional] [default: 'x']\n\nOptions:\n      --flag toggle\n  -i item [pattern: 'one' | 'two']\n",
+  )
 }
 
 ///|
@@ -164,6 +275,65 @@ test "groups are deduplicated and Unicode list padding uses display width" {
     context,
   )
   assert_eq(groups.stdout(), b"Recipe groups:\n    ci\n")
+  let custom = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--groups", "--list-prefix", " -> "], {}),
+    context,
+  )
+  assert_eq(custom.stdout(), b"Recipe groups:\n -> ci\n")
+  try
+    @application.execute_query_command(
+      host,
+      @cli.parse_arguments(["--groups", "ci"], {}),
+      context,
+    )
+  catch {
+    @application.Query(message) =>
+      assert_true(message.contains("unexpected argument"))
+    error => fail("unexpected groups argument error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected groups to reject extra arguments")
+  }
+  try
+    @application.execute_query_command(
+      host,
+      @cli.parse_arguments(["--list", "--group", "missing"], {}),
+      context,
+    )
+  catch {
+    @application.Query(message) =>
+      assert_true(message.contains("does not contain group"))
+    error => fail("unexpected unknown group error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unknown group failure")
+  }
+}
+
+///|
+test "list repeats recipes in each distinct group and filters multiple groups" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"[group('alpha')]\na:\n[group('alpha')]\n[group('beta')]\nb:\nc:\n[group('beta')]\nd:\n",
+  )
+  let all = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list"], {}),
+    context,
+  )
+  assert_eq(
+    all.stdout(),
+    b"Available recipes:\n    c\n\n    [alpha]\n    a\n    b\n\n    [beta]\n    b\n    d\n",
+  )
+  let selected = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--group", "alpha", "--group", "beta"], {}),
+    context,
+  )
+  assert_eq(
+    selected.stdout(),
+    b"Available recipes:\n    [alpha]\n    a\n    b\n\n    [beta]\n    b\n    d\n",
+  )
 }
 
 ///|

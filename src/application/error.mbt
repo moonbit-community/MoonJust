@@ -9,6 +9,7 @@ pub(all) suberror ApplicationError {
   Path(@path.PathError)
   Semantic(@semantic.SemanticError)
   AlreadyExists(@path.PathValue)
+  Query(String)
   UnsupportedCommand(String)
 } derive(Debug)
 
@@ -22,7 +23,8 @@ pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
     | Host(_)
     | Path(_)
     | Semantic(_)
-    | AlreadyExists(_) => 1
+    | AlreadyExists(_)
+    | Query(_) => 1
   }
 }
 
@@ -37,7 +39,9 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
     Host(error) => "error: host operation failed: \{Repr(error)}"
     Path(error) => "error: invalid path: \{Repr(error)}"
     Semantic(error) => "error[\{error.code()}]: \{error.message()}"
-    AlreadyExists(path) => "error: refusing to overwrite '\{path.as_string()}'"
+    AlreadyExists(path) =>
+      "error: justfile `\{path.as_string()}` already exists"
+    Query(message) => "error: \{message}"
     UnsupportedCommand(name) => "error: command '\{name}' is not supported yet"
   }
 }

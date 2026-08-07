@@ -11,4 +11,5 @@ import {
   "moonbit-community/MoonJust/src/value",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
+  "moonbitlang/core/string",
 }

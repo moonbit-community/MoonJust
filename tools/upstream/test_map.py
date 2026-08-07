@@ -285,6 +285,54 @@ def phase_for(category: str) -> int:
     return matches[0]
 
 
+def case_owner_override(name: str) -> int | None:
+    """Route mixed Phase 6 categories to the phase that owns their prerequisites."""
+    category = name.split("::", 1)[0]
+    if category not in PHASE_PREFIXES[6]:
+        return None
+    if name.startswith("completions::"):
+        return None
+    phase_7_markers = (
+        "search_directory",
+        "invocation_directory",
+        "working_directory",
+        "submodule",
+        "module",
+    )
+    if any(marker in name for marker in phase_7_markers):
+        return 7
+    if name in {
+        "init::alternate_marker",
+        "init::parent_dir",
+        "init::justfile_name_from_invocation_directory",
+        "init::justfile_name_from_search_directory",
+        "list::list_invalid_path",
+        "list::list_unknown_submodule",
+        "show::show_invalid_path",
+        "show::show_recipe_at_path",
+        "show::show_space_separated_path",
+        "summary::depth_first_pre_order",
+        "summary::summary_implies_unstable",
+        "usage::usage_recipe_in_search_directory",
+        "json::dotenv_command",
+        "json::dotenv_filename_list",
+    }:
+        return 7
+    if name == "summary::summary_none":
+        return 8
+    if name in {
+        "list::backticks_highlighted",
+        "list::doc_above_wide_signature",
+        "list::tests::and",
+        "list::tests::and_ticked",
+        "list::tests::or",
+        "list::tests::or_ticked",
+        "list::unclosed_backticks",
+    }:
+        return 10
+    return None
+
+
 def anchor_for(phase: int, category: str) -> tuple[str, str]:
     """Return the executable family test that owns an upstream category."""
     if phase == 3:
@@ -380,7 +428,10 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
     rows = []
     for index, name in enumerate(names, start=1):
         category = name.split("::", 1)[0]
-        if category == "misc":
+        override = case_owner_override(name)
+        if override is not None:
+            phase = override
+        elif category == "misc":
             phase = 8
         elif category == "completions":
             phase = 6

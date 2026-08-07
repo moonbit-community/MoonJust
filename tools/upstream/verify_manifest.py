@@ -263,8 +263,8 @@ def validate() -> None:
                 manifest["plan_exit"] in {"pending-remote-ci-and-audit", "passed"},
                 "Phase 6 exit has an invalid state",
             )
-            expect(manifest["evidence"]["native_tests"] == 130, "Phase 6 Native evidence count changed")
-            expect(manifest["evidence"]["wasm_tests"] == 129, "Phase 6 wasm evidence count changed")
+            expect(manifest["evidence"]["native_tests"] == 134, "Phase 6 Native evidence count changed")
+            expect(manifest["evidence"]["wasm_tests"] == 133, "Phase 6 wasm evidence count changed")
         else:
             expect(manifest["plan_exit"] == "passed", f"Phase {phase} exit is not passed")
         corpus = load(repo / f"tests/upstream/just-1.57.0/phase-{phase}.toml")

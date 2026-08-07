@@ -23,6 +23,24 @@ fn optional_json_string(value : String?) -> Json {
 }
 
 ///|
+fn unsigned_json(expression : @syntax.Expression?) -> Json {
+  guard expression is Some(String(value)) else { return Json::null() }
+  let text = value.cooked()
+  let number = @string.parse_int(text[:]) catch { _ => return Json::null() }
+  Json::number(number.to_double(), repr=text)
+}
+
+///|
+fn pattern_json(expression : @syntax.Expression?) -> Json {
+  match expression {
+    Some(String(value)) => Json::array([Json::string(value.cooked())])
+    Some(List(elements~, ..)) => Json::array(elements.map(attribute_plain_json))
+    Some(value) => Json::array([attribute_plain_json(value)])
+    None => Json::null()
+  }
+}
+
+///|
 fn expression_json(expression : @syntax.Expression) -> Json {
   match expression {
     String(value) => Json::string(value.cooked())
@@ -124,7 +142,57 @@ fn assignment_json(assignment : @syntax.Assignment, private : Bool) -> Json {
 }
 
 ///|
-fn parameter_json(parameter : @syntax.Parameter) -> Json {
+fn parameter_json(
+  parameter : @syntax.Parameter,
+  attributes : ArrayView[@syntax.Attribute],
+) -> Json {
+  let mut help : Json = Json::null()
+  let mut flag = false
+  let mut long : Json = Json::null()
+  let mut max : Json = Json::null()
+  let mut min : Json = Json::null()
+  let mut multiple = false
+  let mut pattern : Json = Json::null()
+  let mut short : Json = Json::null()
+  let mut value : Json = Json::null()
+  for attribute in attributes {
+    if attribute.name() != "arg" {
+      continue
+    }
+    let arguments = attribute.arguments()
+    guard arguments.get(0) is Some(first) else { continue }
+    guard first.value() is Some(String(name)) else { continue }
+    if name.cooked() != parameter.name() {
+      continue
+    }
+    for argument in arguments[1:] {
+      match argument.key() {
+        Some("flag") => flag = true
+        Some("help") =>
+          help = argument.value().map(expression_json).unwrap_or(Json::null())
+        Some("long") =>
+          long = argument
+            .value()
+            .map(expression_json)
+            .unwrap_or(Json::string(parameter.name()))
+        Some("max") => max = unsigned_json(argument.value())
+        Some("min") => min = unsigned_json(argument.value())
+        Some("multiple") => multiple = true
+        Some("pattern") => pattern = pattern_json(argument.value())
+        Some("short") =>
+          short = argument
+            .value()
+            .map(expression_json)
+            .unwrap_or(Json::string(parameter.name()))
+        Some("value") =>
+          value = argument
+            .value()
+            .map(expression_json)
+            .unwrap_or(Json::boolean(true))
+        _ => ()
+      }
+    }
+  }
   json_object([
     (
       "default",
@@ -134,8 +202,8 @@ fn parameter_json(parameter : @syntax.Parameter) -> Json {
       },
     ),
     ("export", Json::boolean(parameter.exported())),
-    ("flag", Json::boolean(false)),
-    ("help", Json::null()),
+    ("flag", Json::boolean(flag)),
+    ("help", help),
     (
       "kind",
       Json::string(
@@ -150,14 +218,14 @@ fn parameter_json(parameter : @syntax.Parameter) -> Json {
         },
       ),
     ),
-    ("long", Json::null()),
-    ("max", Json::null()),
-    ("min", Json::null()),
-    ("multiple", Json::boolean(false)),
+    ("long", long),
+    ("max", max),
+    ("min", min),
+    ("multiple", Json::boolean(multiple)),
     ("name", Json::string(parameter.name())),
-    ("pattern", Json::null()),
-    ("short", Json::null()),
-    ("value", Json::null()),
+    ("pattern", pattern),
+    ("short", short),
+    ("value", value),
   ])
 }
 
@@ -178,7 +246,85 @@ fn dependency_json(dependency : @syntax.Dependency) -> Json {
 }
 
 ///|
+fn attribute_plain_json(expression : @syntax.Expression) -> Json {
+  match expression {
+    List(elements~, ..) => Json::array(elements.map(attribute_plain_json))
+    _ => expression_json(expression)
+  }
+}
+
+///|
 fn attribute_json(attribute : @syntax.Attribute) -> Json {
+  if attribute.name() == "arg" {
+    let arguments = attribute.arguments()
+    let mut name : Json = Json::null()
+    let mut help : Json = Json::null()
+    let mut long : Json = Json::null()
+    let mut max : Json = Json::null()
+    let mut min : Json = Json::null()
+    let mut pattern : Json = Json::null()
+    let mut short : Json = Json::null()
+    let mut value : Json = Json::null()
+    guard arguments.get(0) is Some(first_argument) else {
+      return Json::string("arg")
+    }
+    guard first_argument.value() is Some(first) else {
+      return Json::string("arg")
+    }
+    name = attribute_plain_json(first)
+    for argument in arguments[1:] {
+      match argument.key() {
+        Some("help") =>
+          help = argument
+            .value()
+            .map(attribute_plain_json)
+            .unwrap_or(Json::boolean(true))
+        Some("long") =>
+          long = argument.value().map(attribute_plain_json).unwrap_or(name)
+        Some("max") => max = unsigned_json(argument.value())
+        Some("min") => min = unsigned_json(argument.value())
+        Some("pattern") => pattern = pattern_json(argument.value())
+        Some("short") =>
+          short = argument.value().map(attribute_plain_json).unwrap_or(name)
+        Some("value") =>
+          value = argument
+            .value()
+            .map(attribute_plain_json)
+            .unwrap_or(Json::boolean(true))
+        _ => ()
+      }
+    }
+    return json_object([
+      (
+        "arg",
+        json_object([
+          ("help", help),
+          ("long", long),
+          ("max", max),
+          ("min", min),
+          ("name", name),
+          ("pattern", pattern),
+          ("short", short),
+          ("value", value),
+        ]),
+      ),
+    ])
+  }
+  if attribute.name() == "continue" || attribute.name() == "metadata" {
+    let values : Array[Json] = []
+    for argument in attribute.arguments() {
+      match argument.value() {
+        Some(value) => values.push(attribute_plain_json(value))
+        None => ()
+      }
+    }
+    if attribute.name() == "continue" {
+      values.sort_by(fn(left, right) {
+        lexical_compare(left.stringify(), right.stringify())
+      })
+    }
+    return json_object([(attribute.name(), Json::array(values))])
+  }
   let arguments = attribute.arguments()
   if arguments.is_empty() {
     return Json::string(attribute.name())
@@ -235,7 +381,10 @@ fn recipe_json(
   for dependency in recipe.subsequent_dependencies() {
     dependencies.push(dependency_json(dependency))
   }
-  let parameters = recipe.parameters().map(parameter_json)
+  let parameters : Array[Json] = []
+  for parameter in recipe.parameters() {
+    parameters.push(parameter_json(parameter, recipe.attributes()))
+  }
   let semantic_attributes = compilation.recipe_attributes(recipe.name())
   let doc : String? = match semantic_attributes {
     Some(value) =>
@@ -248,6 +397,17 @@ fn recipe_json(
   let private = semantic_attributes
     .map(fn(value) { value.private() })
     .unwrap_or(recipe.name().has_prefix("_"))
+  let mut shebang = recipe
+    .attributes()
+    .any(fn(attribute) { attribute.name() == "script" })
+  match recipe.lines().get(0) {
+    Some(line) =>
+      match line.fragments().get(0) {
+        Some(Text(text~, ..)) if text.has_prefix("#!") => shebang = true
+        _ => ()
+      }
+    None => ()
+  }
   json_object([
     ("attributes", Json::array(attributes)),
     ("body", Json::array(body)),
@@ -255,11 +415,17 @@ fn recipe_json(
     ("doc", optional_json_string(doc)),
     ("name", Json::string(recipe.name())),
     ("parameters", Json::array(parameters)),
-    ("priors", Json::number(0.0, repr="0")),
+    (
+      "priors",
+      Json::number(
+        recipe.dependencies().length().to_double(),
+        repr=recipe.dependencies().length().to_string(),
+      ),
+    ),
     ("private", Json::boolean(private)),
     ("quiet", Json::boolean(recipe.quiet())),
     ("namepath", Json::string(recipe.name())),
-    ("shebang", Json::boolean(false)),
+    ("shebang", Json::boolean(shebang)),
   ])
 }
 
@@ -271,6 +437,47 @@ fn setting_json(settings : @semantic.CompiledSettings, name : String) -> Json {
     Some(Text(value)) => Json::string(value)
     Some(Expression(value)) => expression_json(value)
     None => Json::null()
+  }
+}
+
+///|
+fn setting_list_json(
+  settings : @semantic.CompiledSettings,
+  name : String,
+) -> Json {
+  match settings.get(name) {
+    Some(Text(value)) => Json::array([Json::string(value)])
+    Some(Expression(List(elements~, ..))) =>
+      Json::array(elements.map(attribute_plain_json))
+    Some(Expression(value)) => Json::array([attribute_plain_json(value)])
+    _ => Json::array([])
+  }
+}
+
+///|
+fn interpreter_json(
+  settings : @semantic.CompiledSettings,
+  name : String,
+) -> Json {
+  guard settings.get(name) is Some(Expression(List(elements~, ..))) else {
+    return Json::null()
+  }
+  guard elements.get(0) is Some(command) else { return Json::null() }
+  json_object([
+    ("command", attribute_plain_json(command)),
+    ("arguments", Json::array(elements[1:].map(attribute_plain_json))),
+  ])
+}
+
+///|
+fn setting_scalar_or_list_json(
+  settings : @semantic.CompiledSettings,
+  name : String,
+) -> Json {
+  match settings.get(name) {
+    Some(Expression(List(elements~, ..))) =>
+      Json::array(elements.map(attribute_plain_json))
+    _ => setting_json(settings, name)
   }
 }
 
@@ -287,11 +494,14 @@ fn settings_json(settings : @semantic.CompiledSettings) -> Json {
     ),
     ("default_list", Json::boolean(settings.bool("default-list"))),
     ("default_script", Json::boolean(settings.bool("default-script"))),
-    ("dotenv_command", Json::array([])),
-    ("dotenv_filename", setting_json(settings, "dotenv-filename")),
+    ("dotenv_command", setting_list_json(settings, "dotenv-command")),
+    (
+      "dotenv_filename",
+      setting_scalar_or_list_json(settings, "dotenv-filename"),
+    ),
     ("dotenv_load", Json::boolean(settings.bool("dotenv-load"))),
     ("dotenv_override", Json::boolean(settings.bool("dotenv-override"))),
-    ("dotenv_path", setting_json(settings, "dotenv-path")),
+    ("dotenv_path", setting_scalar_or_list_json(settings, "dotenv-path")),
     ("dotenv_required", Json::boolean(settings.bool("dotenv-required"))),
     ("export", Json::boolean(settings.bool("export"))),
     ("fallback", Json::boolean(settings.bool("fallback"))),
@@ -307,7 +517,7 @@ fn settings_json(settings : @semantic.CompiledSettings) -> Json {
       Json::boolean(settings.bool("positional-arguments")),
     ),
     ("quiet", Json::boolean(settings.bool("quiet"))),
-    ("shell", setting_json(settings, "shell")),
+    ("shell", interpreter_json(settings, "shell")),
     ("tempdir", setting_json(settings, "tempdir")),
     ("unstable", Json::boolean(settings.bool("unstable"))),
     ("windows_powershell", Json::boolean(settings.bool("windows-powershell"))),
