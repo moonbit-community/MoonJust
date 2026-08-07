@@ -141,3 +141,10 @@ platforms passed. Once the [GitHub Actions incident](https://www.githubstatus.co
 is resolved, remove the two `*-outage` jobs, restore the full three-entry
 matrix, and require a fresh PR plus post-merge `main` run with all four checks
 completed before treating the mitigation as closed.
+
+Recovery verification started on 2026-08-07 after GitHub reported Actions as
+operational again. The temporary `*-outage` jobs have been removed and the
+full Ubuntu/macOS/Windows matrix restored. The exception remains open until a
+fresh restoration PR and its post-merge `main` run complete Quality, Ubuntu,
+macOS and Windows successfully; exact closure run IDs will be published in a
+follow-up evidence update.
