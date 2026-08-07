@@ -106,3 +106,43 @@ pub impl @host.HostFs for NativeFs with fn canonicalize(
       }
   }
 }
+
+///|
+pub impl @host.HostFs for NativeFs with fn persist_temp_file(
+  _self : NativeFs,
+  temporary : @path.PathValue,
+  destination : @path.PathValue,
+  overwrite : Bool,
+) -> Unit raise @host.HostError {
+  persist_native_temp(temporary, destination, overwrite)
+}
+
+///|
+pub impl @host.HostTemp for NativeFs with fn create_temp_file(
+  _self : NativeFs,
+  directory : @path.PathValue,
+  prefix : String,
+  contents : Bytes,
+) -> @path.PathValue raise @host.HostError {
+  create_native_temp(directory, prefix, contents)
+}
+
+///|
+pub impl @host.HostTemp for NativeFs with fn remove_temp_file(
+  _self : NativeFs,
+  path : @path.PathValue,
+) -> Unit raise @host.HostError {
+  @fs.remove_file(path.as_string()) catch {
+    error => raise io_error(error)
+  }
+}
+
+///|
+pub impl @host.HostAtomicFs for NativeFs with fn write_file_atomic(
+  self : NativeFs,
+  path : @path.PathValue,
+  contents : Bytes,
+  overwrite : Bool,
+) -> Unit raise @host.HostError {
+  @host.write_file_atomic(self, path, contents, overwrite~)
+}

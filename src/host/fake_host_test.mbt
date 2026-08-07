@@ -51,6 +51,40 @@ test "file ranges and stream helper keep chunk sizes bounded" {
 }
 
 ///|
+test "atomic writes commit once refuse races and clean failed temporaries" {
+  let host = fake()
+  let directory = @path.PathValue::new("/workspace", Unix)
+  let path = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(path, b"old\r\n")
+  @host.write_file_atomic(host, path, b"new\r\n")
+  assert_eq(host.read_file(path), b"new\r\n")
+  assert_false(
+    host.read_dir(directory).any(name => name.has_prefix(".moonjust.tmp.")),
+  )
+  try @host.write_file_atomic(host, path, b"lost", overwrite=false) catch {
+    AlreadyExists(actual) => assert_eq(actual, path)
+    error => fail("unexpected no-overwrite error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected no-overwrite race rejection")
+  }
+  assert_eq(host.read_file(path), b"new\r\n")
+  assert_false(
+    host.read_dir(directory).any(name => name.has_prefix(".moonjust.tmp.")),
+  )
+  host.fail_next_persist()
+  try @host.write_file_atomic(host, path, b"partial") catch {
+    InvalidInput("injected atomic persist failure") => ()
+    error => fail("unexpected injected persist error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected injected persist failure")
+  }
+  assert_eq(host.read_file(path), b"new\r\n")
+  assert_false(
+    host.read_dir(directory).any(name => name.has_prefix(".moonjust.tmp.")),
+  )
+}
+
+///|
 test "environment and working directory are deterministic" {
   let host = fake()
   host.set_env("MODE", "test")

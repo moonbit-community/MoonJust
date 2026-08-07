@@ -1,0 +1,14 @@
+[env]
+from_host = []
+
+[fs]
+read = ["../"]
+write = ["../"]
+
+[net]
+dns = []
+connect = []
+bind = []
+
+[process]
+spawn = false

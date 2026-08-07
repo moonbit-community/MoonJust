@@ -1,4 +1,38 @@
 ///|
+#cfg(platform="windows")
+priv struct NativeTestPath(String)
+
+///|
+#cfg(not(platform="windows"))
+priv struct NativeTestPath(Bytes)
+
+///|
+#cfg(platform="windows")
+fn NativeTestPath::new(value : String) -> NativeTestPath {
+  NativeTestPath(value)
+}
+
+///|
+#cfg(not(platform="windows"))
+fn NativeTestPath::new(value : String) -> NativeTestPath {
+  NativeTestPath(@utf8.encode(value))
+}
+
+///|
+#borrow(path)
+extern "C" fn set_readonly_for_test(
+  path : NativeTestPath,
+  make_readonly : Bool,
+) -> Int = "moonjust_host_set_readonly_for_test"
+
+///|
+#borrow(target, link_path)
+extern "C" fn symlink_for_test(
+  target : NativeTestPath,
+  link_path : NativeTestPath,
+) -> Int = "moonjust_host_symlink_for_test"
+
+///|
 test "real filesystem adapter reads metadata directories and canonical identity" {
   let host = NativeFs::new()
   let path = @path.PathValue::new("moon.mod", Unix)
@@ -24,4 +58,74 @@ test "real filesystem adapter reads metadata directories and canonical identity"
   assert_true(directory.contains("moon.mod"))
   let canonical = @host.HostFs::canonicalize(host, path)
   assert_true(canonical.as_string().has_suffix("moon.mod"))
+}
+
+///|
+test "native filesystem commits same-directory transactions without debris" {
+  let host = NativeFs::new()
+  let target = @path.PathValue::new(
+    ".moonjust-native-\u{6587}\u{4ef6}-transaction",
+    Unix,
+  )
+  if @host.HostFs::file_exists(host, target) {
+    @fs.remove_file(target.as_string())
+  }
+  @host.HostFs::write_file(host, target, b"old\r\n")
+  @host.write_file_atomic(host, target, b"new\r\n")
+  assert_eq(@host.HostFs::read_file(host, target), b"new\r\n")
+  assert_eq(
+    set_readonly_for_test(NativeTestPath::new(target.as_string()), true),
+    0,
+  )
+  try @host.write_file_atomic(host, target, b"forbidden") catch {
+    PermissionDenied(FsWrite, ..) => ()
+    error => fail("unexpected readonly error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected readonly target rejection")
+  }
+  assert_eq(@host.HostFs::read_file(host, target), b"new\r\n")
+  assert_eq(
+    set_readonly_for_test(NativeTestPath::new(target.as_string()), false),
+    0,
+  )
+  try @host.write_file_atomic(host, target, b"lost", overwrite=false) catch {
+    AlreadyExists(path) => assert_eq(path, target)
+    error => fail("unexpected no-overwrite error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected no-overwrite rejection")
+  }
+  assert_eq(@host.HostFs::read_file(host, target), b"new\r\n")
+  let debris = @host.HostFs::read_dir(host, @path.PathValue::new(".", Unix)).filter(name => {
+      name.has_prefix(".moonjust.tmp.")
+    },
+  )
+  assert_eq(debris, [])
+  @fs.remove_file(target.as_string())
+}
+
+///|
+test "native canonical identity follows filesystem symlinks" {
+  let host = NativeFs::new()
+  let target = @path.PathValue::new(".moonjust-native-symlink-target", Unix)
+  let link = @path.PathValue::new(".moonjust-native-symlink", Unix)
+  if @host.HostFs::file_exists(host, link) {
+    @fs.remove_file(link.as_string())
+  }
+  if @host.HostFs::file_exists(host, target) {
+    @fs.remove_file(target.as_string())
+  }
+  @host.HostFs::write_file(host, target, b"target")
+  assert_eq(
+    symlink_for_test(
+      NativeTestPath::new(target.as_string()),
+      NativeTestPath::new(link.as_string()),
+    ),
+    0,
+  )
+  assert_eq(
+    @host.HostFs::canonicalize(host, link),
+    @host.HostFs::canonicalize(host, target),
+  )
+  @fs.remove_file(link.as_string())
+  @fs.remove_file(target.as_string())
 }

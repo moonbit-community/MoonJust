@@ -20,7 +20,7 @@ fn format_check_response(
 }
 
 ///|
-fn[T : @host.HostFs] format_response(
+fn[T : @host.HostFs + @host.HostTemp] format_response(
   host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,
@@ -35,9 +35,9 @@ fn[T : @host.HostFs] format_response(
       @cli.ApplicationResponse::success(stdout=@utf8.encode(result.formatted()))
     Search | File(_) => {
       if result.changed() {
-        @host.HostFs::write_file(
+        @host.write_file_atomic(
           host,
-          loaded.path(),
+          loaded.canonical_path(),
           @utf8.encode(result.formatted()),
         ) catch {
           error => raise Host(error)
@@ -56,7 +56,7 @@ fn[T : @host.HostFs] format_response(
 const INIT_TEMPLATE : String = "# https://just.systems\n\ndefault:\n    echo 'Hello, world!'\n"
 
 ///|
-fn[T : @host.HostFs] init_response(
+fn[T : @host.HostFs + @host.HostTemp] init_response(
   host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,
@@ -112,7 +112,12 @@ fn[T : @host.HostFs] init_response(
   if exists {
     raise AlreadyExists(path)
   }
-  @host.HostFs::write_file(host, path, @utf8.encode(INIT_TEMPLATE)) catch {
+  @host.write_file_atomic(
+    host,
+    path,
+    @utf8.encode(INIT_TEMPLATE),
+    overwrite=false,
+  ) catch {
     error => raise Host(error)
   }
   @cli.ApplicationResponse::success(
@@ -122,7 +127,7 @@ fn[T : @host.HostFs] init_response(
 
 ///|
 /// Execute the Phase 6 file-oriented commands without ambient process state.
-pub fn[T : @host.HostFs] execute_file_command(
+pub fn[T : @host.HostFs + @host.HostTemp] execute_file_command(
   host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbit-community/MoonJust/src/host_wasm"
+package "moonbit-community/MoonJust/src/host_wasm/transaction"
 
 import {
   "moonbit-community/MoonJust/src/host",
@@ -12,13 +12,12 @@ import {
 // Errors
 
 // Types and methods
-pub struct ReadOnlyFs {
+pub struct PolicyFs {
   inner : @host_native.NativeFs
 }
-pub fn ReadOnlyFs::new() -> Self
-pub impl @host.HostAtomicFs for ReadOnlyFs
-pub impl @host.HostFs for ReadOnlyFs
-pub impl @host.HostTemp for ReadOnlyFs
+pub fn PolicyFs::new() -> Self
+pub impl @host.HostAtomicFs for PolicyFs
+pub impl @host.HostFs for PolicyFs
 
 // Type aliases
 

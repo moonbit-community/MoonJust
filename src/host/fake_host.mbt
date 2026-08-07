@@ -4,6 +4,8 @@ pub struct FakeHost {
   denied : Set[HostCapability]
   unavailable : Set[HostCapability]
   files : Map[@path.PathValue, Bytes]
+  mut temp_serial : Int
+  mut fail_next_persist : Bool
   canonical_paths : Map[@path.PathValue, @path.PathValue]
   environment : Map[String, String]
   mut cwd : @path.PathValue
@@ -27,6 +29,8 @@ pub fn FakeHost::new(
     denied: Set([]),
     unavailable: Set([]),
     files: Map([]),
+    temp_serial: 0,
+    fail_next_persist: false,
     canonical_paths: Map([]),
     environment: Map([]),
     cwd,
@@ -88,6 +92,11 @@ pub fn FakeHost::put_file(
   contents : Bytes,
 ) -> Unit {
   self.files[path] = contents
+}
+
+///|
+pub fn FakeHost::fail_next_persist(self : FakeHost) -> Unit {
+  self.fail_next_persist = true
 }
 
 ///|
@@ -259,6 +268,80 @@ pub impl HostFs for FakeHost with fn canonicalize(
 ) -> @path.PathValue raise HostError {
   self.require(FsRead)
   self.canonical_paths.get(path).unwrap_or(path)
+}
+
+///|
+pub impl HostFs for FakeHost with fn persist_temp_file(
+  self : FakeHost,
+  temporary : @path.PathValue,
+  destination : @path.PathValue,
+  overwrite : Bool,
+) -> Unit raise HostError {
+  self.require(FsWrite)
+  if self.fail_next_persist {
+    self.fail_next_persist = false
+    raise InvalidInput("injected atomic persist failure")
+  }
+  guard self.files.get(temporary) is Some(contents) else {
+    raise NotFound(temporary)
+  }
+  if !overwrite && self.files.contains(destination) {
+    raise AlreadyExists(destination)
+  }
+  self.files[destination] = contents
+  self.files.remove(temporary)
+}
+
+///|
+pub impl HostTemp for FakeHost with fn create_temp_file(
+  self : FakeHost,
+  directory : @path.PathValue,
+  prefix : String,
+  contents : Bytes,
+) -> @path.PathValue raise HostError {
+  self.require(FsWrite)
+  if prefix == "" || prefix.contains("/") || prefix.contains("\\") {
+    raise InvalidInput("temporary file prefix must be a file name prefix")
+  }
+  for _ in 0..<1024 {
+    let name = @path.PathValue::new(
+      prefix + self.temp_serial.to_string(),
+      directory.flavor(),
+    ) catch {
+      _ => raise InvalidInput("invalid temporary file name")
+    }
+    self.temp_serial += 1
+    let candidate = directory.join(name) catch {
+      _ => raise InvalidInput("temporary file path flavor mismatch")
+    }
+    if !self.files.contains(candidate) {
+      self.files[candidate] = contents
+      return candidate
+    }
+  }
+  raise InvalidInput("temporary file namespace exhausted")
+}
+
+///|
+pub impl HostTemp for FakeHost with fn remove_temp_file(
+  self : FakeHost,
+  path : @path.PathValue,
+) -> Unit raise HostError {
+  self.require(FsWrite)
+  if !self.files.contains(path) {
+    raise NotFound(path)
+  }
+  self.files.remove(path)
+}
+
+///|
+pub impl HostAtomicFs for FakeHost with fn write_file_atomic(
+  self : FakeHost,
+  path : @path.PathValue,
+  contents : Bytes,
+  overwrite : Bool,
+) -> Unit raise HostError {
+  write_file_atomic(self, path, contents, overwrite~)
 }
 
 ///|

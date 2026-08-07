@@ -2,16 +2,19 @@ import {
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/path",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
   "moonbitlang/x/fs",
 }
 
 options(
-  "native-stub": [ "realpath.c" ],
+  "native-stub": [ "realpath.c", "transaction.c" ],
   targets: {
     "canonical_native.mbt": [ "native", "llvm" ],
     "canonical_portable.mbt": [ "wasm", "wasm-gc", "js" ],
     "range_native.mbt": [ "native", "llvm" ],
     "range_portable.mbt": [ "wasm", "wasm-gc", "js" ],
+    "transaction_native.mbt": [ "native", "llvm" ],
+    "transaction_portable.mbt": [ "wasm", "wasm-gc", "js" ],
     "native_test.mbt": [ "native", "llvm" ],
   },
 )

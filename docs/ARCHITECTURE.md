@@ -43,6 +43,7 @@ host adapter. Target-specific `#cfg` and FFI are restricted to host adapters.
 | `host` | project-owned capability contracts and errors | third-party concrete types |
 | `host_native` | Native capability implementation | language semantics |
 | `host_wasm` | moonrun/moonx wasm1 capability implementation | browser compatibility claims |
+| `host_wasm/transaction` | policy-aware wasm1 atomic file transactions | synchronous core loading or direct WASI calls |
 | `cli` | argv validation and application request | parser internals |
 
 Packages are introduced only when their phase starts. Empty directories and
@@ -80,7 +81,7 @@ the facade. Every public change is reviewed through generated
 CI enforces all-target type checking, Native/wasm tests, generated interface
 stability, and `tools/check_architecture.sh`. The architecture check rejects
 target-specific FFI, conditional compilation, async implementation, and host
-adapter imports in the completed pure-core packages, including the Phase 2
-lexer and Phase 5 value/builtin packages. Its package inventory expands when
-a new pure-core phase begins.
+adapter imports in completed pure-core packages. The `host` package may declare
+an async capability, but runtime imports and implementations remain confined to
+leaf adapters. Its package inventory expands when a new pure-core phase begins.
 Compatibility manifests are verified alongside the pinned upstream inventory.

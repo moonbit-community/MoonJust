@@ -47,6 +47,24 @@ test "format writes only after a successful parse" {
 }
 
 ///|
+test "format writes a canonical symlink target and leaves the display path intact" {
+  let (host, context) = fake_context()
+  let link = @path.PathValue::new("/workspace/justfile", Unix)
+  let target = @path.PathValue::new("/workspace/actual.just", Unix)
+  host.put_file(link, b"x:=\"y\"\n")
+  host.put_file(target, b"x:=\"y\"\n")
+  host.set_canonical(link, target)
+  let response = @application.execute_file_command(
+    host,
+    @cli.parse_arguments(["--fmt"], {}),
+    context,
+  )
+  assert_eq(response.stderr(), b"wrote justfile to `/workspace/justfile`\n")
+  assert_eq(host.read_file(target), b"x := \"y\"\n")
+  assert_eq(host.read_file(link), b"x:=\"y\"\n")
+}
+
+///|
 test "stdin format returns stdout and does not require a file" {
   let (host, context) = fake_context()
   let context = @application.ApplicationContext::new(

@@ -18,4 +18,10 @@ test "read-only adapter reads and ranges but always denies writes" {
   } noraise {
     _ => fail("expected read-only adapter to deny writes")
   }
+  try @host.write_file_atomic(host, path, b"denied") catch {
+    CapabilityDenied(FsWrite) => ()
+    error => fail("unexpected atomic write error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected read-only adapter to deny atomic writes")
+  }
 }
