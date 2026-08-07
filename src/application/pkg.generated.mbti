@@ -7,12 +7,15 @@ import {
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/loader",
   "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/semantic",
   "moonbit-community/MoonJust/src/source",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn[T : @host.HostFs] execute_file_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn[T : @host.HostFs] execute_query_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError
 
 // Errors
 pub(all) suberror ApplicationError {
@@ -21,6 +24,7 @@ pub(all) suberror ApplicationError {
   Format(@formatter.FormatterError)
   Host(@host.HostError)
   Path(@path.PathError)
+  Semantic(@semantic.SemanticError)
   AlreadyExists(@path.PathValue)
   UnsupportedCommand(String)
 } derive(@debug.Debug)

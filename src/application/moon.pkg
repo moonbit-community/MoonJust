@@ -4,6 +4,8 @@ import {
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/loader",
   "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/semantic",
   "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/src/syntax",
   "moonbitlang/core/encoding/utf8",
 }
