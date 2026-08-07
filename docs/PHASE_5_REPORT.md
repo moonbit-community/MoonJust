@@ -94,6 +94,10 @@ IDs and the temporary job-level skip, with its restoration condition, are
 recorded in [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md). This does not change the
 Phase 5 implementation verdict or claim a platform pass that was not observed.
 GitHub reported Actions operational again on 2026-08-07, so the full
-Ubuntu/macOS/Windows matrix has been restored. The exception remains open until
-the restoration PR and its post-merge `main` run complete all four checks; the
-closure evidence is tracked in [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
+Ubuntu/macOS/Windows matrix was restored by
+[PR #19](https://github.com/moonbit-community/MoonJust/pull/19). Its
+[PR CI run 31144190399](https://github.com/moonbit-community/MoonJust/actions/runs/31144190399)
+and [post-merge `main` run 31144299133](https://github.com/moonbit-community/MoonJust/actions/runs/31144299133)
+both completed Quality gates and all three native platform jobs successfully.
+The restoration condition is satisfied and the exception is closed; the exact
+commit evidence is recorded in [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
