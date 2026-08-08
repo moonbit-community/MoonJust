@@ -12,7 +12,7 @@ project-owned capabilities.
 cmd/just
   -> cli
   -> loader -> source -> lexer -> syntax -> parser
-            -> semantic -> evaluator -> invocation -> planner
+            -> semantic -> evaluator -> invocation -> workdir -> planner
             -> runtime -> host
                        -> host_native
                        -> host_wasm
@@ -40,6 +40,7 @@ host adapters.
 | `evaluator` | pure and explicitly effectful expression evaluation | arbitrary global environment reads; implicit host access |
 | `environment` | dotenvy-compatible parsing, redacted errors, environment precedence and source loading | global environment mutation or direct process/filesystem access |
 | `invocation` | recipe argument and option parsing | global CLI parsing |
+| `workdir` | invocation/project/module cwd composition and no-cd precedence | filesystem canonicalization or process mutation |
 | `planner` | ordered dependency DAG and execution plan | process spawning |
 | `runtime` | scheduler, cache state machine, execution orchestration | backend-specific calls |
 | `host` | project-owned capability contracts and errors | third-party concrete types |

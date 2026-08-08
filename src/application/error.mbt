@@ -9,6 +9,7 @@ pub(all) suberror ApplicationError {
   Invocation(@invocation.InvocationError)
   Path(@path.PathError)
   Semantic(@semantic.SemanticError)
+  WorkingDirectory(@workdir.WorkingDirectoryError)
   AlreadyExists(@path.PathValue)
   Query(String)
   UnsupportedCommand(String)
@@ -25,6 +26,7 @@ pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
     | Invocation(_)
     | Path(_)
     | Semantic(_)
+    | WorkingDirectory(_)
     | AlreadyExists(_)
     | Query(_) => 1
   }
@@ -42,6 +44,7 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
     Invocation(error) => "error: " + error.message()
     Path(error) => "error: invalid path: \{Repr(error)}"
     Semantic(error) => "error[\{error.code()}]: \{error.message()}"
+    WorkingDirectory(error) => "error[\{error.code()}]: \{error.message()}"
     AlreadyExists(path) =>
       "error: justfile `\{path.as_string()}` already exists"
     Query(message) => "error: \{message}"

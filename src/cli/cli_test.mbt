@@ -191,6 +191,23 @@ test "command modes continue accepting global options after their argument" {
 }
 
 ///|
+test "working directory requires justfile and remains a global value" {
+  let parsed = try! @cli.parse_arguments(
+    ["--justfile", "config/justfile", "-d", "run", "build"],
+    {},
+  )
+  assert_eq(parsed.value("justfile"), Some("config/justfile"))
+  assert_eq(parsed.value("working-directory"), Some("run"))
+  assert_eq(parsed.positional(), ["build"])
+  try @cli.parse_arguments(["--working-directory", "run", "build"], {}) catch {
+    Invalid(message) => assert_true(message.contains("required argument"))
+    error => fail("unexpected working-directory error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected working-directory to require justfile")
+  }
+}
+
+///|
 test "query format choices are validated and ignored options are unsupported" {
   let unstable = @cli.parse_arguments(["--unstable", "--json"], {})
   assert_eq(unstable.command(), JsonCommand)

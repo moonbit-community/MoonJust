@@ -77,6 +77,12 @@ test "optional imports are skipped and cycles are reported" {
   assert_eq(graph.files().length(), 2)
   assert_eq(graph.files()[1].parent(), Some(root))
   assert_true(graph.files()[1].import_span() is Some(_))
+  assert_eq(graph.files()[0].relation(), RootSource)
+  assert_eq(graph.files()[1].relation(), ImportedSource)
+  assert_eq(
+    graph.files()[1].module_directory(),
+    @path.PathValue::new("/workspace", Unix),
+  )
   host.put_file(child, b"import \"justfile\"\n")
   try load_graph(host, root, @source.SourceId::new(30)) catch {
     ImportCycle(path~, chain~, span~) => {
@@ -88,6 +94,67 @@ test "optional imports are skipped and cycles are reported" {
   } noraise {
     _ => fail("expected import cycle")
   }
+}
+
+///|
+test "relative imports follow source files while cwd follows module ownership" {
+  let host = fake()
+  let root = @path.PathValue::new("/workspace/justfile", Unix)
+  let imported = @path.PathValue::new("/workspace/includes/import.just", Unix)
+  let nested = @path.PathValue::new(
+    "/workspace/includes/nested/tasks.just",
+    Unix,
+  )
+  let module_file = @path.PathValue::new(
+    "/workspace/modules/release/mod.just",
+    Unix,
+  )
+  let module_import = @path.PathValue::new(
+    "/workspace/modules/release/shared.just",
+    Unix,
+  )
+  host.put_file(
+    root, b"import 'includes/import.just'\nmod release 'modules/release/mod.just'\n",
+  )
+  host.put_file(imported, b"import 'nested/tasks.just'\n")
+  host.put_file(nested, b"nested:\n")
+  host.put_file(module_file, b"import 'shared.just'\nrelease:\n")
+  host.put_file(module_import, b"shared:\n")
+  let files = (try! load_graph(host, root, @source.SourceId::new(50))).files()
+  assert_eq(files.length(), 5)
+  assert_eq(files[1].path(), imported)
+  assert_eq(files[2].path(), nested)
+  assert_eq(files[1].relation(), ImportedSource)
+  assert_eq(files[2].relation(), ImportedSource)
+  assert_eq(
+    files[2].module_directory(),
+    @path.PathValue::new("/workspace", Unix),
+  )
+  assert_eq(files[3].path(), module_file)
+  assert_eq(files[3].relation(), ModuleSource)
+  assert_eq(
+    files[3].module_directory(),
+    @path.PathValue::new("/workspace/modules/release", Unix),
+  )
+  assert_eq(files[4].path(), module_import)
+  assert_eq(files[4].relation(), ImportedSource)
+  assert_eq(files[4].module_directory(), files[3].module_directory())
+}
+
+///|
+test "symlink canonical identity does not replace the project display parent" {
+  let host = fake()
+  let link = @path.PathValue::new("/workspace/link/justfile", Unix)
+  let target = @path.PathValue::new("/workspace/source/justfile", Unix)
+  host.put_file(link, b"build:\n")
+  host.set_canonical(link, target)
+  let loaded = (try! load_graph(host, link, @source.SourceId::new(60))).files()[0]
+  assert_eq(loaded.path(), link)
+  assert_eq(loaded.canonical_path(), target)
+  assert_eq(
+    loaded.module_directory(),
+    @path.PathValue::new("/workspace/link", Unix),
+  )
 }
 
 ///|

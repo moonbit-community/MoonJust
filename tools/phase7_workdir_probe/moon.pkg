@@ -1,0 +1,9 @@
+import {
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/workdir",
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "native"

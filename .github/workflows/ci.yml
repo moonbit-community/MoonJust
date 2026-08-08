@@ -83,6 +83,9 @@ jobs:
       - name: Verify Phase 7 invocation differential
         run: ./tools/check_phase7_invocation.sh
 
+      - name: Verify Phase 7 working-directory differential
+        run: ./tools/check_phase7_workdir.sh
+
       - name: Verify Phase 6 query oracle
         run: ./tools/check_phase6_oracle.sh
 

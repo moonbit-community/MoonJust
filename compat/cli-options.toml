@@ -253,7 +253,7 @@ status = "planned"
 name = "--working-directory"
 short = "-d"
 tier = "A"
-status = "planned"
+status = "implemented"
 requires = ["--justfile"]
 
 [[option]]

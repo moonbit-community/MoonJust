@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation application"
+phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation workdir application"
 
 fail() {
   echo "architecture boundary error: $1" >&2
@@ -29,7 +29,7 @@ for package in $phase_packages; do
   done
 done
 
-pure_packages="source diagnostic path cli lexer syntax parser formatter semantic value builtin invocation"
+pure_packages="source diagnostic path cli lexer syntax parser formatter semantic value builtin invocation workdir"
 for package in $pure_packages; do
   if grep -nE 'src/host(_native|_wasm)?' "$repo_root/src/$package/moon.pkg"; then
     fail "src/$package imports a host package"
@@ -66,4 +66,4 @@ if grep -nE 'Host(Process|Env|Clock|Terminal|Signal)|wasi_snapshot_preview1' \
   fail "Wasm transaction adapter crosses its capability boundary"
 fi
 
-echo "architecture boundaries verified for seventeen core packages and host adapter leaves"
+echo "architecture boundaries verified for eighteen core packages and host adapter leaves"

@@ -216,7 +216,7 @@ def validate() -> None:
         all(entry["status"] in {"planned", "implemented", "excluded"} for entry in cli_entries),
         "CLI inventory contains an invalid status",
     )
-    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 14, "Phase 6 implemented option count changed")
+    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 15, "implemented CLI option count changed")
     expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 11, "Phase 6 implemented command count changed")
 
     builtins = load(repo / "compat/builtins.toml")

@@ -38,6 +38,15 @@ pub fn SearchOptions::global(self : SearchOptions) -> @path.PathValue? {
 }
 
 ///|
+/// How a source entered the load graph. Imports retain their containing
+/// module's working directory, while modules establish a new one.
+pub(all) enum SourceRelation {
+  RootSource
+  ImportedSource
+  ModuleSource
+} derive(Eq, Debug)
+
+///|
 pub(all) struct LoadedSource {
   path : @path.PathValue
   canonical_path : @path.PathValue
@@ -45,6 +54,8 @@ pub(all) struct LoadedSource {
   ast : @syntax.Ast
   parent : @path.PathValue?
   import_span : @source.Span?
+  relation : SourceRelation
+  module_directory : @path.PathValue
 } derive(Debug)
 
 ///|
@@ -107,10 +118,27 @@ pub fn LoadedSource::import_span(self : LoadedSource) -> @source.Span? {
 }
 
 ///|
-fn LoadedSource::with_parent(
+pub fn LoadedSource::relation(self : LoadedSource) -> SourceRelation {
+  self.relation
+}
+
+///|
+pub fn LoadedSource::module_directory(self : LoadedSource) -> @path.PathValue {
+  self.module_directory
+}
+
+///|
+fn source_directory(path : @path.PathValue) -> @path.PathValue {
+  path.parent().unwrap_or(path)
+}
+
+///|
+fn LoadedSource::with_context(
   self : LoadedSource,
   parent : @path.PathValue?,
   import_span : @source.Span?,
+  relation : SourceRelation,
+  module_directory : @path.PathValue,
 ) -> LoadedSource {
   {
     path: self.path,
@@ -119,6 +147,8 @@ fn LoadedSource::with_parent(
     ast: self.ast,
     parent,
     import_span,
+    relation,
+    module_directory,
   }
 }
 
@@ -136,7 +166,16 @@ pub fn load_stdin(
   let path = @path.PathValue::new(display_name, Unix) catch {
     _ => raise Host(InvalidInput("invalid stdin display name"))
   }
-  { path, canonical_path: path, source, ast, parent: None, import_span: None }
+  {
+    path,
+    canonical_path: path,
+    source,
+    ast,
+    parent: None,
+    import_span: None,
+    relation: RootSource,
+    module_directory: source_directory(path),
+  }
 }
 
 ///|
@@ -280,7 +319,16 @@ pub fn[T : @host.HostFs] load(
   let canonical_path = @host.HostFs::canonicalize(host, path) catch {
     error => raise Host(error)
   }
-  { path, canonical_path, source, ast, parent: None, import_span: None }
+  {
+    path,
+    canonical_path,
+    source,
+    ast,
+    parent: None,
+    import_span: None,
+    relation: RootSource,
+    module_directory: source_directory(path),
+  }
 }
 
 ///|
@@ -297,7 +345,16 @@ pub fn load_bytes(
   let path = @path.PathValue::new(display_name, Unix) catch {
     _ => raise Host(InvalidInput("invalid source display name"))
   }
-  { path, canonical_path: path, source, ast, parent: None, import_span: None }
+  {
+    path,
+    canonical_path: path,
+    source,
+    ast,
+    parent: None,
+    import_span: None,
+    relation: RootSource,
+    module_directory: source_directory(path),
+  }
 }
 
 ///|
@@ -318,7 +375,16 @@ pub fn load_markdown(
   let path = @path.PathValue::new(display_name, Unix) catch {
     _ => raise Host(InvalidInput("invalid Markdown display name"))
   }
-  { path, canonical_path: path, source, ast, parent: None, import_span: None }
+  {
+    path,
+    canonical_path: path,
+    source,
+    ast,
+    parent: None,
+    import_span: None,
+    relation: RootSource,
+    module_directory: source_directory(path),
+  }
 }
 
 ///|
@@ -366,6 +432,8 @@ pub fn[T : @host.HostFs] load_graph(
     next_id : @source.SourceId,
     parent : @path.PathValue?,
     import_span : @source.Span?,
+    relation : SourceRelation,
+    module_directory : @path.PathValue,
   ) -> Unit raise LoaderError {
     let canonical = @host.HostFs::canonicalize(host, path) catch {
       error => raise Host(error)
@@ -381,7 +449,9 @@ pub fn[T : @host.HostFs] load_graph(
     }
     active.add(canonical)
     active_stack.push(path)
-    let loaded = load(host, path, next_id).with_parent(parent, import_span)
+    let loaded = load(host, path, next_id).with_context(
+      parent, import_span, relation, module_directory,
+    )
     files.push(loaded)
     for item in loaded.ast().items() {
       match item {
@@ -399,6 +469,8 @@ pub fn[T : @host.HostFs] load_graph(
               @source.SourceId::new(next_id.value() + files.length()),
               Some(path),
               Some(value.span()),
+              ImportedSource,
+              module_directory,
             )
           }
         }
@@ -419,6 +491,8 @@ pub fn[T : @host.HostFs] load_graph(
                   @source.SourceId::new(next_id.value() + files.length()),
                   Some(path),
                   Some(value.span()),
+                  ModuleSource,
+                  source_directory(child),
                 )
               }
             }
@@ -430,6 +504,6 @@ pub fn[T : @host.HostFs] load_graph(
     active_stack.pop() |> ignore
     visited.add(canonical)
   }
-  visit(root, source_id, None, None)
+  visit(root, source_id, None, None, RootSource, source_directory(root))
   { files, }
 }
