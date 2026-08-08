@@ -17,13 +17,16 @@ pub fn[T : @host.HostFs + @host.HostTemp] execute_command(
     DumpCommand | JsonCommand | EvaluateCommand =>
       execute_inspect_command(host, arguments, context)
     RunCommand => {
-      let loaded = load_input(host, arguments, context)
+      let (loaded, directories) = load_input_with_directories(
+        host, arguments, context,
+      )
       let compilation = compile_loaded(loaded)
       ignore(
         @invocation.parse_invocations(compilation, arguments.positional()) catch {
           error => raise Invocation(error)
         },
       )
+      ignore(directories)
       raise UnsupportedCommand("recipe execution")
     }
   }

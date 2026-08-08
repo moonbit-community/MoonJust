@@ -10,6 +10,7 @@ import {
   "moonbit-community/MoonJust/src/source",
   "moonbit-community/MoonJust/src/syntax",
   "moonbit-community/MoonJust/src/value",
+  "moonbit-community/MoonJust/src/workdir",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
   "moonbitlang/core/string",

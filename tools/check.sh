@@ -14,6 +14,7 @@ python3 ./tools/upstream/phase5_oracle.py --upstream ./_build/upstream/just-1.57
 ./tools/check_phase7_hostfs.sh
 ./tools/check_phase7_dotenv.sh
 ./tools/check_phase7_invocation.sh
+./tools/check_phase7_workdir.sh
 moon check --target all --warn-list +73
 ./tools/test_with_count.sh native
 ./tools/test_with_count.sh wasm

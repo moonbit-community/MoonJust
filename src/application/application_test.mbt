@@ -78,6 +78,35 @@ test "stdin format returns stdout and does not require a file" {
 }
 
 ///|
+test "relative justfile and working directory use explicit invocation cwd" {
+  let cwd = @path.PathValue::new("/workspace/invocation", Unix)
+  let host = @host.FakeHost::new(
+    @path.PathValue::new("/ambient/ignored", Unix),
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  let file = @path.PathValue::new("/workspace/config/justfile", Unix)
+  host.put_file(file, b"build:\n")
+  let arguments = try! @cli.parse_arguments(
+    [
+      "--justfile", "../config/justfile", "--working-directory", "../run", "build",
+    ],
+    {},
+  )
+  try
+    @application.execute_command(
+      host,
+      arguments,
+      @application.ApplicationContext::new(cwd),
+    )
+  catch {
+    UnsupportedCommand("recipe execution") => ()
+    error => fail("unexpected relative input error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected Phase 8 executor boundary")
+  }
+}
+
+///|
 test "init creates the canonical template and refuses overwrite" {
   let (host, context) = fake_context()
   let arguments = @cli.parse_arguments(["--init"], {})

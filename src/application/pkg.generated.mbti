@@ -11,6 +11,7 @@ import {
   "moonbit-community/MoonJust/src/path",
   "moonbit-community/MoonJust/src/semantic",
   "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/src/workdir",
   "moonbitlang/core/debug",
 }
 
@@ -35,6 +36,7 @@ pub(all) suberror ApplicationError {
   Invocation(@invocation.InvocationError)
   Path(@path.PathError)
   Semantic(@semantic.SemanticError)
+  WorkingDirectory(@workdir.WorkingDirectoryError)
   AlreadyExists(@path.PathValue)
   Query(String)
   UnsupportedCommand(String)

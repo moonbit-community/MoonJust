@@ -60,12 +60,16 @@ pub(all) struct LoadedSource {
   ast : @syntax.Ast
   parent : @path.PathValue?
   import_span : @source.Span?
+  relation : SourceRelation
+  module_directory : @path.PathValue
 } derive(@debug.Debug)
 pub fn LoadedSource::ast(Self) -> @syntax.Ast
 pub fn LoadedSource::canonical_path(Self) -> @path.PathValue
 pub fn LoadedSource::import_span(Self) -> @source.Span?
+pub fn LoadedSource::module_directory(Self) -> @path.PathValue
 pub fn LoadedSource::parent(Self) -> @path.PathValue?
 pub fn LoadedSource::path(Self) -> @path.PathValue
+pub fn LoadedSource::relation(Self) -> SourceRelation
 pub fn LoadedSource::source(Self) -> @source.Source
 
 pub(all) struct SearchOptions {
@@ -79,6 +83,12 @@ pub fn SearchOptions::explicit(Self) -> @path.PathValue?
 pub fn SearchOptions::filename(Self) -> String
 pub fn SearchOptions::global(Self) -> @path.PathValue?
 pub fn SearchOptions::new(filename? : String, ceiling? : @path.PathValue?, explicit? : @path.PathValue?, global? : @path.PathValue?) -> Self
+
+pub(all) enum SourceRelation {
+  RootSource
+  ImportedSource
+  ModuleSource
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

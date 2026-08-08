@@ -393,7 +393,9 @@ fn supported_option(token : String) -> Bool {
     | "-E"
     | "--no-dotenv"
     | "--dry-run"
-    | "-n" => true
+    | "-n"
+    | "--working-directory"
+    | "-d" => true
     _ => false
   }
 }
@@ -437,7 +439,9 @@ fn supported_value_option(name : String) -> Bool {
     | "--dotenv-path"
     | "-E"
     | "--list-heading"
-    | "--list-prefix" => true
+    | "--list-prefix"
+    | "--working-directory"
+    | "-d" => true
     _ => false
   }
 }
