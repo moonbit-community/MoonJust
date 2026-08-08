@@ -147,7 +147,7 @@ def validate_differential_cases() -> None:
         seen.add(case_id)
         status = case["status"]
         expect(status in {"match", "expected-difference"}, f"case {case_id} is not classified")
-        expect(case["owner_phase"] >= 6, f"case {case_id} is assigned to Phase 0-5")
+        expect(case["owner_phase"] >= 6, f"case {case_id} is assigned before Phase 6")
         case_dir = repo / "tests/differential/cases" / case["directory"]
         expect((case_dir / "expectation").exists(), f"case {case_id} lacks expectation")
         expected = "match" if status == "match" else "difference"

@@ -1,37 +1,58 @@
 # MoonJust
 
-MoonJust is a MoonBit implementation of the
-[`just`](https://github.com/casey/just) command runner. The project targets
-behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
-backends.
+MoonJust is a MoonBit implementation of the user-visible behavior of
+[`just`](https://github.com/casey/just), targeting Native and wasm1 through the
+MoonBit host runtime. The compatibility baseline is pinned to `just 1.57.0`;
+the upstream Rust library API is not part of MoonJust's public API.
 
-> Status: Phase 0-7 exits have passed. The Phase 7 pre-execution filesystem,
-> environment, invocation, and working-directory models have passed remote CI
-> plus a strict second review. Recipe execution remains a Phase 8 capability.
+> **Current status**
+>
+> Phase 0-7 exits have passed. MoonJust `0.3.0-alpha.0` provides a
+> pre-execution, query-capable CLI and library model. Recipe process execution,
+> parallel scheduling, cache, signals and completion remain later-phase work.
 
-## Compatibility scope
+## What is delivered
 
-- Compatibility baseline: `just 1.57.0`
-  (`e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`).
-- Required backends: `native` and `wasm` under `moonx`/`moonrun`.
-- The pure library core will remain independent of host I/O capabilities.
-- Shell completion generation is intentionally out of scope.
-- The Wasm execution target is the MoonBit host runtime, not browsers or
-  arbitrary WASI runtimes.
+The completed phases establish a usable and auditable foundation:
 
-The complete scope, architecture, PR sequence, quality gates, and release
-criteria are defined in [the project plan](docs/PROJECT_PLAN.md). The current
-Phase 0-5 verdict and resolved exit evidence are recorded in the
-[strict audit](docs/PHASE_0_5_AUDIT.md), with implementation evidence in the
-[Phase 5 report](docs/PHASE_5_REPORT.md), [Phase 4 report](docs/PHASE_4_REPORT.md),
-[Phase 3 report](docs/PHASE_3_REPORT.md), [Phase 2 report](docs/PHASE_2_REPORT.md),
-[Phase 1 report](docs/PHASE_1_REPORT.md),
-[Phase 6 report](docs/PHASE_6_REPORT.md), and the
-[Phase 7 report](docs/PHASE_7_REPORT.md).
+| Area | Current capability |
+| --- | --- |
+| Language core | UTF-8 byte spans, diagnostics, lexer, parser, AST, formatter, semantic compilation |
+| Loading | justfile discovery, explicit paths, stdin, imports, optional imports, modules and canonical graph identity |
+| Evaluation | lazy scopes, recipe parameters, typed values, 83 builtins, explicit host effects, bounded hashing |
+| Query CLI | check, format, init, list, show, summary, usage, groups, variables, evaluate, dump and JSON inspection |
+| Filesystem | Native atomic transactions and policy-aware wasm1 transaction adapter |
+| Environment | dotenv parsing/discovery, required/list/command modes, overrides, shell/tempdir and child-environment composition |
+| Invocation | positional/variadic parameters, recipe-local options, flags, repetition, patterns and stable usage errors |
+| Working directory | invocation, project, module, evaluation and recipe directory model with `no-cd` and recipe overrides |
+| Wasm boundary | read-only inspect policy; host capabilities remain explicit and typed |
 
-## Development
+The CLI validates and builds the pre-execution model. It intentionally does not
+spawn recipe processes yet. That boundary is the first contract of Phase 8.
 
-The current toolchain baseline is:
+## Compatibility and support
+
+- Upstream: `just 1.57.0`, commit
+  `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`.
+- Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
+- Validated upstream registrations: 1,523 executable rows across Phases 2-7.
+- Explicitly excluded or not applicable: shell completion, Rust-internal tests,
+  and product-maintenance commands.
+- Deferred: 858 upstream registrations owned by Phases 8-10 for execution,
+  parallel/cache behavior, interactive tooling and release commands.
+- Browser, arbitrary WASI, wasm-gc process execution and child-process
+  sandboxing are not supported claims.
+
+The complete decision record is in the
+[Phase 0-7 strict audit](docs/PHASE_0_5_AUDIT.md). Machine-readable scope and
+phase contracts live under [`compat/`](compat/); the pinned corpus provenance
+is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
+
+## Quick start
+
+### Prerequisites
+
+The repository currently uses:
 
 ```text
 moon 0.1.20260803
@@ -39,34 +60,132 @@ moonc 0.10.6+62c2592d1
 moonrun 0.1.20260803
 ```
 
-Run the local quality gate:
-
-```bash
-./tools/check.sh
-```
-
-Run the executable smoke test directly:
-
-```bash
-moon run --target native cmd/just -- --version
-moon run --target wasm cmd/just -- --version
-./tools/check_phase6_inspect.sh
-```
-
-The pre-commit hook can be enabled with:
+Install the matching MoonBit toolchain, then enable the repository hook:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-## Security
+### Build and inspect
 
-A justfile can execute arbitrary commands. MoonJust does not make an untrusted
-justfile safe merely by running it through Wasm. See [SECURITY.md](SECURITY.md)
-before executing unreviewed recipes.
+```bash
+moon check --target all --warn-list +73
+moon build --target native cmd/just
+moon build --target wasm cmd/just
+moon run --target native cmd/just -- --help
+moon run --target native cmd/just -- --version
+```
 
-## License
+The Wasm executable requires an explicit MoonBit host policy. The published
+inspection policy is intentionally read-only:
 
-MoonJust is licensed under Apache-2.0. The upstream `just` project is licensed
-under CC0-1.0; copied or adapted compatibility fixtures retain explicit
-provenance under `tests/upstream/`.
+```bash
+moonrun --policy policies/inspect.toml \
+  _build/wasm/debug/build/cmd/just/just.wasm --help
+```
+
+### Run the release gate
+
+```bash
+./tools/check.sh
+```
+
+The gate checks architecture boundaries, pinned upstream metadata, the
+differential harness, all stable backends, Wasm policy, five Phase 7
+differentials, public interfaces, and the complete Native/wasm1 test matrix.
+
+## Architecture
+
+MoonJust keeps behavior-bearing logic in pure or capability-parameterized
+packages and isolates platform details at adapter leaves:
+
+```text
+argv / stdin / cwd / explicit host facts
+        |
+        v
+CLI composition and validation
+        |
+        v
+loader -> source -> lexer -> parser -> semantic model
+                                  |
+                                  v
+                    evaluator / invocation / query
+                                  |
+                                  v
+              working directory + environment configuration
+                                  |
+                                  v
+                    Phase 8 executor boundary
+```
+
+The core never reads process-global environment or filesystem state directly.
+`HostFs`, `HostEnv`, `HostClock`, `HostRandom`, `HostProcess`, `HostTerminal`,
+`HostSignal` and `HostPlatform` make those inputs explicit and testable. The
+Wasm inspection adapter receives only the capabilities its policy allows.
+
+## Repository map
+
+| Path | Responsibility |
+| --- | --- |
+| `src/source`, `src/diagnostic`, `src/path` | target-independent source coordinates, diagnostics and lexical paths |
+| `src/lexer`, `src/parser`, `src/syntax`, `src/formatter` | language front end and Markdown tangle |
+| `src/semantic`, `src/loader`, `src/evaluator`, `src/builtin` | compilation, graph loading, evaluation and typed builtins |
+| `src/host`, `src/host_native`, `src/host_wasm` | explicit host contracts and platform adapters |
+| `src/cli`, `src/application`, `src/invocation`, `src/workdir`, `src/environment` | CLI composition and Phase 6-7 models |
+| `cmd/just` | Native/wasm1 executable composition root |
+| `compat/` | machine-readable compatibility inventories and phase contracts |
+| `tests/upstream/` | pinned upstream corpus, ownership map and provenance |
+| `tools/` | deterministic gates, oracle builders and differential probes |
+| `docs/` | plan, ADRs, phase reports and strict audit |
+
+## Security boundary
+
+A justfile is executable code. Passing through Wasm does not automatically
+sandbox a spawned child process, and granting a `moonrun` process policy does
+not make an untrusted recipe safe. Review untrusted justfiles and use an
+operating-system or container sandbox when isolation is required. Report
+potential command injection, path escape, secret disclosure, cache poisoning
+or process-isolation vulnerabilities privately as described in
+[SECURITY.md](SECURITY.md).
+
+Environment and override containers deliberately avoid `Debug` derivations.
+Diagnostics redact dotenv values, command arguments, child stderr and host
+environment entries. Atomic writes use same-directory temporary files, mode
+`0600`, synchronization before commit and typed cleanup failures.
+
+## Development workflow
+
+Every behavior change must identify its compatibility tier, upstream reference,
+supported targets, and regression evidence. Use the existing package boundaries
+and ADRs before introducing a new abstraction.
+
+```bash
+moon check --target all --warn-list +73
+moon test --target native
+moon test --target wasm
+moon info
+moon fmt
+./tools/check.sh
+```
+
+Before opening a PR, review generated `.mbti` diffs, run the applicable
+differential gate, and confirm that unsupported behavior is rejected explicitly
+instead of silently ignored. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+definition of ready and required PR evidence.
+
+## Documentation index
+
+- [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and future phases.
+- [Phase 0-7 strict audit](docs/PHASE_0_5_AUDIT.md): current cross-phase verdict and publication evidence.
+- [Phase 0 report](docs/PHASE_0_REPORT.md) through [Phase 7 report](docs/PHASE_7_REPORT.md): phase-local delivery records.
+- [Architecture](docs/ARCHITECTURE.md): package boundaries and capability flow.
+- [ADR index](docs/adr/README.md): accepted design decisions.
+- [Security policy](SECURITY.md): threat model and disclosure boundary.
+- [Changelog](CHANGELOG.md): user-visible project history.
+
+## License and provenance
+
+MoonJust is licensed under Apache-2.0. The pinned upstream `just` fixtures are
+CC0-1.0 and retain their source, commit, license and modification provenance in
+[`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md). MoonJust is an
+independent project and is not sponsored or endorsed by the upstream authors.

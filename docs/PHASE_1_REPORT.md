@@ -5,14 +5,16 @@
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Decision: Proceed to Phase 2 (`Lexer`)
+- Historical phase snapshot; the current cross-phase verdict is in
+  [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
 
 ## Scope statement
 
 Phase 1 established the target-independent source, diagnostic, path, host, and
 application boundary required by the lexer and all later runtime work. It did
 not implement justfile lexing, parsing, formatting, loading, or recipe
-execution. MoonJust remains an alpha foundation and is not yet a replacement
-for `just`.
+execution. At that historical point, MoonJust remained an alpha foundation and
+was not yet a replacement for `just`.
 
 The 2026-08-06 re-certification verifies all five contract rows with the
 structured manifest validator and exact Native/wasm outline counts. Public
@@ -85,8 +87,8 @@ part of the normal quality gate.
   implementations.
 - `ApplicationRequest` is a composition value, not an argv parser. PR-060 owns
   full CLI parsing and exact help/error output.
-- No Phase 1 package lexes or executes justfiles. The current command continues
-  to reject those claims explicitly.
+- No Phase 1 package lexes or executes justfiles. At the Phase 1 snapshot, the
+  command continued to reject those claims explicitly.
 
 No limitation above blocks Phase 2. Each is attached to the later compatibility
 gate that can resolve it without weakening the Phase 1 contracts.

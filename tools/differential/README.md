@@ -43,5 +43,6 @@ unexpected match, difference, timeout, exit status, or fixture-tree change
 fails the run.
 
 The ownership and reason for every current `XDIFF` are recorded in
-`tests/differential/cases.toml`. A Phase 0-5 case may not be hidden there as an
-expected difference; it must be fixed before its phase exit is restored.
+`tests/differential/cases.toml`. A case owned by a completed Phase 0-7 contract
+may not be hidden there as an expected difference; it must be fixed or have a
+stable product-identity/diagnostic rationale before that phase exit is restored.

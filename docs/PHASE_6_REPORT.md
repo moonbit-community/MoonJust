@@ -4,6 +4,8 @@
 - Date: 2026-08-07
 - Strict second review: passed against `main` at
   `8e9a3830d5e643c0e209db5a142c27d457932bb9`
+- Historical phase snapshot; the current cross-phase verdict is in
+  [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
 - Upstream baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Required targets: Native and wasm1
 - Release identity: `0.3.0-alpha.0`
@@ -42,8 +44,8 @@ receive `HostProcess`.
 - JSON schema version 1 covers root-module assignments, aliases, recipes,
   settings, expression nodes, source identity, recipe attributes, unexports,
   and warnings with deterministic lexical map order. Loaded submodule graph
-  serialization remains owned by Phase 7 and is not counted as Phase 6
-  evidence.
+  serialization remains a later serialization contract and is not counted as
+  Phase 6 evidence.
 - Effectful evaluate fails with `EffectRequired`; it never receives a process
   capability.
 

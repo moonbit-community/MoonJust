@@ -1,7 +1,8 @@
 # Phase 3 completion report
 
 - Status: Implemented; Phase 3 exit passed
-- Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
+- Strict review: 2026-08-06 ([Phase 0-7 audit](PHASE_0_5_AUDIT.md))
+- Historical phase snapshot; the current cross-phase verdict is in the audit above.
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: parser-owned AST, recursive-descent grammar, canonical formatter, and source-aware Markdown tangle

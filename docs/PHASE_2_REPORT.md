@@ -5,6 +5,8 @@
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Decision: Proceed to Phase 3 (`Parser`, AST, and formatter)
+- Historical phase snapshot; the current cross-phase verdict is in
+  [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
 
 ## Scope statement
 
@@ -45,7 +47,7 @@ this Phase 2 re-certification.
 | Upstream oracle | 16 successful and 5 error cases adapted from `just 1.57.0/src/lexer.rs`, with CC0 provenance and byte-for-byte round-trip checks | Pass |
 | Property hardening | 100,000 deterministic valid UTF-8 inputs; every success validates round-trip, monotonic/in-bounds spans, source identity, EOF and synthetic-token invariants | Pass |
 | Resource safety | Configurable source-byte, token-count and combined nesting budgets; invalid configurations and exhausted budgets are typed | Pass |
-| Cross-target package tests | The scoped lexer package passes 20/20 tests on Native and wasm1, including hardening; the final full suite passes 109/108 | Pass |
+| Cross-target package tests | The scoped lexer package passed 20/20 tests on Native and wasm1, including hardening; the cumulative Phase 2 exit suite passed 109/108 | Pass |
 | Stable backend checks | `moon check --target all --warn-list +73` completes without warnings | Pass |
 | Architecture boundary | `src/lexer` is included in the pure-core architecture closure and imports no Host package, target FFI, async runtime or third-party production dependency | Pass |
 | Public API review | Generated `pkg.generated.mbti` commits opaque Token/TokenStream/LexerLimits records and explicit read-only accessors | Pass |
@@ -86,8 +88,8 @@ registered lexer tests, the 100,000-input budget, and oracle case counts.
 - MoonJust's finite default budgets can reject exceptionally large inputs that
   upstream accepts. Embedders may raise them explicitly; release documentation
   must retain this security boundary.
-- No Phase 2 package loads files or executes justfiles. The current command
-  remains a version-only skeleton.
+- No Phase 2 package loads files or executes justfiles. At the Phase 2 snapshot,
+  the command remained a version-only skeleton.
 
 No limitation above blocks Phase 3. Each is either deliberate upstream
 layering or assigned to the first phase that has enough grammar context to
