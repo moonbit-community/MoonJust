@@ -43,6 +43,39 @@ pub fn LazyEnvironment::environment(self : LazyEnvironment) -> Environment {
 }
 
 ///|
+/// Apply command-line variable overrides before any assignment is evaluated.
+/// Repeated names are last-wins, and unknown names are reported together
+/// without retaining their values.
+pub fn LazyEnvironment::apply_overrides(
+  self : LazyEnvironment,
+  overrides : ArrayView[(String, String)],
+) -> Unit raise EvaluationError {
+  let unknown : Array[String] = []
+  for entry in overrides {
+    let name = entry.0
+    match self.compilation.variable(name) {
+      Some(assignment) => {
+        let value = @value.Value::String(entry.1)
+        self.states[name] = Evaluated(value)
+        self.environment.set(name, value)
+        if assignment.exported() || self.compilation.settings().bool("export") {
+          self.environment.mark_exported(name)
+        }
+      }
+      None if !unknown.contains(name) => unknown.push(name)
+      None => ()
+    }
+  }
+  if !unknown.is_empty() {
+    unknown.sort()
+    let span = @source.Span::new(self.compilation.source_id(), 0, 0) catch {
+      _ => abort("valid compilation source origin")
+    }
+    raise UnknownOverrides(names=unknown, span~)
+  }
+}
+
+///|
 fn LazyEnvironment::cycle(
   self : LazyEnvironment,
   name : String,

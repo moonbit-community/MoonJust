@@ -1,0 +1,11 @@
+import {
+  "moonbit-community/MoonJust/src/cli",
+  "moonbit-community/MoonJust/src/environment",
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/path",
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "native"

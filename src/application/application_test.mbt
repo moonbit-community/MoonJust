@@ -357,6 +357,74 @@ test "run commands validate invocation before the Phase 8 executor boundary" {
 }
 
 ///|
+test "CLI variable overrides reach evaluate and invocation validation" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"mode := 'debug'\nderived := mode + '-mode'\n[arg('target', long, value=mode, pattern=['release'])]\nbuild target:\n",
+  )
+  let evaluated = try! @application.execute_command(
+    host,
+    @cli.parse_arguments(
+      ["--evaluate", "derived", "--set", "mode", "release"],
+      {},
+    ),
+    context,
+  )
+  assert_eq(evaluated.stdout(), b"release-mode")
+  let listed = try! @application.execute_command(
+    host,
+    @cli.parse_arguments(["--list", "--set", "mode", "release"], {}),
+    context,
+  )
+  assert_true((try! @utf8.decode(listed.stdout())).contains("build"))
+  try
+    @application.execute_command(
+      host,
+      @cli.parse_arguments(["--set", "mode", "release", "build", "--target"], {}),
+      context,
+    )
+  catch {
+    @application.UnsupportedCommand("recipe execution") => ()
+    error => fail("unexpected override invocation error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected Phase 8 executor boundary")
+  }
+  try
+    @application.execute_command(
+      host,
+      @cli.parse_arguments(
+        ["--set", "missing", "secret-value", "build", "--target"],
+        {},
+      ),
+      context,
+    )
+  catch {
+    @application.Evaluation(UnknownOverrides(names~, ..)) =>
+      assert_eq(names, ["missing"])
+    error => fail("unexpected unknown override error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unknown override failure")
+  }
+  try
+    @application.execute_command(
+      host,
+      @cli.parse_arguments(
+        ["--set", "bad::", "secret-value", "build", "--target"],
+        {},
+      ),
+      context,
+    )
+  catch {
+    @application.Environment(InvalidOverridePath(path~)) =>
+      assert_eq(path, "bad::")
+    error => fail("unexpected invalid override path error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected invalid override path failure")
+  }
+}
+
+///|
 test "groups are deduplicated and Unicode list padding uses display width" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)

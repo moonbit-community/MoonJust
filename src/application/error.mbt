@@ -5,6 +5,7 @@ pub(all) suberror ApplicationError {
   Load(@loader.LoaderError)
   Format(@formatter.FormatterError)
   Evaluation(@evaluator.EvaluationError)
+  Environment(@environment.EnvironmentConfigError)
   Host(@host.HostError)
   Invocation(@invocation.InvocationError)
   Path(@path.PathError)
@@ -22,6 +23,7 @@ pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
     Load(_)
     | Format(_)
     | Evaluation(_)
+    | Environment(_)
     | Host(_)
     | Invocation(_)
     | Path(_)
@@ -40,6 +42,7 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
     Load(error) => "error[\{error.code()}]: \{error.message()}"
     Format(error) => "error[\{error.code()}]: \{error.message()}"
     Evaluation(error) => "error: evaluation failed: \{Repr(error)}"
+    Environment(error) => "error: " + error.message()
     Host(error) => "error: host operation failed: \{Repr(error)}"
     Invocation(error) => "error: " + error.message()
     Path(error) => "error: invalid path: \{Repr(error)}"

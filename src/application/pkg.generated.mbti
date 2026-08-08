@@ -3,6 +3,7 @@ package "moonbit-community/MoonJust/src/application"
 
 import {
   "moonbit-community/MoonJust/src/cli",
+  "moonbit-community/MoonJust/src/environment",
   "moonbit-community/MoonJust/src/evaluator",
   "moonbit-community/MoonJust/src/formatter",
   "moonbit-community/MoonJust/src/host",
@@ -32,6 +33,7 @@ pub(all) suberror ApplicationError {
   Load(@loader.LoaderError)
   Format(@formatter.FormatterError)
   Evaluation(@evaluator.EvaluationError)
+  Environment(@environment.EnvironmentConfigError)
   Host(@host.HostError)
   Invocation(@invocation.InvocationError)
   Path(@path.PathError)

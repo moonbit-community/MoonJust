@@ -57,6 +57,34 @@ test "compilation evaluates forward references and rejects cycles" {
 }
 
 ///|
+test "command-line overrides enter lazy evaluation before dependencies" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(521),
+    "justfile",
+    "set export\nbase := 'debug'\nderived := base + '-mode'\n",
+  )
+  let compilation = try! @semantic.compile_source(source)
+  let environment = try! evaluate_compilation(compilation, overrides=[
+    ("base", "release"),
+    ("base", "final"),
+  ])
+  assert_eq(environment.get("base"), Some(String("final")))
+  assert_eq(environment.get("derived"), Some(String("final-mode")))
+  assert_true(environment.is_exported("base"))
+  try
+    evaluate_compilation(compilation, overrides=[
+      ("z-missing", "secret-z"),
+      ("a-missing", "secret-a"),
+    ])
+  catch {
+    UnknownOverrides(names~, ..) => assert_eq(names, ["a-missing", "z-missing"])
+    error => fail("unexpected override error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unknown override")
+  }
+}
+
+///|
 fn fake() -> @host.FakeHost raise @path.PathError {
   let cwd = @path.PathValue::new("/workspace", Unix)
   @host.FakeHost::new(cwd, @host.PlatformInfo::new(Linux, "x86_64", Unix))

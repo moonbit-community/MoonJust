@@ -260,8 +260,11 @@ pub fn evaluate_compilation(
   compilation : @semantic.Compilation,
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
+  overrides? : ArrayView[(String, String)] = [],
 ) -> Environment raise EvaluationError {
-  LazyEnvironment::new(compilation, environment~, limits~).materialize()
+  let deferred = LazyEnvironment::new(compilation, environment~, limits~)
+  deferred.apply_overrides(overrides)
+  deferred.materialize()
 }
 
 ///|

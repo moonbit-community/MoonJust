@@ -707,6 +707,7 @@ pub fn[T : @host.HostFs] execute_query_command(
 ) -> @cli.ApplicationResponse raise ApplicationError {
   let loaded = load_input(host, arguments, context)
   let compilation = compile_loaded(loaded)
+  validate_variable_overrides(compilation, arguments)
   let output = query_text(loaded, compilation, arguments)
   let stderr = if arguments.command() == SummaryCommand &&
     visible_recipe_names(compilation, arguments).is_empty() {

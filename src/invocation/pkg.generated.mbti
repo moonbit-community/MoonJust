@@ -8,7 +8,7 @@ import {
 }
 
 // Values
-pub fn parse_invocations(@semantic.Compilation, ArrayView[String]) -> Array[Invocation] raise InvocationError
+pub fn parse_invocations(@semantic.Compilation, ArrayView[String], overrides? : ArrayView[(String, String)]) -> Array[Invocation] raise InvocationError
 
 // Errors
 pub(all) suberror InvocationError {

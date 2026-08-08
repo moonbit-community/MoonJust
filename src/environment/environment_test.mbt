@@ -487,3 +487,216 @@ test "environment table merge and error rendering expose keys but not values" {
   let missing : DotenvError = Required
   assert_eq(missing.message(), "dotenv file not found")
 }
+
+///|
+test "variable overrides parse module paths reject invalid names and use last wins" {
+  let table = try! OverrideTable::from_entries(
+    [("root", "first"), ("release::target", "nested"), ("root", "last")][:],
+  )
+  assert_eq(table.entries().length(), 2)
+  assert_eq(table.get("root").unwrap().value(), "last")
+  let nested = table.get("release::target").unwrap()
+  assert_eq(nested.modules(), ["release"])
+  assert_eq(nested.name(), "target")
+  assert_eq(nested.path(), "release::target")
+  for invalid in ["", "::name", "name::", "name:::value", "9name", "na.me"] {
+    try VariableOverride::parse(invalid, "secret") catch {
+      InvalidOverridePath(path~) => assert_eq(path, invalid)
+      error => fail("unexpected override error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid override path")
+    }
+  }
+}
+
+///|
+test "platform configuration selects environment name rules explicitly" {
+  let unix = PlatformConfiguration::new(
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  let windows = PlatformConfiguration::new(
+    @host.PlatformInfo::new(Windows, "x86_64", Windows),
+  )
+  assert_false(unix.is_windows())
+  assert_eq(unix.environment_name_mode(), Sensitive)
+  assert_true(windows.is_windows())
+  assert_eq(windows.environment_name_mode(), AsciiInsensitive)
+  let host = @host.FakeHost::new(
+    unix_path("/work"),
+    @host.PlatformInfo::new(Windows, "aarch64", Windows),
+  )
+  assert_eq(
+    (try! platform_configuration(host)).info().architecture(),
+    "aarch64",
+  )
+  host.deny(Platform)
+  try platform_configuration(host) catch {
+    CapabilityDenied(Platform) => ()
+    error => fail("unexpected platform error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected platform capability denial")
+  }
+}
+
+///|
+test "shell precedence matches CLI setting and platform table" {
+  let unix = PlatformConfiguration::new(
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  let windows = PlatformConfiguration::new(
+    @host.PlatformInfo::new(Windows, "x86_64", Windows),
+  )
+  let configured = try! ShellConfiguration::new("fish", ["-c"])
+  let windows_configured = try! ShellConfiguration::new("pwsh", [
+    "-NoLogo", "-Command",
+  ])
+  let default_shell = try! resolve_shell(unix)
+  assert_eq(default_shell.program(), "sh")
+  assert_eq(default_shell.arguments(), ["-cu"])
+  let setting = try! resolve_shell(unix, setting_shell=Some(configured))
+  assert_eq(setting.program(), "fish")
+  let platform = try! resolve_shell(
+    windows,
+    setting_shell=Some(configured),
+    windows_shell=Some(windows_configured),
+    windows_powershell=true,
+  )
+  assert_eq(platform.program(), "pwsh")
+  let powershell = try! resolve_shell(windows, windows_powershell=true)
+  assert_eq(powershell.program(), "powershell.exe")
+  assert_eq(powershell.arguments(), ["-NoLogo", "-Command"])
+}
+
+///|
+test "CLI shell and arguments independently override platform settings" {
+  let windows = PlatformConfiguration::new(
+    @host.PlatformInfo::new(Windows, "x86_64", Windows),
+  )
+  let platform_shell = try! ShellConfiguration::new("pwsh", ["-Command"])
+  let program_only = try! resolve_shell(
+    windows,
+    cli_shell=Some("bash"),
+    windows_shell=Some(platform_shell),
+  )
+  assert_eq(program_only.program(), "bash")
+  assert_eq(program_only.arguments(), ["-cu"])
+  let arguments_only = try! resolve_shell(
+    windows,
+    cli_arguments=Some(["-e", "-c"]),
+    windows_shell=Some(platform_shell),
+  )
+  assert_eq(arguments_only.program(), "sh")
+  assert_eq(arguments_only.arguments(), ["-e", "-c"])
+  let both = try! resolve_shell(
+    windows,
+    cli_shell=Some("zsh"),
+    cli_arguments=Some([]),
+    windows_shell=Some(platform_shell),
+  )
+  assert_eq(both.program(), "zsh")
+  assert_eq(both.arguments(), [])
+  try ShellConfiguration::new("", ["-c"]) catch {
+    EmptyShell => ()
+    error => fail("unexpected empty shell error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected empty shell rejection")
+  }
+}
+
+///|
+test "temporary directory CLI setting and host precedence is lexical" {
+  let project = unix_path("/work/project")
+  let cli = try! resolve_temporary_directory(
+    project,
+    cli_tempdir=Some("cli/tmp"),
+    setting_tempdir=Some("setting/tmp"),
+  )
+  assert_eq(cli.source(), CommandLine)
+  assert_eq(cli.directory().unwrap(), unix_path("/work/project/cli/tmp"))
+  let setting = try! resolve_temporary_directory(
+    project,
+    setting_tempdir=Some("/var/tmp/just"),
+  )
+  assert_eq(setting.source(), Setting)
+  assert_eq(setting.directory().unwrap(), unix_path("/var/tmp/just"))
+  let fallback = try! resolve_temporary_directory(project)
+  assert_eq(fallback.source(), HostDefault)
+  assert_eq(fallback.directory(), None)
+}
+
+///|
+test "process environment precedence table is complete" {
+  let ambient = EnvTable::from_entries(
+    [("AMBIENT", "ambient"), ("ORDER", "ambient"), ("REMOVED", "ambient")][:],
+  )
+  let dotenv = EnvTable::from_entries(
+    [("DOTENV", "dotenv"), ("ORDER", "dotenv")][:],
+  )
+  let exported = EnvTable::from_entries(
+    [("EXPORTED", "exported"), ("ORDER", "exported")][:],
+  )
+  let parameters = EnvTable::from_entries(
+    [
+      ("PARAMETER", "parameter"),
+      ("ORDER", "parameter"),
+      ("REMOVED", "parameter"),
+    ][:],
+  )
+  let recipe = EnvTable::from_entries(
+    [("RECIPE", "recipe"), ("ORDER", "recipe")][:],
+  )
+  let composed = compose_process_environment(
+    ambient,
+    dotenv,
+    exported,
+    parameters,
+    recipe,
+    unexports=["REMOVED"],
+  )
+  assert_eq(composed.get("AMBIENT"), Some("ambient"))
+  assert_eq(composed.get("DOTENV"), Some("dotenv"))
+  assert_eq(composed.get("EXPORTED"), Some("exported"))
+  assert_eq(composed.get("PARAMETER"), Some("parameter"))
+  assert_eq(composed.get("RECIPE"), Some("recipe"))
+  assert_eq(composed.get("REMOVED"), Some("parameter"))
+  assert_eq(composed.get("ORDER"), Some("recipe"))
+}
+
+///|
+test "unexport removes inherited values and Windows removal is insensitive" {
+  let windows = EnvTable::from_entries(
+    [("Path", "secret")][:],
+    name_mode=AsciiInsensitive,
+  )
+  windows.remove("PATH")
+  assert_eq(windows.entries(), [])
+  let composed = compose_process_environment(
+    EnvTable::from_entries([("TOKEN", "ambient-secret")][:]),
+    EnvTable::new(),
+    EnvTable::new(),
+    EnvTable::new(),
+    EnvTable::new(),
+    unexports=["TOKEN"],
+  )
+  assert_eq(composed.get("TOKEN"), None)
+}
+
+///|
+test "aggregate environment configuration keeps all CLI decisions explicit" {
+  let configuration = try! EnvironmentConfiguration::new(
+    @host.PlatformInfo::new(Linux, "aarch64", Unix),
+    unix_path("/project"),
+    [("mode", "release")][:],
+    cli_shell=Some("bash"),
+    cli_shell_arguments=Some(["-eu", "-c"]),
+    cli_tempdir=Some("tmp"),
+  )
+  assert_eq(configuration.platform().info().architecture(), "aarch64")
+  assert_eq(configuration.overrides().get("mode").unwrap().value(), "release")
+  assert_eq(configuration.shell().program(), "bash")
+  assert_eq(configuration.shell().arguments(), ["-eu", "-c"])
+  assert_eq(
+    configuration.temporary_directory().directory().unwrap(),
+    unix_path("/project/tmp"),
+  )
+}

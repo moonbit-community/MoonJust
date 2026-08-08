@@ -33,7 +33,7 @@ status = "planned"
 [[option]]
 name = "--clear-shell-args"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--color"
@@ -194,17 +194,17 @@ conflicts = ["--dry-run"]
 [[option]]
 name = "--set"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--shell"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--shell-arg"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--shell-command"
@@ -214,7 +214,7 @@ status = "planned"
 [[option]]
 name = "--tempdir"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--time"

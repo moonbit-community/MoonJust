@@ -76,6 +76,21 @@ pub fn EnvTable::set(self : EnvTable, key : String, value : String) -> Unit {
 }
 
 ///|
+pub fn EnvTable::remove(self : EnvTable, key : String) -> Unit {
+  let canonical = self.canonical_key(key)
+  if !self.values.contains(canonical) {
+    return
+  }
+  self.values.remove(canonical)
+  for index, existing in self.ordered {
+    if self.canonical_key(existing) == canonical {
+      ignore(self.ordered.remove(index))
+      return
+    }
+  }
+}
+
+///|
 pub fn EnvTable::merge(
   self : EnvTable,
   incoming : EnvTable,

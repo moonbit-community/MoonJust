@@ -266,3 +266,99 @@ test "dotenv options append values and enforce upstream conflicts" {
     }
   }
 }
+
+///|
+test "set consumes pairs preserves empty values and remains ordered" {
+  let parsed = try! parse_arguments(
+    [
+      "--set", "foo", "first", "--set=module::bar", "", "--set", "foo", "last", "build",
+    ],
+    {},
+  )
+  assert_eq(parsed.values("set"), [
+    "foo", "first", "module::bar", "", "foo", "last",
+  ])
+  assert_eq(parsed.variable_overrides(), [
+    ("foo", "first"),
+    ("module::bar", ""),
+    ("foo", "last"),
+  ])
+  assert_eq(parsed.positional(), ["build"])
+}
+
+///|
+test "set requires both variable and value" {
+  for arguments in [["--set"], ["--set", "foo"], ["--set=foo"]] {
+    try parse_arguments(arguments, {}) catch {
+      Invalid(message) => {
+        assert_true(message.contains("requires"))
+        assert_false(message.contains("secret"))
+      }
+      error => fail("unexpected set error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected incomplete set pair")
+    }
+  }
+}
+
+///|
+test "recipe-local environment option spellings remain invocation arguments" {
+  let parsed = try! parse_arguments(
+    ["build", "--set", "name", "value", "--shell-arg", "-x", "--tempdir", "tmp"],
+    {},
+  )
+  assert_eq(parsed.variable_overrides(), [])
+  assert_eq(parsed.shell_arguments(), None)
+  assert_eq(parsed.value("tempdir"), None)
+  assert_eq(parsed.positional(), [
+    "build", "--set", "name", "value", "--shell-arg", "-x", "--tempdir", "tmp",
+  ])
+}
+
+///|
+test "shell arguments and clear flag use last occurrence semantics" {
+  let set = try! parse_arguments(
+    ["--shell", "bash", "--shell-arg", "-e", "--shell-arg=-u", "build"],
+    {},
+  )
+  assert_eq(set.value("shell"), Some("bash"))
+  assert_eq(set.shell_arguments(), Some(["-e", "-u"]))
+  assert_false(set.flag("clear-shell-args"))
+  let cleared = try! parse_arguments(
+    ["--shell-arg", "-e", "--clear-shell-args", "build"],
+    {},
+  )
+  assert_eq(cleared.shell_arguments(), Some([]))
+  assert_true(cleared.flag("clear-shell-args"))
+  let reset = try! parse_arguments(
+    ["--clear-shell-args", "--shell-arg", "-u", "build"],
+    {},
+  )
+  assert_eq(reset.shell_arguments(), Some(["-u"]))
+  assert_false(reset.flag("clear-shell-args"))
+}
+
+///|
+test "tempdir is a supported global value" {
+  let parsed = try! parse_arguments(["--tempdir", "build/tmp", "default"], {})
+  assert_eq(parsed.value("tempdir"), Some("build/tmp"))
+  assert_eq(parsed.positional(), ["default"])
+}
+
+///|
+test "commands that do not accept variable overrides reject set explicitly" {
+  for
+    arguments in [
+      ["--summary", "--set", "mode", "release"],
+      ["--variables", "--set", "mode", "release"],
+      ["--dump", "--set", "mode", "release"],
+      ["--fmt", "--set", "mode", "release"],
+    ] {
+    try parse_arguments(arguments, {}) catch {
+      Invalid(message) => assert_true(message.contains("cannot be used"))
+      error => fail("unexpected set command error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected command to reject --set")
+    }
+  }
+}

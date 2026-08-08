@@ -332,3 +332,26 @@ test "no recipes and unknown recipes have stable failures" {
     _ => fail("expected unknown recipe failure")
   }
 }
+
+///|
+test "variable overrides affect invocation defaults and patterns" {
+  let compilation = compile_fixture(
+    "mode := 'debug'\n[arg('target', long, value=mode, pattern=['release'])]\nbuild target:\n",
+  )
+  let parsed = try! @invocation.parse_invocations(
+    compilation,
+    ["build", "--target"],
+    overrides=[("mode", "release")],
+  )
+  assert_eq(values(parsed[0]), [["release"]])
+  try
+    @invocation.parse_invocations(compilation, ["build", "--target"], overrides=[
+      ("missing", "secret-value"),
+    ])
+  catch {
+    Evaluation(UnknownOverrides(names~, ..)) => assert_eq(names, ["missing"])
+    error => fail("unexpected invocation override error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unknown invocation override")
+  }
+}
