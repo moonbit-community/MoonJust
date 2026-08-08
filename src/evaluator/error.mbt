@@ -19,6 +19,7 @@ pub(all) suberror EvaluationError {
     actual~ : Int,
     span~ : @source.Span
   )
+  UnknownOverrides(names~ : Array[String], span~ : @source.Span)
 } derive(Eq, Debug)
 
 ///|
@@ -38,6 +39,7 @@ pub fn EvaluationError::code(self : EvaluationError) -> String {
     OutputLimitExceeded(_) => "MJ-EVAL-0011"
     MissingContext(_) => "MJ-EVAL-0012"
     ArgumentCount(_) => "MJ-EVAL-0013"
+    UnknownOverrides(_) => "MJ-EVAL-0014"
   }
 }
 
@@ -58,6 +60,7 @@ pub fn EvaluationError::span(self : EvaluationError) -> @source.Span {
     OutputLimitExceeded(span~, ..) => span
     MissingContext(span~, ..) => span
     ArgumentCount(span~, ..) => span
+    UnknownOverrides(span~, ..) => span
   }
 }
 
@@ -92,6 +95,11 @@ pub fn EvaluationError::message(self : EvaluationError) -> String {
       expected +
       " arguments, got " +
       actual.to_string()
+    UnknownOverrides(names~, ..) =>
+      (if names.length() == 1 { "variable " } else { "variables " }) +
+      names.map(fn(name) { "`" + name + "`" }).join(" and ") +
+      (if names.length() == 1 { " was" } else { " were" }) +
+      " overridden on the command line but not present in justfile"
   }
 }
 

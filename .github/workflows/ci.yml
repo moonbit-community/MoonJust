@@ -86,6 +86,9 @@ jobs:
       - name: Verify Phase 7 working-directory differential
         run: ./tools/check_phase7_workdir.sh
 
+      - name: Verify Phase 7 environment composition differential
+        run: ./tools/check_phase7_environment.sh
+
       - name: Verify Phase 6 query oracle
         run: ./tools/check_phase6_oracle.sh
 

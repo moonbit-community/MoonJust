@@ -23,7 +23,9 @@ pub struct CliArguments {
   flags : Map[String, Bool]
   values : Map[String, Array[String]]
   positional : Array[String]
-} derive(Debug)
+  variable_overrides : Array[(String, String)]
+  shell_arguments : Array[String]?
+}
 
 ///|
 pub fn CliArguments::command(self : CliArguments) -> CommandKind {
@@ -51,6 +53,22 @@ pub fn CliArguments::values(
 ///|
 pub fn CliArguments::positional(self : CliArguments) -> ArrayView[String] {
   self.positional[:]
+}
+
+///|
+/// Ordered `--set NAME VALUE` pairs. Repeated names remain present here so the
+/// environment configuration layer can apply upstream last-wins semantics.
+pub fn CliArguments::variable_overrides(
+  self : CliArguments,
+) -> ArrayView[(String, String)] {
+  self.variable_overrides[:]
+}
+
+///|
+/// Effective shell argument override. `None` means no CLI override, while an
+/// empty array means `--clear-shell-args` won by command-line order.
+pub fn CliArguments::shell_arguments(self : CliArguments) -> Array[String]? {
+  self.shell_arguments.map(fn(arguments) { arguments.copy() })
 }
 
 ///|
@@ -223,7 +241,7 @@ fn option_specs() -> Array[@argparse.OptionArg] {
     ]),
     option("shell", long="shell", about="Recipe shell"),
     option("shell-arg", long="shell-arg", about="Shell argument", action=Append),
-    option("set", long="set", about="Override variable"),
+    option("set", long="set", about="Override variable", action=Append),
     option(
       "shell-command",
       long="shell-command",
@@ -394,6 +412,11 @@ fn supported_option(token : String) -> Bool {
     | "--no-dotenv"
     | "--dry-run"
     | "-n"
+    | "--set"
+    | "--shell"
+    | "--shell-arg"
+    | "--clear-shell-args"
+    | "--tempdir"
     | "--working-directory"
     | "-d" => true
     _ => false
@@ -440,6 +463,10 @@ fn supported_value_option(name : String) -> Bool {
     | "-E"
     | "--list-heading"
     | "--list-prefix"
+    | "--set"
+    | "--shell"
+    | "--shell-arg"
+    | "--tempdir"
     | "--working-directory"
     | "-d" => true
     _ => false
@@ -541,6 +568,131 @@ fn normalize_argv(argv : ArrayView[String]) -> Array[String] {
 }
 
 ///|
+priv struct EnvironmentArgv {
+  argv : Array[String]
+  variable_overrides : Array[(String, String)]
+  shell_arguments : Array[String]?
+}
+
+///|
+fn inline_option_value(token : String) -> String? {
+  match token.find("=") {
+    Some(index) => Some(token[index + 1:].to_owned())
+    None => None
+  }
+}
+
+///|
+fn missing_value(option : String, expected : String) -> CliParseError {
+  Invalid("error: '--\{option}' requires \{expected}")
+}
+
+///|
+/// Core argparse options consume one value, while upstream `--set` consumes a
+/// pair. Encode each pair as an opaque one-value option before parsing and keep
+/// the actual values in a side table. The scan stops at recipe invocation so
+/// recipe-local options with the same spelling remain untouched.
+fn normalize_environment_argv(
+  argv : ArrayView[String],
+) -> EnvironmentArgv raise CliParseError {
+  let command_mode = has_command_mode_before_invocation(argv)
+  let normalized : Array[String] = []
+  let variable_overrides : Array[(String, String)] = []
+  let mut shell_arguments : Array[String]? = None
+  let mut global = true
+  let mut index = 0
+  while index < argv.length() {
+    let token = argv[index]
+    if !global {
+      normalized.push(token)
+      index += 1
+      continue
+    }
+    if token == "--" {
+      normalized.push(token)
+      global = false
+      index += 1
+      continue
+    }
+    if !token.has_prefix("-") || token == "-" {
+      normalized.push(token)
+      if !command_mode {
+        global = false
+      }
+      index += 1
+      continue
+    }
+    let name = option_name(token)
+    if name == "--set" {
+      let override_name = match inline_option_value(token) {
+        Some(value) => value
+        None =>
+          match argv.get(index + 1) {
+            Some(value) => {
+              index += 1
+              value
+            }
+            None => raise missing_value("set", "a VARIABLE and VALUE")
+          }
+      }
+      let override_value = match argv.get(index + 1) {
+        Some(value) => {
+          index += 1
+          value
+        }
+        None => raise missing_value("set", "a VARIABLE and VALUE")
+      }
+      variable_overrides.push((override_name, override_value))
+      normalized.push("--set=\{variable_overrides.length() - 1}")
+      index += 1
+      continue
+    }
+    if name == "--clear-shell-args" {
+      shell_arguments = Some([])
+      normalized.push(token)
+      index += 1
+      continue
+    }
+    if name == "--shell-arg" {
+      let value = match inline_option_value(token) {
+        Some(value) => value
+        None =>
+          match argv.get(index + 1) {
+            Some(value) => {
+              normalized.push(token)
+              normalized.push(value)
+              index += 2
+              value
+            }
+            None => raise missing_value("shell-arg", "a value")
+          }
+      }
+      let arguments = shell_arguments.unwrap_or([])
+      arguments.push(value)
+      shell_arguments = Some(arguments)
+      if token.contains("=") {
+        normalized.push(token)
+        index += 1
+      }
+      continue
+    }
+    normalized.push(token)
+    if supported_value_option(name) && !token.contains("=") {
+      match argv.get(index + 1) {
+        Some(value) => {
+          normalized.push(value)
+          index += 2
+        }
+        None => index += 1
+      }
+    } else {
+      index += 1
+    }
+  }
+  { argv: normalized, variable_overrides, shell_arguments }
+}
+
+///|
 fn parser_argv(argv : ArrayView[String]) -> Array[String] {
   let result : Array[String] = []
   let mut consumes_value = false
@@ -631,13 +783,23 @@ fn validate_choice(
 }
 
 ///|
+fn command_accepts_overrides(command : CommandKind) -> Bool {
+  match command {
+    RunCommand | ListCommand | ShowCommand | UsageCommand | EvaluateCommand =>
+      true
+    _ => false
+  }
+}
+
+///|
 /// Parse argv and environment using the pinned core argparse implementation.
 pub fn parse_arguments(
   argv : ArrayView[String],
   env : Map[String, String],
 ) -> CliArguments raise CliParseError {
-  check_supported(argv)
-  let normalized = normalize_argv(argv)
+  let environment_argv = normalize_environment_argv(argv)
+  check_supported(environment_argv.argv)
+  let normalized = normalize_argv(environment_argv.argv)
   let parser_input = if has_command_mode_before_invocation(normalized) {
     normalized
   } else {
@@ -654,15 +816,40 @@ pub fn parse_arguments(
   validate_choice(matches, "dump-format", ["json", "just"])
   validate_choice(matches, "evaluate-format", ["just", "shell"])
   let command = command_kind(matches)
+  if !environment_argv.variable_overrides.is_empty() &&
+    !command_accepts_overrides(command) {
+    raise Invalid(
+      "error: '--set' cannot be used with command '\{Repr(command)}'",
+    )
+  }
+  let values = matches.values
+  if !environment_argv.variable_overrides.is_empty() {
+    let flattened : Array[String] = []
+    for entry in environment_argv.variable_overrides {
+      flattened.push(entry.0)
+      flattened.push(entry.1)
+    }
+    values["set"] = flattened
+  }
+  let flags = matches.flags
+  match environment_argv.shell_arguments {
+    Some(arguments) => {
+      values["shell-arg"] = arguments.copy()
+      flags["clear-shell-args"] = arguments.is_empty()
+    }
+    None => ()
+  }
   {
     command,
-    flags: matches.flags,
-    values: matches.values,
+    flags,
+    values,
     positional: if command is RunCommand {
       invocation_arguments(normalized)
     } else {
       matches.values.get("arguments").unwrap_or([])
     },
+    variable_overrides: environment_argv.variable_overrides,
+    shell_arguments: environment_argv.shell_arguments,
   }
 }
 

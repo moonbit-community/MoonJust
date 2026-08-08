@@ -62,12 +62,16 @@ pub struct CliArguments {
   flags : Map[String, Bool]
   values : Map[String, Array[String]]
   positional : Array[String]
-} derive(@debug.Debug)
+  variable_overrides : Array[(String, String)]
+  shell_arguments : Array[String]?
+}
 pub fn CliArguments::command(Self) -> CommandKind
 pub fn CliArguments::flag(Self, String) -> Bool
 pub fn CliArguments::positional(Self) -> ArrayView[String]
+pub fn CliArguments::shell_arguments(Self) -> Array[String]?
 pub fn CliArguments::value(Self, String) -> String?
 pub fn CliArguments::values(Self, String) -> ArrayView[String]
+pub fn CliArguments::variable_overrides(Self) -> ArrayView[(String, String)]
 
 pub(all) enum CommandKind {
   RunCommand

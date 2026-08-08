@@ -25,7 +25,7 @@ pub fn evaluate(@syntax.Expression, environment? : Environment, limits? : Evalua
 
 pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
-pub fn evaluate_compilation(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits) -> Environment raise EvaluationError
+pub fn evaluate_compilation(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)]) -> Environment raise EvaluationError
 
 pub fn evaluate_source(@source.Source, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
@@ -47,6 +47,7 @@ pub(all) suberror EvaluationError {
   OutputLimitExceeded(limit~ : Int, span~ : @source.Span)
   MissingContext(fact~ : String, span~ : @source.Span)
   ArgumentCount(recipe~ : String, expected~ : String, actual~ : Int, span~ : @source.Span)
+  UnknownOverrides(names~ : Array[String], span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn EvaluationError::code(Self) -> String
 pub fn EvaluationError::message(Self) -> String
@@ -136,6 +137,7 @@ pub struct LazyEnvironment {
   stack : Array[String]
   limits : EvaluationLimits
 }
+pub fn LazyEnvironment::apply_overrides(Self, ArrayView[(String, String)]) -> Unit raise EvaluationError
 pub fn LazyEnvironment::environment(Self) -> Environment
 pub fn LazyEnvironment::materialize(Self) -> Environment raise EvaluationError
 pub fn LazyEnvironment::new(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits) -> Self

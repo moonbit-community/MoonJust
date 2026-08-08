@@ -2,6 +2,7 @@ import {
   "moonbit-community/MoonJust/src/cli",
   "moonbit-community/MoonJust/src/formatter",
   "moonbit-community/MoonJust/src/evaluator",
+  "moonbit-community/MoonJust/src/environment",
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/invocation",
   "moonbit-community/MoonJust/src/loader",

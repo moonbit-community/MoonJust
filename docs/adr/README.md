@@ -21,3 +21,4 @@ are changed only by a new ADR that records migration and compatibility impact.
 | [0013](0013-phase-7-environment-and-dotenv.md) | Phase 7 environment and dotenv | Accepted |
 | [0014](0014-phase-7-invocation-parser.md) | Phase 7 invocation parser | Accepted |
 | [0015](0015-phase-7-working-directory-model.md) | Phase 7 working-directory model | Accepted |
+| [0016](0016-phase-7-environment-composition.md) | Phase 7 CLI environment composition | Accepted |

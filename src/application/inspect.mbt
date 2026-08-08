@@ -637,6 +637,10 @@ fn evaluate_text(
   arguments : @cli.CliArguments,
 ) -> String raise ApplicationError {
   let environment = @evaluator.LazyEnvironment::new(compilation)
+  let overrides = variable_overrides(compilation, arguments)
+  environment.apply_overrides(overrides) catch {
+    error => raise Evaluation(error)
+  }
   match arguments.positional().get(0) {
     Some(name) =>
       joined_value(

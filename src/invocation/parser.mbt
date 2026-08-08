@@ -408,8 +408,9 @@ fn parse_one(
 pub fn parse_invocations(
   compilation : @semantic.Compilation,
   arguments : ArrayView[String],
+  overrides? : ArrayView[(String, String)] = [],
 ) -> Array[Invocation] raise InvocationError {
-  let global = @evaluator.evaluate_compilation(compilation) catch {
+  let global = @evaluator.evaluate_compilation(compilation, overrides~) catch {
     error => raise Evaluation(error)
   }
   if arguments.is_empty() {

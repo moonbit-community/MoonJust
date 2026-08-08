@@ -21,8 +21,13 @@ pub fn[T : @host.HostFs + @host.HostTemp] execute_command(
         host, arguments, context,
       )
       let compilation = compile_loaded(loaded)
+      let overrides = variable_overrides(compilation, arguments)
       ignore(
-        @invocation.parse_invocations(compilation, arguments.positional()) catch {
+        @invocation.parse_invocations(
+          compilation,
+          arguments.positional(),
+          overrides~,
+        ) catch {
           error => raise Invocation(error)
         },
       )
