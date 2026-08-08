@@ -269,6 +269,36 @@ PHASE_TEST_ANCHORS = {
             "release metadata is explicit",
         ),
     },
+    7: {
+        "dotenv": (
+            "src/environment/environment_test.mbt",
+            "dotenv file loading implements path filename precedence and ancestor search",
+        ),
+        "invocation": (
+            "src/invocation/invocation_test.mbt",
+            "long short combined repeatable and terminator options match upstream",
+        ),
+        "stdin": (
+            "src/application/application_test.mbt",
+            "relative justfile and working directory use explicit invocation cwd",
+        ),
+        "workdir": (
+            "src/workdir/workdir_test.mbt",
+            "recipe working-directory overrides settings and no-cd",
+        ),
+        "cli_environment": (
+            "src/cli/cli_test.mbt",
+            "shell arguments and clear flag use last occurrence semantics",
+        ),
+        "overrides": (
+            "src/application/application_test.mbt",
+            "CLI variable overrides reach evaluate and invocation validation",
+        ),
+        "tempdir": (
+            "src/environment/environment_test.mbt",
+            "temporary directory CLI setting and host precedence is lexical",
+        ),
+    },
 }
 
 
@@ -333,7 +363,68 @@ def case_owner_override(name: str) -> int | None:
     return None
 
 
-def anchor_for(phase: int, category: str) -> tuple[str, str]:
+def phase_7_anchor_key(name: str) -> str | None:
+    """Return Phase 7 evidence only when the prerequisite model is complete."""
+    category = name.split("::", 1)[0]
+    if category == "dotenv":
+        deferred = (
+            "only_runs_in_root_module",
+            "variable_in_",
+            "::fifo",
+            "::directory_is_ignored",
+        )
+        return None if any(marker in name for marker in deferred) else "dotenv"
+    if category == "invocation_directory":
+        return "workdir"
+    if category == "invocation_parser":
+        deferred = ("module", "absent_optional", "trailing_separator", "no_default_recipe")
+        return None if any(marker in name for marker in deferred) else "invocation"
+    if category == "options":
+        deferred = (
+            "may_be_used_as_dependency",
+            "uses_forwarded_dependency_argument",
+        )
+        return None if any(marker in name for marker in deferred) else "invocation"
+    if category == "justfile_from_stdin":
+        return "stdin"
+    if category == "tempdir":
+        return "tempdir"
+    if category == "working_directory":
+        deferred = (
+            "undefined_variable",
+            "backtick",
+            "recipe_parameter",
+            "shell_function",
+        )
+        return None if any(marker in name for marker in deferred) else "workdir"
+    if category == "overrides" and name in {
+        "overrides::invalid_override_path_set",
+        "overrides::unknown_override_options",
+    }:
+        return "overrides"
+    if category == "config":
+        leaf = name.rsplit("::", 1)[-1]
+        if leaf.startswith("set_"):
+            return "overrides"
+        if leaf.startswith("shell_") or leaf == "shell_set":
+            return "cli_environment"
+        if leaf.startswith("dotenv_"):
+            return "dotenv"
+        if leaf.startswith("search_config_"):
+            return "workdir"
+    return None
+
+
+def deferred_phase_7_owner(name: str) -> int:
+    """Move Phase 7 rows whose observable prerequisite starts in a later phase."""
+    if "no_cache" in name:
+        return 9
+    if any(marker in name for marker in ("completions", "changelog", "edit_arguments")):
+        return 10
+    return 8
+
+
+def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str, str]:
     """Return the executable family test that owns an upstream category."""
     if phase == 3:
         return PHASE_TEST_ANCHORS[3][category]
@@ -405,6 +496,10 @@ def anchor_for(phase: int, category: str) -> tuple[str, str]:
         if category == "version":
             return PHASE_TEST_ANCHORS[6]["version"]
         return PHASE_TEST_ANCHORS[6]["list"]
+    if phase == 7 and name is not None:
+        key = phase_7_anchor_key(name)
+        if key is not None:
+            return PHASE_TEST_ANCHORS[7][key]
     raise ValueError(f"phase {phase} has no executable anchor mapping")
 
 
@@ -419,8 +514,8 @@ def anchor_exists(repo: Path, anchor: dict[str, str]) -> bool:
     return declaration.search(suite.read_text(encoding="utf-8")) is not None
 
 
-def anchor_dict(phase: int, category: str) -> dict[str, str]:
-    suite, test_name = anchor_for(phase, category)
+def anchor_dict(phase: int, category: str, name: str | None = None) -> dict[str, str]:
+    suite, test_name = anchor_for(phase, category, name)
     return {"suite": suite, "test_name": test_name}
 
 
@@ -437,6 +532,9 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             phase = 6
         else:
             phase = phase_for(category)
+
+        if phase == 7 and phase_7_anchor_key(name) is None:
+            phase = deferred_phase_7_owner(name)
 
         row: dict[str, object] = {
             "schema_version": 1,
@@ -484,8 +582,8 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="ADR-0001",
                 reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
             )
-        elif phase <= 6:
-            test_anchor = anchor_dict(phase, category)
+        elif phase <= 7:
+            test_anchor = anchor_dict(phase, category, name)
             row.update(
                 disposition="covered-by",
                 targets=["native", "wasm1"],
@@ -509,7 +607,7 @@ def encoded_rows(rows: list[dict[str, object]]) -> str:
 
 
 def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6):
+    for phase in (3, 4, 5, 6, 7):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         phase_rows = [
             row
@@ -541,7 +639,7 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
 
 
 def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6):
+    for phase in (3, 4, 5, 6, 7):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         cases = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
         expected = [
@@ -605,7 +703,7 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} has no evidence list")
         if not isinstance(row.get("tracking"), str) or not row["tracking"]:
             raise ValueError(f"row {expected_id} has no tracking owner")
-        if row.get("owner_phase") in {3, 4, 5, 6} and row["disposition"] == "covered-by":
+        if row.get("owner_phase") in {3, 4, 5, 6, 7} and row["disposition"] == "covered-by":
             anchor = row.get("test_anchor")
             if not isinstance(anchor, dict) or set(anchor) != {"suite", "test_name"}:
                 raise ValueError(f"row {expected_id} has no executable test anchor")

@@ -1,0 +1,34 @@
+schema_version = 1
+phase = 7
+upstream_commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
+license = "CC0-1.0"
+covered_registrations = 188
+
+[hostfs]
+policy_gate = "tools/check_phase7_hostfs.sh"
+native_suite = "src/host_native/native_test.mbt"
+wasm_suite = "src/host_wasm/transaction/policy_fs_test.mbt"
+
+[dotenv]
+registrations = 51
+oracle = "dotenvy 0.15.7"
+differential_gate = "tools/check_phase7_dotenv.sh"
+suite = "src/environment/environment_test.mbt"
+
+[invocation]
+registrations = 86
+differential_cases = 14
+differential_gate = "tools/check_phase7_invocation.sh"
+suite = "src/invocation/invocation_test.mbt"
+
+[working_directory]
+registrations = 30
+differential_cases = 11
+differential_gate = "tools/check_phase7_workdir.sh"
+suite = "src/workdir/workdir_test.mbt"
+
+[environment]
+registrations = 21
+differential_cases = 7
+differential_gate = "tools/check_phase7_environment.sh"
+suite = "src/environment/environment_test.mbt"
