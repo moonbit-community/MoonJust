@@ -20,7 +20,7 @@ id = "MJ-COMPAT-0003"
 directory = "03-missing-justfile"
 owner_phase = 7
 status = "expected-difference"
-reason = "CLI search and working-directory composition are owned by Phase 7."
+reason = "Search and working-directory behavior is covered by Phase 7; this expected difference is limited to MoonJust's stable typed diagnostic code and product-specific error wording."
 
 [[case]]
 id = "MJ-COMPAT-0004"

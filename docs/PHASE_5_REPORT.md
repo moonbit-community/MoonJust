@@ -1,8 +1,9 @@
 # Phase 5 completion report
 
 - Status: Implemented; Phase 5 exit passed
-- Strict review: 2026-08-07 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
+- Strict review: 2026-08-07 ([Phase 0-7 audit](PHASE_0_5_AUDIT.md))
 - Reviewed implementation and evidence baseline: `main` at `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`
+- Historical phase snapshot; the current cross-phase verdict is in the audit above.
 - Upstream baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Required implementation targets: Native and wasm1
 - Scope: runtime values, pure/effectful expression evaluation, typed builtins,

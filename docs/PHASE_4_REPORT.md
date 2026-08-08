@@ -1,7 +1,8 @@
 # Phase 4 completion report
 
 - Status: Implemented; Phase 4 exit passed
-- Strict review: 2026-08-06 ([Phase 0-5 audit](PHASE_0_5_AUDIT.md))
+- Strict review: 2026-08-06 ([Phase 0-7 audit](PHASE_0_5_AUDIT.md))
+- Historical phase snapshot; the current cross-phase verdict is in the audit above.
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Scope: semantic compilation, typed settings/attributes, capability-backed loading, and import/module graph validation
@@ -37,7 +38,7 @@ static dependency/variable/version validation.
   declarations are skipped only when the file is absent.
 - Static dependency and alias cycles are rejected before any evaluator or process layer is involved.
 
-## Current verification evidence
+## Verification evidence at the Phase 4 exit
 
 - `moon check --target all --warn-list +73` passes without warnings.
 - `moon test --target native`: 109 passed, 0 failed.

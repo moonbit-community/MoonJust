@@ -2,8 +2,8 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-07；实现与证据受审基线为 `main@dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`。后续仅发布或校正文档的提交不改变该受审实现基线；Phase 0-5 结论见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
-> 外部 CI 例外已关闭：2026-08-07 GitHub Actions 恢复 operational 后，[PR #19](https://github.com/moonbit-community/MoonJust/pull/19) 与合并后 `main` 均已在完整 Ubuntu/macOS/Windows 矩阵通过四项必需检查；精确证据见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+> 最近严格复核：2026-08-08；实现与证据受审基线为 `main@9d0ba3418e419bbf57e1e350a0d7be10f04f6f17`。Phase 0-7 结论见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)（文件名为历史兼容路径）。
+> 最终远程验收：2026-08-08；[PR #34](https://github.com/moonbit-community/MoonJust/pull/34) 与最终 `main` CI [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788) 已通过 Quality、Ubuntu、macOS、Windows 四项必需检查。历史 Actions outage 与恢复证据见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -28,10 +28,10 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 ### 2.1 本地仓库
 
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
-- 模块名：`moonbit-community/MoonJust`，当前版本 `0.1.0`，许可证 `Apache-2.0`。
-- 当前首选目标：`wasm`。
+- 模块名：`moonbit-community/MoonJust`，模块版本 `0.3.0`，应用版本 `0.3.0-alpha.0`，许可证 `Apache-2.0`。
+- 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 已于 2026-08-06 完成严格 remediation 并恢复为通过；逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口；逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -598,7 +598,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-056 | clock/uuid/shell builtins | HostClock/Random/Process 接入 | deterministic tests + 目标矩阵 |
 | PR-057 | evaluator hardening | recursion/size budget、error stack | 无未控制递归和敏感环境泄漏 |
 
-执行状态：Phase 5 已于 2026-08-06 完成实现并通过阶段验收。evaluator scope/lazy 状态、83 项 typed builtin、上下文与效果能力、Regex/SemVer、SHA-256/BLAKE3 增量哈希、硬化、Rust oracle 和 Native/wasm1 矩阵见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；Phase 0-5 总审计见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
+执行状态：Phase 5 已于 2026-08-06 完成实现并通过阶段验收。evaluator scope/lazy 状态、83 项 typed builtin、上下文与效果能力、Regex/SemVer、SHA-256/BLAKE3 增量哈希、硬化、Rust oracle 和 Native/wasm1 矩阵见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；Phase 0-7 总审计见 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md)。
 
 ### Phase 6：查询型 CLI
 
@@ -610,12 +610,12 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-063 | evaluate/variables/dump/json | schema 与稳定 serialization | 上游输出差分；JSON schema 版本化 |
 | PR-064 | Wasm inspect CLI | host_wasm 只读能力、inspect policy | `moonx` 端到端无 process 测试 |
 
-到 Phase 6 结束应发布 `0.3.0-alpha`：可用于编辑器、检查和查询，但明确不能作为生产 recipe runner。
+到 Phase 6 结束发布 `0.3.0-alpha.0`：可用于编辑器、检查和查询，但明确不能作为生产 recipe runner。
 
 执行状态：Phase 6 已于 2026-08-07 完成实现并通过阶段出口。PR-060 至
 PR-064、二次严格复核补救、Native/wasm1 门禁、固定上游 oracle 以及
 Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_6_REPORT.md`](PHASE_6_REPORT.md)。
-当前版本为 `0.3.0-alpha.0`，仍明确禁止作为生产 recipe runner。
+当前应用版本为 `0.3.0-alpha.0`（模块版本 `0.3.0`），仍明确禁止作为生产 recipe runner。
 
 ### Phase 7：文件、环境、dotenv 和 invocation
 
@@ -1034,7 +1034,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. Phase 0-5 均已完成 remediation 并由机器证据恢复为通过；所有状态、门禁和后续限制以 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md) 及各阶段报告为准，再进入 Phase 6 验收。
+10. Phase 0-7 均已完成 remediation 并由机器证据恢复为通过；所有状态、门禁和后续限制以 [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md) 及各阶段报告为准，再进入 Phase 8 验收。
 
 ## 20. 参考资料与可复核来源
 

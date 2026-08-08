@@ -70,5 +70,7 @@ for Native and wasm1 filesystem/process adapters, subject to these controls:
 - File locking, symlink races, atomic rename semantics, and cache contention.
 - Published `moonx` policy profiles and behavior outside `moonrun`.
 
-These gaps are assigned to Phase 7-10 and block the corresponding compatibility
-tier; they do not invalidate the narrower Phase 0 dependency decision.
+The remaining execution gaps are assigned to Phase 8-10 and block the
+corresponding compatibility tier; Phase 7's pre-execution HostFs and
+environment contracts are now delivered separately. This historical spike does
+not invalidate its narrower Phase 0 dependency decision.

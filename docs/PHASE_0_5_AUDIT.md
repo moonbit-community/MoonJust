@@ -1,152 +1,223 @@
-# Phase 0-5 strict exit audit
+# Phase 0-7 strict exit audit
 
-- Review date: 2026-08-07
-- Reviewed implementation and evidence baseline: `origin/main` at
-  `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`
-- Publication-only documentation commits after this hash do not change the
-  reviewed implementation verdict; they still require their own PR and
-  post-merge `main` CI, reported with the publication handoff.
-- Accepted specification: `docs/PROJECT_PLAN.md` v1.0
+> Filename note: this document keeps the original `PHASE_0_5_AUDIT.md` path
+> for link stability. Its scope is now the complete Phase 0-7 audit.
+
+- Review date: 2026-08-08
+- Reviewed implementation baseline: `main` at
+  `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17`
+- Final post-merge CI: [run 31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788)
+- Accepted specification: [`docs/PROJECT_PLAN.md`](PROJECT_PLAN.md) v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
-- Review rule: a passing build is necessary, but a phase passes only when every
-  exit has traceable implementation, positive and negative tests, required
-  differential evidence, and machine-verified compatibility metadata.
+- MoonJust application identity: `0.3.0-alpha.0`
+- Required targets: Native and wasm1 through `moonrun`/`moonx`
 
-## Verdict
+## Audit rule
 
-This audit supersedes the 2026-08-05 acceptance claim. Phase 0-5 have now been
-re-certified against structured manifests, executable positive/negative tests,
-the pinned Rust oracle, target checks, and the Native C-binding sanitizer run.
+This is an implementation and evidence audit, not a prose-only status review.
+A phase passes only when its declared contracts have executable positive and
+negative tests, target-appropriate capability boundaries, pinned upstream
+provenance where applicable, deterministic machine-readable metadata, and
+successful protected-main CI. Historical phase reports retain their original
+scope and test snapshots; this document is the current cross-phase verdict.
 
-| Phase | Implementation state | Plan exit | Decision |
+## Final verdict
+
+| Phase | Scope | Implementation | Exit | Evidence |
+| --- | --- | --- | --- | --- |
+| 0 | governance, baseline, architecture, CI, dependency spikes | complete | passed | pinned source, 2,417-row inventory, differential harness, Native/wasm1 spikes |
+| 1 | Source/Span, diagnostics, paths, Host contracts, application errors | complete | passed | five contracts, deterministic FakeHost, all-target checks |
+| 2 | target-independent lexer and hardening | complete | passed | 93 registrations, 21 oracle cases, 100,000-input budget |
+| 3 | parser, AST, formatter and Markdown tangle | complete | passed | 324 mapped registrations, AST equivalence, formatter and fence hardening |
+| 4 | semantic compilation, loader and import/module graph | complete | passed | 427 mapped registrations, real HostFs, canonical graph and static validation |
+| 5 | values, evaluator, builtins, effects and hashing | complete | passed | 406 mapped registrations, typed 83-builtin registry, Rust oracle, ASan |
+| 6 | query CLI and read-only Wasm inspection | complete | passed | 86 covered registrations, 134/133 target tests, 24-case query oracle |
+| 7 | HostFs transactions, dotenv, invocation, cwd and environment composition | complete | passed | 188 covered registrations, 211/208 target tests, five dedicated gates |
+
+No applicable completed Phase 0-7 corpus row remains `blocked-platform` or
+`unverified`; Phase 6's explicitly inventoried unsupported options are stable
+diagnostics rather than silent omissions. Phase 8 execution, Phase 9 parallel/cache behavior, and Phase 10
+interactive/product tooling remain intentionally outside this exit.
+
+## Machine-verified compatibility accounting
+
+The pinned `tests/upstream/just-1.57.0/test-list.txt` contains 2,417 unique
+registrations. `tools/upstream/test_map.py` and
+`tools/upstream/verify_manifest.py` validate row identity, owner phase,
+disposition, target matrix, evidence paths, executable test declarations, and
+deterministic case manifests.
+
+| Owner phase | Registrations | Covered | Excluded / not applicable | Planned for later |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | 93 | 92 | 1 | 0 |
+| 3 | 324 | 324 | 0 | 0 |
+| 4 | 427 | 427 | 0 | 0 |
+| 5 | 406 | 406 | 0 | 0 |
+| 6 | 121 | 86 | 35 | 0 |
+| 7 | 188 | 188 | 0 | 0 |
+| 8 | 732 | 0 | 0 | 732 |
+| 9 | 67 | 0 | 0 | 67 |
+| 10 | 59 | 0 | 0 | 59 |
+| **Total** | **2,417** | **1,523** | **36** | **858** |
+
+The 36 exclusions are one Rust-private lexer helper, 30 shell-completion
+registrations, and five product-maintenance registrations. The 858 later rows
+are not silently counted as compatibility: they require executor, cache,
+parallel, interactive, or release-tooling behavior owned by later phases.
+
+Phase 7's 188 executable rows are grouped by deterministic family anchors:
+51 dotenv, 86 invocation, 30 working-directory, and 21 CLI environment rows.
+Repeated anchors are explicitly family evidence; they are not claimed as 188
+independent one-to-one ports.
+
+## Target and quality matrix
+
+The final `main` CI run [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788)
+completed all four required jobs:
+
+| Gate | Result |
+| --- | --- |
+| `moon check --target all --warn-list +73` | pass |
+| `moon test --target native` | 211 passed, 0 failed |
+| `moon test --target wasm` | 208 passed, 0 failed |
+| Architecture boundary check | eighteen core packages and adapter leaves pass |
+| Compatibility snapshot and manifest verifier | 2,417 registrations verified |
+| Real differential smoke | 4 matches, 6 registered expected differences, 0 failures |
+| Phase 5 Rust builtin oracle | 20/20 cases pass |
+| Phase 6 Wasm inspect policy/oracle | pass; read-only, no process |
+| Phase 7 HostFs policy | pass; atomic allow and typed denial |
+| Phase 7 dotenv differential | pass; six fixtures, diagnostics redacted |
+| Phase 7 invocation differential | pass; 11 argv and three Native/wasm1 usage cases |
+| Phase 7 working-directory differential | pass; nine model and two CLI cases |
+| Phase 7 environment differential | pass; seven precedence cases |
+| Public interface and formatting review | `moon info && moon fmt` pass; no unintended `.mbti` changes |
+| Native platform smoke | Ubuntu, macOS and Windows pass |
+
+Phase 5's Native C-binding ASan run remains an additional non-CI evidence
+requirement and passed all 109 Native tests without sanitizer findings. The
+clean coverage snapshot is 4,273/6,085 instrumented points (70.2%); this is
+transparent evidence, not the later 1.0 release threshold.
+
+## Phase-by-phase review
+
+### Phase 0: foundation and governance
+
+The repository, product identity, pinned upstream source, CC0 provenance,
+compatibility inventory, differential harness, required checks, architecture
+rules and dependency spikes are all present. The harness compares stdout,
+stderr, exit status and filesystem trees without broad normalization. The
+async and parser ecosystem spikes remain isolated under `spikes/` and their
+experimental APIs do not enter the pure core.
+
+### Phase 1: contracts and boundaries
+
+Validated UTF-8 source bytes and half-open byte spans feed target-independent
+diagnostics and lexical Unix/Windows paths. HostFs, HostEnv, HostClock,
+HostRandom, HostProcess, HostTerminal, HostSignal and HostPlatform are explicit
+contracts with a deterministic FakeHost. Application errors map usage,
+compile, capability, recipe and signal failures without leaking host values.
+
+### Phase 2: lexer
+
+The lexer owns normal tokens, all string delimiter forms, indentation,
+recipe/interpolation modes, format strings and resource budgets. Its 92
+behavioral upstream registrations plus the Rust-private non-applicable helper
+are machine-accounted; 16 success and five error oracle cases and 100,000
+deterministic inputs cover boundary and hardening behavior on both targets.
+
+### Phase 3: parser, formatter and Markdown
+
+The recursive-descent parser preserves source spans and handles expressions,
+assignments, aliases, recipes, dependencies, settings, attributes,
+imports/modules and optional syntax. Canonical formatting is idempotent and
+checked by a span-free semantic AST fingerprint. Markdown tangle preserves
+source-byte locations and rejects unsupported fence contexts under explicit
+budgets. All 324 applicable registrations have executable case anchors.
+
+### Phase 4: semantic and loading graph
+
+Compilation produces ordered symbols, typed settings/attributes, duplicate and
+conflict diagnostics, minimum-version checks, dependency/parameter
+validation, and an immutable query facade. Loader search, stdin, imports,
+optional imports and modules use explicit HostFs, canonical identities and
+span-bearing cycle chains. No loader path receives a process capability.
+
+### Phase 5: evaluator and builtins
+
+Lazy environments, recipe/module scopes, defaults, `+`/`*` variadics,
+shadowing, exports and cycle diagnostics are explicit. The typed registry has
+83 canonical builtins with capabilities and arity metadata. Pure and effectful
+evaluation use caller-supplied context; regexp/SemVer behavior is checked
+against 20 pinned Rust outcomes. SHA-256 and BLAKE3 support incremental string
+and bounded Native file hashing, with unavailable portable range capability
+reported explicitly.
+
+### Phase 6: query CLI
+
+The CLI inventories all 50 upstream options and 19 command entries; implemented
+entries are explicit and unsupported entries fail stably rather than being
+ignored. `check`, `fmt`, `init`, list/show/summary/usage/groups, evaluate,
+variables, dump and schema-versioned JSON work without process execution.
+The Wasm inspect adapter is read-only and the policy denies filesystem writes,
+process spawn and network access. The 24-case Native/wasm1 query oracle passes.
+
+### Phase 7: pre-execution composition
+
+HostFs transactions provide atomic replace/no-overwrite, cleanup, permissions
+and Windows canonicalization; the writable wasm1 transaction leaf is isolated
+from the read-only inspect policy. Dotenv parsing follows the pinned dotenvy
+behavior with explicit path/filename precedence, ambient override rules,
+required/list/command modes and redacted diagnostics. Invocation parsing owns
+recipe positional/variadic arguments, local options, repetition, patterns,
+expressions and stable usage errors. The working-directory model separates
+invocation, project, module, evaluation and recipe paths. CLI overrides,
+shell ordering, tempdir and child-environment precedence are composed before
+the explicit Phase 8 executor boundary.
+
+## Security and architecture verdict
+
+- Pure parser, semantic, evaluator, invocation, working-directory and
+  environment models do not import concrete host adapters.
+- Secrets are excluded from `Debug` representations and dotenv/override
+  diagnostics; command argv, stderr and environment values are not retained in
+  structural errors.
+- Wasm policies are deny-by-default for inspection. Allowing a future process
+  policy will not be treated as sandboxing the child process; users must apply
+  an OS/container boundary for untrusted justfiles.
+- Atomic writes use same-directory temporary files, mode `0600`, synchronization
+  before commit and best-effort cleanup that preserves the original typed error.
+- No public `.mbti` change was introduced by this documentation audit.
+
+## Documentation consistency review
+
+The final documentation pass checked every tracked Markdown/TOML status pointer
+and corrected old implementation baselines, old Phase 0-5 wording, stale
+Phase 3-5-only upstream-tool instructions, missing Phase 3/4/5/7 evidence
+links, the Phase 6 graph-serialization ownership sentence, and the old
+`MJ-COMPAT-0003` rationale. Historical phase reports retain their original
+phase-local test counts but now point readers to this current cross-phase audit.
+The README is the current product entry point; [`docs/PROJECT_PLAN.md`](PROJECT_PLAN.md)
+remains the scope and future-phase source of truth.
+
+## Publication evidence
+
+The functional and evidence PRs are all merged and their protected checks are
+green:
+
+| Delivery | Merge commit | PR CI | Post-merge `main` CI |
 | --- | --- | --- | --- |
-| 0 | Merged and re-certified | Passed | Pinned source, executable identity and structured 2,417-row map are machine verified |
-| 1 | Merged and re-certified | Passed | Five contracts, public interfaces, architecture and Native/wasm1 outlines pass |
-| 2 | Merged and re-certified | Passed | All 93 lexer registrations, 21 oracle cases and 100,000-input hardening are linked |
-| 3 | Merged and remediated | Passed | Parser/formatter/tangle mapping, semantic formatter proof and CommonMark hardening pass |
-| 4 | Merged and remediated | Passed | Real HostFs, canonical identity, source loading and semantic/loading validation pass |
-| 5 | Implemented and re-certified | Passed | Scopes, typed 83-builtin registry, explicit effects, Rust oracle and bounded hashes pass |
+| Phase 6 implementation and remediation ([#21-#26](https://github.com/moonbit-community/MoonJust/pulls?q=is%3Apr+is%3Amerged+26)) | `8e9a3830d5e643c0e209db5a142c27d457932bb9` | [31163416512](https://github.com/moonbit-community/MoonJust/actions/runs/31163416512) | [31163576694](https://github.com/moonbit-community/MoonJust/actions/runs/31163576694) |
+| Phase 7 functional delivery ([#28-#32](https://github.com/moonbit-community/MoonJust/pulls?q=is%3Apr+is%3Amerged+32)) | `3f1c1363c43e57c4881559077c1180507a1a8cfd` | [31243986487](https://github.com/moonbit-community/MoonJust/actions/runs/31243986487) | [31244169707](https://github.com/moonbit-community/MoonJust/actions/runs/31244169707) |
+| Phase 7 second-audit remediation ([#33](https://github.com/moonbit-community/MoonJust/pull/33)) | `d80d8a394301fe4286c6a4b7b00592e586a9e029` | [31244887123](https://github.com/moonbit-community/MoonJust/actions/runs/31244887123) | [31244990807](https://github.com/moonbit-community/MoonJust/actions/runs/31244990807) |
+| Final audited evidence ([#34](https://github.com/moonbit-community/MoonJust/pull/34)) | `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17` | [31245191266](https://github.com/moonbit-community/MoonJust/actions/runs/31245191266) | [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788) |
 
-## Confirmed baseline
+## Conclusion
 
-- `moon test --target native` passes 109/109 and `moon test --target wasm` passes
-  108/108. The Native-only HostFs range test is excluded on wasm because the
-  portable `x/fs` adapter explicitly reports missing range capability.
-- The exact upstream commit and 2,417 test names are pinned. Every applicable
-  Phase 3-5 row is `covered-by`, has Native/wasm1 targets, and points to an
-  executable phase manifest plus a verifier-checked `suite`/`test_name` anchor.
-  Repeated anchors are explicitly family-level evidence, not independent
-  oracle rows.
-- Phase 1 exposes five contracts and Phase 2 records 93 lexer registrations,
-  21 adapted oracle cases and 100,000 deterministic hardening inputs.
-- Architecture checks keep parser/semantic/evaluator core packages independent
-  from concrete host adapters.
-- The Native C-binding ASan run executes all 109 tests without memory errors or
-  leaks. The evaluator and hash tests include adversarial recursion, empty,
-  boundary, large-input and capability-denial cases.
-- After `moon coverage clean`, `moon test --target native --enable-coverage`
-  followed by `moon coverage report -f summary --ignore-missing-files` records
-  4,273/6,085 instrumented points (70.2%). This is a
-  transparent Phase 0-5 baseline, not a claim that the separate 1.0 release
-  threshold of 90% core/80% host coverage has already been met. Native FFI is
-  not instrumented and is covered by the real-filesystem test plus ASan run.
-
-## Completed evidence
-
-### Phase 0-2 evidence
-
-1. `test-map.jsonl` has one structured row for every registration and
-   `verify_manifest.py` checks IDs, order, owner, targets and evidence.
-2. CI builds the official `just 1.57.0` from the pinned source and lockfile;
-   `phase5_oracle.py` verifies 20 executable SemVer/regexp outcomes.
-3. Structured manifest parsing and exact Native/wasm1 outline checks pass.
-
-### Phase 3
-
-Phase 3 remediation is complete. The generated case manifest covers all 324
-applicable parser/formatter/Markdown/tangle registrations, with Native/wasm1
-suite evidence, semantic AST equivalence, and zero-through-three-space fence
-hardening. Phase 3 is restored to `implemented/passed` in its compatibility
-manifest.
-
-### Phase 4
-
-Phase 4 remediation is complete. The HostFs contract has a real `x/fs` adapter
-with native `realpath`, search covers `justfile`/`.justfile` case variants and
-ceilings, source loading is unified across filesystem/stdin/Markdown paths, and
-the graph records canonical identities and span-bearing cycle chains. Semantic
-tests cover minimum-version, false `no-cd`, dependency arity, recipe variable
-references and static cycles. Phase 4 is restored to `implemented/passed`.
-
-### Phase 5
-
-Phase 5 remediation is complete. `LazyEnvironment` records explicit lazy states,
-DFS depth and name-only cycle stacks; recipe/module scopes implement defaults,
-distinct `+`/`*` variadics, shadowing and exports. The 83-row typed registry is
-checked against `phase-5-builtins.jsonl`; context/effect calls remove every
-former placeholder. Context facts keep native invocation/executable paths and
-local timezone input explicit. Regexp replacement and SemVer behavior are
-checked by the pinned Rust oracle.
-SHA-256 and BLAKE3 use incremental state, and Native file hashing pulls bounded
-ranges through `HostFs::stream_file`; the portable adapter reports unavailable
-range capability instead of buffering whole files.
-
-## Status policy
-
-`compat/phase-3.toml` through `compat/phase-5.toml` are `implemented/passed`.
-No applicable Phase 0-5 Tier A test remains `unsupported`, `blocked-platform`,
-`unverified` or without executable evidence. The Phase 5 PR and its post-merge
-`main` CI are green, so this audit is published against the merged `main`
-baseline.
-
-## Publication verification
-
-- Phase 5 implementation PR: [#13](https://github.com/moonbit-community/MoonJust/pull/13), squash-merged as
-  `cee01fd202ec4a60c6cb8815f1af5b9cce953294`.
-- Required Phase 5 PR CI: [run 31101620775](https://github.com/moonbit-community/MoonJust/actions/runs/31101620775) passed all quality, Ubuntu, macOS and Windows jobs.
-- Required post-merge `main` CI for the Phase 5 implementation baseline: [run 31101791384](https://github.com/moonbit-community/MoonJust/actions/runs/31101791384) passed all required jobs.
-- Audit-remediation PR: [#15](https://github.com/moonbit-community/MoonJust/pull/15), squash-merged as
-  `b8e6d2c617ee9e941f31837da4e71ff93ff313f7`.
-- Required audit-remediation PR CI: [run 31107368869](https://github.com/moonbit-community/MoonJust/actions/runs/31107368869) passed all quality, Ubuntu, macOS and Windows jobs.
-- Required post-merge `main` CI for the reviewed baseline: [run 31107621334](https://github.com/moonbit-community/MoonJust/actions/runs/31107621334) passed all required jobs.
-- Baseline synchronization PR: [#16](https://github.com/moonbit-community/MoonJust/pull/16), squash-merged as
-  `07356b69c2d6aeeea2babf7dd3ea524ecce08f84`.
-- Required baseline synchronization PR CI: [run 31115918942](https://github.com/moonbit-community/MoonJust/actions/runs/31115918942) passed all quality, Ubuntu, macOS and Windows jobs.
-- Required post-merge `main` CI after baseline synchronization: [run 31116224835](https://github.com/moonbit-community/MoonJust/actions/runs/31116224835) passed all required jobs.
-- Final evidence-label PR: [#17](https://github.com/moonbit-community/MoonJust/pull/17), squash-merged as
-  `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`.
-- Required final evidence-label PR CI: [run 31116718745](https://github.com/moonbit-community/MoonJust/actions/runs/31116718745), successful on the third attempt after transient Actions setup failures.
-- Required post-merge `main` CI for the final reviewed baseline: [run 31119139899](https://github.com/moonbit-community/MoonJust/actions/runs/31119139899), successful on the third attempt after transient Actions setup failures.
-
-### Temporary external CI incident
-
-On 2026-08-07, GitHub Actions reported a major outage affecting workflow
-startup and runner provisioning. PR #18's five authorized trigger attempts are
-recorded here so a temporary mitigation is not mistaken for a product waiver:
-
-- Run [31122561802](https://github.com/moonbit-community/MoonJust/actions/runs/31122561802), attempt 1: Quality and Windows passed; Ubuntu/macOS were cancelled with zero steps.
-- The same run's attempt 2 remained queued with Ubuntu/macOS at zero steps; the cancellation API returned HTTP 502.
-- Runs [31123697906](https://github.com/moonbit-community/MoonJust/actions/runs/31123697906) and [31123707835](https://github.com/moonbit-community/MoonJust/actions/runs/31123707835) were cancelled by the Actions outage before the required platform jobs completed.
-- Trigger commit `b19fe08` was the fifth attempt; no workflow run was registered for its SHA.
-- Mitigation commit `fd3e1ce` added the documented job-level skips; the
-  continuing outage also registered no workflow for that SHA, so its local
-  gates are recorded separately and no remote pass is claimed.
-
-After the five external failures, mitigation commit `fd3e1ce` kept the required
-check names but temporarily job-skipped `Native smoke (ubuntu-latest)` and
-`Native smoke (macos-latest)`. Quality gates and Windows smoke remained
-blocking. This was a time-bounded availability mitigation, not evidence that
-those two platforms passed.
-
-The exception was closed on 2026-08-07 after GitHub reported Actions as
-operational again. [Restoration PR #19](https://github.com/moonbit-community/MoonJust/pull/19)
-at `681ec9b0cf9b1c543021e0dc7055951532052e70` removed the temporary
-`*-outage` jobs and restored the full Ubuntu/macOS/Windows matrix. Its
-[PR CI run 31144190399](https://github.com/moonbit-community/MoonJust/actions/runs/31144190399)
-completed Quality gates and all three native platform jobs successfully. The
-PR was squash-merged at `3506164fc04594b2a4c8e3a6a71bccb2e11d653a`; the
-corresponding [post-merge `main` run 31144299133](https://github.com/moonbit-community/MoonJust/actions/runs/31144299133)
-again completed all four required jobs successfully. These two independent
-executions satisfy the documented restoration condition; no platform smoke is
-skipped and the external CI exception is closed.
+Phase 0-7 is complete and re-certified. MoonJust is a query-capable,
+pre-execution-compatible alpha implementation for Native and wasm1. It is not
+yet a production recipe runner: process construction/execution, parallelism,
+cache, signals, interactive tooling and completion remain explicitly owned by
+Phases 8-10. Any future claim beyond this boundary requires a new phase audit,
+updated compatibility map, dedicated differential evidence and a new protected
+main CI record.

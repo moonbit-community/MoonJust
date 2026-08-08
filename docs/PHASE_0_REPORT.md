@@ -5,14 +5,16 @@
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1
 - Decision: Proceed to Phase 1 (`Source`, diagnostics, platform value model)
+- Historical phase snapshot; the current cross-phase verdict is in
+  [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
 
 ## Scope statement
 
 Phase 0 established the repository, compatibility baseline, architecture,
 quality gates, and dependency evidence needed to begin implementation. It did
-not implement justfile parsing or recipe execution. MoonJust remains an
-`0.1.0-alpha.0` foundation and must not yet be presented as a replacement for
-`just`.
+not implement justfile parsing or recipe execution. At that historical point,
+MoonJust was an `0.1.0-alpha.0` foundation and was not presented as a
+replacement for `just`.
 
 The 2026-08-06 re-certification adds a deterministic JSONL row for every
 upstream registration, a fixed-source `just 1.57.0` Cargo oracle builder, and
@@ -44,7 +46,7 @@ are required after the bootstrap sequence.
 | Clean, independent repository | Own `.git`, `origin` at `moonbit-community/MoonJust`, generated template debris removed | Pass |
 | Product identity | Module `moonbit-community/MoonJust`; executable package `cmd/just`; upstream baseline reported by `--version` | Pass |
 | Cross-target build | `moon check --target all --warn-list +73` | Pass |
-| Native and wasm1 smoke | Root tests select 2/2 per target at the final audit; CLI version smoke on both targets | Pass |
+| Native and wasm1 smoke | Root tests selected 2/2 per target at the Phase 0 exit snapshot; CLI version smoke on both targets | Pass |
 | Platform smoke | GitHub-hosted Linux, macOS, and Windows Native jobs | Pass |
 | Public API stability check | `moon info` followed by a clean diff in CI | Pass |
 | Upstream provenance | Exact tag, commit, release metadata, test-list hash, and CC0 fixture notice | Pass |
@@ -83,7 +85,7 @@ discarded as noise.
 
 ## Known limitations and assigned gates
 
-- The current CLI only reports version information. All ten real differential
+- At the Phase 0 snapshot, the CLI only reported version information. All ten real differential
   bootstrap cases are registered expected differences until implementation
   reaches them.
 - Windows HostProcess details, TTY behavior, graceful signals, process groups,
@@ -97,8 +99,8 @@ discarded as noise.
 - Local time-zone discovery, DST behavior, and chrono-format compatibility are
   deferred to the time adapter and builtin phases.
 - At the original Phase 0 entry, the compatibility inventory was only indexed.
-  The final Phase 0-5 audit now classifies Phase 2-5 rows as `covered-by` or
-  `not-applicable`, with later Phase 6-10 rows remaining explicitly `planned`.
+  The current Phase 0-7 audit classifies completed rows as `covered-by` or
+  explicit exclusions, with later Phase 8-10 rows remaining `planned`.
   Future classification remains a 1.0 gate.
 
 No open item above blocks Phase 1. Each blocks the later feature or release tier
