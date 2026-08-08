@@ -1,7 +1,7 @@
 # Phase 5 completion report
 
 - Status: Implemented; Phase 5 exit passed
-- Strict review: 2026-08-07 ([Phase 0-7 audit](PHASE_0_5_AUDIT.md))
+- Strict review: 2026-08-07 ([Phase 0-7 audit](PHASE_0_7_AUDIT.md))
 - Reviewed implementation and evidence baseline: `main` at `dfaf5b9ec4a0b05f8b2b8094213087c3b2e74313`
 - Historical phase snapshot; the current cross-phase verdict is in the audit above.
 - Upstream baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
@@ -92,7 +92,7 @@ silently buffering an entire file.
 The 2026-08-07 GitHub Actions major outage prevented five consecutive PR #18
 trigger attempts from completing Ubuntu/macOS platform smoke. The exact run
 IDs and the temporary job-level skip, with its restoration condition, are
-recorded in [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md). This does not change the
+recorded in [`PHASE_0_7_AUDIT.md`](PHASE_0_7_AUDIT.md). This does not change the
 Phase 5 implementation verdict or claim a platform pass that was not observed.
 GitHub reported Actions operational again on 2026-08-07, so the full
 Ubuntu/macOS/Windows matrix was restored by
@@ -101,4 +101,4 @@ Ubuntu/macOS/Windows matrix was restored by
 and [post-merge `main` run 31144299133](https://github.com/moonbit-community/MoonJust/actions/runs/31144299133)
 both completed Quality gates and all three native platform jobs successfully.
 The restoration condition is satisfied and the exception is closed; the exact
-commit evidence is recorded in [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
+commit evidence is recorded in [`PHASE_0_7_AUDIT.md`](PHASE_0_7_AUDIT.md).

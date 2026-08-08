@@ -1,8 +1,5 @@
 # Phase 0-7 strict exit audit
 
-> Filename note: this document keeps the original `PHASE_0_5_AUDIT.md` path
-> for link stability. Its scope is now the complete Phase 0-7 audit.
-
 - Review date: 2026-08-08
 - Reviewed implementation baseline: `main` at
   `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17`

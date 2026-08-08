@@ -6,7 +6,7 @@
 - Required implementation targets: Native and wasm1
 - Decision: Proceed to Phase 1 (`Source`, diagnostics, platform value model)
 - Historical phase snapshot; the current cross-phase verdict is in
-  [`PHASE_0_5_AUDIT.md`](PHASE_0_5_AUDIT.md).
+  [`PHASE_0_7_AUDIT.md`](PHASE_0_7_AUDIT.md).
 
 ## Scope statement
 
