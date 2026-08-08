@@ -627,11 +627,11 @@ Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_6_REPORT.md`](PHASE_6_REPORT.md
 | PR-073 | working directory model | project/invocation/recipe/module cwd | symlink、relative import 和 no-cd 测试 |
 | PR-074 | CLI environment composition | `--set`、shell override、tempdir、platform config | env precedence 表全部测试 |
 
-执行状态：PR-070 至 PR-074 已完成实现并合并，五组 Phase 7 专项门禁、
-211/208 项 Native/wasm1 测试以及 Ubuntu/macOS/Windows 远程 CI 已通过。
-二次严格复核修正了上游用例归属、阶段清单和总门禁遗漏；修复 PR 及其
-合并后 `main` CI 尚待验收，因此 Phase 7 出口暂不标记为通过。详见
-[`PHASE_7_REPORT.md`](PHASE_7_REPORT.md)。
+执行状态：Phase 7 已于 2026-08-08 完成实现并通过阶段出口。PR-070 至
+PR-074、二次严格复核补救、188 项固定上游用例映射、五组专项门禁、
+211/208 项 Native/wasm1 测试以及 Ubuntu/macOS/Windows 远程 CI 证据见
+[`PHASE_7_REPORT.md`](PHASE_7_REPORT.md)。recipe 进程构建与执行仍严格
+属于 Phase 8。
 
 ### Phase 8：Executor
 

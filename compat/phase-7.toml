@@ -2,7 +2,7 @@ schema_version = 1
 phase = 7
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "pending-remote-ci"
+plan_exit = "passed"
 report = "docs/PHASE_7_REPORT.md"
 audit = "docs/PHASE_7_REPORT.md"
 
@@ -17,7 +17,7 @@ executor_boundary = "invocations and process configuration are validated without
 [target_matrix]
 native = "pass: 211 tests"
 wasm1 = "pass: 208 tests"
-native_platforms = "pass: Ubuntu/macOS/Windows on main run 31244169707"
+native_platforms = "pass: Ubuntu/macOS/Windows on audited main run 31244990807"
 wasm_policy = "pass: writable transaction policy is isolated from the read-only inspect policy"
 
 [evidence]

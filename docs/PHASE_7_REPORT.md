@@ -1,8 +1,9 @@
 # Phase 7 completion report
 
-- Status: Implemented; second-audit remediation pending remote CI
+- Status: Implemented; Phase 7 exit passed
 - Date: 2026-08-08
-- Audited baseline: `main` at `3f1c1363c43e57c4881559077c1180507a1a8cfd`
+- Strict second review: passed against `main` at
+  `d80d8a394301fe4286c6a4b7b00592e586a9e029`
 - Upstream baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Required targets: Native and wasm1
 
@@ -54,9 +55,9 @@ not executed: process construction and execution remain Phase 8 capabilities.
 
 ## Verification
 
-- `moon check --target all --warn-list +73`: pass before audit publication.
-- `moon test --target native`: 211 passed, 0 failed before audit publication.
-- `moon test --target wasm`: 208 passed, 0 failed before audit publication.
+- `moon check --target all --warn-list +73`: pass.
+- `moon test --target native`: 211 passed, 0 failed.
+- `moon test --target wasm`: 208 passed, 0 failed.
 - All five Phase 7 executable gates pass locally and in the functional PR CI.
 - `tools/check_architecture.sh`: core packages remain separated from adapter
   leaves and the Phase 8 executor boundary remains explicit.
@@ -72,12 +73,13 @@ not executed: process construction and execution remain Phase 8 capabilities.
 | [PR #30 / PR-072](https://github.com/moonbit-community/MoonJust/pull/30) | `3b34f76f6a2542486602720b355c09168174b2ab` | [31240814162](https://github.com/moonbit-community/MoonJust/actions/runs/31240814162) | [31240881314](https://github.com/moonbit-community/MoonJust/actions/runs/31240881314) |
 | [PR #31 / PR-073](https://github.com/moonbit-community/MoonJust/pull/31) | `c73037fb9f5132cd53fb3c91e6705624467345f5` | [31242090566](https://github.com/moonbit-community/MoonJust/actions/runs/31242090566) | [31242179491](https://github.com/moonbit-community/MoonJust/actions/runs/31242179491) |
 | [PR #32 / PR-074](https://github.com/moonbit-community/MoonJust/pull/32) | `3f1c1363c43e57c4881559077c1180507a1a8cfd` | [31243986487](https://github.com/moonbit-community/MoonJust/actions/runs/31243986487) | [31244169707](https://github.com/moonbit-community/MoonJust/actions/runs/31244169707) |
+| [PR #33 / second-audit remediation](https://github.com/moonbit-community/MoonJust/pull/33) | `d80d8a394301fe4286c6a4b7b00592e586a9e029` | [31244887123](https://github.com/moonbit-community/MoonJust/actions/runs/31244887123) | [31244990807](https://github.com/moonbit-community/MoonJust/actions/runs/31244990807) |
 
 Every listed PR and post-merge run completed Quality gates plus Ubuntu, macOS,
 and Windows native smoke jobs successfully. The PR-074 Windows job was rerun
 after a transient package-registry timeout and then passed without code changes.
 
-## Strict second-review status
+## Strict second-review verdict
 
 The second pass found no missing functional unit inside the declared Phase 7
 boundary, but it found three release-evidence defects: all 443 provisional
@@ -87,6 +89,8 @@ differential. The remediation adds deterministic executable anchors for the
 188 in-scope registrations, defers later-runtime cases honestly, publishes the
 structured manifests, and includes all five gates in `tools/check.sh`.
 
-The stage exit remains pending until the remediation PR and its post-merge
-`main` CI both pass. Final publication will record those run IDs and change the
-structured exit state to `passed`.
+PR #33 closed all three findings. Its PR CI and post-merge `main` CI completed
+Quality gates plus Ubuntu, macOS, and Windows jobs successfully; the aggregate
+gate executed all five Phase 7 differentials and the 211/208 full target
+matrix. No unresolved gap remains inside the declared Phase 7 scope, so the
+Phase 7 exit is passed.
