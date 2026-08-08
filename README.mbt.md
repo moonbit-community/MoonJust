@@ -5,9 +5,9 @@ MoonJust is a MoonBit implementation of the
 behavioral compatibility with `just 1.57.0` on MoonBit's Native and wasm1
 backends.
 
-> Status: Phase 0-6 exits have passed. The Phase 6 query CLI is complete and
-> has passed remote CI plus a strict second review. Recipe execution remains a
-> later-phase capability.
+> Status: Phase 0-7 exits have passed. The Phase 7 pre-execution filesystem,
+> environment, invocation, and working-directory models have passed remote CI
+> plus a strict second review. Recipe execution remains a Phase 8 capability.
 
 ## Compatibility scope
 
@@ -25,8 +25,9 @@ Phase 0-5 verdict and resolved exit evidence are recorded in the
 [strict audit](docs/PHASE_0_5_AUDIT.md), with implementation evidence in the
 [Phase 5 report](docs/PHASE_5_REPORT.md), [Phase 4 report](docs/PHASE_4_REPORT.md),
 [Phase 3 report](docs/PHASE_3_REPORT.md), [Phase 2 report](docs/PHASE_2_REPORT.md),
-[Phase 1 report](docs/PHASE_1_REPORT.md), and the
-[Phase 6 report](docs/PHASE_6_REPORT.md).
+[Phase 1 report](docs/PHASE_1_REPORT.md),
+[Phase 6 report](docs/PHASE_6_REPORT.md), and the
+[Phase 7 report](docs/PHASE_7_REPORT.md).
 
 ## Development
 
