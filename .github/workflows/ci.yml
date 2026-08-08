@@ -80,6 +80,9 @@ jobs:
       - name: Verify Phase 7 dotenvy differential
         run: ./tools/check_phase7_dotenv.sh
 
+      - name: Verify Phase 7 invocation differential
+        run: ./tools/check_phase7_invocation.sh
+
       - name: Verify Phase 6 query oracle
         run: ./tools/check_phase6_oracle.sh
 

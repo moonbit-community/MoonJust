@@ -257,7 +257,7 @@ test "list and usage collapse option parameters and render option metadata" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(
-    file, b"set lists\n[arg('flag', long, flag, help='toggle')]\n[arg('item', short='i', pattern=['one', 'two'])]\nrun flag item positional='x':\n",
+    file, b"set lists\n[arg('flag', long, flag, help='toggle')]\n[arg('item', short, pattern=['one', 'two'])]\nrun flag item positional='x':\n",
   )
   let listed = @application.execute_query_command(
     host,
@@ -277,6 +277,54 @@ test "list and usage collapse option parameters and render option metadata" {
     usage.stdout(),
     b"Usage: just run [OPTIONS] [positional]\n\nArguments:\n  [positional] [default: 'x']\n\nOptions:\n      --flag toggle\n  -i item [pattern: 'one' | 'two']\n",
   )
+}
+
+///|
+test "run commands validate invocation before the Phase 8 executor boundary" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"[arg('target', long='target', pattern='debug|release')]\nbuild target:\n",
+  )
+  try
+    @application.execute_command(
+      host,
+      @cli.parse_arguments(["build"], {}),
+      context,
+    )
+  catch {
+    @application.Invocation(error) =>
+      assert_eq(error.message(), "recipe `build` requires option `--target`")
+    error => fail("unexpected missing option error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected invocation validation failure")
+  }
+  try
+    @application.execute_command(
+      host,
+      @cli.parse_arguments(["build", "--target", "invalid"], {}),
+      context,
+    )
+  catch {
+    @application.Invocation(error) =>
+      assert_true(error.message().contains("does not match pattern"))
+    error => fail("unexpected pattern error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected pattern validation failure")
+  }
+  try
+    @application.execute_command(
+      host,
+      @cli.parse_arguments(["build", "--target", "release"], {}),
+      context,
+    )
+  catch {
+    @application.UnsupportedCommand("recipe execution") => ()
+    error => fail("unexpected executor boundary error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected Phase 8 executor boundary")
+  }
+  assert_eq(host.process_calls().length(), 0)
 }
 
 ///|

@@ -443,11 +443,63 @@ fn supported_value_option(name : String) -> Bool {
 }
 
 ///|
+fn command_option(name : String) -> Bool {
+  match name {
+    "--help"
+    | "-h"
+    | "--version"
+    | "-V"
+    | "--check"
+    | "--fmt"
+    | "--init"
+    | "--list"
+    | "-l"
+    | "--show"
+    | "-s"
+    | "--summary"
+    | "--usage"
+    | "--variables"
+    | "--dump"
+    | "--json"
+    | "--evaluate"
+    | "--groups" => true
+    _ => false
+  }
+}
+
+///|
+fn has_command_mode_before_invocation(argv : ArrayView[String]) -> Bool {
+  let mut consumes_value = false
+  for token in argv {
+    if consumes_value {
+      consumes_value = false
+      continue
+    }
+    if token == "--" {
+      return false
+    }
+    if token.has_prefix("-") && token != "-" {
+      let name = option_name(token)
+      if command_option(name) {
+        return true
+      }
+      if supported_value_option(name) && !token.contains("=") {
+        consumes_value = true
+      }
+    } else {
+      return false
+    }
+  }
+  false
+}
+
+///|
 fn check_supported(argv : ArrayView[String]) -> Unit raise CliParseError {
   let mut consumes_value = false
   let mut after_separator = false
+  let mut invocation_started = false
   for token in argv {
-    if after_separator {
+    if after_separator || invocation_started {
       continue
     }
     if consumes_value {
@@ -466,6 +518,8 @@ fn check_supported(argv : ArrayView[String]) -> Unit raise CliParseError {
       if supported_value_option(name) && !token.contains("=") {
         consumes_value = true
       }
+    } else {
+      invocation_started = true
     }
   }
 }
@@ -480,6 +534,80 @@ fn normalize_argv(argv : ArrayView[String]) -> Array[String] {
       _ => token
     }
   })
+}
+
+///|
+fn parser_argv(argv : ArrayView[String]) -> Array[String] {
+  let result : Array[String] = []
+  let mut consumes_value = false
+  let mut separated = false
+  for token in argv {
+    if separated {
+      result.push(token)
+      continue
+    }
+    if consumes_value {
+      result.push(token)
+      consumes_value = false
+      continue
+    }
+    if token == "--" {
+      result.push(token)
+      separated = true
+      continue
+    }
+    let name = option_name(token)
+    if token.has_prefix("-") && token != "-" && supported_option(name) {
+      result.push(token)
+      if supported_value_option(name) && !token.contains("=") {
+        consumes_value = true
+      }
+      continue
+    }
+    result.push("--")
+    result.push(token)
+    separated = true
+  }
+  result
+}
+
+///|
+fn invocation_arguments(argv : ArrayView[String]) -> Array[String] {
+  let result : Array[String] = []
+  let mut invocation_started = false
+  let mut consumes_global_value = false
+  let mut after_global_separator = false
+  for token in argv {
+    if after_global_separator {
+      result.push(token)
+      invocation_started = true
+      continue
+    }
+    if consumes_global_value {
+      consumes_global_value = false
+      continue
+    }
+    if token == "--" {
+      if invocation_started {
+        result.push(token)
+      }
+      after_global_separator = true
+      continue
+    }
+    let name = option_name(token)
+    if !invocation_started &&
+      token.has_prefix("-") &&
+      token != "-" &&
+      supported_option(name) {
+      if supported_value_option(name) && !token.contains("=") {
+        consumes_global_value = true
+      }
+      continue
+    }
+    invocation_started = true
+    result.push(token)
+  }
+  result
 }
 
 ///|
@@ -506,9 +634,14 @@ pub fn parse_arguments(
 ) -> CliArguments raise CliParseError {
   check_supported(argv)
   let normalized = normalize_argv(argv)
+  let parser_input = if has_command_mode_before_invocation(normalized) {
+    normalized
+  } else {
+    parser_argv(normalized)
+  }
   let matches = @argparse.Command::parse(
     parser_command(),
-    argv=normalized[:],
+    argv=parser_input[:],
     env~,
   ) catch {
     error => raise Invalid(error.to_string())
@@ -516,11 +649,16 @@ pub fn parse_arguments(
   validate_choice(matches, "alias-style", ["left", "right", "separate"])
   validate_choice(matches, "dump-format", ["json", "just"])
   validate_choice(matches, "evaluate-format", ["just", "shell"])
+  let command = command_kind(matches)
   {
-    command: command_kind(matches),
+    command,
     flags: matches.flags,
     values: matches.values,
-    positional: matches.values.get("arguments").unwrap_or([]),
+    positional: if command is RunCommand {
+      invocation_arguments(normalized)
+    } else {
+      matches.values.get("arguments").unwrap_or([])
+    },
   }
 }
 

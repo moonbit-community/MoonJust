@@ -6,6 +6,7 @@ pub(all) suberror ApplicationError {
   Format(@formatter.FormatterError)
   Evaluation(@evaluator.EvaluationError)
   Host(@host.HostError)
+  Invocation(@invocation.InvocationError)
   Path(@path.PathError)
   Semantic(@semantic.SemanticError)
   AlreadyExists(@path.PathValue)
@@ -21,6 +22,7 @@ pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
     | Format(_)
     | Evaluation(_)
     | Host(_)
+    | Invocation(_)
     | Path(_)
     | Semantic(_)
     | AlreadyExists(_)
@@ -37,6 +39,7 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
     Format(error) => "error[\{error.code()}]: \{error.message()}"
     Evaluation(error) => "error: evaluation failed: \{Repr(error)}"
     Host(error) => "error: host operation failed: \{Repr(error)}"
+    Invocation(error) => "error: " + error.message()
     Path(error) => "error: invalid path: \{Repr(error)}"
     Semantic(error) => "error[\{error.code()}]: \{error.message()}"
     AlreadyExists(path) =>

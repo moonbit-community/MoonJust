@@ -16,6 +16,15 @@ pub fn[T : @host.HostFs + @host.HostTemp] execute_command(
     | GroupsCommand => execute_query_command(host, arguments, context)
     DumpCommand | JsonCommand | EvaluateCommand =>
       execute_inspect_command(host, arguments, context)
-    RunCommand => raise UnsupportedCommand("recipe execution")
+    RunCommand => {
+      let loaded = load_input(host, arguments, context)
+      let compilation = compile_loaded(loaded)
+      ignore(
+        @invocation.parse_invocations(compilation, arguments.positional()) catch {
+          error => raise Invocation(error)
+        },
+      )
+      raise UnsupportedCommand("recipe execution")
+    }
   }
 }

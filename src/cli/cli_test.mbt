@@ -155,6 +155,42 @@ test "argparse composition rejects unknown options without side effects" {
 }
 
 ///|
+test "recipe options remain positional after invocation begins" {
+  let parsed = @cli.parse_arguments(
+    ["build", "--target", "release", "-abc", "--", "--literal"],
+    {},
+  )
+  assert_eq(parsed.command(), RunCommand)
+  assert_eq(parsed.positional(), [
+    "build", "--target", "release", "-abc", "--", "--literal",
+  ])
+}
+
+///|
+test "recipe options may collide with global option names" {
+  let parsed = @cli.parse_arguments(
+    ["--justfile", "custom.just", "build", "--quiet", "--list"],
+    {},
+  )
+  assert_eq(parsed.command(), RunCommand)
+  assert_false(parsed.flag("quiet"))
+  assert_false(parsed.flag("list"))
+  assert_eq(parsed.value("justfile"), Some("custom.just"))
+  assert_eq(parsed.positional(), ["build", "--quiet", "--list"])
+}
+
+///|
+test "command modes continue accepting global options after their argument" {
+  let parsed = @cli.parse_arguments(
+    ["--evaluate", "value", "--justfile", "custom.just"],
+    {},
+  )
+  assert_eq(parsed.command(), EvaluateCommand)
+  assert_eq(parsed.positional(), ["value"])
+  assert_eq(parsed.value("justfile"), Some("custom.just"))
+}
+
+///|
 test "query format choices are validated and ignored options are unsupported" {
   let unstable = @cli.parse_arguments(["--unstable", "--json"], {})
   assert_eq(unstable.command(), JsonCommand)

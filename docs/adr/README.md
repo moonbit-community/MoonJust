@@ -19,3 +19,4 @@ are changed only by a new ADR that records migration and compatibility impact.
 | [0011](0011-phase-5-hash-and-regexp-dependencies.md) | Phase 5 hash and regexp dependencies | Accepted |
 | [0012](0012-phase-7-filesystem-transactions.md) | Phase 7 filesystem transactions | Accepted |
 | [0013](0013-phase-7-environment-and-dotenv.md) | Phase 7 environment and dotenv | Accepted |
+| [0014](0014-phase-7-invocation-parser.md) | Phase 7 invocation parser | Accepted |
