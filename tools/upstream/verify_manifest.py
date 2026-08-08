@@ -103,10 +103,10 @@ def validate_map() -> None:
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
-        if row["owner_phase"] in {3, 4, 5, 6} and row["disposition"] == "covered-by":
+        if row["owner_phase"] in {3, 4, 5, 6, 7} and row["disposition"] == "covered-by":
             validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
             expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
-        if row["owner_phase"] in {3, 4, 5, 6} and row["disposition"] == "covered-by":
+        if row["owner_phase"] in {3, 4, 5, 6, 7} and row["disposition"] == "covered-by":
             expect(row["disposition"] == "covered-by", f"Phase {row['owner_phase']} row {index} is not executable")
             expect(row["targets"] == ["native", "wasm1"], f"Phase {row['owner_phase']} row {index} target matrix is incomplete")
 
@@ -118,7 +118,7 @@ def validate_map() -> None:
         all(row["disposition"] in {"covered-by", "not-applicable"} for row in phase2_rows),
         "Phase 2 contains an unclassified upstream registration",
     )
-    for phase in (3, 4, 5, 6):
+    for phase in (3, 4, 5, 6, 7):
         cases = repo / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         rows_for_phase = [
             row
@@ -255,7 +255,7 @@ def validate() -> None:
     for target in ("native", "wasm"):
         expect(selected_tests(target, "src/lexer") == expected_lexer_tests, f"{target} lexer test outline count changed")
 
-    for phase in (3, 4, 5, 6):
+    for phase in (3, 4, 5, 6, 7):
         manifest = load(repo / f"compat/phase-{phase}.toml")
         expect(manifest["status"] == "implemented", f"Phase {phase} status is not implemented")
         if phase == 6:
@@ -265,6 +265,13 @@ def validate() -> None:
             )
             expect(manifest["evidence"]["native_tests"] == 134, "Phase 6 Native evidence count changed")
             expect(manifest["evidence"]["wasm_tests"] == 133, "Phase 6 wasm evidence count changed")
+        elif phase == 7:
+            expect(
+                manifest["plan_exit"] in {"pending-remote-ci", "passed"},
+                "Phase 7 exit has an invalid state",
+            )
+            expect(manifest["evidence"]["native_tests"] == 211, "Phase 7 Native evidence count changed")
+            expect(manifest["evidence"]["wasm_tests"] == 208, "Phase 7 wasm evidence count changed")
         else:
             expect(manifest["plan_exit"] == "passed", f"Phase {phase} exit is not passed")
         corpus = load(repo / f"tests/upstream/just-1.57.0/phase-{phase}.toml")
@@ -290,6 +297,45 @@ def validate() -> None:
                     for row in phase6_rows
                 ),
                 "Phase 6 excluded registration count changed",
+            )
+        if phase == 7:
+            phase7_rows = [
+                json.loads(line)
+                for line in (
+                    repo / "tests/upstream/just-1.57.0/test-map.jsonl"
+                ).read_text(encoding="utf-8").splitlines()
+                if json.loads(line)["owner_phase"] == 7
+            ]
+            expect(
+                corpus["covered_registrations"] == sum(
+                    row["disposition"] == "covered-by" for row in phase7_rows
+                ),
+                "Phase 7 covered registration count changed",
+            )
+            expect(
+                all(row["disposition"] == "covered-by" for row in phase7_rows),
+                "Phase 7 contains a registration without executable evidence",
+            )
+            expect(
+                corpus["dotenv"]["registrations"] == 51,
+                "Phase 7 dotenv registration count changed",
+            )
+            expect(
+                corpus["invocation"]["registrations"] == 86,
+                "Phase 7 invocation registration count changed",
+            )
+            expect(
+                corpus["working_directory"]["registrations"] == 30,
+                "Phase 7 working-directory registration count changed",
+            )
+            expect(
+                corpus["environment"]["registrations"] == 21,
+                "Phase 7 environment registration count changed",
+            )
+            expect(
+                manifest["evidence"]["upstream_covered_registrations"]
+                == corpus["covered_registrations"],
+                "Phase 7 compatibility and corpus counts differ",
             )
 
     policy = load(repo / "policies/inspect.toml")
