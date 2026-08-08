@@ -19,8 +19,9 @@ cmd/just
 ```
 
 Dependencies flow from the command composition root toward leaf packages.
-`source`, `syntax`, `semantic value types`, and `diagnostic IR` do not import a
-host adapter. Target-specific `#cfg` and FFI are restricted to host adapters.
+`source`, `syntax`, `semantic value types`, `invocation`, and `diagnostic IR` do
+not import a host adapter. Target-specific `#cfg` and FFI are restricted to
+host adapters.
 
 ## Package ownership
 

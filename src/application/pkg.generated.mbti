@@ -6,6 +6,7 @@ import {
   "moonbit-community/MoonJust/src/evaluator",
   "moonbit-community/MoonJust/src/formatter",
   "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/invocation",
   "moonbit-community/MoonJust/src/loader",
   "moonbit-community/MoonJust/src/path",
   "moonbit-community/MoonJust/src/semantic",
@@ -31,6 +32,7 @@ pub(all) suberror ApplicationError {
   Format(@formatter.FormatterError)
   Evaluation(@evaluator.EvaluationError)
   Host(@host.HostError)
+  Invocation(@invocation.InvocationError)
   Path(@path.PathError)
   Semantic(@semantic.SemanticError)
   AlreadyExists(@path.PathValue)

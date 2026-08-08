@@ -95,7 +95,8 @@ fn parameter_display(
         Some("short") =>
           match argument.value() {
             Some(String(text)) => short = Some(text.cooked())
-            None => short = Some(parameter.name())
+            None =>
+              short = parameter.name().to_array().get(0).map(Char::to_string)
             _ => ()
           }
         Some("value") => value = true

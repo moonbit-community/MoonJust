@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/invocation"
+
+import {
+  "moonbit-community/MoonJust/src/evaluator",
+  "moonbit-community/MoonJust/src/semantic",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse_invocations(@semantic.Compilation, ArrayView[String]) -> Array[Invocation] raise InvocationError
+
+// Errors
+pub(all) suberror InvocationError {
+  NoRecipes
+  DefaultRecipeRequiresArguments(recipe~ : String, minimum~ : Int)
+  UnknownRecipe(recipe~ : String)
+  Evaluation(@evaluator.EvaluationError)
+  InvalidArgumentAttribute(recipe~ : String, detail~ : String)
+  InvalidOption(argument~ : String)
+  UnknownOption(recipe~ : String, option~ : String)
+  FlagWithValue(recipe~ : String, option~ : String)
+  NonFinalOptionWithValue(recipe~ : String, option~ : String)
+  OptionMissingValue(recipe~ : String, option~ : String)
+  DuplicateOption(recipe~ : String, option~ : String)
+  MissingOption(recipe~ : String, option~ : String)
+  PositionalArgumentCountMismatch(recipe~ : String, found~ : Int, minimum~ : Int, maximum~ : Int?, usage~ : String)
+  ArgumentTooFewValues(recipe~ : String, parameter~ : String, found~ : Int, minimum~ : Int)
+  ArgumentTooManyValues(recipe~ : String, parameter~ : String, found~ : Int, maximum~ : Int)
+  ArgumentPatternMismatch(recipe~ : String, parameter~ : String, argument~ : String, patterns~ : Array[String])
+} derive(Eq, @debug.Debug)
+pub fn InvocationError::code(Self) -> String
+pub fn InvocationError::message(Self) -> String
+
+// Types and methods
+pub struct ArgumentValue {
+  elements : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn ArgumentValue::elements(Self) -> ArrayView[String]
+
+pub struct Invocation {
+  recipe : String
+  arguments : Array[ArgumentValue]
+} derive(Eq, @debug.Debug)
+pub fn Invocation::arguments(Self) -> ArrayView[ArgumentValue]
+pub fn Invocation::recipe(Self) -> String
+
+// Type aliases
+
+// Traits
