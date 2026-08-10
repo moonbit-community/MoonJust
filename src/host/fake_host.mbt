@@ -6,6 +6,8 @@ pub struct FakeHost {
   files : Map[@path.PathValue, Bytes]
   mut temp_serial : Int
   mut fail_next_persist : Bool
+  script_temp_creations : Array[(@path.PathValue, Bytes)]
+  executable_calls : Array[@path.PathValue]
   canonical_paths : Map[@path.PathValue, @path.PathValue]
   environment : Map[String, String]
   mut cwd : @path.PathValue
@@ -31,6 +33,8 @@ pub fn FakeHost::new(
     files: Map([]),
     temp_serial: 0,
     fail_next_persist: false,
+    script_temp_creations: [],
+    executable_calls: [],
     canonical_paths: Map([]),
     environment: Map([]),
     cwd,
@@ -97,6 +101,20 @@ pub fn FakeHost::put_file(
 ///|
 pub fn FakeHost::fail_next_persist(self : FakeHost) -> Unit {
   self.fail_next_persist = true
+}
+
+///|
+pub fn FakeHost::script_temp_creations(
+  self : FakeHost,
+) -> ArrayView[(@path.PathValue, Bytes)] {
+  self.script_temp_creations[:]
+}
+
+///|
+pub fn FakeHost::executable_calls(
+  self : FakeHost,
+) -> ArrayView[@path.PathValue] {
+  self.executable_calls[:]
 }
 
 ///|
@@ -335,6 +353,88 @@ pub impl HostTemp for FakeHost with fn remove_temp_file(
 }
 
 ///|
+pub impl HostScriptTemp for FakeHost with fn create_script_temp(
+  self : FakeHost,
+  directory : @path.PathValue,
+  stem : String,
+  extension : String,
+  contents : Bytes,
+) -> @path.PathValue raise HostError {
+  self.require(FsWrite)
+  if stem == "" ||
+    stem.contains("/") ||
+    stem.contains("\\") ||
+    extension.contains("/") ||
+    extension.contains("\\") {
+    raise InvalidInput("invalid temporary script name")
+  }
+  for _ in 0..<1024 {
+    let name = @path.PathValue::new(
+      stem + "." + self.temp_serial.to_string() + extension,
+      directory.flavor(),
+    ) catch {
+      _ => raise InvalidInput("invalid temporary script name")
+    }
+    self.temp_serial += 1
+    let candidate = directory.join(name) catch {
+      _ => raise InvalidInput("temporary script path flavor mismatch")
+    }
+    if !self.files.contains(candidate) {
+      self.files[candidate] = contents
+      self.script_temp_creations.push((candidate, contents))
+      return candidate
+    }
+  }
+  raise InvalidInput("temporary script namespace exhausted")
+}
+
+///|
+pub impl HostScriptTemp for FakeHost with fn remove_script_temp(
+  self : FakeHost,
+  path : @path.PathValue,
+) -> Unit raise HostError {
+  HostTemp::remove_temp_file(self, path)
+}
+
+///|
+pub impl HostExecutable for FakeHost with fn set_executable(
+  self : FakeHost,
+  path : @path.PathValue,
+) -> Unit raise HostError {
+  self.require(FsWrite)
+  if !self.files.contains(path) {
+    raise NotFound(path)
+  }
+  self.executable_calls.push(path)
+}
+
+///|
+pub impl HostAsyncScriptTemp for FakeHost with fn create_script_temp_async(
+  self : FakeHost,
+  directory : @path.PathValue,
+  stem : String,
+  extension : String,
+  contents : Bytes,
+  executable : Bool,
+) -> @path.PathValue raise HostError {
+  let path = HostScriptTemp::create_script_temp(
+    self, directory, stem, extension, contents,
+  )
+  if executable {
+    HostExecutable::set_executable(self, path)
+  }
+  path
+}
+
+///|
+pub impl HostAsyncScriptTemp for FakeHost with fn remove_script_temp_async(
+  self : FakeHost,
+  path : @path.PathValue,
+) -> Unit raise HostError {
+  HostScriptTemp::remove_script_temp(self, path)
+}
+
+///|
 pub impl HostAtomicFs for FakeHost with fn write_file_atomic(
   self : FakeHost,
   path : @path.PathValue,
@@ -391,6 +491,14 @@ pub impl HostProcess for FakeHost with fn run_process(
     raise ProcessMismatch(expected~, actual=command)
   }
   output
+}
+
+///|
+pub impl HostAsyncProcess for FakeHost with fn run_process_async(
+  self : FakeHost,
+  command : CommandSpec,
+) -> ProcessResult raise HostError {
+  HostProcess::run_process(self, command)
 }
 
 ///|

@@ -1,0 +1,19 @@
+import {
+  "moonbit-community/MoonJust/src/environment",
+  "moonbit-community/MoonJust/src/evaluator",
+  "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/semantic",
+  "moonbit-community/MoonJust/src/syntax",
+  "moonbit-community/MoonJust/src/value",
+  "moonbit-community/MoonJust/src/builtin",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/set",
+  "moonbitlang/x/time",
+}
+
+import {
+  "moonbit-community/MoonJust/src/parser",
+  "moonbit-community/MoonJust/src/source",
+  "moonbitlang/async",
+} for "test"

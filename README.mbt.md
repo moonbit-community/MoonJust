@@ -7,9 +7,9 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> Phase 0-7 exits have passed. MoonJust `0.3.0-alpha.0` provides a
-> pre-execution, query-capable CLI and library model. Recipe process execution,
-> parallel scheduling, cache, signals and completion remain later-phase work.
+> Phase 0-8 exits have passed. MoonJust `0.5.0-alpha` is an execution preview
+> with native and policy-controlled wasm1 recipe processes. Parallel scheduling,
+> cache, complete platform edges, interactive mode and completion remain later-phase work.
 
 ## What is delivered
 
@@ -25,10 +25,11 @@ The completed phases establish a usable and auditable foundation:
 | Environment | dotenv parsing/discovery, required/list/command modes, overrides, shell/tempdir and child-environment composition |
 | Invocation | positional/variadic parameters, recipe-local options, flags, repetition, patterns and stable usage errors |
 | Working directory | invocation, project, module, evaluation and recipe directory model with `no-cd` and recipe overrides |
-| Wasm boundary | read-only inspect policy; host capabilities remain explicit and typed |
+| Executor | ordered recipe lines, scripts/shebangs, effects, dependencies, dry-run, failure and signal propagation |
+| Wasm boundary | separate read-only inspect and process-enabled execution policies |
 
-The CLI validates and builds the pre-execution model. It intentionally does not
-spawn recipe processes yet. That boundary is the first contract of Phase 8.
+The CLI validates the complete recipe graph before ordinary recipe execution,
+then runs deterministic sequential steps. Phase 9 owns parallelism and cache.
 
 ## Compatibility and support
 

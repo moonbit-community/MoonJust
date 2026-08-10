@@ -64,6 +64,8 @@ pub struct FakeHost {
   files : Map[@path.PathValue, Bytes]
   mut temp_serial : Int
   mut fail_next_persist : Bool
+  script_temp_creations : Array[(@path.PathValue, Bytes)]
+  executable_calls : Array[@path.PathValue]
   canonical_paths : Map[@path.PathValue, @path.PathValue]
   environment : Map[String, String]
   mut cwd : @path.PathValue
@@ -79,6 +81,7 @@ pub struct FakeHost {
 }
 pub fn FakeHost::allow(Self, HostCapability) -> Unit
 pub fn FakeHost::deny(Self, HostCapability) -> Unit
+pub fn FakeHost::executable_calls(Self) -> ArrayView[@path.PathValue]
 pub fn FakeHost::expect_process(Self, CommandSpec, ProcessResult) -> Unit
 pub fn FakeHost::fail_next_persist(Self) -> Unit
 pub fn FakeHost::mark_available(Self, HostCapability) -> Unit
@@ -88,6 +91,7 @@ pub fn FakeHost::pending_process_expectations(Self) -> Int
 pub fn FakeHost::process_calls(Self) -> ArrayView[CommandSpec]
 pub fn FakeHost::push_signal(Self, SignalKind) -> Unit
 pub fn FakeHost::put_file(Self, @path.PathValue, Bytes) -> Unit
+pub fn FakeHost::script_temp_creations(Self) -> ArrayView[(@path.PathValue, Bytes)]
 pub fn FakeHost::set_canonical(Self, @path.PathValue, @path.PathValue) -> Unit
 pub fn FakeHost::set_clock_millis(Self, Int64) -> Unit
 pub fn FakeHost::set_current_dir(Self, @path.PathValue) -> Unit
@@ -95,13 +99,17 @@ pub fn FakeHost::set_env(Self, String, String) -> Unit
 pub fn FakeHost::set_platform(Self, PlatformInfo) -> Unit
 pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
 pub fn FakeHost::set_terminal(Self, TerminalInfo) -> Unit
+pub impl HostAsyncProcess for FakeHost
+pub impl HostAsyncScriptTemp for FakeHost
 pub impl HostAtomicFs for FakeHost
 pub impl HostClock for FakeHost
 pub impl HostEnv for FakeHost
+pub impl HostExecutable for FakeHost
 pub impl HostFs for FakeHost
 pub impl HostPlatform for FakeHost
 pub impl HostProcess for FakeHost
 pub impl HostRandom for FakeHost
+pub impl HostScriptTemp for FakeHost
 pub impl HostSignal for FakeHost
 pub impl HostTemp for FakeHost
 pub impl HostTerminal for FakeHost
@@ -194,6 +202,15 @@ pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
 // Type aliases
 
 // Traits
+pub(open) trait HostAsyncProcess {
+  async fn run_process_async(Self, CommandSpec) -> ProcessResult raise HostError
+}
+
+pub(open) trait HostAsyncScriptTemp {
+  async fn create_script_temp_async(Self, @path.PathValue, String, String, Bytes, Bool) -> @path.PathValue raise HostError
+  async fn remove_script_temp_async(Self, @path.PathValue) -> Unit raise HostError
+}
+
 pub(open) trait HostAtomicFs {
   async fn write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise HostError
 }
@@ -206,6 +223,10 @@ pub(open) trait HostEnv {
   fn env_get(Self, String) -> String? raise HostError
   fn env_entries(Self) -> Array[(String, String)] raise HostError
   fn current_dir(Self) -> @path.PathValue raise HostError
+}
+
+pub(open) trait HostExecutable {
+  fn set_executable(Self, @path.PathValue) -> Unit raise HostError
 }
 
 pub(open) trait HostFs {
@@ -229,6 +250,11 @@ pub(open) trait HostProcess {
 
 pub(open) trait HostRandom {
   fn random_bytes(Self, Int) -> Bytes raise HostError
+}
+
+pub(open) trait HostScriptTemp {
+  fn create_script_temp(Self, @path.PathValue, String, String, Bytes) -> @path.PathValue raise HostError
+  fn remove_script_temp(Self, @path.PathValue) -> Unit raise HostError
 }
 
 pub(open) trait HostSignal {

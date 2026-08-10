@@ -77,6 +77,142 @@ fn validate_effect_arity(
 }
 
 ///|
+/// Shell selected for effectful `shell()` calls and backticks.
+pub struct EffectShell {
+  program : String
+  arguments : Array[String]
+} derive(Eq, Debug)
+
+///|
+pub fn EffectShell::new(
+  program : String,
+  arguments : Array[String],
+) -> EffectShell {
+  { program, arguments: arguments.copy() }
+}
+
+///|
+pub fn EffectShell::program(self : EffectShell) -> String {
+  self.program
+}
+
+///|
+pub fn EffectShell::arguments(self : EffectShell) -> ArrayView[String] {
+  self.arguments[:]
+}
+
+///|
+fn effect_shell_kind(program : String) -> String {
+  let normalized = program.replace(old="\\", new="/")
+  normalized.split("/").last().unwrap_or(normalized[:]).to_owned()
+}
+
+///|
+fn strip_one_line_ending(text : String) -> String {
+  if text.has_suffix("\r\n") {
+    text[:text.length() - 2].to_owned()
+  } else if text.has_suffix("\n") {
+    text[:text.length() - 1].to_owned()
+  } else {
+    text
+  }
+}
+
+///|
+pub fn[T : @host.HostProcess] call_shell_effect(
+  host : T,
+  arguments : Array[Value],
+  context : EvaluationContext,
+  shell : EffectShell,
+  span : @source.Span,
+  quiet? : Bool = false,
+) -> Value raise EvaluationError {
+  let name = validate_effect_arity("shell", arguments, span)
+  let command = expect_string(name, arguments, 0, span)
+  let shell_arguments = shell.arguments().to_owned()
+  shell_arguments.push(command)
+  if arguments.length() > 1 {
+    match effect_shell_kind(shell.program()) {
+      "cmd"
+      | "cmd.exe"
+      | "powershell"
+      | "powershell.exe"
+      | "pwsh"
+      | "pwsh.exe" => ()
+      _ => shell_arguments.push(command)
+    }
+    for argument in arguments[1:] {
+      shell_arguments.push(expect_string(name, [argument], 0, span))
+    }
+  }
+  let spec = @host.CommandSpec::new(shell.program(), shell_arguments) catch {
+    error => raise Host(error, span~)
+  }
+  let cwd = require_context_path("cwd", context.cwd, span)
+  spec.set_cwd(cwd)
+  spec.set_inherit_stdin(true)
+  spec.set_stdout(Capture)
+  spec.set_stderr(if quiet { Discard } else { Inherit })
+  let output = @host.HostProcess::run_process(host, spec) catch {
+    error => raise Host(error, span~)
+  }
+  match output.termination() {
+    Exited(0) => ()
+    Exited(code) => raise ProcessFailure(code~, span~)
+    Signaled(signal) => raise ProcessSignaled(signal~, span~)
+  }
+  let text = bytes_text(output.stdout().to_owned(), span)
+  String(strip_one_line_ending(text))
+}
+
+///|
+/// Async counterpart used by native and wasm execution runtimes. It preserves
+/// the exact argv, cwd, stdio, trimming, and failure contract of the sync path.
+pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
+  host : T,
+  arguments : Array[Value],
+  context : EvaluationContext,
+  shell : EffectShell,
+  span : @source.Span,
+  quiet? : Bool = false,
+) -> Value raise EvaluationError {
+  let name = validate_effect_arity("shell", arguments, span)
+  let command = expect_string(name, arguments, 0, span)
+  let shell_arguments = shell.arguments().to_owned()
+  shell_arguments.push(command)
+  if arguments.length() > 1 {
+    match effect_shell_kind(shell.program()) {
+      "cmd"
+      | "cmd.exe"
+      | "powershell"
+      | "powershell.exe"
+      | "pwsh"
+      | "pwsh.exe" => ()
+      _ => shell_arguments.push(command)
+    }
+    for argument in arguments[1:] {
+      shell_arguments.push(expect_string(name, [argument], 0, span))
+    }
+  }
+  let spec = @host.CommandSpec::new(shell.program(), shell_arguments) catch {
+    error => raise Host(error, span~)
+  }
+  spec.set_cwd(require_context_path("cwd", context.cwd, span))
+  spec.set_inherit_stdin(true)
+  spec.set_stdout(Capture)
+  spec.set_stderr(if quiet { Discard } else { Inherit })
+  let output = @host.HostAsyncProcess::run_process_async(host, spec) catch {
+    error => raise Host(error, span~)
+  }
+  match output.termination() {
+    Exited(0) => ()
+    Exited(code) => raise ProcessFailure(code~, span~)
+    Signaled(signal) => raise ProcessSignaled(signal~, span~)
+  }
+  String(strip_one_line_ending(bytes_text(output.stdout().to_owned(), span)))
+}
+
+///|
 fn effect_failure(message : String, span : @source.Span) -> EvaluationError {
   Builtin(Failure(message~), span~)
 }
@@ -415,8 +551,8 @@ fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
 ///|
 /// Invoke a builtin using explicit invocation facts and host capabilities.
 pub fn[
-  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal,
-] call_effect_with_context(
+  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
+] call_non_process_effect_with_context(
   host : T,
   requested : String,
   arguments : Array[Value],
@@ -557,31 +693,7 @@ pub fn[
       }
       String(uuid_text(bytes))
     }
-    "shell" => {
-      let command = expect_string(name, arguments, 0, span)
-      let shell_arguments = ["-c", command]
-      if arguments.length() > 1 {
-        shell_arguments.push("--")
-        for argument in arguments[1:] {
-          shell_arguments.push(expect_string(name, [argument], 0, span))
-        }
-      }
-      let spec = @host.CommandSpec::new("sh", shell_arguments) catch {
-        error => raise Host(error, span~)
-      }
-      let cwd = require_context_path("cwd", context.cwd, span)
-      spec.set_cwd(cwd)
-      let output = @host.HostProcess::run_process(host, spec) catch {
-        error => raise Host(error, span~)
-      }
-      match output.termination() {
-        Exited(0) => ()
-        Exited(code) => raise ProcessFailure(code~, span~)
-        Signaled(signal) => raise ProcessSignaled(signal~, span~)
-      }
-      let text = bytes_text(output.stdout().to_owned(), span)
-      String(text.trim_end().to_owned())
-    }
+    "shell" => raise EffectRequired(effect="process", span~)
     "style" => style_value(host, arguments, span)
     "which" => {
       let executable = expect_string(name, arguments, 0, span)
@@ -602,6 +714,32 @@ pub fn[
       @builtin.call(name, arguments) catch {
         error => raise Builtin(error, span~)
       }
+  }
+}
+
+///|
+/// Invoke an effectful builtin using a synchronous process capability.
+pub fn[
+  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal,
+] call_effect_with_context(
+  host : T,
+  requested : String,
+  arguments : Array[Value],
+  context : EvaluationContext,
+  span : @source.Span,
+) -> Value raise EvaluationError {
+  if @builtin.canonical_name(requested) == "shell" {
+    call_shell_effect(
+      host,
+      arguments,
+      context,
+      EffectShell::new("sh", ["-cu"]),
+      span,
+    )
+  } else {
+    call_non_process_effect_with_context(
+      host, requested, arguments, context, span,
+    )
   }
 }
 
@@ -640,4 +778,16 @@ pub fn[
   span : @source.Span,
 ) -> Value raise EvaluationError {
   call_effect(host, "shell", [String(command)], cwd, span)
+}
+
+///|
+pub fn[T : @host.HostProcess] evaluate_backtick_with_shell(
+  host : T,
+  command : String,
+  context : EvaluationContext,
+  shell : EffectShell,
+  span : @source.Span,
+  quiet? : Bool = false,
+) -> Value raise EvaluationError {
+  call_shell_effect(host, [String(command)], context, shell, span, quiet~)
 }

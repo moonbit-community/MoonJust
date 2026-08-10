@@ -1,0 +1,9 @@
+[env]
+from_host = ["*"]
+
+[fs]
+read = ["*"]
+write = ["*"]
+
+[process]
+spawn = true

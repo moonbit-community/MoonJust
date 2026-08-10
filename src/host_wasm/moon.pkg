@@ -2,4 +2,13 @@ import {
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/host_native",
   "moonbit-community/MoonJust/src/path",
+  "moonbitlang/async/fs" @async_fs,
+  "moonbitlang/async/os_error",
+  "moonbitlang/core/env",
 }
+
+warnings = "-29"
+
+options(
+  targets: { "execution.mbt": [ "wasm" ] },
+)

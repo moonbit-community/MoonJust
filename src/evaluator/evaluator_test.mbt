@@ -351,8 +351,13 @@ test "effect context connects fs random clock process terminal and PATH facts" {
     ),
     String("\u{001b}[44;38;2;0;255;0mok\u{001b}[0m"),
   )
-  let command = @host.CommandSpec::new("sh", ["-c", "printf %s $1", "--", "ok"])
+  let command = @host.CommandSpec::new("sh", [
+    "-cu", "printf %s $1", "printf %s $1", "ok",
+  ])
   command.set_cwd(cwd)
+  command.set_inherit_stdin(true)
+  command.set_stdout(Capture)
+  command.set_stderr(Inherit)
   host.expect_process(command, @host.ProcessResult::new(0, b"ok\n", b""))
   assert_eq(
     call_effect_with_context(
@@ -365,6 +370,112 @@ test "effect context connects fs random clock process terminal and PATH facts" {
     String("ok"),
   )
   assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
+test "configured shell captures stdout and removes exactly one line ending" {
+  let host = fake()
+  let cwd = @path.PathValue::new("/workspace", Unix)
+  let span = try! @source.Span::new(@source.SourceId::new(71), 4, 12)
+  let context = EvaluationContext::new(cwd~)
+  let shell = EffectShell::new("bash", ["-eu", "-c"])
+  let command = @host.CommandSpec::new("bash", [
+    "-eu", "-c", "emit", "emit", "arg",
+  ])
+  command.set_cwd(cwd)
+  command.set_inherit_stdin(true)
+  command.set_stdout(Capture)
+  command.set_stderr(Inherit)
+  host.expect_process(
+    command,
+    @host.ProcessResult::new(0, b"value  \r\n\n", b"visible\n"),
+  )
+  assert_eq(
+    call_shell_effect(
+      host,
+      [String("emit"), String("arg")],
+      context,
+      shell,
+      span,
+    ),
+    String("value  \r\n"),
+  )
+}
+
+///|
+test "nested backticks use the effect handler while pure evaluation stays denied" {
+  let host = fake()
+  let cwd = @path.PathValue::new("/workspace", Unix)
+  let context = EvaluationContext::new(cwd~)
+  let shell = EffectShell::new("sh", ["-cu"])
+  let command = @host.CommandSpec::new("sh", ["-cu", "printf ok"])
+  command.set_cwd(cwd)
+  command.set_inherit_stdin(true)
+  command.set_stdout(Capture)
+  command.set_stderr(Inherit)
+  host.expect_process(command, @host.ProcessResult::new(0, b"ok\n", b""))
+  let expression = try! @parser.parse_expression(
+    @source.Source::from_text(@source.SourceId::new(73), "expr", "`printf ok`"),
+  )
+  assert_eq(
+    evaluate_with_effects(host, expression, context, shell),
+    String("ok"),
+  )
+  try evaluate(expression) catch {
+    EffectRequired(effect="process", ..) => ()
+    _ => fail("unexpected pure evaluation result")
+  } noraise {
+    _ => fail("expected pure effect denial")
+  }
+}
+
+///|
+test "quiet shell discards stderr and preserves typed failures" {
+  let host = fake()
+  let cwd = @path.PathValue::new("/workspace", Unix)
+  let span = try! @source.Span::new(@source.SourceId::new(72), 0, 4)
+  let context = EvaluationContext::new(cwd~)
+  let shell = EffectShell::new("powershell.exe", ["-NoLogo", "-Command"])
+  let failed = @host.CommandSpec::new("powershell.exe", [
+    "-NoLogo", "-Command", "exit 17",
+  ])
+  failed.set_cwd(cwd)
+  failed.set_inherit_stdin(true)
+  failed.set_stdout(Capture)
+  failed.set_stderr(Discard)
+  host.expect_process(failed, @host.ProcessResult::new(17, b"", b""))
+  try
+    evaluate_backtick_with_shell(
+      host,
+      "exit 17",
+      context,
+      shell,
+      span,
+      quiet=true,
+    )
+  catch {
+    ProcessFailure(code=17, span=error_span) => assert_eq(error_span, span)
+    error => fail("unexpected backtick failure: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected backtick failure")
+  }
+  let signaled = @host.CommandSpec::new("powershell.exe", [
+    "-NoLogo", "-Command", "stop",
+  ])
+  signaled.set_cwd(cwd)
+  signaled.set_inherit_stdin(true)
+  signaled.set_stdout(Capture)
+  signaled.set_stderr(Inherit)
+  host.expect_process(
+    signaled,
+    @host.ProcessResult::from_signal(Terminate, b"", b""),
+  )
+  try evaluate_backtick_with_shell(host, "stop", context, shell, span) catch {
+    ProcessSignaled(signal=Terminate, ..) => ()
+    error => fail("unexpected backtick signal: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected backtick signal")
+  }
 }
 
 ///|

@@ -5,6 +5,7 @@ import {
   "moonbit-community/MoonJust/src/cli",
   "moonbit-community/MoonJust/src/environment",
   "moonbit-community/MoonJust/src/evaluator",
+  "moonbit-community/MoonJust/src/executor",
   "moonbit-community/MoonJust/src/formatter",
   "moonbit-community/MoonJust/src/host",
   "moonbit-community/MoonJust/src/invocation",
@@ -27,6 +28,10 @@ pub fn[T : @host.HostFs] execute_query_command(T, @cli.CliArguments, Application
 
 pub fn inspect_json_schema_version() -> Int
 
+pub fn[F : @host.HostFs, E : @host.HostEnv] plan_run_command(F, E, @cli.CliArguments, ApplicationContext) -> @executor.ExecutionPlan raise ApplicationError
+
+pub async fn[F : @host.HostFs, P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_run_command_async(F, H, P, @cli.CliArguments, ApplicationContext) -> @executor.ExecutionPlan raise ApplicationError
+
 // Errors
 pub(all) suberror ApplicationError {
   Cli(@cli.CliParseError)
@@ -34,6 +39,8 @@ pub(all) suberror ApplicationError {
   Format(@formatter.FormatterError)
   Evaluation(@evaluator.EvaluationError)
   Environment(@environment.EnvironmentConfigError)
+  Dotenv(@environment.DotenvError)
+  Executor(@executor.ExecutionError)
   Host(@host.HostError)
   Invocation(@invocation.InvocationError)
   Path(@path.PathError)

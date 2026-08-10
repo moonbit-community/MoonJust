@@ -2,6 +2,9 @@
 type Value = @value.Value
 
 ///|
+type EffectHandler = (String, Array[Value], @source.Span) -> Value raise EvaluationError
+
+///|
 pub(all) struct EvaluationLimits {
   max_depth : Int
   max_nodes : Int
@@ -27,6 +30,7 @@ priv struct Evaluator {
   environment : Environment
   limits : EvaluationLimits
   context : EvaluationContext?
+  effect_handler : EffectHandler?
   mut depth : Int
   mut nodes : Int
 }
@@ -135,7 +139,11 @@ fn Evaluator::eval_inner(
   self.enter(span)
   let result : Value = match expression {
     String(literal) => String(literal.cooked())
-    Backtick(_) => raise EffectRequired(effect="process", span~)
+    Backtick(literal) =>
+      match self.effect_handler {
+        Some(handler) => handler("shell", [String(literal.cooked())], span)
+        None => raise EffectRequired(effect="process", span~)
+      }
     Boolean(value~, ..) => Bool(value)
     Variable(name~, ..) =>
       match self.environment.get(name) {
@@ -153,7 +161,11 @@ fn Evaluator::eval_inner(
             }
             match context_builtin(name, values, context, span) {
               Some(value) => value
-              None => raise EffectRequired(effect=name, span~)
+              None =>
+                match self.effect_handler {
+                  Some(handler) => handler(name, values, span)
+                  None => raise EffectRequired(effect=name, span~)
+                }
             }
           }
         }
@@ -231,6 +243,7 @@ pub fn evaluate(
     environment,
     limits,
     context: None,
+    effect_handler: None,
     depth: 0,
     nodes: 0,
   }
@@ -248,6 +261,44 @@ pub fn evaluate_with_context(
     environment,
     limits,
     context: Some(context),
+    effect_handler: None,
+    depth: 0,
+    nodes: 0,
+  }
+  evaluator.eval(expression)
+}
+
+///|
+/// Evaluate one expression with process-backed effects. The handler is kept
+/// inside the evaluator so nested format/list/binary expressions use identical
+/// recursion limits and diagnostics as pure evaluation.
+pub fn[
+  T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal,
+] evaluate_with_effects(
+  host : T,
+  expression : @syntax.Expression,
+  context : EvaluationContext,
+  shell : EffectShell,
+  quiet? : Bool = false,
+  environment? : Environment = Environment::new(),
+  limits? : EvaluationLimits = EvaluationLimits::default(),
+) -> Value raise EvaluationError {
+  let handler : EffectHandler = fn(
+    name,
+    arguments,
+    span,
+  ) -> Value raise EvaluationError {
+    if name == "shell" {
+      call_shell_effect(host, arguments, context, shell, span, quiet~)
+    } else {
+      call_effect_with_context(host, name, arguments, context, span)
+    }
+  }
+  let evaluator : Evaluator = {
+    environment,
+    limits,
+    context: Some(context),
+    effect_handler: Some(handler),
     depth: 0,
     nodes: 0,
   }

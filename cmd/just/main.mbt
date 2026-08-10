@@ -37,8 +37,12 @@ fn failure(message : String, exit_code : Int) -> @cli.ApplicationResponse {
 }
 
 ///|
-fn[T : @host.HostFs + @host.HostTemp] run_cli(
-  host : T,
+async fn[
+  F : @host.HostFs + @host.HostTemp + @host.HostAsyncScriptTemp,
+  E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
+] run_cli(
+  host : F,
+  environment_host : E,
   argv : ArrayView[String],
   stdin : Bytes,
 ) -> @cli.ApplicationResponse {
@@ -67,10 +71,48 @@ fn[T : @host.HostFs + @host.HostTemp] run_cli(
     value => value
   }
   let context = @application.ApplicationContext::new(cwd, stdin~)
-  try @application.execute_command(host, arguments, context) catch {
-    error => failure(error.message(), error.exit_code())
-  } noraise {
-    response => response
+  if arguments.command() == RunCommand {
+    let process = @host_process.ProcessAdapter::new()
+    let plan = try
+      @application.plan_run_command_async(
+        host, environment_host, process, arguments, context,
+      )
+    catch {
+      error => return failure(error.message(), error.exit_code())
+    } noraise {
+      value => value
+    }
+    let report = try
+      @runtime.execute_plan(process, host, environment_host, plan)
+    catch {
+      error => {
+        let stderr : Array[Byte] = []
+        for byte in error.stderr() {
+          stderr.push(byte)
+        }
+        for byte in @utf8.encode(error.message().trim_end().to_owned() + "\n") {
+          stderr.push(byte)
+        }
+        return @cli.ApplicationResponse::new(
+          error.stdout().to_owned(),
+          Bytes::from_array(stderr),
+          error.exit_code(),
+        )
+      }
+    } noraise {
+      value => value
+    }
+    @cli.ApplicationResponse::new(
+      report.stdout().to_owned(),
+      report.stderr().to_owned(),
+      0,
+    )
+  } else {
+    try @application.execute_command(host, arguments, context) catch {
+      error => failure(error.message(), error.exit_code())
+    } noraise {
+      response => response
+    }
   }
 }
 
@@ -96,7 +138,9 @@ async fn main {
   } else {
     b""
   }
-  emit_response(run_cli(runtime_host(), argv, stdin)) catch {
+  emit_response(
+    run_cli(runtime_host(), runtime_environment_host(), argv, stdin),
+  ) catch {
     _ => runtime_exit(1)
   }
 }

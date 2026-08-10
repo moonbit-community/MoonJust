@@ -15,6 +15,9 @@ options(
     "range_portable.mbt": [ "wasm", "wasm-gc", "js" ],
     "transaction_native.mbt": [ "native", "llvm" ],
     "transaction_portable.mbt": [ "wasm", "wasm-gc", "js" ],
+    "async_script_native.mbt": [ "native", "llvm" ],
+    "clock_native.mbt": [ "native", "llvm" ],
+    "clock_portable.mbt": [ "wasm", "wasm-gc", "js" ],
     "native_test.mbt": [ "native", "llvm" ],
   },
 )
