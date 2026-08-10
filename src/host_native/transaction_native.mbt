@@ -31,6 +31,10 @@ extern "C" fn persist_temp_ffi(
 ) -> Int = "moonjust_host_persist_temp"
 
 ///|
+#borrow(path)
+extern "C" fn set_executable_ffi(path : NativePath) -> Int = "moonjust_host_set_executable"
+
+///|
 fn transaction_error(
   status : Int,
   path : @path.PathValue,
@@ -89,6 +93,52 @@ fn create_native_temp(
     }
   }
   raise InvalidInput("temporary file namespace exhausted")
+}
+
+///|
+fn create_native_script_temp(
+  directory : @path.PathValue,
+  stem : String,
+  extension : String,
+  contents : Bytes,
+) -> @path.PathValue raise @host.HostError {
+  if stem == "" ||
+    stem.contains("/") ||
+    stem.contains("\\") ||
+    extension.contains("/") ||
+    extension.contains("\\") {
+    raise InvalidInput("invalid temporary script name")
+  }
+  for _ in 0..<128 {
+    let filename = @path.PathValue::new(
+      stem + "." + random_suffix() + extension,
+      directory.flavor(),
+    ) catch {
+      _ => raise InvalidInput("invalid temporary script name")
+    }
+    let candidate = directory.join(filename) catch {
+      _ => raise InvalidInput("temporary script path flavor mismatch")
+    }
+    let status = create_exclusive_ffi(
+      NativePath::from_path(candidate),
+      contents,
+    )
+    if status == 0 {
+      return candidate
+    }
+    if status != 1 {
+      raise transaction_error(status, candidate, FsWrite)
+    }
+  }
+  raise InvalidInput("temporary script namespace exhausted")
+}
+
+///|
+fn set_native_executable(path : @path.PathValue) -> Unit raise @host.HostError {
+  let status = set_executable_ffi(NativePath::from_path(path))
+  if status != 0 {
+    raise transaction_error(status, path, FsWrite)
+  }
 }
 
 ///|

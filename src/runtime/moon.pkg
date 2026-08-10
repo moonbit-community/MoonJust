@@ -1,0 +1,17 @@
+import {
+  "moonbit-community/MoonJust/src/executor",
+  "moonbit-community/MoonJust/src/host",
+  "moonbitlang/async",
+}
+
+import {
+  "moonbit-community/MoonJust/src/environment",
+  "moonbit-community/MoonJust/src/evaluator",
+  "moonbit-community/MoonJust/src/parser",
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/semantic",
+  "moonbit-community/MoonJust/src/source",
+  "moonbitlang/async",
+} for "test"
+
+supported_targets = "-all+native+wasm"

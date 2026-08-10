@@ -263,13 +263,13 @@ test "dotenv commands merge in order honor override and skip dry runs" {
   first.set_cwd(unix_path("/work"))
   host.expect_process(
     first,
-    @host.ProcessOutput::new(0, b"A=one\nKEY=first", b""),
+    @host.ProcessResult::new(0, b"A=one\nKEY=first", b""),
   )
   let second = try! @host.CommandSpec::new("sh", ["-c", "second"])
   second.set_cwd(unix_path("/work"))
   host.expect_process(
     second,
-    @host.ProcessOutput::new(0, b"B=two\nKEY=second", b""),
+    @host.ProcessResult::new(0, b"B=two\nKEY=second", b""),
   )
   let commands = [
     try! @host.CommandSpec::new("sh", ["-c", "first"]),
@@ -306,7 +306,7 @@ test "dotenv command honors ambient precedence and propagates redacted status" {
   expected.set_cwd(unix_path("/work"))
   host.expect_process(
     expected,
-    @host.ProcessOutput::new(0, b"TOKEN=dotenv", b""),
+    @host.ProcessResult::new(0, b"TOKEN=dotenv", b""),
   )
   let ambient = EnvTable::from_entries([("TOKEN", "shell-secret")][:])
   let preserved = load_dotenv_commands(
@@ -326,7 +326,7 @@ test "dotenv command honors ambient precedence and propagates redacted status" {
   override_expected.set_cwd(unix_path("/work"))
   override_host.expect_process(
     override_expected,
-    @host.ProcessOutput::new(0, b"TOKEN=dotenv", b""),
+    @host.ProcessResult::new(0, b"TOKEN=dotenv", b""),
   )
   let overridden = load_dotenv_commands(
     override_host,
@@ -345,7 +345,7 @@ test "dotenv command honors ambient precedence and propagates redacted status" {
   failing.set_cwd(unix_path("/work"))
   failure_host.expect_process(
     failing,
-    @host.ProcessOutput::new(42, b"", b"secret diagnostic"),
+    @host.ProcessResult::new(42, b"", b"secret diagnostic"),
   )
   try
     ignore(

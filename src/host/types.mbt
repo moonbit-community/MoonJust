@@ -132,14 +132,33 @@ pub(all) enum SignalKind {
 } derive(Eq, Debug)
 
 ///|
+/// How a child stream is connected to the MoonJust process.
+pub(all) enum StdioBehavior {
+  /// Capture the stream in the returned `ProcessResult`.
+  Capture
+  /// Connect the stream directly to the parent process.
+  Inherit
+  /// Connect the stream to the platform null device.
+  Discard
+} derive(Eq, Debug)
+
+///|
 /// A shell-independent process request.
+///
+/// `Debug` is implemented manually and deliberately omits argument values,
+/// environment values, and stdin bytes. Process specifications may contain
+/// secrets and must never be exposed through structural diagnostics.
 pub struct CommandSpec {
   program : String
   arguments : Array[String]
   mut cwd : @path.PathValue?
   environment : Array[(String, String)]
+  mut inherit_environment : Bool
   mut stdin : Bytes
-} derive(Eq, Debug)
+  mut inherit_stdin : Bool
+  mut stdout : StdioBehavior
+  mut stderr : StdioBehavior
+} derive(Eq)
 
 ///|
 pub fn CommandSpec::new(
@@ -154,7 +173,11 @@ pub fn CommandSpec::new(
     arguments: arguments[:].to_owned(),
     cwd: None,
     environment: [],
+    inherit_environment: true,
     stdin: b"",
+    inherit_stdin: false,
+    stdout: Capture,
+    stderr: Capture,
   }
 }
 
@@ -181,8 +204,28 @@ pub fn CommandSpec::environment(
 }
 
 ///|
+pub fn CommandSpec::inherits_environment(self : CommandSpec) -> Bool {
+  self.inherit_environment
+}
+
+///|
 pub fn CommandSpec::stdin(self : CommandSpec) -> BytesView {
   self.stdin[:]
+}
+
+///|
+pub fn CommandSpec::inherits_stdin(self : CommandSpec) -> Bool {
+  self.inherit_stdin
+}
+
+///|
+pub fn CommandSpec::stdout(self : CommandSpec) -> StdioBehavior {
+  self.stdout
+}
+
+///|
+pub fn CommandSpec::stderr(self : CommandSpec) -> StdioBehavior {
+  self.stderr
 }
 
 ///|
@@ -202,42 +245,148 @@ pub fn CommandSpec::add_environment(
     value.contains("\u{0000}") {
     raise InvalidInput("invalid process environment entry")
   }
+  for index, entry in self.environment {
+    if entry.0 == key {
+      self.environment[index] = (key, value)
+      return
+    }
+  }
   self.environment.push((key, value))
+}
+
+///|
+pub fn CommandSpec::set_inherit_environment(
+  self : CommandSpec,
+  should_inherit : Bool,
+) -> Unit {
+  self.inherit_environment = should_inherit
 }
 
 ///|
 pub fn CommandSpec::set_stdin(self : CommandSpec, stdin : Bytes) -> Unit {
   self.stdin = stdin
+  self.inherit_stdin = false
 }
 
 ///|
-/// Captured result of one child process.
-pub struct ProcessOutput {
-  exit_code : Int
-  stdout : Bytes
-  stderr : Bytes
+pub fn CommandSpec::set_inherit_stdin(
+  self : CommandSpec,
+  should_inherit : Bool,
+) -> Unit {
+  self.inherit_stdin = should_inherit
+  if should_inherit {
+    self.stdin = b""
+  }
+}
+
+///|
+pub fn CommandSpec::set_stdout(
+  self : CommandSpec,
+  behavior : StdioBehavior,
+) -> Unit {
+  self.stdout = behavior
+}
+
+///|
+pub fn CommandSpec::set_stderr(
+  self : CommandSpec,
+  behavior : StdioBehavior,
+) -> Unit {
+  self.stderr = behavior
+}
+
+///|
+pub impl Debug for CommandSpec with fn to_repr(self) {
+  Repr::record({
+    "program": Repr(self.program),
+    "argument_count": Repr(self.arguments.length()),
+    "cwd": Repr(self.cwd),
+    "environment_keys": Repr(self.environment.map(fn(entry) { entry.0 })),
+    "inherits_environment": Repr(self.inherit_environment),
+    "stdin_bytes": Repr(self.stdin.length()),
+    "inherits_stdin": Repr(self.inherit_stdin),
+    "stdout": Repr(self.stdout),
+    "stderr": Repr(self.stderr),
+  })
+}
+
+///|
+/// How a child process terminated.
+pub(all) enum ProcessTermination {
+  Exited(Int)
+  Signaled(SignalKind)
 } derive(Eq, Debug)
 
 ///|
-pub fn ProcessOutput::new(
+/// Captured result of one child process.
+///
+/// Structural debug output reports byte counts instead of captured contents,
+/// since child output may contain credentials or other sensitive values.
+pub struct ProcessResult {
+  termination : ProcessTermination
+  stdout : Bytes
+  stderr : Bytes
+} derive(Eq)
+
+///|
+pub fn ProcessResult::new(
   exit_code : Int,
   stdout : Bytes,
   stderr : Bytes,
-) -> ProcessOutput {
-  { exit_code, stdout, stderr }
+) -> ProcessResult {
+  { termination: Exited(exit_code), stdout, stderr }
 }
 
 ///|
-pub fn ProcessOutput::exit_code(self : ProcessOutput) -> Int {
-  self.exit_code
+pub fn ProcessResult::from_signal(
+  signal : SignalKind,
+  stdout : Bytes,
+  stderr : Bytes,
+) -> ProcessResult {
+  { termination: Signaled(signal), stdout, stderr }
 }
 
 ///|
-pub fn ProcessOutput::stdout(self : ProcessOutput) -> BytesView {
+pub fn ProcessResult::termination(self : ProcessResult) -> ProcessTermination {
+  self.termination
+}
+
+///|
+pub fn ProcessResult::exit_code(self : ProcessResult) -> Int? {
+  match self.termination {
+    Exited(code) => Some(code)
+    Signaled(_) => None
+  }
+}
+
+///|
+pub fn ProcessResult::signal(self : ProcessResult) -> SignalKind? {
+  match self.termination {
+    Exited(_) => None
+    Signaled(signal) => Some(signal)
+  }
+}
+
+///|
+pub fn ProcessResult::success(self : ProcessResult) -> Bool {
+  self.termination == Exited(0)
+}
+
+///|
+pub fn ProcessResult::stdout(self : ProcessResult) -> BytesView {
   self.stdout[:]
 }
 
 ///|
-pub fn ProcessOutput::stderr(self : ProcessOutput) -> BytesView {
+pub fn ProcessResult::stderr(self : ProcessResult) -> BytesView {
   self.stderr[:]
+}
+
+///|
+pub impl Debug for ProcessResult with fn to_repr(self) {
+  Repr::record({
+    "termination": Repr(self.termination),
+    "stdout_bytes": Repr(self.stdout.length()),
+    "stderr_bytes": Repr(self.stderr.length()),
+  })
 }

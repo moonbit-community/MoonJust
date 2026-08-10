@@ -17,19 +17,35 @@ import {
 // Values
 pub fn bind_recipe_parameters(@syntax.Recipe, Array[@value.Value], Environment, limits? : EvaluationLimits) -> Environment raise EvaluationError
 
+pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] bind_recipe_parameters_with_async_effects(P, H, @syntax.Recipe, Array[@value.Value], Environment, EvaluationContext, EffectShell, quiet? : Bool, limits? : EvaluationLimits) -> Environment raise EvaluationError
+
 pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect(T, String, Array[@value.Value], @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
 pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect_with_context(T, String, Array[@value.Value], EvaluationContext, @source.Span) -> @value.Value raise EvaluationError
+
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] call_non_process_effect_with_context(T, String, Array[@value.Value], EvaluationContext, @source.Span) -> @value.Value raise EvaluationError
+
+pub fn[T : @host.HostProcess] call_shell_effect(T, Array[@value.Value], EvaluationContext, EffectShell, @source.Span, quiet? : Bool) -> @value.Value raise EvaluationError
+
+pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(T, Array[@value.Value], EvaluationContext, EffectShell, @source.Span, quiet? : Bool) -> @value.Value raise EvaluationError
 
 pub fn evaluate(@syntax.Expression, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
 pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
+pub fn[T : @host.HostProcess] evaluate_backtick_with_shell(T, String, EvaluationContext, EffectShell, @source.Span, quiet? : Bool) -> @value.Value raise EvaluationError
+
 pub fn evaluate_compilation(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)]) -> Environment raise EvaluationError
+
+pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_compilation_with_async_effects(P, H, @semantic.Compilation, EvaluationContext, EffectShell, environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)], quiet? : Bool) -> Environment raise EvaluationError
 
 pub fn evaluate_source(@source.Source, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
+pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_with_async_effects(P, H, @syntax.Expression, EvaluationContext, EffectShell, quiet? : Bool, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
+
 pub fn evaluate_with_context(@syntax.Expression, EvaluationContext, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
+
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_with_effects(T, @syntax.Expression, EvaluationContext, EffectShell, quiet? : Bool, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
 // Errors
 pub(all) suberror EvaluationError {
@@ -41,6 +57,7 @@ pub(all) suberror EvaluationError {
   EffectRequired(effect~ : String, span~ : @source.Span)
   Host(@host.HostError, span~ : @source.Span)
   ProcessFailure(code~ : Int, span~ : @source.Span)
+  ProcessSignaled(signal~ : @host.SignalKind, span~ : @source.Span)
   InvalidUtf8(span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
@@ -55,6 +72,14 @@ pub fn EvaluationError::span(Self) -> @source.Span
 pub fn EvaluationError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
 
 // Types and methods
+pub struct EffectShell {
+  program : String
+  arguments : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn EffectShell::arguments(Self) -> ArrayView[String]
+pub fn EffectShell::new(String, Array[String]) -> Self
+pub fn EffectShell::program(Self) -> String
+
 pub struct Environment {
   values : Map[String, @value.Value]
   ordered : Array[String]

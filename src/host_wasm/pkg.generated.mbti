@@ -12,6 +12,14 @@ import {
 // Errors
 
 // Types and methods
+pub struct ExecutionFs {
+  reads : ReadOnlyFs
+}
+pub fn ExecutionFs::new() -> Self
+pub impl @host.HostAsyncScriptTemp for ExecutionFs
+pub impl @host.HostFs for ExecutionFs
+pub impl @host.HostTemp for ExecutionFs
+
 pub struct ReadOnlyFs {
   inner : @host_native.NativeFs
 }

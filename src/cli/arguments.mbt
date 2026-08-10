@@ -412,6 +412,15 @@ fn supported_option(token : String) -> Bool {
     | "--no-dotenv"
     | "--dry-run"
     | "-n"
+    | "--quiet"
+    | "-q"
+    | "--time"
+    | "--timestamp"
+    | "--verbose"
+    | "-v"
+    | "--command-color"
+    | "--timestamp-format"
+    | "--color"
     | "--set"
     | "--shell"
     | "--shell-arg"
@@ -451,6 +460,8 @@ fn option_name(token : String) -> String {
 fn supported_value_option(name : String) -> Bool {
   match name {
     "--alias-style"
+    | "--color"
+    | "--command-color"
     | "--dump-format"
     | "--evaluate-format"
     | "--group"
@@ -467,6 +478,7 @@ fn supported_value_option(name : String) -> Bool {
     | "--shell"
     | "--shell-arg"
     | "--tempdir"
+    | "--timestamp-format"
     | "--working-directory"
     | "-d" => true
     _ => false

@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation workdir application"
+phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation workdir executor application"
 
 fail() {
   echo "architecture boundary error: $1" >&2
@@ -18,15 +18,40 @@ for package in $phase_packages; do
 
   for file in "$package_dir"/*.mbt "$package_dir/moon.pkg"; do
     [ -f "$file" ] || continue
-    if grep -nE \
+    if [ "$(basename "$file")" = "moon.pkg" ]; then
+      production_imports=$(awk '
+        /^import \{/ { in_import=1; block=$0 "\\n"; next }
+        in_import {
+          block=block $0 "\\n"
+          if ($0 ~ /^}/) {
+            if ($0 !~ /for "test"/ && block ~ /moonbitlang\/async|native-stub/) print block
+            in_import=0
+          }
+          next
+        }
+      ' "$file")
+      if [ -n "$production_imports" ]; then
+        printf '%s\n' "$production_imports"
+        fail "target-specific implementation found in src/$package"
+      fi
+    elif grep -nE \
       '#cfg|#external|extern[[:space:]]+"|native-stub|moonbitlang/async' \
       "$file"; then
       fail "target-specific implementation found in src/$package"
     fi
-    if [ "$package" != host ] && grep -nE 'async[[:space:]]+fn' "$file"; then
+    if [ "$package" != host ] && [ "$package" != evaluator ] && \
+      [ "$package" != executor ] && [ "$package" != application ] && \
+      grep -nE 'async[[:space:]]+fn' "$file"; then
       fail "async implementation found in src/$package"
     fi
   done
+done
+
+for package in evaluator executor application; do
+  if grep -nE 'moonbitlang/async|#cfg|#external|extern[[:space:]]+"' \
+    "$repo_root/src/$package"/*.mbt; then
+    fail "src/$package async capability API imports a runtime or target implementation"
+  fi
 done
 
 pure_packages="source diagnostic path cli lexer syntax parser formatter semantic value builtin invocation workdir"
@@ -48,8 +73,8 @@ fi
 
 [ -f "$repo_root/src/host_wasm/moon.pkg" ] || fail "missing Wasm host adapter package"
 [ -f "$repo_root/src/host_wasm/pkg.generated.mbti" ] || fail "missing Wasm host adapter interface"
-if grep -nE 'Host(Process|Env|Clock|Random|Terminal|Signal)|write_bytes_to_file' \
-  "$repo_root/src/host_wasm"/*.mbt; then
+if grep -nE 'Host(Process|Env|Clock|Random|Terminal|Signal|AsyncScriptTemp)|write_bytes_to_file' \
+  "$repo_root/src/host_wasm/read_only.mbt"; then
   fail "Wasm inspect adapter exposes a forbidden capability"
 fi
 grep -Eq '^write = \[\]$' "$repo_root/policies/inspect.toml" || \
@@ -66,4 +91,4 @@ if grep -nE 'Host(Process|Env|Clock|Terminal|Signal)|wasi_snapshot_preview1' \
   fail "Wasm transaction adapter crosses its capability boundary"
 fi
 
-echo "architecture boundaries verified for eighteen core packages and host adapter leaves"
+echo "architecture boundaries verified for nineteen core packages and host adapter leaves"

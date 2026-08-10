@@ -1,0 +1,29 @@
+schema_version = 1
+phase = 8
+upstream = "just 1.57.0"
+status = "implemented"
+plan_exit = "passed"
+report = "docs/PHASE_8_REPORT.md"
+audit = "docs/PHASE_8_SECURITY_AUDIT.md"
+
+[contracts]
+process_ir = "redacted shell-independent argv/env/cwd/stdin/stdout/stderr and signal-aware results"
+ordinary_lines = "ordered interpolation, echo, quiet, ignore-error, and side-effect-free dry-run"
+scripts = "temporary script, shebang/interpreter, extension, permissions, and cleanup"
+effects = "backtick and shell capture, single newline trimming, stderr policy, and typed failure"
+dependencies = "deterministic source order, once-by-name-and-arguments, starred arguments, and subsequent dependencies"
+output = "separate stdout/stderr, retained partial output, stable failure diagnostics, verbosity/timestamp/color primitives"
+cancellation = "structured process cancellation and cancellation-protected script cleanup"
+wasm = "moonrun process adapter with exact cwd/env/stdio and explicit inspect/execute policies"
+
+[target_matrix]
+native = "pass: 236 tests"
+wasm1 = "pass: 232 tests"
+native_signal = "pass: TERM mapped to structured termination"
+wasm_policy = "execute policy permits spawn/temp scripts; inspect policy denies spawn/write"
+remote_ci = "pass: PR #37 run 31393683064"
+
+[evidence]
+executor_gate = "tools/check_phase8_executor.sh"
+security_audit = "docs/PHASE_8_SECURITY_AUDIT.md"
+upstream_smoke = "tests/fixtures/phase-8"

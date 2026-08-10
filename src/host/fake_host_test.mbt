@@ -122,8 +122,18 @@ test "process requests match structured expectations exactly" {
   let command = @host.CommandSpec::new("sh", ["-c", "printf ok"])
   command.set_cwd(@path.PathValue::new("/workspace", Unix))
   command.add_environment("MODE", "test")
+  command.add_environment("MODE", "release")
+  command.set_inherit_environment(false)
   command.set_stdin(b"input")
-  let output = @host.ProcessOutput::new(7, b"ok", b"warning")
+  command.set_stdout(Inherit)
+  command.set_stderr(Discard)
+  assert_eq(command.environment(), [("MODE", "release")])
+  assert_false(command.inherits_environment())
+  assert_false(command.inherits_stdin())
+  assert_eq(command.stdin(), b"input")
+  assert_eq(command.stdout(), Inherit)
+  assert_eq(command.stderr(), Discard)
+  let output = @host.ProcessResult::new(7, b"ok", b"warning")
   host.expect_process(command, output)
   assert_eq(host.run_process(command), output)
   assert_eq(host.process_calls().length(), 1)
@@ -137,11 +147,57 @@ test "process requests match structured expectations exactly" {
 }
 
 ///|
+test "process IR distinguishes exit signal and redacts sensitive payloads" {
+  let command = @host.CommandSpec::new("secret-program", [
+    "--token", "argument-secret",
+  ])
+  command.add_environment("TOKEN", "environment-secret")
+  command.set_stdin(b"stdin-secret")
+  let command_debug = "\{Repr(command)}"
+  assert_true(command_debug.contains("secret-program"))
+  assert_true(command_debug.contains("TOKEN"))
+  assert_false(command_debug.contains("argument-secret"))
+  assert_false(command_debug.contains("environment-secret"))
+  assert_false(command_debug.contains("stdin-secret"))
+  let exited = @host.ProcessResult::new(0, b"stdout-secret", b"stderr-secret")
+  assert_eq(exited.termination(), Exited(0))
+  assert_eq(exited.exit_code(), Some(0))
+  assert_eq(exited.signal(), None)
+  assert_true(exited.success())
+  let exited_debug = "\{Repr(exited)}"
+  assert_false(exited_debug.contains("stdout-secret"))
+  assert_false(exited_debug.contains("stderr-secret"))
+  let signaled = @host.ProcessResult::from_signal(
+    Terminate,
+    b"partial-output",
+    b"partial-error",
+  )
+  assert_eq(signaled.termination(), Signaled(Terminate))
+  assert_eq(signaled.exit_code(), None)
+  assert_eq(signaled.signal(), Some(Terminate))
+  assert_false(signaled.success())
+  assert_false("\{Repr(signaled)}".contains("partial-output"))
+}
+
+///|
+test "inherited stdin clears buffered input" {
+  let command = @host.CommandSpec::new("tool", [])
+  assert_true(command.inherits_environment())
+  assert_false(command.inherits_stdin())
+  assert_eq(command.stdout(), Capture)
+  assert_eq(command.stderr(), Capture)
+  command.set_stdin(b"buffered")
+  command.set_inherit_stdin(true)
+  assert_true(command.inherits_stdin())
+  assert_eq(command.stdin(), b"")
+}
+
+///|
 test "process mismatches report expected and actual requests" {
   let host = fake()
   let expected = @host.CommandSpec::new("just", ["build"])
   let actual = @host.CommandSpec::new("just", ["test"])
-  host.expect_process(expected, @host.ProcessOutput::new(0, b"", b""))
+  host.expect_process(expected, @host.ProcessResult::new(0, b"", b""))
   try host.run_process(actual) catch {
     ProcessMismatch(expected=seen_expected, actual=seen_actual) => {
       assert_eq(seen_expected, expected)

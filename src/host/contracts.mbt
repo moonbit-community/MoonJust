@@ -20,6 +20,36 @@ pub(open) trait HostTemp {
 }
 
 ///|
+/// Temporary script creation keeps a required filename extension at the end.
+/// This is separate from atomic-write temporaries, whose names need no suffix.
+pub(open) trait HostScriptTemp {
+  fn create_script_temp(Self, @path.PathValue, String, String, Bytes) -> @path.PathValue raise HostError
+  fn remove_script_temp(Self, @path.PathValue) -> Unit raise HostError
+}
+
+///|
+/// Mark a generated script as directly executable where the platform requires
+/// it. Windows adapters implement this as a successful no-op.
+pub(open) trait HostExecutable {
+  fn set_executable(Self, @path.PathValue) -> Unit raise HostError
+}
+
+///|
+/// Async temporary-script lifecycle for native and wasm execution runtimes.
+/// `executable` requests mode 0700 at creation time where supported.
+pub(open) trait HostAsyncScriptTemp {
+  async fn create_script_temp_async(
+    Self,
+    @path.PathValue,
+    String,
+    String,
+    Bytes,
+    Bool,
+  ) -> @path.PathValue raise HostError
+  async fn remove_script_temp_async(Self, @path.PathValue) -> Unit raise HostError
+}
+
+///|
 /// Atomic filesystem transaction available to asynchronous host adapters.
 /// Wasm implementations use this contract so moonrun can enforce filesystem
 /// policy around create, remove, and rename operations.
@@ -121,7 +151,14 @@ pub(open) trait HostEnv {
 ///|
 /// Structured child-process execution.
 pub(open) trait HostProcess {
-  fn run_process(Self, CommandSpec) -> ProcessOutput raise HostError
+  fn run_process(Self, CommandSpec) -> ProcessResult raise HostError
+}
+
+///|
+/// Structured process execution for Native and wasm1 runtimes. Cancellation of
+/// the surrounding task must terminate the child before this method returns.
+pub(open) trait HostAsyncProcess {
+  async fn run_process_async(Self, CommandSpec) -> ProcessResult raise HostError
 }
 
 ///|

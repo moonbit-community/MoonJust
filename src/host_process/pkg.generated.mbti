@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/src/host_process"
+
+import {
+  "moonbit-community/MoonJust/src/host",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct ProcessAdapter {
+  marker : Unit
+}
+pub fn ProcessAdapter::new() -> Self
+pub impl @host.HostAsyncProcess for ProcessAdapter
+
+// Type aliases
+
+// Traits

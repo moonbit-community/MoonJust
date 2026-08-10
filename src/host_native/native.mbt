@@ -138,6 +138,33 @@ pub impl @host.HostTemp for NativeFs with fn remove_temp_file(
 }
 
 ///|
+pub impl @host.HostScriptTemp for NativeFs with fn create_script_temp(
+  _self : NativeFs,
+  directory : @path.PathValue,
+  stem : String,
+  extension : String,
+  contents : Bytes,
+) -> @path.PathValue raise @host.HostError {
+  create_native_script_temp(directory, stem, extension, contents)
+}
+
+///|
+pub impl @host.HostScriptTemp for NativeFs with fn remove_script_temp(
+  self : NativeFs,
+  path : @path.PathValue,
+) -> Unit raise @host.HostError {
+  @host.HostTemp::remove_temp_file(self, path)
+}
+
+///|
+pub impl @host.HostExecutable for NativeFs with fn set_executable(
+  _self : NativeFs,
+  path : @path.PathValue,
+) -> Unit raise @host.HostError {
+  set_native_executable(path)
+}
+
+///|
 pub impl @host.HostAtomicFs for NativeFs with fn write_file_atomic(
   self : NativeFs,
   path : @path.PathValue,
@@ -194,4 +221,31 @@ pub impl @host.HostEnv for NativeFs with fn current_dir(_self : NativeFs) -> @pa
   @path.PathValue::new(value, native_path_flavor()) catch {
     _ => raise InvalidInput("current directory has an invalid representation")
   }
+}
+
+///|
+pub impl @host.HostRandom for NativeFs with fn random_bytes(
+  _self : NativeFs,
+  _count : Int,
+) -> Bytes raise @host.HostError {
+  raise CapabilityUnavailable(Random)
+}
+
+///|
+pub impl @host.HostTerminal for NativeFs with fn terminal_info(_self : NativeFs) -> @host.TerminalInfo raise @host.HostError {
+  @host.TerminalInfo::new(false, false, false, false)
+}
+
+///|
+pub impl @host.HostPlatform for NativeFs with fn platform_info(_self : NativeFs) -> @host.PlatformInfo raise @host.HostError {
+  let flavor = native_path_flavor()
+  @host.PlatformInfo::new(
+    if flavor == Windows {
+      Windows
+    } else {
+      Other("unix")
+    },
+    "unknown",
+    flavor,
+  )
 }

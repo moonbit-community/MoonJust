@@ -1,0 +1,18 @@
+import {
+  "moonbit-community/MoonJust/src/host",
+  "moonbitlang/async",
+  "moonbitlang/async/io",
+  "moonbitlang/async/process",
+  "moonbitlang/async/stdio",
+}
+
+import {
+  "moonbit-community/MoonJust/src/path",
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+supported_targets = "-all+native+wasm"
+
+options(
+  targets: { "process_native_test.mbt": [ "native", "llvm" ] },
+)

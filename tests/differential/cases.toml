@@ -47,8 +47,8 @@ reason = "Phase 6 summary query is byte-compatible with the pinned oracle."
 id = "MJ-COMPAT-0007"
 directory = "07-dry-run"
 owner_phase = 8
-status = "expected-difference"
-reason = "Recipe dry-run and process composition are owned by Phase 8."
+status = "match"
+reason = "Phase 8 executor now matches the pinned dry-run process composition."
 
 [[case]]
 id = "MJ-COMPAT-0008"
@@ -68,5 +68,5 @@ reason = "Recipe process exit propagation is owned by Phase 8."
 id = "MJ-COMPAT-0010"
 directory = "10-side-effect"
 owner_phase = 8
-status = "expected-difference"
-reason = "Recipe side effects are owned by Phase 8."
+status = "match"
+reason = "Phase 8 executor now matches the pinned side-effect behavior."

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <io.h>
@@ -88,6 +89,21 @@ MOONBIT_FFI_EXPORT int moonjust_host_create_exclusive(
   return 0;
 }
 
+MOONBIT_FFI_EXPORT int64_t moonjust_host_now_millis(void) {
+#ifdef _WIN32
+  FILETIME value;
+  GetSystemTimeAsFileTime(&value);
+  ULARGE_INTEGER ticks;
+  ticks.LowPart = value.dwLowDateTime;
+  ticks.HighPart = value.dwHighDateTime;
+  return (int64_t)(ticks.QuadPart / 10000ULL) - 11644473600000LL;
+#else
+  struct timespec value;
+  if (clock_gettime(CLOCK_REALTIME, &value) != 0) return -1;
+  return (int64_t)value.tv_sec * 1000LL + value.tv_nsec / 1000000LL;
+#endif
+}
+
 MOONBIT_FFI_EXPORT int moonjust_host_persist_temp(
     moonjust_native_path_t temporary,
     moonjust_native_path_t destination,
@@ -160,6 +176,22 @@ MOONBIT_FFI_EXPORT int moonjust_host_set_readonly_for_test(
     mode |= 0200;
   }
   return chmod((const char *)path, mode) == 0
+      ? 0
+      : moonjust_status_from_errno(errno);
+#endif
+}
+
+MOONBIT_FFI_EXPORT int moonjust_host_set_executable(
+    moonjust_native_path_t path) {
+#ifdef _WIN32
+  (void)path;
+  return 0;
+#else
+  struct stat metadata;
+  if (stat((const char *)path, &metadata) != 0) {
+    return moonjust_status_from_errno(errno);
+  }
+  return chmod((const char *)path, metadata.st_mode | 0100) == 0
       ? 0
       : moonjust_status_from_errno(errno);
 #endif

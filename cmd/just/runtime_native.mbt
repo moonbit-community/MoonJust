@@ -5,6 +5,11 @@ fn runtime_host() -> @host_native.NativeFs {
 }
 
 ///|
+fn runtime_environment_host() -> @host_native.NativeFs {
+  @host_native.NativeFs::new()
+}
+
+///|
 extern "c" fn native_exit(code : Int) = "exit"
 
 ///|
