@@ -36,5 +36,5 @@ Date: 2026-08-10
 
 Parallel scheduling, cache persistence, full Windows signal/job-object parity,
 interactive terminal streaming, and resource backpressure remain Phase 9/10
-work as stated by the project plan. Remote PR CI evidence is pending because
-the current environment cannot write `.git` or reach GitHub.
+work as stated by the project plan. PR #37 remote CI passed Quality gates and
+all three Native smoke jobs after the Phase 8 implementation push.

@@ -2,7 +2,7 @@ schema_version = 1
 phase = 8
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "local-passed-remote-pending"
+plan_exit = "passed"
 report = "docs/PHASE_8_REPORT.md"
 audit = "docs/PHASE_8_SECURITY_AUDIT.md"
 
@@ -21,6 +21,7 @@ native = "pass: 236 tests"
 wasm1 = "pass: 232 tests"
 native_signal = "pass: TERM mapped to structured termination"
 wasm_policy = "execute policy permits spawn/temp scripts; inspect policy denies spawn/write"
+remote_ci = "pass: PR #37 run 31393683064"
 
 [evidence]
 executor_gate = "tools/check_phase8_executor.sh"

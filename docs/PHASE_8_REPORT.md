@@ -5,7 +5,7 @@
 - Release identity: `0.5.0-alpha`
 - Upstream baseline: `just 1.57.0`
 - Required targets: Native and wasm1
-- Remote PR/CI evidence: pending; this environment cannot write `.git` or reach GitHub
+- Remote PR/CI evidence: passed on PR #37
 
 Phase 8 delivers the sequential executor preview. Application planning validates
 the complete recipe graph and composes explicit shell, cwd, environment, dotenv,
@@ -50,8 +50,17 @@ execution remain explicitly deferred to later phases.
 
 ## Publication Evidence
 
-PR-080 was committed and pushed before the interrupted run as commit
-`1a34276` ([PR #37](https://github.com/moonbit-community/MoonJust/pull/37));
-the remaining PR-081 through PR-087 changes are present in the working tree but
-cannot be committed or pushed because the local `.git` lock is read-only and
-GitHub access is unavailable. Consequently remote CI is not claimed as passed.
+The consolidated Phase 8 delivery is commit `53e7d1a` on
+[PR #37](https://github.com/moonbit-community/MoonJust/pull/37), with the
+initial PR-080 IR commit `1a34276` retained in history. Remote CI run
+[31393683064](https://github.com/moonbit-community/MoonJust/actions/runs/31393683064)
+passed Quality gates plus Ubuntu, macOS, and Windows Native smoke jobs.
+
+## Strict Second-Review Verdict
+
+The post-CI second pass rechecked all PR-080 through PR-087 contracts against
+the project plan, reran the aggregate gate and target matrix, inspected the
+remote commit/CI status, and exercised the policy-denial and dry-run paths.
+No unresolved gap remains inside the declared Phase 8 sequential-execution
+boundary. Deferred parallel/cache/interactive/full-platform work remains
+explicitly assigned to later phases.
