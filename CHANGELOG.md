@@ -7,6 +7,9 @@ All notable changes to MoonJust will be documented here. The project follows
 
 ### Added
 
+- Phase 8 shell-independent process IR with explicit environment and stdio
+  policies, signal-aware results, deterministic fake-host assertions, and
+  redacted structural diagnostics.
 - Phase 0 repository foundation for Native and wasm1 development.
 - Compatibility planning baseline for `just 1.57.0`.
 - Reproducible upstream inventory and differential harness.

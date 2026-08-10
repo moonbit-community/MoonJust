@@ -184,8 +184,10 @@ pub fn[T : @host.HostProcess] load_dotenv_commands(
     let output = @host.HostProcess::run_process(host, request) catch {
       _ => raise CommandUnavailable(index=index + 1)
     }
-    if output.exit_code() != 0 {
-      raise CommandFailed(index=index + 1, exit_code=output.exit_code())
+    match output.exit_code() {
+      Some(0) => ()
+      Some(code) => raise CommandFailed(index=index + 1, exit_code=code)
+      None => raise CommandUnavailable(index=index + 1)
     }
     let text = @utf8.decode(output.stdout()) catch {
       _ => raise Parse(line=1, column=1)

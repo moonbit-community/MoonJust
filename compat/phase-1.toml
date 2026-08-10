@@ -39,8 +39,8 @@ status = "implemented"
 package = "src/host"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 10
-evidence = "memory fs, atomic temp cleanup, env, clock, random, process, terminal, signal, platform, denied and unavailable capabilities"
+black_box_tests = 12
+evidence = "memory fs, atomic temp cleanup, env, clock, random, redacted process IR, explicit stdio, terminal, signal, platform, denied and unavailable capabilities"
 
 [[contract]]
 id = "MJ-CLI-EXIT-0001"

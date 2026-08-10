@@ -353,7 +353,7 @@ test "effect context connects fs random clock process terminal and PATH facts" {
   )
   let command = @host.CommandSpec::new("sh", ["-c", "printf %s $1", "--", "ok"])
   command.set_cwd(cwd)
-  host.expect_process(command, @host.ProcessOutput::new(0, b"ok\n", b""))
+  host.expect_process(command, @host.ProcessResult::new(0, b"ok\n", b""))
   assert_eq(
     call_effect_with_context(
       host,

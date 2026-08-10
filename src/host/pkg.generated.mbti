@@ -33,17 +33,30 @@ pub struct CommandSpec {
   arguments : Array[String]
   mut cwd : @path.PathValue?
   environment : Array[(String, String)]
+  mut inherit_environment : Bool
   mut stdin : Bytes
-} derive(Eq, @debug.Debug)
+  mut inherit_stdin : Bool
+  mut stdout : StdioBehavior
+  mut stderr : StdioBehavior
+} derive(Eq)
 pub fn CommandSpec::add_environment(Self, String, String) -> Unit raise HostError
 pub fn CommandSpec::arguments(Self) -> ArrayView[String]
 pub fn CommandSpec::cwd(Self) -> @path.PathValue?
 pub fn CommandSpec::environment(Self) -> ArrayView[(String, String)]
+pub fn CommandSpec::inherits_environment(Self) -> Bool
+pub fn CommandSpec::inherits_stdin(Self) -> Bool
 pub fn CommandSpec::new(String, Array[String]) -> Self raise HostError
 pub fn CommandSpec::program(Self) -> String
 pub fn CommandSpec::set_cwd(Self, @path.PathValue) -> Unit
+pub fn CommandSpec::set_inherit_environment(Self, Bool) -> Unit
+pub fn CommandSpec::set_inherit_stdin(Self, Bool) -> Unit
+pub fn CommandSpec::set_stderr(Self, StdioBehavior) -> Unit
 pub fn CommandSpec::set_stdin(Self, Bytes) -> Unit
+pub fn CommandSpec::set_stdout(Self, StdioBehavior) -> Unit
+pub fn CommandSpec::stderr(Self) -> StdioBehavior
 pub fn CommandSpec::stdin(Self) -> BytesView
+pub fn CommandSpec::stdout(Self) -> StdioBehavior
+pub impl @debug.Debug for CommandSpec
 
 pub struct FakeHost {
   denied : @set.Set[HostCapability]
@@ -58,7 +71,7 @@ pub struct FakeHost {
   mut random_stream : Bytes
   mut random_offset : Int
   expected_commands : Array[CommandSpec]
-  expected_outputs : Array[ProcessOutput]
+  expected_outputs : Array[ProcessResult]
   process_calls : Array[CommandSpec]
   mut terminal : TerminalInfo
   signals : Array[SignalKind]
@@ -66,7 +79,7 @@ pub struct FakeHost {
 }
 pub fn FakeHost::allow(Self, HostCapability) -> Unit
 pub fn FakeHost::deny(Self, HostCapability) -> Unit
-pub fn FakeHost::expect_process(Self, CommandSpec, ProcessOutput) -> Unit
+pub fn FakeHost::expect_process(Self, CommandSpec, ProcessResult) -> Unit
 pub fn FakeHost::fail_next_persist(Self) -> Unit
 pub fn FakeHost::mark_available(Self, HostCapability) -> Unit
 pub fn FakeHost::mark_unavailable(Self, HostCapability) -> Unit
@@ -132,21 +145,38 @@ pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor) -> Self
 pub fn PlatformInfo::operating_system(Self) -> OperatingSystem
 pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
 
-pub struct ProcessOutput {
-  exit_code : Int
+#alias(ProcessOutput, deprecated)
+pub struct ProcessResult {
+  termination : ProcessTermination
   stdout : Bytes
   stderr : Bytes
+} derive(Eq)
+pub fn ProcessResult::exit_code(Self) -> Int?
+pub fn ProcessResult::from_signal(SignalKind, Bytes, Bytes) -> Self
+pub fn ProcessResult::new(Int, Bytes, Bytes) -> Self
+pub fn ProcessResult::signal(Self) -> SignalKind?
+pub fn ProcessResult::stderr(Self) -> BytesView
+pub fn ProcessResult::stdout(Self) -> BytesView
+pub fn ProcessResult::success(Self) -> Bool
+pub fn ProcessResult::termination(Self) -> ProcessTermination
+pub impl @debug.Debug for ProcessResult
+
+pub(all) enum ProcessTermination {
+  Exited(Int)
+  Signaled(SignalKind)
 } derive(Eq, @debug.Debug)
-pub fn ProcessOutput::exit_code(Self) -> Int
-pub fn ProcessOutput::new(Int, Bytes, Bytes) -> Self
-pub fn ProcessOutput::stderr(Self) -> BytesView
-pub fn ProcessOutput::stdout(Self) -> BytesView
 
 pub(all) enum SignalKind {
   Interrupt
   Terminate
   Hangup
   OtherSignal(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum StdioBehavior {
+  Capture
+  Inherit
+  Discard
 } derive(Eq, @debug.Debug)
 
 pub struct TerminalInfo {
@@ -194,7 +224,7 @@ pub(open) trait HostPlatform {
 }
 
 pub(open) trait HostProcess {
-  fn run_process(Self, CommandSpec) -> ProcessOutput raise HostError
+  fn run_process(Self, CommandSpec) -> ProcessResult raise HostError
 }
 
 pub(open) trait HostRandom {

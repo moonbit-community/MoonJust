@@ -121,7 +121,7 @@ pub(open) trait HostEnv {
 ///|
 /// Structured child-process execution.
 pub(open) trait HostProcess {
-  fn run_process(Self, CommandSpec) -> ProcessOutput raise HostError
+  fn run_process(Self, CommandSpec) -> ProcessResult raise HostError
 }
 
 ///|

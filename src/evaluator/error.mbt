@@ -8,6 +8,7 @@ pub(all) suberror EvaluationError {
   EffectRequired(effect~ : String, span~ : @source.Span)
   Host(@host.HostError, span~ : @source.Span)
   ProcessFailure(code~ : Int, span~ : @source.Span)
+  ProcessSignaled(signal~ : @host.SignalKind, span~ : @source.Span)
   InvalidUtf8(span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
@@ -33,6 +34,7 @@ pub fn EvaluationError::code(self : EvaluationError) -> String {
     EffectRequired(_) => "MJ-EVAL-0005"
     Host(_) => "MJ-EVAL-0006"
     ProcessFailure(_) => "MJ-EVAL-0007"
+    ProcessSignaled(_) => "MJ-EVAL-0015"
     InvalidUtf8(_) => "MJ-EVAL-0008"
     RecursionLimitExceeded(_) => "MJ-EVAL-0009"
     NodeLimitExceeded(_) => "MJ-EVAL-0010"
@@ -54,6 +56,7 @@ pub fn EvaluationError::span(self : EvaluationError) -> @source.Span {
     EffectRequired(span~, ..) => span
     Host(_, span~) => span
     ProcessFailure(span~, ..) => span
+    ProcessSignaled(span~, ..) => span
     InvalidUtf8(span~) => span
     RecursionLimitExceeded(span~, ..) => span
     NodeLimitExceeded(span~, ..) => span
@@ -79,6 +82,8 @@ pub fn EvaluationError::message(self : EvaluationError) -> String {
     Host(_, ..) => "host capability failed during evaluation"
     ProcessFailure(code~, ..) =>
       "shell command exited with code " + code.to_string()
+    ProcessSignaled(signal~, ..) =>
+      "shell command terminated by signal " + Repr(signal).to_string()
     InvalidUtf8(_) => "effect result is not valid UTF-8"
     RecursionLimitExceeded(limit~, ..) =>
       "evaluation recursion limit " + limit.to_string() + " exceeded"

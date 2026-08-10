@@ -574,8 +574,10 @@ pub fn[
       let output = @host.HostProcess::run_process(host, spec) catch {
         error => raise Host(error, span~)
       }
-      if output.exit_code() != 0 {
-        raise ProcessFailure(code=output.exit_code(), span~)
+      match output.termination() {
+        Exited(0) => ()
+        Exited(code) => raise ProcessFailure(code~, span~)
+        Signaled(signal) => raise ProcessSignaled(signal~, span~)
       }
       let text = bytes_text(output.stdout().to_owned(), span)
       String(text.trim_end().to_owned())

@@ -41,6 +41,7 @@ pub(all) suberror EvaluationError {
   EffectRequired(effect~ : String, span~ : @source.Span)
   Host(@host.HostError, span~ : @source.Span)
   ProcessFailure(code~ : Int, span~ : @source.Span)
+  ProcessSignaled(signal~ : @host.SignalKind, span~ : @source.Span)
   InvalidUtf8(span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)

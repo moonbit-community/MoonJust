@@ -13,7 +13,7 @@ pub struct FakeHost {
   mut random_stream : Bytes
   mut random_offset : Int
   expected_commands : Array[CommandSpec]
-  expected_outputs : Array[ProcessOutput]
+  expected_outputs : Array[ProcessResult]
   process_calls : Array[CommandSpec]
   mut terminal : TerminalInfo
   signals : Array[SignalKind]
@@ -137,7 +137,7 @@ pub fn FakeHost::set_random_stream(self : FakeHost, bytes : Bytes) -> Unit {
 pub fn FakeHost::expect_process(
   self : FakeHost,
   command : CommandSpec,
-  output : ProcessOutput,
+  output : ProcessResult,
 ) -> Unit {
   self.expected_commands.push(command)
   self.expected_outputs.push(output)
@@ -379,7 +379,7 @@ pub impl HostEnv for FakeHost with fn current_dir(self : FakeHost) -> @path.Path
 pub impl HostProcess for FakeHost with fn run_process(
   self : FakeHost,
   command : CommandSpec,
-) -> ProcessOutput raise HostError {
+) -> ProcessResult raise HostError {
   self.require(Process)
   self.process_calls.push(command)
   if self.expected_commands.is_empty() {
