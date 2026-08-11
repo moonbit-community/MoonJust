@@ -4,7 +4,12 @@
 - Compatibility baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Release identity: `0.6.0-alpha`
 - Local review date: 2026-08-11
-- Remote protected-main evidence: pending PR merge and post-merge CI
+- Delivery: [PR #38](https://github.com/moonbit-community/MoonJust/pull/38),
+  squash commit `d28d0b685ff886841f984510ee6a8fb8341cba2c`
+- Remote evidence: PR CI
+  [31480537856](https://github.com/moonbit-community/MoonJust/actions/runs/31480537856)
+  and protected-main CI
+  [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327)
 
 ## Delivered contracts
 
@@ -80,5 +85,6 @@ concurrent Native processes contending for the same digest.
 The clean local regression passes 263 Native and 259 wasm1 tests, strict
 all-backend compilation, formatting, 21-package architecture boundaries,
 2,417-row compatibility verification, Phase 8 regression and the Phase 9
-runtime gate. Merged commit, PR number and remote CI run are recorded only
-after protected-main checks complete.
+runtime gate. PR and protected-main CI both reran the complete quality matrix;
+Ubuntu, macOS and Windows Native smoke jobs also passed. Phase 9's declared
+exit is therefore complete.

@@ -2,7 +2,7 @@ schema_version = 1
 phase = 9
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "pending-remote-ci"
+plan_exit = "passed"
 report = "docs/PHASE_9_REPORT.md"
 audit = "docs/PHASE_0_9_AUDIT.md"
 
@@ -22,10 +22,14 @@ failed_entry = "MoonJust does not publish the empty failed-run entry used by ups
 [target_matrix]
 native = "local pass: 263 tests plus scheduler/cache/runtime/store, bounded process output, crash recovery and two-process contention gates"
 wasm1 = "local pass: 259 tests plus scheduler/cache/runtime/store, bounded process output and policy-controlled CLI gate"
-remote_ci = "pending"
+remote_ci = "pass: PR #38 run 31480537856 and post-merge main run 31480779327"
 
 [evidence]
 runtime_gate = "tools/check_phase9_runtime.sh"
 case_manifest = "tests/upstream/just-1.57.0/phase-9-cases.jsonl"
 security_adr = "docs/adr/0008-cache-format-locking-and-hashing.md"
 completion_report = "docs/PHASE_9_REPORT.md"
+delivery_pr = "https://github.com/moonbit-community/MoonJust/pull/38"
+merge_commit = "d28d0b685ff886841f984510ee6a8fb8341cba2c"
+pr_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31480537856"
+post_merge_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31480779327"

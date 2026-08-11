@@ -2,8 +2,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-11；Phase 9 本地实现与证据已完成，最终 merge commit 和 protected-main CI 待远程验收。Phase 0-9 结论见 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
-> 最近完成的远程基线仍为 2026-08-10 的 [PR #37](https://github.com/moonbit-community/MoonJust/pull/37) 与 `main` CI [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821)；Phase 9 合并后将在汇总审计中替换为新证据。
+> 最近严格复核：2026-08-11；Phase 0-9 已完成并通过全部阶段出口。Phase 9 由 [PR #38](https://github.com/moonbit-community/MoonJust/pull/38) 合并为 `d28d0b685ff886841f984510ee6a8fb8341cba2c`，PR CI [31480537856](https://github.com/moonbit-community/MoonJust/actions/runs/31480537856) 与 protected-main CI [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327) 均通过；完整结论见 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -31,7 +30,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 - 模块名：`moonbit-community/MoonJust`，模块版本 `0.3.0`，应用版本 `0.3.0-alpha.0`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成本地实现并等待最终远程 CI；逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
+- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
