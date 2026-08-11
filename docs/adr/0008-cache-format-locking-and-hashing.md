@@ -43,9 +43,10 @@ the observable invalidation inputs without sharing the upstream on-disk format.
 - A successful entry is written to an exclusively created same-directory
   temporary file with mode `0600`, fully synchronized, and atomically renamed
   over the entry. Failed, cancelled, or partially completed recipes never
-  publish a manifest. After acquiring a digest lock, adapters remove only stale
-  temporary names that exactly match MoonJust's digest and random/fallback
-  suffix grammar; similar user files are preserved.
+  publish a manifest. Each digest has one reserved `.<digest>.tmp` name because
+  the digest lock already serializes writers. After acquiring that lock,
+  adapters remove only that exact stale name; similar user files are preserved.
+  Full cache clean acquires each orphan temporary's digest lock before removal.
 - Corrupt or truncated manifests are cache misses. A later successful run
   replaces them atomically. `--clean` removes only recognized digest manifests
   while preserving unrelated files and coordinating with entry locks. Lease

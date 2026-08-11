@@ -216,19 +216,13 @@ async test "cache store serializes leases commits atomically and cleans manifest
     waiter.wait()
   }
   assert_true(second_acquired.val)
-  let stale_random = try! directory.join(
-    try! @path.PathValue::new(
-      "." + digest + "." + "1".repeat(24) + ".tmp",
-      Unix,
-    ),
-  )
-  let stale_fallback = try! directory.join(
-    try! @path.PathValue::new("." + digest + ".7-3.tmp", Unix),
+  let stale = try! directory.join(
+    try! @path.PathValue::new("." + digest + ".tmp", Unix),
   )
   let unrelated_temporary = try! directory.join(
     try! @path.PathValue::new("." + digest + ".not-owned.tmp", Unix),
   )
-  for path in [stale_random, stale_fallback, unrelated_temporary] {
+  for path in [stale, unrelated_temporary] {
     @async_fs.write_file(
       path.as_string(),
       b"stale",
@@ -242,8 +236,7 @@ async test "cache store serializes leases commits atomically and cleans manifest
   } noraise {
     value => value
   }
-  assert_false(@host.HostFs::file_exists(host, stale_random))
-  assert_false(@host.HostFs::file_exists(host, stale_fallback))
+  assert_false(@host.HostFs::file_exists(host, stale))
   assert_true(@host.HostFs::file_exists(host, unrelated_temporary))
   assert_eq(
     @host.HostCacheStore::read_cache_manifest(host, third),
@@ -274,7 +267,16 @@ async test "cache store serializes leases commits atomically and cleans manifest
   assert_eq(bytes.length(), @cache.MAX_MANIFEST_BYTES + 1)
   try! @host.HostCacheStore::release_cache_lease(host, bounded)
   let keep = try! directory.join(try! @path.PathValue::new("keep.txt", Unix))
+  let orphan_digest = "d".repeat(64)
+  let orphan_temporary = try! directory.join(
+    try! @path.PathValue::new("." + orphan_digest + ".tmp", Unix),
+  )
   @async_fs.write_file(keep.as_string(), b"keep", create_mode=CreateOrTruncate)
+  @async_fs.write_file(
+    orphan_temporary.as_string(),
+    b"orphan",
+    create_mode=CreateOrTruncate,
+  )
   let cleaned = try
     @host.HostCacheStore::clean_cache(host, directory, None)
   catch {
@@ -284,6 +286,8 @@ async test "cache store serializes leases commits atomically and cleans manifest
   }
   assert_eq(cleaned, 1)
   assert_true(@host.HostFs::file_exists(host, keep))
+  assert_true(@host.HostFs::file_exists(host, unrelated_temporary))
+  assert_false(@host.HostFs::file_exists(host, orphan_temporary))
   try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
     _ => ()
   } noraise {

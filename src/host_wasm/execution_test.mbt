@@ -23,10 +23,7 @@ async test "wasm execution cache store uses the shared manifest contract" {
   @host.HostCacheStore::write_cache_manifest(host, lease, b"manifest")
   @host.HostCacheStore::release_cache_lease(host, lease)
   let stale = try! directory.join(
-    try! @path.PathValue::new(
-      "." + digest + "." + "2".repeat(24) + ".tmp",
-      Unix,
-    ),
+    try! @path.PathValue::new("." + digest + ".tmp", Unix),
   )
   let unrelated_temporary = try! directory.join(
     try! @path.PathValue::new("." + digest + ".not-owned.tmp", Unix),
@@ -65,7 +62,17 @@ async test "wasm execution cache store uses the shared manifest contract" {
   }
   assert_eq(bytes.length(), @cache.MAX_MANIFEST_BYTES + 1)
   @host.HostCacheStore::release_cache_lease(host, bounded)
+  let orphan_temporary = try! directory.join(
+    try! @path.PathValue::new("." + "d".repeat(64) + ".tmp", Unix),
+  )
+  @async_fs.write_file(
+    orphan_temporary.as_string(),
+    b"orphan",
+    create_mode=CreateOrTruncate,
+  )
   assert_eq(@host.HostCacheStore::clean_cache(host, directory, None), 1)
+  assert_false(@host.HostFs::file_exists(host, orphan_temporary))
+  assert_true(@host.HostFs::file_exists(host, unrelated_temporary))
   try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
     _ => ()
   } noraise {

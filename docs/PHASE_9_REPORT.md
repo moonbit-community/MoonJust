@@ -42,9 +42,11 @@ Native and wasm1 stores keep permanent sibling lock files and hold OS-exclusive
 locks across lookup, execution and commit. Successful manifests use an
 exclusively created same-directory temporary file, mode `0600`, Full sync and
 atomic rename. Cancellation releases the child process, temporary script and
-cache lease. A later lease removes strictly recognized stale commit
-temporaries under the same digest lock while preserving lookalike files.
-Lease tokens are bound to the exact directory and digest, and
+cache lease. Each digest uses one reserved temporary name, so a later matching
+lease removes it in O(1) while holding the same digest lock. Full cache clean
+also locks and removes orphan temporaries for digests that are never reused;
+lookalike files remain untouched. Lease tokens are bound to the exact directory
+and digest, and
 structural `Debug` output redacts bodies, arguments and environment values.
 `--no-cache` and dry-run perform no cache lock or publication.
 

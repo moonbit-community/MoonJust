@@ -36,45 +36,28 @@ fn execution_valid_cache_digest(digest : String) -> Bool {
 
 ///|
 fn execution_cache_temporary_digest(name : String) -> String? {
-  if name.length() != 94 ||
-    !name.has_prefix(".") ||
-    !name.has_suffix(".tmp") ||
-    name.unsafe_get(65) != '.' {
+  if name.length() != 69 || !name.has_prefix(".") || !name.has_suffix(".tmp") {
     return None
   }
   let digest = name[1:65].to_owned()
-  let suffix = name[66:90].to_owned()
-  if !execution_valid_cache_digest(digest) {
-    return None
+  if execution_valid_cache_digest(digest) {
+    Some(digest)
+  } else {
+    None
   }
-  for character in suffix {
-    if !(character >= '0' && character <= '9') &&
-      !(character >= 'a' && character <= 'f') {
-      return None
-    }
-  }
-  Some(digest)
 }
 
 ///|
-async fn clean_execution_cache_temporaries(
+async fn clean_execution_cache_temporary(
   directory : @path.PathValue,
   digest : String,
 ) -> Unit raise @host.HostError {
-  let names = @async_fs.readdir(directory.as_string(), sort=true) catch {
+  let path = execution_cache_child(directory, "." + digest + ".tmp")
+  try @async_fs.remove(path.as_string()) catch {
+    @os_error.OSError(_) as error if error.is_ENOENT() => ()
     error => raise execution_cache_error(error)
-  }
-  for name in names {
-    if execution_cache_temporary_digest(name) != Some(digest) {
-      continue
-    }
-    let path = execution_cache_child(directory, name)
-    try @async_fs.remove(path.as_string()) catch {
-      @os_error.OSError(_) as error if error.is_ENOENT() => ()
-      error => raise execution_cache_error(error)
-    } noraise {
-      _ => ()
-    }
+  } noraise {
+    _ => ()
   }
 }
 
@@ -138,7 +121,7 @@ pub impl @host.HostCacheStore for ExecutionFs with fn acquire_cache_lease(
   } noraise {
     _ => ()
   }
-  try clean_execution_cache_temporaries(directory, digest) catch {
+  try clean_execution_cache_temporary(directory, digest) catch {
     error => {
       file.unlock()
       file.close()
@@ -211,7 +194,7 @@ pub impl @host.HostCacheStore for ExecutionFs with fn write_cache_manifest(
   )
   let temporary = execution_cache_child(
     lease.directory(),
-    "." + lease.digest() + "." + execution_suffix() + ".tmp",
+    "." + lease.digest() + ".tmp",
   )
   try {
     @async_fs.write_file(
@@ -313,6 +296,16 @@ async fn clean_execution_cache_entry(
 }
 
 ///|
+async fn clean_execution_stale_temporary(
+  host : ExecutionFs,
+  directory : @path.PathValue,
+  digest : String,
+) -> Unit raise @host.HostError {
+  let lease = @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
+  @host.HostCacheStore::release_cache_lease(host, lease)
+}
+
+///|
 pub impl @host.HostCacheStore for ExecutionFs with fn clean_cache(
   self : ExecutionFs,
   directory : @path.PathValue,
@@ -326,6 +319,11 @@ pub impl @host.HostCacheStore for ExecutionFs with fn clean_cache(
   }
   let mut removed = 0
   for name in names {
+    if recipe_prefix is None &&
+      execution_cache_temporary_digest(name) is Some(digest) {
+      clean_execution_stale_temporary(self, directory, digest)
+      continue
+    }
     guard execution_cache_manifest_name(name) is Some(digest) else { continue }
     if clean_execution_cache_entry(self, directory, name, digest, recipe_prefix) {
       removed += 1

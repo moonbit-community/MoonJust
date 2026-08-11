@@ -154,10 +154,11 @@ or process-isolation vulnerabilities privately as described in
 
 Environment and override containers deliberately avoid `Debug` derivations.
 Diagnostics redact dotenv values, command arguments, child stderr and host
-environment entries. Atomic writes use same-directory temporary files, mode
-`0600`, synchronization before commit and typed cleanup failures. Cache leases
-remove only strictly recognized stale commit temporaries while holding the
-matching digest lock. Child stdout and stderr are drained concurrently;
+environment entries. Atomic writes use one reserved same-directory temporary
+name per digest, mode `0600`, synchronization before commit and typed cleanup
+failures. The next matching lease and full cache clean remove that name only
+while holding the digest lock; lookalike files are preserved. Child stdout and
+stderr are drained concurrently;
 retained streams have a 16 MiB per-stream limit, and overflow cancels the
 child with a deterministic error.
 

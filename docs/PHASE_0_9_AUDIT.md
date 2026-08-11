@@ -111,7 +111,7 @@ baseline completed all required jobs; Phase 9 local gates currently report:
 | Phase 8 executor gate | pass; dry-run, Native/wasm CLI corpus and executor package cases |
 | Phase 8 security audit | pass; command construction, temporary scripts, process policy, redaction and cleanup |
 | Phase 9 runtime gate | pass locally; scheduler/cache/store/process suites, exact and overflowing process-output limits, adversarial Native cache matrix, crash recovery and two-process contention |
-| Phase 9 cache/concurrency audit | second review remediated unbounded process collection and stale commit temporaries; final protected-main rerun pending |
+| Phase 9 cache/concurrency audit | second review remediated unbounded process collection, quadratic lease cleanup and orphan commit temporaries; final protected-main rerun pending |
 | Public interface and formatting review | `moon info && moon fmt` pass; no unintended `.mbti` changes |
 | Native platform smoke | Ubuntu, macOS and Windows pass; post-merge CI [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
 
@@ -282,9 +282,10 @@ Native/wasm1 CLI miss/hit/invalidation workflows.
 - Cache paths reject absolute, drive, backslash, traversal, duplicate, control
   character and oversized contracts before host storage sees a filename;
   manifests and input/output collections have explicit allocation limits.
-- Cache publication uses same-directory exclusive temporaries, mode `0600`,
-  Full sync and atomic rename; cancellation-protected defers release leases,
-  and the next locked lease removes only strictly recognized stale temporaries.
+- Cache publication uses one reserved same-directory temporary per digest, mode
+  `0600`, Full sync and atomic rename; cancellation-protected defers release
+  leases. The next matching lease removes that exact name in O(1), while full
+  clean locks and removes orphan temporaries for digests that are never reused.
 - Public `.mbti` changes are limited to the reviewed Phase 9 scheduler, cache,
   host-store, task-plan and CLI contracts.
 

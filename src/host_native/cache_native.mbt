@@ -46,48 +46,17 @@ fn native_valid_cache_digest(digest : String) -> Bool {
 }
 
 ///|
-fn native_hex_cache_suffix(suffix : String) -> Bool {
-  if suffix.length() != 24 {
-    return false
-  }
-  for character in suffix {
-    if !(character >= '0' && character <= '9') &&
-      !(character >= 'a' && character <= 'f') {
-      return false
-    }
-  }
-  true
-}
-
-///|
-fn native_fallback_cache_suffix(suffix : String) -> Bool {
-  let characters = suffix.to_array()
-  let mut separator = -1
-  for index, character in characters {
-    if character == '-' {
-      if separator != -1 {
-        return false
-      }
-      separator = index
-    } else if character < '0' || character > '9' {
-      return false
-    }
-  }
-  separator > 0 && separator < characters.length() - 1
+fn native_cache_temporary_name(digest : String) -> String {
+  "." + digest + ".tmp"
 }
 
 ///|
 fn native_cache_temporary_digest(name : String) -> String? {
-  if name.length() < 70 ||
-    !name.has_prefix(".") ||
-    !name.has_suffix(".tmp") ||
-    name.unsafe_get(65) != '.' {
+  if name.length() != 69 || !name.has_prefix(".") || !name.has_suffix(".tmp") {
     return None
   }
   let digest = name[1:65].to_owned()
-  let suffix = name[66:name.length() - 4].to_owned()
-  if native_valid_cache_digest(digest) &&
-    (native_hex_cache_suffix(suffix) || native_fallback_cache_suffix(suffix)) {
+  if native_valid_cache_digest(digest) {
     Some(digest)
   } else {
     None
@@ -95,24 +64,16 @@ fn native_cache_temporary_digest(name : String) -> String? {
 }
 
 ///|
-async fn clean_native_cache_temporaries(
+async fn clean_native_cache_temporary(
   directory : @path.PathValue,
   digest : String,
 ) -> Unit raise @host.HostError {
-  let names = @async_fs.readdir(directory.as_string(), sort=true) catch {
+  let path = native_cache_child(directory, native_cache_temporary_name(digest))
+  try @async_fs.remove(path.as_string()) catch {
+    @os_error.OSError(_) as error if error.is_ENOENT() => ()
     error => raise native_cache_error(error)
-  }
-  for name in names {
-    if native_cache_temporary_digest(name) != Some(digest) {
-      continue
-    }
-    let path = native_cache_child(directory, name)
-    try @async_fs.remove(path.as_string()) catch {
-      @os_error.OSError(_) as error if error.is_ENOENT() => ()
-      error => raise native_cache_error(error)
-    } noraise {
-      _ => ()
-    }
+  } noraise {
+    _ => ()
   }
 }
 
@@ -165,7 +126,7 @@ pub impl @host.HostCacheStore for NativeFs with fn acquire_cache_lease(
   } noraise {
     _ => ()
   }
-  try clean_native_cache_temporaries(directory, digest) catch {
+  try clean_native_cache_temporary(directory, digest) catch {
     error => {
       file.unlock()
       file.close()
@@ -223,58 +184,34 @@ pub impl @host.HostCacheStore for NativeFs with fn read_cache_manifest(
 }
 
 ///|
-fn native_cache_temporary_name(
-  lease : @host.CacheLease,
-  attempt : Int,
-) -> String {
-  let suffix = match @env.rand(12) {
-    Some(bytes) => {
-      let digits = "0123456789abcdef"
-      let builder = StringBuilder()
-      for byte in bytes {
-        builder.write_char(digits.get_char((byte.to_int() >> 4) & 0xf).unwrap())
-        builder.write_char(digits.get_char(byte.to_int() & 0xf).unwrap())
-      }
-      builder.to_string()
-    }
-    None => lease.token().to_string() + "-" + attempt.to_string()
-  }
-  "." + lease.digest() + "." + suffix + ".tmp"
-}
-
-///|
 async fn write_native_cache_temporary(
   lease : @host.CacheLease,
   contents : Bytes,
 ) -> @path.PathValue raise @host.HostError {
-  for attempt in 0..<128 {
-    let temporary = native_cache_child(
-      lease.directory(),
-      native_cache_temporary_name(lease, attempt),
+  let temporary = native_cache_child(
+    lease.directory(),
+    native_cache_temporary_name(lease.digest()),
+  )
+  try
+    @async_fs.write_file(
+      temporary.as_string(),
+      contents,
+      create_mode=CreateNew,
+      permission=0o600,
+      sync=Full,
     )
-    try
-      @async_fs.write_file(
-        temporary.as_string(),
-        contents,
-        create_mode=CreateNew,
-        permission=0o600,
-        sync=Full,
-      )
-    catch {
-      @os_error.OSError(_) as error if error.is_EEXIST() => continue
-      error => {
-        try @async_fs.remove(temporary.as_string()) catch {
-          _ => ()
-        } noraise {
-          _ => ()
-        }
-        raise native_cache_error(error)
+  catch {
+    error => {
+      try @async_fs.remove(temporary.as_string()) catch {
+        _ => ()
+      } noraise {
+        _ => ()
       }
-    } noraise {
-      _ => return temporary
+      raise native_cache_error(error)
     }
+  } noraise {
+    _ => return temporary
   }
-  raise InvalidInput("cache temporary filename space exhausted")
 }
 
 ///|
@@ -379,6 +316,16 @@ async fn clean_native_cache_entry(
 }
 
 ///|
+async fn clean_native_stale_temporary(
+  host : NativeFs,
+  directory : @path.PathValue,
+  digest : String,
+) -> Unit raise @host.HostError {
+  let lease = @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
+  @host.HostCacheStore::release_cache_lease(host, lease)
+}
+
+///|
 pub impl @host.HostCacheStore for NativeFs with fn clean_cache(
   self : NativeFs,
   directory : @path.PathValue,
@@ -392,6 +339,11 @@ pub impl @host.HostCacheStore for NativeFs with fn clean_cache(
   }
   let mut removed = 0
   for name in names {
+    if recipe_prefix is None &&
+      native_cache_temporary_digest(name) is Some(digest) {
+      clean_native_stale_temporary(self, directory, digest)
+      continue
+    }
     guard native_cache_manifest_name(name) is Some(digest) else { continue }
     if clean_native_cache_entry(self, directory, name, digest, recipe_prefix) {
       removed += 1
