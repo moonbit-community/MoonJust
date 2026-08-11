@@ -7,9 +7,9 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> Phase 0-8 exits have passed. Phase 9 implementation and local gates are
-> complete; its final exit awaits protected remote CI. MoonJust `0.6.0-alpha`
-> adds bounded parallel scheduling and a versioned Native/wasm1 recipe cache.
+> Phase 0-9 exits have passed, including protected-main CI. MoonJust
+> `0.6.0-alpha` adds bounded parallel scheduling and a versioned Native/wasm1
+> recipe cache. Phase 10 owns platform and Tier B convergence.
 
 ## What is delivered
 

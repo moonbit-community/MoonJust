@@ -1,8 +1,9 @@
 # Phase 0-9 strict exit audit
 
 - Review date: 2026-08-11
-- Reviewed implementation baseline: Phase 9 delivery branch; final merge commit pending
-- Final post-merge CI: pending protected-main run
+- Reviewed implementation baseline: `d28d0b685ff886841f984510ee6a8fb8341cba2c`
+- Final post-merge CI:
+  [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327)
 - Accepted specification: [`docs/PROJECT_PLAN.md`](PROJECT_PLAN.md) v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
@@ -31,7 +32,7 @@ scope and test snapshots; this document is the current cross-phase verdict.
 | 6 | query CLI and read-only Wasm inspection | complete | passed | 86 covered registrations, 134/133 target tests, 24-case query oracle |
 | 7 | HostFs transactions, dotenv, invocation, cwd and environment composition | complete | passed | 188 covered registrations, 211/208 target tests, five dedicated gates |
 | 8 | sequential executor preview, process adapters, scripts, effects, output and cancellation | complete | passed | PR-080..087, 236/232 target tests, executor gate, security audit, protected-main CI |
-| 9 | bounded concurrency, persistent cache, atomic store, cleanup and determinism | complete | pending remote CI | PR-090..094, 72 covered plus 2 registered differences, 1,000-DAG stress, crash/two-process gates |
+| 9 | bounded concurrency, persistent cache, atomic store, cleanup and determinism | complete | passed | PR-090..094, 72 covered plus 2 registered differences, 1,000-DAG stress, crash/two-process gates, protected-main CI |
 
 No applicable completed Phase 0-9 contract row remains `blocked-platform` or
 `unverified`; Phase 6's explicitly inventoried unsupported options are stable
@@ -90,8 +91,8 @@ on-disk format is not misreported as an upstream byte-for-byte match.
 
 ## Target and quality matrix
 
-The Phase 9 delivery awaits its final protected-main CI run. The prior Phase 8
-baseline completed all required jobs; Phase 9 local gates currently report:
+Phase 9 passed its final PR and protected-main CI runs. The complete local and
+remote evidence matrix reports:
 
 | Gate | Result |
 | --- | --- |
@@ -111,14 +112,15 @@ baseline completed all required jobs; Phase 9 local gates currently report:
 | Phase 8 executor gate | pass; dry-run, Native/wasm CLI corpus and executor package cases |
 | Phase 8 security audit | pass; command construction, temporary scripts, process policy, redaction and cleanup |
 | Phase 9 runtime gate | pass locally; scheduler/cache/store/process suites, exact and overflowing process-output limits, adversarial Native cache matrix, crash recovery and two-process contention |
-| Phase 9 cache/concurrency audit | second review remediated unbounded process collection, quadratic lease cleanup and orphan commit temporaries; final protected-main rerun pending |
+| Phase 9 cache/concurrency audit | second review remediated unbounded process collection, compatibility overclaiming, quadratic lease cleanup and orphan commit temporaries |
 | Public interface and formatting review | `moon info && moon fmt` pass; no unintended `.mbti` changes |
-| Native platform smoke | Ubuntu, macOS and Windows pass; post-merge CI [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
+| Phase 9 remote CI | PR [31480537856](https://github.com/moonbit-community/MoonJust/actions/runs/31480537856) and post-merge `main` [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327) pass all quality jobs and Ubuntu/macOS/Windows smoke |
 
 Phase 5's Native C-binding ASan run remains an additional non-CI evidence
 requirement and passed all 109 Native tests without sanitizer findings. The
-clean coverage snapshot is 4,273/6,085 instrumented points (70.2%); this is
-transparent evidence, not the later 1.0 release threshold.
+historical Phase 0-5 clean coverage snapshot was 4,273/6,085 instrumented
+points (70.2%); this is transparent evidence, not a Phase 9 measurement or the
+later 1.0 release threshold.
 
 ## Phase-by-phase review
 
@@ -312,14 +314,15 @@ green:
 | Phase 7 second-audit remediation ([#33](https://github.com/moonbit-community/MoonJust/pull/33)) | `d80d8a394301fe4286c6a4b7b00592e586a9e029` | [31244887123](https://github.com/moonbit-community/MoonJust/actions/runs/31244887123) | [31244990807](https://github.com/moonbit-community/MoonJust/actions/runs/31244990807) |
 | Final audited evidence ([#34](https://github.com/moonbit-community/MoonJust/pull/34)) | `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17` | [31245191266](https://github.com/moonbit-community/MoonJust/actions/runs/31245191266) | [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788) |
 | Phase 8 sequential executor preview ([#37](https://github.com/moonbit-community/MoonJust/pull/37)) | `91efac57788d851c4e38ab9027b5eb9099724b17` | [31393683064](https://github.com/moonbit-community/MoonJust/actions/runs/31393683064) | [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
-| Phase 9 bounded scheduler and cache | pending merge | pending PR CI | pending post-merge CI |
+| Phase 9 bounded scheduler and cache ([#38](https://github.com/moonbit-community/MoonJust/pull/38)) | `d28d0b685ff886841f984510ee6a8fb8341cba2c` | [31480537856](https://github.com/moonbit-community/MoonJust/actions/runs/31480537856) | [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327) |
 
 ## Conclusion
 
-Phase 0-9 implementation is complete and locally re-certified; the Phase 9
-exit becomes final only after the pending PR and protected-main CI are green.
-MoonJust now provides deterministic bounded scheduling and a persistent,
-cross-process-safe Native/wasm1 cache. Interactive tooling, complete Windows
-job-object parity and browser/wasm-gc process execution remain owned by later
-phases. Any future claim beyond this boundary requires a new phase audit,
-updated compatibility evidence and a protected-main CI record.
+Phase 0-9 implementation and exits are complete. Phase 9 was locally
+re-certified, passed PR CI, merged through the required squash workflow, and
+passed protected-main CI. MoonJust now provides deterministic bounded
+scheduling and a persistent, cross-process-safe Native/wasm1 cache.
+Interactive tooling, complete Windows job-object parity and browser/wasm-gc
+process execution remain owned by later phases. Any future claim beyond this
+boundary requires a new phase audit, updated compatibility evidence and a
+protected-main CI record.
