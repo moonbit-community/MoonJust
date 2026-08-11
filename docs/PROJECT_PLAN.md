@@ -27,7 +27,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 ### 2.1 本地仓库
 
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
-- 模块名：`moonbit-community/MoonJust`，模块版本 `0.3.0`，应用版本 `0.3.0-alpha.0`，许可证 `Apache-2.0`。
+- 模块名：`moonbit-community/MoonJust`，模块版本 `0.6.0`，应用版本 `0.6.0-alpha`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
 - Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
@@ -614,7 +614,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 执行状态：Phase 6 已于 2026-08-07 完成实现并通过阶段出口。PR-060 至
 PR-064、二次严格复核补救、Native/wasm1 门禁、固定上游 oracle 以及
 Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_6_REPORT.md`](PHASE_6_REPORT.md)。
-当前应用版本为 `0.3.0-alpha.0`（模块版本 `0.3.0`），仍明确禁止作为生产 recipe runner。
+Phase 6 阶段应用版本为 `0.3.0-alpha.0`（模块版本 `0.3.0`），仍明确禁止作为生产 recipe runner。
 
 ### Phase 7：文件、环境、dotenv 和 invocation
 
@@ -647,6 +647,11 @@ PR-074、二次严格复核补救、188 项固定上游用例映射、五组专�
 
 Phase 8 结束发布 `0.5.0-alpha`，标记为执行预览，不保证并行/cache/所有平台边界。
 
+执行状态：Phase 8 已于 2026-08-10 完成实现并通过阶段出口。PR-080 至
+PR-087、二次严格安全复核、236/232 项阶段出口测试、执行器专项门禁以及
+Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_8_REPORT.md`](PHASE_8_REPORT.md)。
+并行、持久化 cache、交互终端和完整平台边界已明确留给 Phase 9/10。
+
 ### Phase 9：并行、缓存和健壮性
 
 | PR | 内容 | 交付物 | 出口条件 |
@@ -656,6 +661,13 @@ Phase 8 结束发布 `0.5.0-alpha`，标记为执行预览，不保证并行/cac
 | PR-092 | cache store | atomic entry、lock、clean、corruption recovery | 多进程争用、崩溃中断、恶意 manifest |
 | PR-093 | executor resource safety | process/temp/file cleanup、backpressure | 长跑/取消/失败无泄漏 |
 | PR-094 | determinism stress | 随机 DAG、并发 seed、1000 次重复 | 无 flaky、死锁和输出数据竞争 |
+
+执行状态：Phase 9 已于 2026-08-11 完成实现并通过阶段出口。PR-090 至
+PR-094、二次严格复核、72 项可执行登记与 2 项明确差异、263/259 项阶段
+出口测试、1000 次 DAG 压力、崩溃恢复和双进程争用门禁，以及 PR #38 与
+protected-main CI 证据见 [`PHASE_9_REPORT.md`](PHASE_9_REPORT.md) 和
+[`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。当前补充复核测试矩阵为
+265/261；交互、完整平台和兼容收束仍属于 Phase 10。
 
 ### Phase 10：平台和 Tier B 收束
 
@@ -1033,7 +1045,9 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. Phase 0-9 均已完成实现与本地 remediation；Phase 9 的最终出口以 PR 和 protected-main CI 通过为准。所有状态、门禁和后续限制以 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md) 及各阶段报告为准。
+10. Phase 0-9 均已完成实现、二次复核并通过 PR 与 protected-main CI；当前
+   功能合并与证据合并分别见 PR #38 和 PR #39。所有状态、门禁和后续限制
+   以 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md) 及各阶段报告为准。
 
 ## 20. 参考资料与可复核来源
 

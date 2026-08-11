@@ -11,6 +11,16 @@ test "bounded waves preserve serial fences and stable fairness" {
   assert_eq(schedule.waves(), [[0, 1], [2, 3], [4]])
   assert_eq(schedule.peak(), 2)
   assert_eq(@scheduler.deterministic_failure(schedule, [3, 2]), Some(2))
+  let non_dense = @scheduler.build_schedule(
+    [
+      @scheduler.TaskSpec::new(10, 30),
+      @scheduler.TaskSpec::new(7, 20, dependencies=[2]),
+      @scheduler.TaskSpec::new(4, 20),
+      @scheduler.TaskSpec::new(2, 10),
+    ],
+    2,
+  )
+  assert_eq(non_dense.waves(), [[2, 4], [7, 10]])
 }
 
 ///|
@@ -20,6 +30,28 @@ test "invalid jobs dependencies and cycles are typed" {
     error => fail("unexpected jobs error: \{Repr(error)}")
   } noraise {
     _ => fail("expected invalid jobs")
+  }
+  try
+    @scheduler.build_schedule(
+      [@scheduler.TaskSpec::new(3, 0), @scheduler.TaskSpec::new(3, 1)],
+      1,
+    )
+  catch {
+    DuplicateTask(3) => ()
+    error => fail("unexpected duplicate-task error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected duplicate task")
+  }
+  try
+    @scheduler.build_schedule(
+      [@scheduler.TaskSpec::new(4, 0, dependencies=[4])],
+      1,
+    )
+  catch {
+    SelfDependency(4) => ()
+    error => fail("unexpected self-dependency error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected self dependency")
   }
   try
     @scheduler.build_schedule(
@@ -83,4 +115,23 @@ test "1000 seeded DAG schedules are complete bounded and deterministic" {
     }
     assert_eq(seen.length(), count)
   }
+}
+
+///|
+test "large linear DAG remains practical with one worker" {
+  let count = 10000
+  let tasks : Array[@scheduler.TaskSpec] = []
+  for id in 0..<count {
+    tasks.push(
+      @scheduler.TaskSpec::new(
+        id,
+        id,
+        dependencies=if id == 0 { [] } else { [id - 1] },
+      ),
+    )
+  }
+  let schedule = @scheduler.build_schedule(tasks, 1)
+  assert_eq(schedule.order().length(), count)
+  assert_eq(schedule.order().get(0), Some(0))
+  assert_eq(schedule.order().get(count - 1), Some(count - 1))
 }

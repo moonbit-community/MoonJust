@@ -1,6 +1,6 @@
 # Phase 8 Completion Report
 
-- Status: implemented; local exit passed
+- Status: Implemented; Phase 8 exit passed
 - Date: 2026-08-10
 - Release identity: `0.5.0-alpha`
 - Upstream baseline: `just 1.57.0`

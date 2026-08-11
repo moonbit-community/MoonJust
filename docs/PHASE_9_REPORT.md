@@ -19,7 +19,7 @@
 | PR-091 | versioned length-delimited cache key, evaluated `extra`/inputs/outputs, incremental BLAKE3 and strict manifest | pure cache invalidation, round-trip and adversarial tests |
 | PR-092 | permanent per-digest lock, atomic `0600`/Full-sync entry, corruption and stale-temporary recovery, selective `--clean` | Native/Wasm store tests and two-process contention gate |
 | PR-093 | bounded hashing, streamed process pipes, 16 MiB per-stream capture budget, cancellation-safe process/script/lease cleanup | exact/overflow boundary, cancellation and missing-output non-publication tests |
-| PR-094 | fixed-seed randomized DAG and concurrency determinism | 1,000 generated schedules, stable output/failure tests, Phase 9 gate |
+| PR-094 | fixed-seed randomized DAG and concurrency determinism | 1,000 generated schedules, 10,000-node linear DAG, stable output/failure tests, Phase 9 gate |
 
 The async planner now emits an explicit recipe-task DAG. Ordinary dependency
 groups chain terminal tasks; `[parallel]` groups share their entry fence and
@@ -52,7 +52,8 @@ lease removes it in O(1) while holding the same digest lock. Full cache clean
 also locks and removes orphan temporaries for digests that are never reused;
 lookalike files remain untouched. Lease tokens are bound to the exact directory
 and digest, and
-structural `Debug` output redacts bodies, arguments and environment values.
+structural `Debug` and `-vv` cache-key JSON output redact bodies, arguments and
+environment values.
 `--no-cache` and dry-run perform no cache lock or publication.
 
 Process stdout and stderr are drained concurrently in chunks rather than by an
@@ -82,7 +83,7 @@ parallel output, missing/directory/symlink inputs, multiple inputs/outputs,
 working-directory and dangling outputs, bypass, clean, crash recovery, and two
 concurrent Native processes contending for the same digest.
 
-The clean local regression passes 263 Native and 259 wasm1 tests, strict
+The clean local regression passes 265 Native and 261 wasm1 tests, strict
 all-backend compilation, formatting, 21-package architecture boundaries,
 2,417-row compatibility verification, Phase 8 regression and the Phase 9
 runtime gate. PR and protected-main CI both reran the complete quality matrix;

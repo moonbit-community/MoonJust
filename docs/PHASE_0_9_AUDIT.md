@@ -1,9 +1,9 @@
 # Phase 0-9 strict exit audit
 
 - Review date: 2026-08-11
-- Reviewed implementation baseline: `d28d0b685ff886841f984510ee6a8fb8341cba2c`
+- Reviewed implementation/evidence baseline: `ffe99e288638a80219d621b703378f27f9a19f43`
 - Final post-merge CI:
-  [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327)
+  [31481583709](https://github.com/moonbit-community/MoonJust/actions/runs/31481583709)
 - Accepted specification: [`docs/PROJECT_PLAN.md`](PROJECT_PLAN.md) v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
@@ -97,8 +97,8 @@ remote evidence matrix reports:
 | Gate | Result |
 | --- | --- |
 | `moon check --target all --warn-list +73` | pass |
-| `moon test --target native` | 263 passed, 0 failed |
-| `moon test --target wasm` | 259 passed, 0 failed |
+| `moon test --target native` | 265 passed, 0 failed |
+| `moon test --target wasm` | 261 passed, 0 failed |
 | Architecture boundary check | twenty-one core packages and adapter leaves pass |
 | Compatibility snapshot and manifest verifier | 2,417 registrations verified |
 | Real differential smoke | 6 matches, 4 registered expected differences, 0 failures |
@@ -112,15 +112,17 @@ remote evidence matrix reports:
 | Phase 8 executor gate | pass; dry-run, Native/wasm CLI corpus and executor package cases |
 | Phase 8 security audit | pass; command construction, temporary scripts, process policy, redaction and cleanup |
 | Phase 9 runtime gate | pass locally; scheduler/cache/store/process suites, exact and overflowing process-output limits, adversarial Native cache matrix, crash recovery and two-process contention |
-| Phase 9 cache/concurrency audit | second review remediated unbounded process collection, compatibility overclaiming, quadratic lease cleanup and orphan commit temporaries |
+| Phase 9 cache/concurrency audit | second review remediated unbounded process collection, compatibility overclaiming, quadratic lease cleanup and orphan commit temporaries; this re-audit also redacts `-vv` cache-key values and makes scheduler readiness incremental |
 | Public interface and formatting review | `moon info && moon fmt` pass; no unintended `.mbti` changes |
 | Phase 9 remote CI | PR [31480537856](https://github.com/moonbit-community/MoonJust/actions/runs/31480537856) and post-merge `main` [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327) pass all quality jobs and Ubuntu/macOS/Windows smoke |
 
 Phase 5's Native C-binding ASan run remains an additional non-CI evidence
 requirement and passed all 109 Native tests without sanitizer findings. The
 historical Phase 0-5 clean coverage snapshot was 4,273/6,085 instrumented
-points (70.2%); this is transparent evidence, not a Phase 9 measurement or the
-later 1.0 release threshold.
+points (70.2%). This re-audit also recorded 8,746/12,811 Native instrumented
+points (68.3%) across the expanded Phase 0-9 tree; subprocess-only probes and
+target adapters are additionally exercised by dedicated gates. These are
+transparent measurements, not the later 1.0 release threshold.
 
 ## Phase-by-phase review
 
@@ -293,8 +295,11 @@ Native/wasm1 CLI miss/hit/invalidation workflows.
 
 ## Documentation consistency review
 
-The final documentation pass checked every tracked Markdown/TOML status pointer
-and corrected old implementation baselines, old Phase 0-5 wording, stale
+The final documentation pass checked 71 local Markdown links across all 44
+tracked Markdown files (zero missing targets) and every tracked TOML status
+pointer. GitHub API validation also resolved all 42 referenced MoonJust CI runs
+as successful and all 21 directly referenced pull requests as merged. The pass
+corrected old implementation baselines, old Phase 0-5 wording, stale
 Phase 3-5-only upstream-tool instructions, missing Phase 3/4/5/7 evidence
 links, the Phase 6 graph-serialization ownership sentence, and the old
 `MJ-COMPAT-0003` rationale. Historical phase reports retain their original
@@ -315,10 +320,13 @@ green:
 | Final audited evidence ([#34](https://github.com/moonbit-community/MoonJust/pull/34)) | `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17` | [31245191266](https://github.com/moonbit-community/MoonJust/actions/runs/31245191266) | [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788) |
 | Phase 8 sequential executor preview ([#37](https://github.com/moonbit-community/MoonJust/pull/37)) | `91efac57788d851c4e38ab9027b5eb9099724b17` | [31393683064](https://github.com/moonbit-community/MoonJust/actions/runs/31393683064) | [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
 | Phase 9 bounded scheduler and cache ([#38](https://github.com/moonbit-community/MoonJust/pull/38)) | `d28d0b685ff886841f984510ee6a8fb8341cba2c` | [31480537856](https://github.com/moonbit-community/MoonJust/actions/runs/31480537856) | [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327) |
+| Phase 9 audited evidence ([#39](https://github.com/moonbit-community/MoonJust/pull/39)) | `ffe99e288638a80219d621b703378f27f9a19f43` | [31481356601](https://github.com/moonbit-community/MoonJust/actions/runs/31481356601) | [31481583709](https://github.com/moonbit-community/MoonJust/actions/runs/31481583709) |
 
 ## Conclusion
 
-Phase 0-9 implementation and exits are complete. Phase 9 was locally
+Phase 0-9 implementation and exits are complete. The strict re-audit added
+secret-safe `-vv` cache diagnostics and an incremental readiness queue for large
+DAGs; 265 Native and 261 wasm1 tests pass locally. Phase 9 was locally
 re-certified, passed PR CI, merged through the required squash workflow, and
 passed protected-main CI. MoonJust now provides deterministic bounded
 scheduling and a persistent, cross-process-safe Native/wasm1 cache.

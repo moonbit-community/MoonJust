@@ -82,13 +82,50 @@ fn compare_task(left : TaskSpec, right : TaskSpec) -> Int {
 }
 
 ///|
-fn ready(task : TaskSpec, completed : Set[Int]) -> Bool {
-  for dependency in task.dependencies() {
-    if !completed.contains(dependency) {
-      return false
+fn ready_heap_push(heap : Array[TaskSpec], task : TaskSpec) -> Unit {
+  heap.push(task)
+  let mut index = heap.length() - 1
+  while index > 0 {
+    let parent = (index - 1) / 2
+    if compare_task(heap[parent], heap[index]) <= 0 {
+      break
+    }
+    let parent_task = heap[parent]
+    heap[parent] = heap[index]
+    heap[index] = parent_task
+    index = parent
+  }
+}
+
+///|
+fn ready_heap_pop(heap : Array[TaskSpec]) -> TaskSpec {
+  let first = heap[0]
+  let last = heap.pop().unwrap()
+  if !heap.is_empty() {
+    heap[0] = last
+    let mut index = 0
+    while true {
+      let left = index * 2 + 1
+      if left >= heap.length() {
+        break
+      }
+      let right = left + 1
+      let child = if right < heap.length() &&
+        compare_task(heap[right], heap[left]) < 0 {
+        right
+      } else {
+        left
+      }
+      if compare_task(heap[index], heap[child]) <= 0 {
+        break
+      }
+      let parent_task = heap[index]
+      heap[index] = heap[child]
+      heap[child] = parent_task
+      index = child
     }
   }
-  true
+  first
 }
 
 ///|
@@ -120,17 +157,28 @@ pub fn build_schedule(
       }
     }
   }
+  let tasks_by_id : Map[Int, TaskSpec] = Map([])
+  let remaining : Map[Int, Int] = Map([])
+  let dependents : Map[Int, Array[Int]] = Map([])
+  let ready : Array[TaskSpec] = []
+  for task in tasks {
+    tasks_by_id[task.id()] = task
+    remaining[task.id()] = task.dependencies().length()
+    if task.dependencies().is_empty() {
+      ready_heap_push(ready, task)
+    }
+    for dependency in task.dependencies() {
+      match dependents.get(dependency) {
+        Some(children) => children.push(task.id())
+        None => dependents[dependency] = [task.id()]
+      }
+    }
+  }
   let completed : Set[Int] = Set([])
   let waves : Array[Array[Int]] = []
   let order : Array[Int] = []
   while completed.length() < tasks.length() {
-    let runnable : Array[Int] = []
-    for task in tasks {
-      if !completed.contains(task.id()) && ready(task, completed) {
-        runnable.push(task.id())
-      }
-    }
-    if runnable.is_empty() {
+    if ready.is_empty() {
       let blocked : Array[Int] = []
       for task in tasks {
         if !completed.contains(task.id()) {
@@ -139,11 +187,28 @@ pub fn build_schedule(
       }
       raise DependencyCycle(blocked)
     }
-    let count = Int::min(jobs, runnable.length())
-    let wave = runnable[:count].to_owned()
-    for id in wave {
+    let count = Int::min(jobs, ready.length())
+    let wave_tasks : Array[TaskSpec] = []
+    for _ in 0..<count {
+      wave_tasks.push(ready_heap_pop(ready))
+    }
+    let wave : Array[Int] = []
+    for task in wave_tasks {
+      let id = task.id()
+      wave.push(id)
       completed.add(id)
       order.push(id)
+      match dependents.get(id) {
+        Some(children) =>
+          for child in children {
+            let child_remaining = remaining.get(child).unwrap() - 1
+            remaining[child] = child_remaining
+            if child_remaining == 0 {
+              ready_heap_push(ready, tasks_by_id.get(child).unwrap())
+            }
+          }
+        None => ()
+      }
     }
     waves.push(wave)
   }

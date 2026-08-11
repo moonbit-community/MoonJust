@@ -55,6 +55,8 @@ test "cache key is canonical across unordered fields" {
   assert_eq(first.digest().length(), 64)
   let debug = first.debug_json()
   assert_true(debug.contains("\"executor\""))
+  assert_true(debug.contains("\"argument_count\""))
+  assert_true(debug.contains("\"environment_keys\""))
   assert_true(debug.contains("\"working_directory\""))
 }
 
@@ -71,6 +73,27 @@ test "structural cache key debug output redacts executable values" {
   let debug = "\{Repr(key)}"
   assert_true(debug.contains("body_bytes"))
   assert_true(debug.contains("TOKEN"))
+  assert_false(debug.contains("TOP_SECRET"))
+}
+
+///|
+test "verbose cache key JSON redacts executable values" {
+  let key = try! @cache.CacheKey::new(
+    "build",
+    "TOP_SECRET_BODY",
+    "sh",
+    interpreter_arguments=["TOP_SECRET_ARGUMENT"],
+    environment=[("TOKEN", "TOP_SECRET_ENVIRONMENT")],
+    positional=["TOP_SECRET_POSITIONAL"],
+    extra="TOP_SECRET_EXTRA",
+  )
+  let debug = key.debug_json()
+  assert_true(debug.contains("\"body_bytes\""))
+  assert_true(debug.contains("\"argument_count\""))
+  assert_true(debug.contains("\"environment_keys\""))
+  assert_true(debug.contains("TOKEN"))
+  assert_true(debug.contains("\"extra_bytes\""))
+  assert_true(debug.contains("\"positional_count\""))
   assert_false(debug.contains("TOP_SECRET"))
 }
 

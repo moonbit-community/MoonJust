@@ -389,7 +389,7 @@ async test "cancellation releases process script and cache resources" {
 ///|
 async test "verbose cache diagnostics report stable hits and key material" {
   let plan = runtime_async_plan(
-    "[script]\n[cache]\nroot:\n  echo verbose\n",
+    "export TOKEN := \"TOP_SECRET_VERBOSE_CACHE\"\n[script]\n[cache]\nroot:\n  echo {{TOKEN}}\n",
     1,
     verbosity=2,
   )
@@ -404,4 +404,5 @@ async test "verbose cache diagnostics report stable hits and key material" {
   assert_true(stderr.contains("===> cache key "))
   assert_true(stderr.contains("\"working_directory\": "))
   assert_true(stderr.has_suffix("===> cache hit, skipping invocation\n"))
+  assert_false(stderr.contains("TOP_SECRET_VERBOSE_CACHE"))
 }
