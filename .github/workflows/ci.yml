@@ -89,6 +89,12 @@ jobs:
       - name: Verify Phase 7 environment composition differential
         run: ./tools/check_phase7_environment.sh
 
+      - name: Verify Phase 8 executor
+        run: ./tools/check_phase8_executor.sh
+
+      - name: Verify Phase 9 scheduler and cache runtime
+        run: ./tools/check_phase9_runtime.sh
+
       - name: Verify Phase 6 query oracle
         run: ./tools/check_phase6_oracle.sh
 

@@ -75,7 +75,7 @@ def validate_test_anchor(
         expect(path.is_file(), f"{row_id} test suite is missing: {suite}")
         source_cache[suite] = path.read_text(encoding="utf-8")
     declaration = re.compile(
-        rf'^\s*test\s+"{re.escape(test_name)}"\s*\{{',
+        rf'^\s*(?:async\s+)?test\s+"{re.escape(test_name)}"\s*\{{',
         re.MULTILINE,
     )
     expect(
@@ -103,10 +103,10 @@ def validate_map() -> None:
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
-        if row["owner_phase"] in {3, 4, 5, 6, 7} and row["disposition"] == "covered-by":
+        if row["owner_phase"] in {3, 4, 5, 6, 7, 9} and row["disposition"] == "covered-by":
             validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
             expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
-        if row["owner_phase"] in {3, 4, 5, 6, 7} and row["disposition"] == "covered-by":
+        if row["owner_phase"] in {3, 4, 5, 6, 7, 9} and row["disposition"] == "covered-by":
             expect(row["disposition"] == "covered-by", f"Phase {row['owner_phase']} row {index} is not executable")
             expect(row["targets"] == ["native", "wasm1"], f"Phase {row['owner_phase']} row {index} target matrix is incomplete")
 
@@ -118,7 +118,7 @@ def validate_map() -> None:
         all(row["disposition"] in {"covered-by", "not-applicable"} for row in phase2_rows),
         "Phase 2 contains an unclassified upstream registration",
     )
-    for phase in (3, 4, 5, 6, 7):
+    for phase in (3, 4, 5, 6, 7, 9):
         cases = repo / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         rows_for_phase = [
             row
@@ -216,8 +216,8 @@ def validate() -> None:
         all(entry["status"] in {"planned", "implemented", "excluded"} for entry in cli_entries),
         "CLI inventory contains an invalid status",
     )
-    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 20, "implemented CLI option count changed")
-    expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 11, "Phase 6 implemented command count changed")
+    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 22, "implemented CLI option count changed")
+    expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 12, "implemented command count changed")
 
     builtins = load(repo / "compat/builtins.toml")
     expect(builtins["registry"]["canonical_count"] == 83, "builtin count changed")
@@ -291,6 +291,7 @@ def validate() -> None:
                 ),
                 "Phase 6 covered registration count changed",
             )
+
             expect(
                 corpus["excluded_registrations"] == sum(
                     row["disposition"] in {"excluded-completion", "not-applicable"}
@@ -337,6 +338,25 @@ def validate() -> None:
                 == corpus["covered_registrations"],
                 "Phase 7 compatibility and corpus counts differ",
             )
+
+    phase9 = load(repo / "compat/phase-9.toml")
+    expect(phase9["status"] == "implemented", "Phase 9 status is not implemented")
+    expect(
+        phase9["plan_exit"] in {"pending-remote-ci", "passed"},
+        "Phase 9 exit has an invalid state",
+    )
+    phase9_rows = [
+        json.loads(line)
+        for line in (repo / "tests/upstream/just-1.57.0/test-map.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if json.loads(line)["owner_phase"] == 9
+    ]
+    expect(len(phase9_rows) == 74, "Phase 9 registration count changed")
+    expect(
+        all(row["disposition"] == "covered-by" for row in phase9_rows),
+        "Phase 9 contains a non-executable registration",
+    )
 
     policy = load(repo / "policies/inspect.toml")
     expect(policy["fs"]["write"] == [], "Phase 6 inspect policy grants filesystem writes")

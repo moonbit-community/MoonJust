@@ -101,6 +101,53 @@ fn selected_command_color(
 }
 
 ///|
+fn selected_jobs(arguments : @cli.CliArguments) -> Int raise ApplicationError {
+  guard arguments.value("jobs") is Some(value) else { return 1 }
+  let jobs = @string.parse_int(value[:]) catch {
+    _ =>
+      raise Query(
+        "invalid --jobs value `\{value}`; expected a positive integer",
+      )
+  }
+  if jobs <= 0 {
+    raise Query("invalid --jobs value `\{value}`; expected a positive integer")
+  }
+  jobs
+}
+
+///|
+fn execution_options(
+  arguments : @cli.CliArguments,
+  timestamp : String?,
+  command_color : @executor.CommandColor?,
+) -> @executor.ExecutionOptions raise ApplicationError {
+  @executor.ExecutionOptions::from_values(
+    arguments.flag("dry-run"),
+    arguments.flag("quiet"),
+    arguments.flag("verbose"),
+    arguments.flag("time"),
+    timestamp,
+    command_color,
+  )
+  .with_jobs(selected_jobs(arguments))
+  .with_cache(!arguments.flag("no-cache"))
+  .with_unstable(arguments.flag("unstable"))
+  .with_verbosity(arguments.count("verbose"))
+}
+
+///|
+fn cache_directory(
+  project : @path.PathValue,
+) -> @path.PathValue raise ApplicationError {
+  let relative = @path.PathValue::new(".moonjust-cache/v1", project.flavor()) catch {
+    error => raise Path(error)
+  }
+  project.join(relative) catch {
+    error => raise Path(error)
+  }
+}
+
+///|
 fn[H : @host.HostClock] selected_timestamp(
   effects : H,
   arguments : @cli.CliArguments,
@@ -326,6 +373,7 @@ pub fn[F : @host.HostFs, E : @host.HostEnv] plan_run_command(
     context.cwd().flavor(),
   )
   let command_color = selected_command_color(arguments)
+  let options = execution_options(arguments, None, command_color)
   @executor.plan_recipe_graph(
     compilation,
     requests,
@@ -333,14 +381,7 @@ pub fn[F : @host.HostFs, E : @host.HostEnv] plan_run_command(
     shell,
     cwd,
     process_environment=environment,
-    options=@executor.ExecutionOptions::from_values(
-      arguments.flag("dry-run"),
-      arguments.flag("quiet"),
-      arguments.flag("verbose"),
-      arguments.flag("time"),
-      None,
-      command_color,
-    ),
+    options~,
   ) catch {
     error => raise Executor(error)
   }
@@ -492,6 +533,8 @@ pub async fn[
   )
   let timestamp = selected_timestamp(effects, arguments)
   let command_color = selected_command_color(arguments)
+  let options = execution_options(arguments, timestamp, command_color)
+  let cache_directory = cache_directory(directories.project_directory())
   @executor.plan_recipe_graph_async(
     process,
     effects,
@@ -503,14 +546,8 @@ pub async fn[
     cwd,
     configuration,
     process_environment=environment,
-    options=@executor.ExecutionOptions::from_values(
-      arguments.flag("dry-run"),
-      arguments.flag("quiet"),
-      arguments.flag("verbose"),
-      arguments.flag("time"),
-      timestamp,
-      command_color,
-    ),
+    options~,
+    cache_directory~,
   ) catch {
     error => raise Executor(error)
   }

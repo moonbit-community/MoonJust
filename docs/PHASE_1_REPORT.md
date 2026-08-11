@@ -6,7 +6,7 @@
 - Required implementation targets: Native and wasm1
 - Decision: Proceed to Phase 2 (`Lexer`)
 - Historical phase snapshot; the current cross-phase verdict is in
-  [`PHASE_0_8_AUDIT.md`](PHASE_0_8_AUDIT.md).
+  [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md).
 
 ## Scope statement
 

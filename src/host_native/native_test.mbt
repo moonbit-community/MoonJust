@@ -153,3 +153,118 @@ test "native environment adapter exposes deterministic snapshots and cwd" {
   let cwd = @host.HostEnv::current_dir(host)
   assert_true(cwd.as_string() != "")
 }
+
+///|
+async test "cache store serializes leases commits atomically and cleans manifests" {
+  let directory = try! @path.PathValue::new(
+    "_build/native-cache-store-test",
+    Unix,
+  )
+  try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
+  let host = NativeFs::new()
+  let digest = "a".repeat(64)
+  let first = try
+    @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
+  catch {
+    error => fail("first cache lease failed: \{Repr(error)}")
+  } noraise {
+    value => value
+  }
+  assert_eq(@host.HostCacheStore::read_cache_manifest(host, first), None)
+  let forged = @host.CacheLease::new(directory, "c".repeat(64), first.token())
+  try @host.HostCacheStore::read_cache_manifest(host, forged) catch {
+    InvalidInput(_) => ()
+    error => fail("unexpected forged lease error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected forged lease rejection")
+  }
+  let second_acquired = Ref(false)
+  @async.with_task_group() <| group => {
+    let waiter = group.spawn(() => {
+      let second = try
+        @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
+      catch {
+        error => fail("second cache lease failed: \{Repr(error)}")
+      } noraise {
+        value => value
+      }
+      second_acquired.val = true
+      try @host.HostCacheStore::release_cache_lease(host, second) catch {
+        error => fail("second cache release failed: \{Repr(error)}")
+      } noraise {
+        _ => ()
+      }
+    })
+    @async.sleep(10)
+    assert_false(second_acquired.val)
+    try
+      @host.HostCacheStore::write_cache_manifest(host, first, b"manifest")
+    catch {
+      error => fail("cache manifest write failed: \{Repr(error)}")
+    } noraise {
+      _ => ()
+    }
+    try @host.HostCacheStore::release_cache_lease(host, first) catch {
+      error => fail("first cache release failed: \{Repr(error)}")
+    } noraise {
+      _ => ()
+    }
+    waiter.wait()
+  }
+  assert_true(second_acquired.val)
+  let third = try
+    @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
+  catch {
+    error => fail("third cache lease failed: \{Repr(error)}")
+  } noraise {
+    value => value
+  }
+  assert_eq(
+    @host.HostCacheStore::read_cache_manifest(host, third),
+    Some(b"manifest"),
+  )
+  try @host.HostCacheStore::release_cache_lease(host, third) catch {
+    error => fail("third cache release failed: \{Repr(error)}")
+  } noraise {
+    _ => ()
+  }
+  let manifest_path = try! directory.join(
+    try! @path.PathValue::new(digest + ".json", Unix),
+  )
+  @async_fs.write_file(
+    manifest_path.as_string(),
+    @utf8.encode("x".repeat(@cache.MAX_MANIFEST_BYTES + 64)),
+    create_mode=CreateOrTruncate,
+  )
+  let bounded = try! @host.HostCacheStore::acquire_cache_lease(
+    host, directory, digest,
+  )
+  let bounded_contents = try! @host.HostCacheStore::read_cache_manifest(
+    host, bounded,
+  )
+  guard bounded_contents is Some(bytes) else {
+    fail("expected oversized manifest prefix")
+  }
+  assert_eq(bytes.length(), @cache.MAX_MANIFEST_BYTES + 1)
+  try! @host.HostCacheStore::release_cache_lease(host, bounded)
+  let keep = try! directory.join(try! @path.PathValue::new("keep.txt", Unix))
+  @async_fs.write_file(keep.as_string(), b"keep", create_mode=CreateOrTruncate)
+  let cleaned = try
+    @host.HostCacheStore::clean_cache(host, directory, None)
+  catch {
+    error => fail("cache clean failed: \{Repr(error)}")
+  } noraise {
+    value => value
+  }
+  assert_eq(cleaned, 1)
+  assert_true(@host.HostFs::file_exists(host, keep))
+  try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
+}

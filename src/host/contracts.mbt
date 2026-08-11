@@ -58,6 +58,52 @@ pub(open) trait HostAtomicFs {
 }
 
 ///|
+/// Opaque ownership token for one digest lock. The lock remains owned until
+/// the same adapter releases this lease.
+pub struct CacheLease {
+  directory : @path.PathValue
+  digest : String
+  token : Int
+} derive(Eq, Debug)
+
+///|
+pub fn CacheLease::new(
+  directory : @path.PathValue,
+  digest : String,
+  token : Int,
+) -> CacheLease {
+  { directory, digest, token }
+}
+
+///|
+pub fn CacheLease::directory(self : CacheLease) -> @path.PathValue {
+  self.directory
+}
+
+///|
+pub fn CacheLease::digest(self : CacheLease) -> String {
+  self.digest
+}
+
+///|
+pub fn CacheLease::token(self : CacheLease) -> Int {
+  self.token
+}
+
+///|
+/// Persistent recipe-cache storage. Implementations hold an exclusive
+/// cross-process lock from acquisition through lookup, execution, and commit.
+/// Reads return at most `MAX_MANIFEST_BYTES + 1` bytes so callers can reject
+/// oversized entries without allocating in proportion to hostile files.
+pub(open) trait HostCacheStore {
+  async fn acquire_cache_lease(Self, @path.PathValue, String) -> CacheLease raise HostError
+  async fn read_cache_manifest(Self, CacheLease) -> Bytes? raise HostError
+  async fn write_cache_manifest(Self, CacheLease, Bytes) -> Unit raise HostError
+  async fn release_cache_lease(Self, CacheLease) -> Unit raise HostError
+  async fn clean_cache(Self, @path.PathValue, String?) -> Int raise HostError
+}
+
+///|
 /// Persist bytes through a same-directory temporary file. Adapters must create
 /// the temporary file exclusively and commit it atomically. A failed commit is
 /// followed by a best-effort cleanup without hiding the original failure.

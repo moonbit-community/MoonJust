@@ -6,7 +6,7 @@
 - Required implementation targets: Native and wasm1
 - Decision: Proceed to Phase 1 (`Source`, diagnostics, platform value model)
 - Historical phase snapshot; the current cross-phase verdict is in
-  [`PHASE_0_8_AUDIT.md`](PHASE_0_8_AUDIT.md).
+  [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md).
 
 ## Scope statement
 
@@ -99,7 +99,7 @@ discarded as noise.
 - Local time-zone discovery, DST behavior, and chrono-format compatibility are
   deferred to the time adapter and builtin phases.
 - At the original Phase 0 entry, the compatibility inventory was only indexed.
-  The current Phase 0-8 audit classifies completed rows as `covered-by` or
+  The current Phase 0-9 audit classifies completed rows as `covered-by` or
   explicit exclusions, with later Phase 8-10 rows remaining `planned`.
   Future classification remains a 1.0 gate.
 

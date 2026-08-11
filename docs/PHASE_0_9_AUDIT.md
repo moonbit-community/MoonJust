@@ -1,13 +1,12 @@
-# Phase 0-8 strict exit audit
+# Phase 0-9 strict exit audit
 
-- Review date: 2026-08-10
-- Reviewed implementation baseline: `main` at
-  `91efac57788d851c4e38ab9027b5eb9099724b17`
-- Final post-merge CI: [run 31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821)
+- Review date: 2026-08-11
+- Reviewed implementation baseline: Phase 9 delivery branch; final merge commit pending
+- Final post-merge CI: pending protected-main run
 - Accepted specification: [`docs/PROJECT_PLAN.md`](PROJECT_PLAN.md) v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
-- MoonJust application identity: `0.5.0-alpha`
+- MoonJust application identity: `0.6.0-alpha`
 - Required targets: Native and wasm1 through `moonrun`/`moonx`; Native smoke on Ubuntu, macOS and Windows
 
 ## Audit rule
@@ -32,15 +31,16 @@ scope and test snapshots; this document is the current cross-phase verdict.
 | 6 | query CLI and read-only Wasm inspection | complete | passed | 86 covered registrations, 134/133 target tests, 24-case query oracle |
 | 7 | HostFs transactions, dotenv, invocation, cwd and environment composition | complete | passed | 188 covered registrations, 211/208 target tests, five dedicated gates |
 | 8 | sequential executor preview, process adapters, scripts, effects, output and cancellation | complete | passed | PR-080..087, 236/232 target tests, executor gate, security audit, protected-main CI |
+| 9 | bounded concurrency, persistent cache, atomic store, cleanup and determinism | complete | pending remote CI | PR-090..094, 74 mapped registrations, 1,000-DAG stress, crash/two-process gates |
 
-No applicable completed Phase 0-8 contract row remains `blocked-platform` or
+No applicable completed Phase 0-9 contract row remains `blocked-platform` or
 `unverified`; Phase 6's explicitly inventoried unsupported options are stable
 diagnostics rather than silent omissions. The compatibility inventory still
 tracks 732 Phase 8 upstream registrations as `planned`: the sequential executor
 preview is audited at its declared contract boundary, while full upstream
-compatibility mapping remains a later compatibility task. Phase 9 parallel/cache
-behavior and Phase 10 interactive/product tooling remain intentionally outside
-this exit.
+compatibility mapping remains a later compatibility task. Phase 9's 74 cache,
+clean and parallel registrations now have executable Native/wasm1 family evidence.
+Phase 10 interactive/product tooling remains intentionally outside this exit.
 
 ## Machine-verified compatibility accounting
 
@@ -59,14 +59,14 @@ deterministic case manifests.
 | 6 | 121 | 86 | 35 | 0 |
 | 7 | 188 | 188 | 0 | 0 |
 | 8 | 732 | 0 | 0 | 732 |
-| 9 | 67 | 0 | 0 | 67 |
-| 10 | 59 | 0 | 0 | 59 |
-| **Total** | **2,417** | **1,523** | **36** | **858** |
+| 9 | 74 | 74 | 0 | 0 |
+| 10 | 52 | 0 | 0 | 52 |
+| **Total** | **2,417** | **1,597** | **36** | **784** |
 
 The 36 exclusions are one Rust-private lexer helper, 30 shell-completion
-registrations, and five product-maintenance registrations. The 858 later rows
-are not silently counted as compatibility: they require executor, cache,
-parallel, interactive, or release-tooling behavior owned by later phases.
+registrations, and five product-maintenance registrations. The 784 later rows
+are not silently counted as compatibility: they require the remaining full
+executor, interactive, or release-tooling behavior owned by later phases.
 
 Phase 7's 188 executable rows are grouped by deterministic family anchors:
 51 dotenv, 86 invocation, 30 working-directory, and 21 CLI environment rows.
@@ -78,19 +78,26 @@ matrix and fixtures rather than by claiming the 732 still-planned upstream
 registrations. Those rows remain explicit compatibility work and are not
 silently counted as covered by the preview.
 
+Phase 9's 74 rows use deterministic family anchors for bounded prior and
+subsequent parallel dependencies, failures and job limits, plus cache keys,
+runtime invalidation, output failures, gating, diagnostics, bypass, selective
+clean and lexical `clean(path)` cases.
+The machine manifest does not treat the project-owned on-disk format as an
+upstream byte-for-byte format claim.
+
 ## Target and quality matrix
 
-The final `main` CI run [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821)
-completed all four required jobs:
+The Phase 9 delivery awaits its final protected-main CI run. The prior Phase 8
+baseline completed all required jobs; Phase 9 local gates currently report:
 
 | Gate | Result |
 | --- | --- |
 | `moon check --target all --warn-list +73` | pass |
-| `moon test --target native` | 211 passed, 0 failed |
-| `moon test --target wasm` | 208 passed, 0 failed |
-| Architecture boundary check | eighteen core packages and adapter leaves pass |
+| `moon test --target native` | 262 passed, 0 failed |
+| `moon test --target wasm` | 258 passed, 0 failed |
+| Architecture boundary check | twenty-one core packages and adapter leaves pass |
 | Compatibility snapshot and manifest verifier | 2,417 registrations verified |
-| Real differential smoke | 4 matches, 6 registered expected differences, 0 failures |
+| Real differential smoke | 6 matches, 4 registered expected differences, 0 failures |
 | Phase 5 Rust builtin oracle | 20/20 cases pass |
 | Phase 6 Wasm inspect policy/oracle | pass; read-only, no process |
 | Phase 7 HostFs policy | pass; atomic allow and typed denial |
@@ -100,6 +107,8 @@ completed all four required jobs:
 | Phase 7 environment differential | pass; seven precedence cases |
 | Phase 8 executor gate | pass; dry-run, Native/wasm CLI corpus and executor package cases |
 | Phase 8 security audit | pass; command construction, temporary scripts, process policy, redaction and cleanup |
+| Phase 9 runtime gate | pass locally; scheduler/cache/store suites, adversarial Native cache matrix, crash recovery and two-process contention |
+| Phase 9 cache/concurrency audit | pass locally; final diff and protected-main rerun pending |
 | Public interface and formatting review | `moon info && moon fmt` pass; no unintended `.mbti` changes |
 | Native platform smoke | Ubuntu, macOS and Windows pass; post-merge CI [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
 
@@ -220,9 +229,33 @@ registered in a structured task-group defer protected from cancellation and is
 also attempted after materialization, specification or host failures. Dry-run
 evaluates a redacted textual representation and never creates a file.
 
-Full upstream corpus mapping, parallel scheduling, persistent cache,
-interactive terminal streaming, complete Windows job-object parity and
-browser/wasm-gc process execution remain deferred.
+Full Phase 8 executor corpus mapping, interactive terminal streaming, complete
+Windows job-object parity and browser/wasm-gc process execution remain
+deferred. Bounded parallel scheduling and persistent cache are delivered by
+Phase 9 below.
+
+### Phase 9: bounded concurrency and cache
+
+The async planner emits explicit recipe tasks with stable dense IDs and
+dependency edges. Ordinary dependency groups form serial fences; `[parallel]`
+groups share their entry fence and join before the recipe body. All runnable
+tasks pass through a FIFO semaphore sized by validated `--jobs`. Output and
+failure selection follow stable task order, independent of completion timing.
+
+Cached script recipes require `--unstable`. Their versioned BLAKE3 key covers
+body, executor, exported environment, cwd, positional values, `extra`, sorted
+input digests and output contract. Inputs are hashed incrementally through
+bounded HostFs ranges. `--no-cache` and dry-run bypass lookup, locks and writes.
+
+Manifests are strict untrusted JSON. Native and wasm1 stores hold permanent
+per-digest OS locks across lookup, execution and atomic commit. Corrupt entries
+are misses; failed or cancelled recipes and missing outputs never publish a
+valid entry. Reads are capped at 256 KiB plus one sentinel byte; leases bind
+their opaque token to the exact directory and digest; structural diagnostics
+redact script bodies, arguments and environment values. All-entry and
+recipe/module-prefix clean preserve unrelated files and permanent locks. The
+focused gate executes two Native processes against one digest and real
+Native/wasm1 CLI miss/hit/invalidation workflows.
 
 ## Security and architecture verdict
 
@@ -240,7 +273,13 @@ browser/wasm-gc process execution remain deferred.
   final extensions and cleanup protected from cancellation. Command structure,
   and environment keys remain inspectable while captured bytes, stdin and
   environment values are not exposed by diagnostics.
-- No public `.mbti` change was introduced by this documentation audit.
+- Cache paths reject absolute, drive, backslash, traversal, duplicate, control
+  character and oversized contracts before host storage sees a filename;
+  manifests and input/output collections have explicit allocation limits.
+- Cache publication uses same-directory exclusive temporaries, mode `0600`,
+  Full sync and atomic rename; cancellation-protected defers release leases.
+- Public `.mbti` changes are limited to the reviewed Phase 9 scheduler, cache,
+  host-store, task-plan and CLI contracts.
 
 ## Documentation consistency review
 
@@ -265,13 +304,14 @@ green:
 | Phase 7 second-audit remediation ([#33](https://github.com/moonbit-community/MoonJust/pull/33)) | `d80d8a394301fe4286c6a4b7b00592e586a9e029` | [31244887123](https://github.com/moonbit-community/MoonJust/actions/runs/31244887123) | [31244990807](https://github.com/moonbit-community/MoonJust/actions/runs/31244990807) |
 | Final audited evidence ([#34](https://github.com/moonbit-community/MoonJust/pull/34)) | `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17` | [31245191266](https://github.com/moonbit-community/MoonJust/actions/runs/31245191266) | [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788) |
 | Phase 8 sequential executor preview ([#37](https://github.com/moonbit-community/MoonJust/pull/37)) | `91efac57788d851c4e38ab9027b5eb9099724b17` | [31393683064](https://github.com/moonbit-community/MoonJust/actions/runs/31393683064) | [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
+| Phase 9 bounded scheduler and cache | pending merge | pending PR CI | pending post-merge CI |
 
 ## Conclusion
 
-Phase 0-8 is complete and re-certified. MoonJust is a query-capable,
-pre-execution-compatible sequential executor preview for Native and wasm1. It
-is not yet a production recipe runner: parallel scheduling, persistent cache,
-interactive tooling, complete Windows job-object parity and browser/wasm-gc
-process execution remain explicitly owned by Phases 9-10. Any future claim
-beyond this boundary requires a new phase audit, updated compatibility map,
-dedicated differential evidence and a new protected-main CI record.
+Phase 0-9 implementation is complete and locally re-certified; the Phase 9
+exit becomes final only after the pending PR and protected-main CI are green.
+MoonJust now provides deterministic bounded scheduling and a persistent,
+cross-process-safe Native/wasm1 cache. Interactive tooling, complete Windows
+job-object parity and browser/wasm-gc process execution remain owned by later
+phases. Any future claim beyond this boundary requires a new phase audit,
+updated compatibility evidence and a protected-main CI record.

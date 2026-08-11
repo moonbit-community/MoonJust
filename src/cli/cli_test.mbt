@@ -132,6 +132,19 @@ test "argparse composition preserves query flags and values" {
 }
 
 ///|
+test "phase 9 execution and cache options remain global" {
+  let run = try! @cli.parse_arguments(["--jobs", "4", "--no-cache", "build"], {})
+  assert_eq(run.command(), RunCommand)
+  assert_eq(run.value("jobs"), Some("4"))
+  assert_true(run.flag("no-cache"))
+  assert_eq(run.positional(), ["build"])
+  let verbose = try! @cli.parse_arguments(["-vv", "build"], {})
+  assert_eq(verbose.count("verbose"), 2)
+  let clean = try! @cli.parse_arguments(["--clean"], {})
+  assert_eq(clean.command(), CleanCommand)
+}
+
+///|
 test "argparse composition enforces command relationships" {
   try @cli.parse_arguments(["--check"], {}) catch {
     Invalid(message) => assert_true(message.contains("required argument"))

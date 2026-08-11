@@ -16,6 +16,8 @@ pub fn[T : @host.HostFs + @host.HostTemp] execute_command(
     | GroupsCommand => execute_query_command(host, arguments, context)
     DumpCommand | JsonCommand | EvaluateCommand =>
       execute_inspect_command(host, arguments, context)
+    CleanCommand =>
+      raise UnsupportedCommand("cache clean requires async storage")
     RunCommand => {
       let (loaded, directories) = load_input_with_directories(
         host, arguments, context,

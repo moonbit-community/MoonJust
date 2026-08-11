@@ -60,12 +60,14 @@ pub fn ApplicationResponse::success(stdout? : Bytes, stderr? : Bytes) -> Self
 pub struct CliArguments {
   command : CommandKind
   flags : Map[String, Bool]
+  counts : Map[String, Int]
   values : Map[String, Array[String]]
   positional : Array[String]
   variable_overrides : Array[(String, String)]
   shell_arguments : Array[String]?
 }
 pub fn CliArguments::command(Self) -> CommandKind
+pub fn CliArguments::count(Self, String) -> Int
 pub fn CliArguments::flag(Self, String) -> Bool
 pub fn CliArguments::positional(Self) -> ArrayView[String]
 pub fn CliArguments::shell_arguments(Self) -> Array[String]?
@@ -87,6 +89,7 @@ pub(all) enum CommandKind {
   JsonCommand
   EvaluateCommand
   GroupsCommand
+  CleanCommand
 } derive(Eq, @debug.Debug)
 
 pub(all) enum FailureKind {

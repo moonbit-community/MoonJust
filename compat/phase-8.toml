@@ -4,7 +4,7 @@ upstream = "just 1.57.0"
 status = "implemented"
 plan_exit = "passed"
 report = "docs/PHASE_8_REPORT.md"
-audit = "docs/PHASE_0_8_AUDIT.md"
+audit = "docs/PHASE_0_9_AUDIT.md"
 
 [contracts]
 process_ir = "redacted shell-independent argv/env/cwd/stdin/stdout/stderr and signal-aware results"
@@ -25,5 +25,5 @@ remote_ci = "pass: PR #37 run 31393683064"
 
 [evidence]
 executor_gate = "tools/check_phase8_executor.sh"
-security_audit = "docs/PHASE_0_8_AUDIT.md"
+security_audit = "docs/PHASE_0_9_AUDIT.md"
 upstream_smoke = "tests/fixtures/phase-8"

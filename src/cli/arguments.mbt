@@ -14,6 +14,7 @@ pub(all) enum CommandKind {
   JsonCommand
   EvaluateCommand
   GroupsCommand
+  CleanCommand
 } derive(Eq, Debug)
 
 ///|
@@ -21,6 +22,7 @@ pub(all) enum CommandKind {
 pub struct CliArguments {
   command : CommandKind
   flags : Map[String, Bool]
+  counts : Map[String, Int]
   values : Map[String, Array[String]]
   positional : Array[String]
   variable_overrides : Array[(String, String)]
@@ -35,6 +37,11 @@ pub fn CliArguments::command(self : CliArguments) -> CommandKind {
 ///|
 pub fn CliArguments::flag(self : CliArguments, name : String) -> Bool {
   self.flags.get(name).unwrap_or(false)
+}
+
+///|
+pub fn CliArguments::count(self : CliArguments, name : String) -> Int {
+  self.counts.get(name).unwrap_or(0)
 }
 
 ///|
@@ -365,6 +372,9 @@ fn command_kind(matches : @argparse.Matches) -> CommandKind {
   if matches.flags.get("groups").unwrap_or(false) {
     return GroupsCommand
   }
+  if matches.flags.get("clean").unwrap_or(false) {
+    return CleanCommand
+  }
   RunCommand
 }
 
@@ -427,7 +437,10 @@ fn supported_option(token : String) -> Bool {
     | "--clear-shell-args"
     | "--tempdir"
     | "--working-directory"
-    | "-d" => true
+    | "-d"
+    | "--jobs"
+    | "--no-cache"
+    | "--clean" => true
     _ => false
   }
 }
@@ -480,7 +493,8 @@ fn supported_value_option(name : String) -> Bool {
     | "--tempdir"
     | "--timestamp-format"
     | "--working-directory"
-    | "-d" => true
+    | "-d"
+    | "--jobs" => true
     _ => false
   }
 }
@@ -505,7 +519,8 @@ fn command_option(name : String) -> Bool {
     | "--dump"
     | "--json"
     | "--evaluate"
-    | "--groups" => true
+    | "--groups"
+    | "--clean" => true
     _ => false
   }
 }
@@ -854,6 +869,7 @@ pub fn parse_arguments(
   {
     command,
     flags,
+    counts: matches.flag_counts,
     values,
     positional: if command is RunCommand {
       invocation_arguments(normalized)

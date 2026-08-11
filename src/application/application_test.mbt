@@ -628,3 +628,157 @@ test "dump and JSON inspect are deterministic and schema-pinned" {
   assert_eq(dump_json.stdout(), first.stdout())
   assert_eq(host.process_calls().length(), 0)
 }
+
+///|
+test "jobs must be a positive integer before execution planning" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"build:\n")
+  for value in ["0", "-1", "many"] {
+    let arguments = try! @cli.parse_arguments(["--jobs", value, "build"], {})
+    try @application.plan_run_command(host, host, arguments, context) catch {
+      Query(message) => assert_true(message.contains("positive integer"))
+      error => fail("unexpected jobs error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid jobs rejection")
+    }
+  }
+}
+
+///|
+async test "clean removes recognized manifests and reports upstream count" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"build:\n")
+  let directory = @path.PathValue::new("/workspace/.moonjust-cache/v1", Unix)
+  host.put_file(directory, b"")
+  let digest = "a".repeat(64)
+  host.seed_cache_manifest(directory, digest, b"manifest")
+  let response = try! @application.execute_clean_command(
+    host,
+    try! @cli.parse_arguments(["--clean"], {}),
+    context,
+  )
+  assert_eq(response.stderr(), b"removed 1 cache entry\n")
+  assert_eq(host.cache_manifest(directory, digest), None)
+  let quiet = try! @application.execute_clean_command(
+    host,
+    try! @cli.parse_arguments(["--quiet", "--clean"], {}),
+    context,
+  )
+  assert_eq(quiet.stderr(), b"")
+  let (missing_host, missing_context) = fake_context()
+  missing_host.put_file(file, b"build:\n")
+  let missing = try! @application.execute_clean_command(
+    missing_host,
+    try! @cli.parse_arguments(["--clean"], {}),
+    missing_context,
+  )
+  assert_eq(missing.stderr(), b"recipe cache not found\n")
+}
+
+///|
+async test "clean filters recipe and module prefixes" {
+  let (host, context) = fake_context()
+  host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
+  let directory = @path.PathValue::new("/workspace/.moonjust-cache/v1", Unix)
+  host.put_file(directory, b"")
+  for
+    entry in [
+      ("a".repeat(64), "foo"),
+      ("b".repeat(64), "foo::bar"),
+      ("c".repeat(64), "foobar"),
+    ] {
+    let digest = entry.0
+    let recipe = entry.1
+    let manifest = try! @cache.CacheManifest::new(digest, recipe, [])
+    host.seed_cache_manifest(directory, digest, @utf8.encode(manifest.encode()))
+  }
+  host.seed_cache_manifest(directory, "d".repeat(64), b"")
+  let response = try! @application.execute_clean_command(
+    host,
+    try! @cli.parse_arguments(["--clean", "foo"], {}),
+    context,
+  )
+  assert_eq(response.stderr(), b"removed 3 cache entries\n")
+  assert_eq(host.cache_manifest(directory, "a".repeat(64)), None)
+  assert_eq(host.cache_manifest(directory, "b".repeat(64)), None)
+  assert_eq(host.cache_manifest(directory, "d".repeat(64)), None)
+  assert_true(host.cache_manifest(directory, "c".repeat(64)) is Some(_))
+}
+
+///|
+async test "cache attributes require the explicit unstable gate" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"[cache]\n[script]\nbuild:\n  echo cached\n",
+  )
+  try
+    @application.plan_run_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["build"], {}),
+      context,
+    )
+  catch {
+    Executor(Host(InvalidInput(message))) =>
+      assert_true(message.contains("--unstable"))
+    error => fail("unexpected cache gate error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected cache unstable gate")
+  }
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["--unstable", "build"], {}),
+    context,
+  )
+  assert_true(plan.tasks()[0].cache() is Some(_))
+}
+
+///|
+async test "cache expressions resolve in recipe scope and require scripts" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"[cache(extra=mode, inputs=input, outputs=output)]\n[script]\nbuild input output mode:\n  echo cached\n",
+  )
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(
+      ["--unstable", "build", "source", "artifact", "release"],
+      {},
+    ),
+    context,
+  )
+  let directive = plan.tasks()[0].cache().unwrap()
+  assert_eq(directive.inputs(), ["source"])
+  assert_eq(directive.outputs(), ["artifact"])
+  assert_eq(directive.extra(), "release")
+  let debug = "\{Repr(directive)}"
+  assert_true(debug.contains("body_bytes"))
+  assert_false(debug.contains("echo cached"))
+  assert_false(debug.contains("release"))
+
+  host.put_file(file, b"[cache]\nbuild:\n  echo shell\n")
+  try
+    @application.plan_run_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--unstable", "build"], {}),
+      context,
+    )
+  catch {
+    Executor(Host(InvalidInput(message))) =>
+      assert_true(message.contains("script recipe"))
+    error => fail("unexpected cache script error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected cache script requirement")
+  }
+}

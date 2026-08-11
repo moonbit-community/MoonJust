@@ -38,7 +38,7 @@ fn failure(message : String, exit_code : Int) -> @cli.ApplicationResponse {
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostTemp + @host.HostAsyncScriptTemp,
+  F : @host.HostFs + @host.HostTemp + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] run_cli(
   host : F,
@@ -107,6 +107,12 @@ async fn[
       report.stderr().to_owned(),
       0,
     )
+  } else if arguments.command() == CleanCommand {
+    try @application.execute_clean_command(host, arguments, context) catch {
+      error => failure(error.message(), error.exit_code())
+    } noraise {
+      response => response
+    }
   } else {
     try @application.execute_command(host, arguments, context) catch {
       error => failure(error.message(), error.exit_code())

@@ -155,8 +155,8 @@ PHASE_PREFIXES = {
         "unexport",
         "unstable",
     },
-    9: {"cache", "clean"},
-    10: {"choose", "confirm", "count", "edit", "parallel"},
+    9: {"cache", "clean", "parallel"},
+    10: {"choose", "confirm", "count", "edit"},
 }
 
 
@@ -297,6 +297,60 @@ PHASE_TEST_ANCHORS = {
         "tempdir": (
             "src/environment/environment_test.mbt",
             "temporary directory CLI setting and host precedence is lexical",
+        ),
+    },
+    9: {
+        "cache_key": (
+            "src/cache/cache_test.mbt",
+            "cache key invalidates on body extra inputs and outputs",
+        ),
+        "cache_runtime": (
+            "src/runtime/runtime_test.mbt",
+            "cache miss hit input invalidation and corruption recovery",
+        ),
+        "cache_outputs": (
+            "src/runtime/runtime_test.mbt",
+            "missing cache outputs fail without publishing a manifest",
+        ),
+        "cache_bypass": (
+            "src/runtime/runtime_test.mbt",
+            "no-cache bypasses lookup locks and publication",
+        ),
+        "cache_verbose": (
+            "src/runtime/runtime_test.mbt",
+            "verbose cache diagnostics report stable hits and key material",
+        ),
+        "cache_gate": (
+            "src/application/application_test.mbt",
+            "cache attributes require the explicit unstable gate",
+        ),
+        "cache_scope": (
+            "src/application/application_test.mbt",
+            "cache expressions resolve in recipe scope and require scripts",
+        ),
+        "cache_clean": (
+            "src/application/application_test.mbt",
+            "clean filters recipe and module prefixes",
+        ),
+        "path_clean": (
+            "src/path/path_test.mbt",
+            "Unix paths clean without escaping an absolute root",
+        ),
+        "parallel_runtime": (
+            "src/runtime/runtime_test.mbt",
+            "parallel dependencies use bounded stable concurrency",
+        ),
+        "parallel_failure": (
+            "src/runtime/runtime_test.mbt",
+            "parallel failure selection ignores completion timing",
+        ),
+        "parallel_subsequent": (
+            "src/runtime/runtime_test.mbt",
+            "parallel subsequent dependencies join before completion",
+        ),
+        "jobs": (
+            "src/application/application_test.mbt",
+            "jobs must be a positive integer before execution planning",
         ),
     },
 }
@@ -500,6 +554,34 @@ def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str,
         key = phase_7_anchor_key(name)
         if key is not None:
             return PHASE_TEST_ANCHORS[7][key]
+    if phase == 9 and name is not None:
+        if category == "parallel":
+            if name.endswith("zero_jobs_is_an_error"):
+                return PHASE_TEST_ANCHORS[9]["jobs"]
+            if name.endswith("parallel_dependencies_report_errors"):
+                return PHASE_TEST_ANCHORS[9]["parallel_failure"]
+            if name.endswith("subsequent_dependencies_run_in_parallel"):
+                return PHASE_TEST_ANCHORS[9]["parallel_subsequent"]
+            return PHASE_TEST_ANCHORS[9]["parallel_runtime"]
+        if category == "clean":
+            return PHASE_TEST_ANCHORS[9]["path_clean"]
+        if category == "config":
+            return PHASE_TEST_ANCHORS[9]["cache_bypass"]
+        if "clean_" in name:
+            return PHASE_TEST_ANCHORS[9]["cache_clean"]
+        if name.endswith("cache_attribute_is_unstable"):
+            return PHASE_TEST_ANCHORS[9]["cache_gate"]
+        if any(marker in name for marker in ("requires_script", "variables_are_resolved", "expression_evaluated")):
+            return PHASE_TEST_ANCHORS[9]["cache_scope"]
+        if any(marker in name for marker in ("missing_output_after_run", "dry_run_skips_output")):
+            return PHASE_TEST_ANCHORS[9]["cache_outputs"]
+        if "no_cache" in name:
+            return PHASE_TEST_ANCHORS[9]["cache_bypass"]
+        if any(marker in name for marker in ("verbose_message", "prints_cache_key")):
+            return PHASE_TEST_ANCHORS[9]["cache_verbose"]
+        if any(marker in name for marker in ("body_change", "environment_invalidates", "extension_invalidates", "extra_invalidates", "interpreter_invalidates", "positional_arguments", "working_directory_invalidates")):
+            return PHASE_TEST_ANCHORS[9]["cache_key"]
+        return PHASE_TEST_ANCHORS[9]["cache_runtime"]
     raise ValueError(f"phase {phase} has no executable anchor mapping")
 
 
@@ -508,7 +590,7 @@ def anchor_exists(repo: Path, anchor: dict[str, str]) -> bool:
     if not suite.is_file():
         return False
     declaration = re.compile(
-        rf'^\s*test\s+"{re.escape(anchor["test_name"])}"\s*\{{',
+        rf'^\s*(?:async\s+)?test\s+"{re.escape(anchor["test_name"])}"\s*\{{',
         re.MULTILINE,
     )
     return declaration.search(suite.read_text(encoding="utf-8")) is not None
@@ -582,7 +664,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="ADR-0001",
                 reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
             )
-        elif phase <= 7:
+        elif phase <= 7 or phase == 9:
             test_anchor = anchor_dict(phase, category, name)
             row.update(
                 disposition="covered-by",
@@ -607,7 +689,7 @@ def encoded_rows(rows: list[dict[str, object]]) -> str:
 
 
 def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6, 7):
+    for phase in (3, 4, 5, 6, 7, 9):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         phase_rows = [
             row
@@ -639,7 +721,7 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
 
 
 def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6, 7):
+    for phase in (3, 4, 5, 6, 7, 9):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         cases = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
         expected = [
@@ -703,7 +785,7 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} has no evidence list")
         if not isinstance(row.get("tracking"), str) or not row["tracking"]:
             raise ValueError(f"row {expected_id} has no tracking owner")
-        if row.get("owner_phase") in {3, 4, 5, 6, 7} and row["disposition"] == "covered-by":
+        if row.get("owner_phase") in {3, 4, 5, 6, 7, 9} and row["disposition"] == "covered-by":
             anchor = row.get("test_anchor")
             if not isinstance(anchor, dict) or set(anchor) != {"suite", "test_name"}:
                 raise ValueError(f"row {expected_id} has no executable test anchor")

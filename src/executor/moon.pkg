@@ -7,6 +7,7 @@ import {
   "moonbit-community/MoonJust/src/syntax",
   "moonbit-community/MoonJust/src/value",
   "moonbit-community/MoonJust/src/builtin",
+  "moonbit-community/MoonJust/src/cache",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/set",
   "moonbitlang/x/time",

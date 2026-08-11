@@ -17,3 +17,8 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
+
+import {
+  "moonbit-community/MoonJust/src/cache",
+  "moonbitlang/async",
+} for "test"

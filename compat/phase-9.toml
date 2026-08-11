@@ -1,0 +1,27 @@
+schema_version = 1
+phase = 9
+upstream = "just 1.57.0"
+status = "implemented"
+plan_exit = "pending-remote-ci"
+report = "docs/PHASE_9_REPORT.md"
+audit = "docs/PHASE_0_9_AUDIT.md"
+
+[contracts]
+scheduler = "bounded FIFO semaphore, stable ready order, serial fences, parallel dependencies, deterministic failures"
+cache_key = "versioned length-delimited BLAKE3 key over recipe, body, executor, environment, cwd, arguments, extra, inputs and outputs"
+manifest = "strict schema, algorithm, digest, recipe and relative-output validation with corrupt-entry miss recovery"
+store = "per-digest permanent OS locks, mode 0600 full-sync temporary files and atomic same-directory rename"
+clean = "all-entry and recipe/module-prefix removal while preserving lock and unrelated files"
+resources = "cancellation-protected process, script and cache-lease cleanup with bounded hashing and scheduling"
+stress = "1000 seeded DAG schedules plus deterministic concurrent output and failure tests"
+
+[target_matrix]
+native = "local pass: 262 tests plus scheduler/cache/runtime/store, crash recovery and two-process contention gates"
+wasm1 = "local pass: 258 tests plus scheduler/cache/runtime/store and policy-controlled CLI gate"
+remote_ci = "pending"
+
+[evidence]
+runtime_gate = "tools/check_phase9_runtime.sh"
+case_manifest = "tests/upstream/just-1.57.0/phase-9-cases.jsonl"
+security_adr = "docs/adr/0008-cache-format-locking-and-hashing.md"
+completion_report = "docs/PHASE_9_REPORT.md"

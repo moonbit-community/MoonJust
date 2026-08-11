@@ -28,6 +28,16 @@ pub(all) suberror HostError {
 } derive(Eq, @debug.Debug)
 
 // Types and methods
+pub struct CacheLease {
+  directory : @path.PathValue
+  digest : String
+  token : Int
+} derive(Eq, @debug.Debug)
+pub fn CacheLease::digest(Self) -> String
+pub fn CacheLease::directory(Self) -> @path.PathValue
+pub fn CacheLease::new(@path.PathValue, String, Int) -> Self
+pub fn CacheLease::token(Self) -> Int
+
 pub struct CommandSpec {
   program : String
   arguments : Array[String]
@@ -78,12 +88,18 @@ pub struct FakeHost {
   mut terminal : TerminalInfo
   signals : Array[SignalKind]
   mut platform : PlatformInfo
+  cache_entries : Map[String, Bytes]
+  cache_leases : Map[Int, String]
+  mut cache_token : Int
 }
 pub fn FakeHost::allow(Self, HostCapability) -> Unit
+pub fn FakeHost::cache_manifest(Self, @path.PathValue, String) -> Bytes?
+pub fn FakeHost::cache_manifest_digests(Self, @path.PathValue) -> Array[String]
 pub fn FakeHost::deny(Self, HostCapability) -> Unit
 pub fn FakeHost::executable_calls(Self) -> ArrayView[@path.PathValue]
 pub fn FakeHost::expect_process(Self, CommandSpec, ProcessResult) -> Unit
 pub fn FakeHost::fail_next_persist(Self) -> Unit
+pub fn FakeHost::held_cache_leases(Self) -> Int
 pub fn FakeHost::mark_available(Self, HostCapability) -> Unit
 pub fn FakeHost::mark_unavailable(Self, HostCapability) -> Unit
 pub fn FakeHost::new(@path.PathValue, PlatformInfo) -> Self
@@ -92,6 +108,7 @@ pub fn FakeHost::process_calls(Self) -> ArrayView[CommandSpec]
 pub fn FakeHost::push_signal(Self, SignalKind) -> Unit
 pub fn FakeHost::put_file(Self, @path.PathValue, Bytes) -> Unit
 pub fn FakeHost::script_temp_creations(Self) -> ArrayView[(@path.PathValue, Bytes)]
+pub fn FakeHost::seed_cache_manifest(Self, @path.PathValue, String, Bytes) -> Unit
 pub fn FakeHost::set_canonical(Self, @path.PathValue, @path.PathValue) -> Unit
 pub fn FakeHost::set_clock_millis(Self, Int64) -> Unit
 pub fn FakeHost::set_current_dir(Self, @path.PathValue) -> Unit
@@ -102,6 +119,7 @@ pub fn FakeHost::set_terminal(Self, TerminalInfo) -> Unit
 pub impl HostAsyncProcess for FakeHost
 pub impl HostAsyncScriptTemp for FakeHost
 pub impl HostAtomicFs for FakeHost
+pub impl HostCacheStore for FakeHost
 pub impl HostClock for FakeHost
 pub impl HostEnv for FakeHost
 pub impl HostExecutable for FakeHost
@@ -213,6 +231,14 @@ pub(open) trait HostAsyncScriptTemp {
 
 pub(open) trait HostAtomicFs {
   async fn write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise HostError
+}
+
+pub(open) trait HostCacheStore {
+  async fn acquire_cache_lease(Self, @path.PathValue, String) -> CacheLease raise HostError
+  async fn read_cache_manifest(Self, CacheLease) -> Bytes? raise HostError
+  async fn write_cache_manifest(Self, CacheLease, Bytes) -> Unit raise HostError
+  async fn release_cache_lease(Self, CacheLease) -> Unit raise HostError
+  async fn clean_cache(Self, @path.PathValue, String?) -> Int raise HostError
 }
 
 pub(open) trait HostClock {

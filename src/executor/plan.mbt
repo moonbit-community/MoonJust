@@ -362,6 +362,82 @@ async fn[
 async fn[
   P : @host.HostAsyncProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
+] planned_cache_directive(
+  process : P,
+  host : H,
+  attributes : @semantic.RecipeAttributes,
+  scope : @evaluator.Environment,
+  context : @evaluator.EvaluationContext,
+  shell : @environment.ShellConfiguration,
+  arguments : ArrayView[@value.Value],
+  script : PlannedScript,
+) -> CacheDirective raise ExecutionError {
+  let seen : Set[String] = Set([])
+  let mut extra = ""
+  let inputs : Array[String] = []
+  let outputs : Array[String] = []
+  for argument in attributes.cache() {
+    guard argument.key() is Some(key) else {
+      raise Host(InvalidInput("cache arguments must be named"))
+    }
+    if seen.contains(key) {
+      raise Host(InvalidInput("duplicate cache argument `\{key}`"))
+    }
+    seen.add(key)
+    guard argument.value() is Some(expression) else {
+      raise Host(InvalidInput("cache argument `\{key}` requires a value"))
+    }
+    let value = evaluate_recipe_expression(
+      process, host, expression, scope, context, shell,
+    )
+    match key {
+      "extra" => extra = value.to_string()
+      "inputs" | "outputs" => {
+        let target = if key == "inputs" { inputs } else { outputs }
+        match value {
+          List(elements) =>
+            for element in elements {
+              target.push(element.to_string())
+            }
+          value => target.push(value.to_string())
+        }
+      }
+      _ => raise Host(InvalidInput("unknown cache argument `\{key}`"))
+    }
+  }
+  for path in inputs {
+    @cache.validate_relative_path(path) catch {
+      _ => raise Host(InvalidInput("invalid cache input path `\{path}`"))
+    }
+  }
+  for path in outputs {
+    @cache.validate_relative_path(path) catch {
+      _ => raise Host(InvalidInput("invalid cache output path `\{path}`"))
+    }
+  }
+  let body = @utf8.decode(script.contents()) catch {
+    _ => raise Host(InvalidInput("script cache body must be valid UTF-8"))
+  }
+  let configuration = script.configuration()
+  CacheDirective::new(
+    script.recipe(),
+    body,
+    configuration.interpreter().program(),
+    configuration.interpreter().arguments().to_owned(),
+    script.environment().to_owned(),
+    configuration.extension().unwrap_or(""),
+    script.cwd(),
+    arguments.map(fn(value) { value.to_string() }),
+    extra,
+    inputs,
+    outputs,
+  )
+}
+
+///|
+async fn[
+  P : @host.HostAsyncProcess,
+  H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] plan_graph_recipe_async(
   process : P,
   host : H,
@@ -375,16 +451,14 @@ async fn[
   process_environment : ArrayView[(String, String)],
   options : ExecutionOptions,
   configuration : ScriptConfiguration,
-  ran : Set[String],
+  ran : Map[String, Int],
   stack : Array[String],
-  steps : Array[PlannedStep],
-  commands : Array[PlannedCommand],
+  entry_dependencies : Array[Int],
+  tasks : Array[ExecutionTask],
   stderr : Array[Byte],
-) -> Unit raise ExecutionError {
+) -> Int raise ExecutionError {
   let key = execution_key(name, arguments)
-  if ran.contains(key) {
-    return
-  }
+  guard ran.get(key) is None else { return ran.get(key).unwrap() }
   if stack.contains(key) {
     raise DependencyCycle(stack=[name, name])
   }
@@ -417,6 +491,9 @@ async fn[
     process, host, attributes, scope, recipe_context, recipe_shell, process_environment,
   )
   stack.push(key)
+  let parallel = attributes.map(fn(value) { value.parallel() }).unwrap_or(false)
+  let dependency_terminals : Array[Int] = []
+  let mut serial_fence = entry_dependencies.copy()
   for dependency in recipe.dependencies() {
     let values = async_dependency_arguments(
       process, host, dependency, scope, recipe_context, recipe_shell,
@@ -425,7 +502,7 @@ async fn[
       match values[0] {
         List(elements) =>
           for element in elements {
-            plan_graph_recipe_async(
+            let terminal = plan_graph_recipe_async(
               process,
               host,
               compilation,
@@ -440,13 +517,23 @@ async fn[
               configuration,
               ran,
               stack,
-              steps,
-              commands,
+              if parallel {
+                entry_dependencies.copy()
+              } else {
+                serial_fence.copy()
+              },
+              tasks,
               stderr,
             )
+            if !dependency_terminals.contains(terminal) {
+              dependency_terminals.push(terminal)
+            }
+            if !parallel {
+              serial_fence = [terminal]
+            }
           }
-        value =>
-          plan_graph_recipe_async(
+        value => {
+          let terminal = plan_graph_recipe_async(
             process,
             host,
             compilation,
@@ -461,13 +548,24 @@ async fn[
             configuration,
             ran,
             stack,
-            steps,
-            commands,
+            if parallel {
+              entry_dependencies.copy()
+            } else {
+              serial_fence.copy()
+            },
+            tasks,
             stderr,
           )
+          if !dependency_terminals.contains(terminal) {
+            dependency_terminals.push(terminal)
+          }
+          if !parallel {
+            serial_fence = [terminal]
+          }
+        }
       }
     } else {
-      plan_graph_recipe_async(
+      let terminal = plan_graph_recipe_async(
         process,
         host,
         compilation,
@@ -482,11 +580,31 @@ async fn[
         configuration,
         ran,
         stack,
-        steps,
-        commands,
+        if parallel {
+          entry_dependencies.copy()
+        } else {
+          serial_fence.copy()
+        },
+        tasks,
         stderr,
       )
+      if !dependency_terminals.contains(terminal) {
+        dependency_terminals.push(terminal)
+      }
+      if !parallel {
+        serial_fence = [terminal]
+      }
     }
+  }
+  let task_steps : Array[PlannedStep] = []
+  let mut cache : CacheDirective? = None
+  let has_cache = attributes
+    .map(fn(value) { value.names().contains("cache") })
+    .unwrap_or(false)
+  if has_cache && !options.unstable() {
+    raise Host(
+      InvalidInput("cached recipes are currently unstable; pass `--unstable`"),
+    )
   }
   let is_script = attributes.map(fn(value) { value.script() }).unwrap_or(false) ||
     compilation.settings().bool("default-script") ||
@@ -516,6 +634,20 @@ async fn[
       quiet=options.quiet(),
       dry_run=options.dry_run(),
     )
+    if has_cache {
+      cache = Some(
+        planned_cache_directive(
+          process,
+          host,
+          attributes.unwrap(),
+          scope,
+          recipe_context,
+          recipe_shell,
+          arguments,
+          planned,
+        ),
+      )
+    }
     let script_echo : Array[Byte] = []
     if options.dry_run() ||
       options.verbose() ||
@@ -539,9 +671,12 @@ async fn[
     if options.dry_run() {
       append_bytes(stderr, Bytes::from_array(script_echo)[:])
     } else {
-      steps.push(Script(planned, Bytes::from_array(script_echo)))
+      task_steps.push(Script(planned, Bytes::from_array(script_echo)))
     }
   } else {
+    if has_cache {
+      raise Host(InvalidInput("cache attributes require a script recipe"))
+    }
     for index, source_line in recipe.lines() {
       let planned_line = PlannedLine::new(
         source_line,
@@ -563,16 +698,49 @@ async fn[
           append_bytes(stderr, echo[:])
         }
       } else {
-        steps.push(Line(planned_line))
+        task_steps.push(Line(planned_line))
       }
     }
   }
-  let subsequent_ran : Set[String] = Set([])
+  let task_dependencies : Array[Int] = []
+  let selected_dependencies = if dependency_terminals.is_empty() {
+    entry_dependencies
+  } else if parallel {
+    dependency_terminals
+  } else {
+    serial_fence
+  }
+  for dependency in selected_dependencies {
+    if !task_dependencies.contains(dependency) {
+      task_dependencies.push(dependency)
+    }
+  }
+  let task_id = tasks.length()
+  tasks.push(
+    match cache {
+      Some(value) =>
+        ExecutionTask::new(
+          task_id,
+          task_id,
+          name,
+          task_steps,
+          task_dependencies,
+          cache=value,
+        )
+      None =>
+        ExecutionTask::new(
+          task_id, task_id, name, task_steps, task_dependencies,
+        )
+    },
+  )
+  let subsequent_ran : Map[String, Int] = Map([])
+  let subsequent_terminals : Array[Int] = []
+  let mut subsequent_fence = [task_id]
   for dependency in recipe.subsequent_dependencies() {
     let values = async_dependency_arguments(
       process, host, dependency, scope, recipe_context, recipe_shell,
     )
-    plan_graph_recipe_async(
+    let terminal = plan_graph_recipe_async(
       process,
       host,
       compilation,
@@ -587,13 +755,35 @@ async fn[
       configuration,
       subsequent_ran,
       [],
-      steps,
-      commands,
+      if parallel {
+        [task_id]
+      } else {
+        subsequent_fence.copy()
+      },
+      tasks,
       stderr,
     )
+    if !subsequent_terminals.contains(terminal) {
+      subsequent_terminals.push(terminal)
+    }
+    if !parallel {
+      subsequent_fence = [terminal]
+    }
   }
   ignore(stack.pop())
-  ran.add(key)
+  let terminal = if subsequent_terminals.is_empty() {
+    task_id
+  } else if parallel && subsequent_terminals.length() > 1 {
+    let barrier_id = tasks.length()
+    tasks.push(
+      ExecutionTask::new(barrier_id, barrier_id, name, [], subsequent_terminals),
+    )
+    barrier_id
+  } else {
+    subsequent_terminals.last().unwrap()
+  }
+  ran[key] = terminal
+  terminal
 }
 
 ///|
@@ -614,13 +804,16 @@ pub async fn[
   configuration : ScriptConfiguration,
   process_environment? : ArrayView[(String, String)] = [],
   options? : ExecutionOptions = ExecutionOptions::new(),
+  cache_directory? : @path.PathValue,
 ) -> ExecutionPlan raise ExecutionError {
   let steps : Array[PlannedStep] = []
   let commands : Array[PlannedCommand] = []
   let stderr : Array[Byte] = []
-  let ran : Set[String] = Set([])
+  let tasks : Array[ExecutionTask] = []
+  let ran : Map[String, Int] = Map([])
+  let mut root_fence : Array[Int] = []
   for request in requests {
-    plan_graph_recipe_async(
+    let terminal = plan_graph_recipe_async(
       process,
       host,
       compilation,
@@ -635,10 +828,34 @@ pub async fn[
       configuration,
       ran,
       [],
-      steps,
-      commands,
+      root_fence,
+      tasks,
       stderr,
     )
+    root_fence = [terminal]
   }
-  ExecutionPlan::new(steps, commands, Bytes::from_array(stderr), options)
+  for task in tasks {
+    for step in task.steps() {
+      steps.push(step)
+    }
+  }
+  match cache_directory {
+    Some(value) =>
+      ExecutionPlan::new(
+        steps,
+        commands,
+        Bytes::from_array(stderr),
+        options,
+        tasks~,
+        cache_directory=value,
+      )
+    None =>
+      ExecutionPlan::new(
+        steps,
+        commands,
+        Bytes::from_array(stderr),
+        options,
+        tasks~,
+      )
+  }
 }

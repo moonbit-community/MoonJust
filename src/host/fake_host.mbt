@@ -20,6 +20,9 @@ pub struct FakeHost {
   mut terminal : TerminalInfo
   signals : Array[SignalKind]
   mut platform : PlatformInfo
+  cache_entries : Map[String, Bytes]
+  cache_leases : Map[Int, String]
+  mut cache_token : Int
 }
 
 ///|
@@ -47,7 +50,55 @@ pub fn FakeHost::new(
     terminal: TerminalInfo::new(false, false, false, false),
     signals: [],
     platform,
+    cache_entries: Map([]),
+    cache_leases: Map([]),
+    cache_token: 0,
   }
+}
+
+///|
+fn cache_storage_key(directory : @path.PathValue, digest : String) -> String {
+  directory.as_string() + "|" + digest
+}
+
+///|
+pub fn FakeHost::seed_cache_manifest(
+  self : FakeHost,
+  directory : @path.PathValue,
+  digest : String,
+  contents : Bytes,
+) -> Unit {
+  self.cache_entries[cache_storage_key(directory, digest)] = contents
+}
+
+///|
+pub fn FakeHost::cache_manifest(
+  self : FakeHost,
+  directory : @path.PathValue,
+  digest : String,
+) -> Bytes? {
+  self.cache_entries.get(cache_storage_key(directory, digest))
+}
+
+///|
+pub fn FakeHost::cache_manifest_digests(
+  self : FakeHost,
+  directory : @path.PathValue,
+) -> Array[String] {
+  let prefix = directory.as_string() + "|"
+  let result : Array[String] = []
+  for key, _ in self.cache_entries {
+    if key.has_prefix(prefix) {
+      result.push(key[prefix.length():].to_owned())
+    }
+  }
+  result.sort()
+  result
+}
+
+///|
+pub fn FakeHost::held_cache_leases(self : FakeHost) -> Int {
+  self.cache_leases.length()
 }
 
 ///|
@@ -442,6 +493,127 @@ pub impl HostAtomicFs for FakeHost with fn write_file_atomic(
   overwrite : Bool,
 ) -> Unit raise HostError {
   write_file_atomic(self, path, contents, overwrite~)
+}
+
+///|
+fn valid_cache_digest(digest : String) -> Bool {
+  if digest.length() != 64 {
+    return false
+  }
+  for character in digest {
+    if !(character >= '0' && character <= '9') &&
+      !(character >= 'a' && character <= 'f') {
+      return false
+    }
+  }
+  true
+}
+
+///|
+pub impl HostCacheStore for FakeHost with fn acquire_cache_lease(
+  self : FakeHost,
+  directory : @path.PathValue,
+  digest : String,
+) -> CacheLease raise HostError {
+  self.require(FsWrite)
+  if !valid_cache_digest(digest) {
+    raise InvalidInput("invalid cache digest")
+  }
+  let key = cache_storage_key(directory, digest)
+  for _, held in self.cache_leases {
+    if held == key {
+      raise InvalidInput("cache digest is already locked")
+    }
+  }
+  let token = self.cache_token
+  self.cache_token += 1
+  self.cache_leases[token] = key
+  CacheLease::new(directory, digest, token)
+}
+
+///|
+pub impl HostCacheStore for FakeHost with fn read_cache_manifest(
+  self : FakeHost,
+  lease : CacheLease,
+) -> Bytes? raise HostError {
+  let key = cache_storage_key(lease.directory(), lease.digest())
+  if self.cache_leases.get(lease.token()) != Some(key) {
+    raise InvalidInput("cache lease is not held")
+  }
+  match self.cache_entries.get(key) {
+    Some(contents) if contents.length() > @cache.MAX_MANIFEST_BYTES + 1 =>
+      Some(contents[:@cache.MAX_MANIFEST_BYTES + 1].to_owned())
+    value => value
+  }
+}
+
+///|
+pub impl HostCacheStore for FakeHost with fn write_cache_manifest(
+  self : FakeHost,
+  lease : CacheLease,
+  contents : Bytes,
+) -> Unit raise HostError {
+  let key = cache_storage_key(lease.directory(), lease.digest())
+  if self.cache_leases.get(lease.token()) != Some(key) {
+    raise InvalidInput("cache lease is not held")
+  }
+  if contents.length() > @cache.MAX_MANIFEST_BYTES {
+    raise InvalidInput("cache manifest exceeds size limit")
+  }
+  self.cache_entries[key] = contents
+}
+
+///|
+pub impl HostCacheStore for FakeHost with fn release_cache_lease(
+  self : FakeHost,
+  lease : CacheLease,
+) -> Unit raise HostError {
+  let key = cache_storage_key(lease.directory(), lease.digest())
+  if self.cache_leases.get(lease.token()) != Some(key) {
+    raise InvalidInput("cache lease is not held")
+  }
+  self.cache_leases.remove(lease.token())
+}
+
+///|
+pub impl HostCacheStore for FakeHost with fn clean_cache(
+  self : FakeHost,
+  directory : @path.PathValue,
+  recipe_prefix : String?,
+) -> Int raise HostError {
+  self.require(FsWrite)
+  let prefix = directory.as_string() + "|"
+  let removable : Array[String] = []
+  for key, _ in self.cache_entries {
+    if key.has_prefix(prefix) &&
+      valid_cache_digest(key[prefix.length():].to_owned()) {
+      let selected = match recipe_prefix {
+        None => true
+        Some(prefix) => {
+          guard self.cache_entries.get(key) is Some(bytes) else { false }
+          if bytes.is_empty() {
+            true
+          } else {
+            let text = @utf8.decode(bytes) catch {
+              _ => raise InvalidInput("failed to decode cache manifest")
+            }
+            let manifest = @cache.decode_manifest(text) catch {
+              _ => raise InvalidInput("failed to parse cache manifest")
+            }
+            manifest.recipe() == prefix ||
+            manifest.recipe().has_prefix(prefix + "::")
+          }
+        }
+      }
+      if selected {
+        removable.push(key)
+      }
+    }
+  }
+  for key in removable {
+    self.cache_entries.remove(key)
+  }
+  removable.length()
 }
 
 ///|
