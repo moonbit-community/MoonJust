@@ -54,7 +54,7 @@ jobs:
         run: ./tools/spikes/check_ecosystem.sh
 
       - name: Cache pinned upstream oracle
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry

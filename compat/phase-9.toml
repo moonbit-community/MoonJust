@@ -20,8 +20,8 @@ clean_storage_tree = "MoonJust preserves permanent digest lock files and therefo
 failed_entry = "MoonJust does not publish the empty failed-run entry used by upstream just; the permanent lock remains and a later lease recovers without treating it as a hit"
 
 [target_matrix]
-native = "local pass: 263 tests plus scheduler/cache/runtime/store, bounded process output, crash recovery and two-process contention gates"
-wasm1 = "local pass: 259 tests plus scheduler/cache/runtime/store, bounded process output and policy-controlled CLI gate"
+native = "local pass: 265 tests plus scheduler/cache/runtime/store, bounded process output, crash recovery and two-process contention gates"
+wasm1 = "local pass: 261 tests plus scheduler/cache/runtime/store, bounded process output and policy-controlled CLI gate"
 remote_ci = "pass: PR #38 run 31480537856 and post-merge main run 31480779327"
 
 [evidence]

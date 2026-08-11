@@ -36,3 +36,10 @@ All notable changes to MoonJust will be documented here. The project follows
 - Typed application requests, failure stages, binary responses, and
   upstream-compatible exit-status mapping.
 - Machine-checked Phase 1 architecture and compatibility manifests.
+
+### Fixed
+
+- Redacted script bodies, arguments, `extra`, and environment values from
+  verbose cache-key diagnostics.
+- Replaced quadratic readiness rescans with an incremental stable scheduler
+  queue for large dependency graphs.

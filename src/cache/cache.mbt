@@ -313,18 +313,11 @@ pub fn CacheKey::digest(self : CacheKey) -> String {
 }
 
 ///|
-/// Render the key material for `-vv` diagnostics without exposing cache file
-/// contents or values outside the already-executed recipe environment.
+/// Render structural key metadata for `-vv` diagnostics without exposing
+/// script text, arguments, evaluated extras, or environment values.
 pub fn CacheKey::debug_json(self : CacheKey) -> String {
-  let body : Array[Json] = []
-  for line in self.body.split("\n") {
-    if !line.is_empty() {
-      body.push(Json::string(line.to_owned()))
-    }
-  }
-  let environment : Map[String, Json] = Map([])
-  for entry in self.environment {
-    environment[entry.0] = Json::string(entry.1)
+  let count_json = fn(value : Int) {
+    Json::number(value.to_double(), repr=value.to_string())
   }
   let input_json : Json = if self.inputs.is_empty() {
     Json::null()
@@ -337,18 +330,18 @@ pub fn CacheKey::debug_json(self : CacheKey) -> String {
   }
   Json::object(
     Map([
-      ("body", Json::array(body)),
-      ("environment", Json::object(environment)),
+      ("body_bytes", count_json(@utf8.encode(self.body).length())),
+      (
+        "environment_keys",
+        Json::array(self.environment.map(fn(entry) { Json::string(entry.0) })),
+      ),
       (
         "executor",
         Json::object(
           Map([
             ("type", Json::string("command")),
             ("command", Json::string(self.interpreter)),
-            (
-              "arguments",
-              Json::array(self.interpreter_arguments.map(Json::string)),
-            ),
+            ("argument_count", count_json(self.interpreter_arguments.length())),
           ]),
         ),
       ),
@@ -361,22 +354,16 @@ pub fn CacheKey::debug_json(self : CacheKey) -> String {
         },
       ),
       (
-        "extra",
+        "extra_bytes",
         if self.extra.is_empty() {
           Json::null()
         } else {
-          Json::string(self.extra)
+          count_json(@utf8.encode(self.extra).length())
         },
       ),
       ("inputs", input_json),
-      (
-        "positional",
-        if self.positional.is_empty() {
-          Json::null()
-        } else {
-          Json::array(self.positional.map(Json::string))
-        },
-      ),
+      ("outputs", Json::array(self.outputs.map(Json::string))),
+      ("positional_count", count_json(self.positional.length())),
       ("recipe", Json::string(self.recipe)),
       ("working_directory", Json::string(self.working_directory)),
     ]),
