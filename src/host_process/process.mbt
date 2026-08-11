@@ -5,6 +5,12 @@ pub struct ProcessAdapter {
 }
 
 ///|
+/// Captured output is retained so the runtime can flush parallel tasks in
+/// deterministic invocation order. Bound each stream to keep one child from
+/// exhausting the executor while its pipe is drained with backpressure.
+const MAX_CAPTURED_STREAM_BYTES : Int = 16 * 1024 * 1024
+
+///|
 pub fn ProcessAdapter::new() -> ProcessAdapter {
   { marker: () }
 }
@@ -47,6 +53,40 @@ async fn publish_inherited(
 }
 
 ///|
+async fn read_bounded_process_output(
+  reader : @process.ReadFromProcess,
+  limit : Int,
+  retain : Bool,
+  process : @process.Process,
+) -> (Bytes, Bool) {
+  defer reader.close()
+  let output = Buffer(
+    size_hint=if retain { Int::min(limit, 64 * 1024) } else { 0 },
+  )
+  while true {
+    let max_length = if retain {
+      Int::min(64 * 1024, Int::max(limit - output.length(), 0) + 1)
+    } else {
+      64 * 1024
+    }
+    guard reader.read_some(max_len=max_length) is Some(chunk) else { break }
+    if !retain {
+      continue
+    }
+    let remaining = Int::max(limit - output.length(), 0)
+    if chunk.length() > remaining {
+      if remaining > 0 {
+        output.write_bytes(chunk[:remaining])
+      }
+      process.cancel()
+      return (output.to_bytes(), true)
+    }
+    output.write_bytes(chunk)
+  }
+  (output.to_bytes(), false)
+}
+
+///|
 fn process_result(
   command : @host.CommandSpec,
   status : Int,
@@ -67,60 +107,100 @@ fn process_result(
 }
 
 ///|
-async fn run_inheriting_stdin(
+async fn run_process_with_output_limit(
   command : @host.CommandSpec,
+  output_limit : Int,
 ) -> @host.ProcessResult raise @host.HostError {
-  let cwd = command.cwd().map(fn(path) { path.as_string() }).unwrap_or(".")
-  let (status, stdout, stderr) = @process.collect_output(
-    command.program(),
-    command.arguments(),
-    extra_env=environment_map(command),
-    inherit_env=command.inherits_environment(),
-    stdin=@stdio.stdin,
-    cwd~,
-  ) catch {
-    _ => raise InvalidInput("process execution failed")
+  if output_limit < 0 {
+    raise InvalidInput("captured process output limit must be non-negative")
   }
-  let stdout = stdout.binary()
-  let stderr = stderr.binary()
-  publish_inherited(command, stdout, stderr)
-  process_result(command, status, stdout, stderr)
-}
-
-///|
-async fn run_buffered_stdin(
-  command : @host.CommandSpec,
-) -> @host.ProcessResult raise @host.HostError {
   let cwd = command.cwd().map(fn(path) { path.as_string() }).unwrap_or(".")
-  try
+  let collected = try
     @async.with_task_group() <| group => {
-      let (child_stdin, writer) = @process.write_to_process()
-      group.spawn_bg(() => {
-        defer writer.close()
-        if !command.stdin().is_empty() {
-          writer.write(command.stdin()) catch {
-            _ => ()
+      let (stdout_reader, stdout_target) = @process.read_from_process()
+      let (stderr_reader, stderr_target) = @process.read_from_process()
+      let process = if command.inherits_stdin() {
+        @process.spawn(
+          group,
+          command.program(),
+          command.arguments(),
+          extra_env=environment_map(command),
+          inherit_env=command.inherits_environment(),
+          stdin=@stdio.stdin,
+          stdout=stdout_target,
+          stderr=stderr_target,
+          cwd~,
+          no_wait=true,
+        )
+      } else {
+        let (child_stdin, writer) = @process.write_to_process()
+        group.spawn_bg(() => {
+          defer writer.close()
+          if !command.stdin().is_empty() {
+            try writer.write(command.stdin()) catch {
+              _ => ()
+            } noraise {
+              _ => ()
+            }
           }
-        }
+        })
+        @process.spawn(
+          group,
+          command.program(),
+          command.arguments(),
+          extra_env=environment_map(command),
+          inherit_env=command.inherits_environment(),
+          stdin=child_stdin,
+          stdout=stdout_target,
+          stderr=stderr_target,
+          cwd~,
+          no_wait=true,
+        )
+      }
+      let stdout_task = group.spawn(() => {
+        read_bounded_process_output(
+          stdout_reader,
+          output_limit,
+          command.stdout() != Discard,
+          process,
+        )
       })
-      let (status, stdout, stderr) = @process.collect_output(
-        command.program(),
-        command.arguments(),
-        extra_env=environment_map(command),
-        inherit_env=command.inherits_environment(),
-        stdin=child_stdin,
-        cwd~,
-      )
-      let stdout = stdout.binary()
-      let stderr = stderr.binary()
-      publish_inherited(command, stdout, stderr)
-      process_result(command, status, stdout, stderr)
+      let stderr_task = group.spawn(() => {
+        read_bounded_process_output(
+          stderr_reader,
+          output_limit,
+          command.stderr() != Discard,
+          process,
+        )
+      })
+      let status = try process.wait() catch {
+        _ => {
+          process.cancel()
+          None
+        }
+      } noraise {
+        value => Some(value)
+      }
+      let (stdout, stdout_limited) = stdout_task.wait()
+      let (stderr, stderr_limited) = stderr_task.wait()
+      (status, stdout, stderr, stdout_limited, stderr_limited)
     }
   catch {
     _ => raise InvalidInput("process execution failed")
   } noraise {
-    result => result
+    value => value
   }
+  let (status, stdout, stderr, stdout_limited, stderr_limited) = collected
+  if stdout_limited || stderr_limited {
+    raise InvalidInput(
+      "process captured output exceeded the \{output_limit}-byte per-stream limit",
+    )
+  }
+  guard status is Some(status) else {
+    raise InvalidInput("process execution failed")
+  }
+  publish_inherited(command, stdout, stderr)
+  process_result(command, status, stdout, stderr)
 }
 
 ///|
@@ -128,9 +208,5 @@ pub impl @host.HostAsyncProcess for ProcessAdapter with fn run_process_async(
   _self : ProcessAdapter,
   command : @host.CommandSpec,
 ) -> @host.ProcessResult raise @host.HostError {
-  if command.inherits_stdin() {
-    run_inheriting_stdin(command)
-  } else {
-    run_buffered_stdin(command)
-  }
+  run_process_with_output_limit(command, MAX_CAPTURED_STREAM_BYTES)
 }

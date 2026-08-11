@@ -60,17 +60,16 @@ for Native and wasm1 filesystem/process adapters, subject to these controls:
   queue and license record.
 - Do not enable a second default runtime implementation in parallel.
 
-## Not yet proven
+## Original spike limitations
 
 - Windows command construction, cwd, environment, process groups, and Job
   Object cancellation.
 - Graceful signal selection/forwarding and escalation timeout.
 - TTY inheritance, interactive stdin, terminal size, and color detection.
-- Large-output backpressure and concurrent stdout/stderr ordering.
-- File locking, symlink races, atomic rename semantics, and cache contention.
 - Published `moonx` policy profiles and behavior outside `moonrun`.
 
-The remaining execution gaps are assigned to Phase 8-10 and block the
-corresponding compatibility tier; Phase 7's pre-execution HostFs and
-environment contracts are now delivered separately. This historical spike does
-not invalidate its narrower Phase 0 dependency decision.
+Phase 9 production adapters now drain stdout/stderr concurrently with an
+explicit capture budget and cover file locking, atomic cache publication,
+crash recovery and cross-process contention. Symlink authorization races and
+the other platform-specific items above remain assigned to Phase 10. This
+historical spike does not invalidate its narrower Phase 0 dependency decision.

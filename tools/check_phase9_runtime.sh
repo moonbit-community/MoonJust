@@ -16,10 +16,12 @@ moon test --target native src/scheduler
 moon test --target native src/cache
 moon test --target native src/runtime
 moon test --target native src/host_native
+moon test --target native src/host_process
 moon test --target wasm src/scheduler
 moon test --target wasm src/cache
 moon test --target wasm src/runtime
 moon test --target wasm src/host_wasm
+moon test --target wasm src/host_process
 
 moon build cmd/just --target native >/dev/null
 moon build cmd/just --target wasm >/dev/null

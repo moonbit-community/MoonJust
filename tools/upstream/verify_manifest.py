@@ -17,6 +17,10 @@ EXPECTED_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 EXPECTED_REGISTRATIONS = 2417
 EXPECTED_LEXER_REGISTRATIONS = 93
 EXPECTED_TEST_LIST_SHA256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
+PHASE_9_STORAGE_DIFFERENCES = {
+    "cache::clean_path_removes_empty_entries",
+    "cache::clean_removes_cache_directory",
+}
 
 
 def root() -> Path:
@@ -354,8 +358,25 @@ def validate() -> None:
     ]
     expect(len(phase9_rows) == 74, "Phase 9 registration count changed")
     expect(
-        all(row["disposition"] == "covered-by" for row in phase9_rows),
-        "Phase 9 contains a non-executable registration",
+        sum(row["disposition"] == "covered-by" for row in phase9_rows) == 72,
+        "Phase 9 executable registration count changed",
+    )
+    phase9_differences = [
+        row for row in phase9_rows if row["disposition"] == "unsupported"
+    ]
+    expect(
+        {row["upstream_name"] for row in phase9_differences}
+        == PHASE_9_STORAGE_DIFFERENCES,
+        "Phase 9 storage differences changed",
+    )
+    expect(
+        all(
+            row["targets"] == ["native", "wasm1"]
+            and row["tracking"] == "PROJECT_PLAN_PR-105"
+            and row.get("reason")
+            for row in phase9_differences
+        ),
+        "Phase 9 storage differences lack targets, tracking, or reasons",
     )
 
     policy = load(repo / "policies/inspect.toml")

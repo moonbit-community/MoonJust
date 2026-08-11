@@ -12,8 +12,8 @@
 | --- | --- | --- |
 | PR-090 | bounded scheduler, `--jobs`, `[parallel]`, serial fences, stable fairness and deterministic failure selection | scheduler model, Native/Wasm runtime peak/order/failure tests |
 | PR-091 | versioned length-delimited cache key, evaluated `extra`/inputs/outputs, incremental BLAKE3 and strict manifest | pure cache invalidation, round-trip and adversarial tests |
-| PR-092 | permanent per-digest lock, atomic `0600`/Full-sync entry, corruption recovery and selective `--clean` | Native/Wasm store tests and two-process contention gate |
-| PR-093 | bounded hashing/execution, cancellation-safe process/script/lease cleanup | cancellation and missing-output non-publication tests |
+| PR-092 | permanent per-digest lock, atomic `0600`/Full-sync entry, corruption and stale-temporary recovery, selective `--clean` | Native/Wasm store tests and two-process contention gate |
+| PR-093 | bounded hashing, streamed process pipes, 16 MiB per-stream capture budget, cancellation-safe process/script/lease cleanup | exact/overflow boundary, cancellation and missing-output non-publication tests |
 | PR-094 | fixed-seed randomized DAG and concurrency determinism | 1,000 generated schedules, stable output/failure tests, Phase 9 gate |
 
 The async planner now emits an explicit recipe-task DAG. Ordinary dependency
@@ -42,29 +42,40 @@ Native and wasm1 stores keep permanent sibling lock files and hold OS-exclusive
 locks across lookup, execution and commit. Successful manifests use an
 exclusively created same-directory temporary file, mode `0600`, Full sync and
 atomic rename. Cancellation releases the child process, temporary script and
-cache lease. Lease tokens are bound to the exact directory and digest, and
+cache lease. A later lease removes strictly recognized stale commit
+temporaries under the same digest lock while preserving lookalike files.
+Lease tokens are bound to the exact directory and digest, and
 structural `Debug` output redacts bodies, arguments and environment values.
 `--no-cache` and dry-run perform no cache lock or publication.
 
+Process stdout and stderr are drained concurrently in chunks rather than by an
+unbounded whole-process collector. Captured streams are limited to 16 MiB each;
+crossing the limit cancels the child and returns a deterministic typed host
+error. Discarded streams are drained without retention, so child pipe pressure
+cannot turn into executor memory growth.
+
 ## Compatibility accounting
 
-All 74 Phase 9 registrations in the pinned 2,417-row upstream inventory now
-map to executable Native/wasm1 family evidence in
-`tests/upstream/just-1.57.0/phase-9-cases.jsonl`. The project-owned on-disk
-format intentionally differs from upstream, but observable invalidation,
-execution, failure and clean contracts are preserved or strengthened. Failed
-recipes never publish even an empty manifest; permanent lock files remain to
-avoid unlink/recreate split-lock races.
+The pinned 2,417-row upstream inventory assigns 74 registrations to Phase 9:
+72 map to executable Native/wasm1 family evidence in
+`tests/upstream/just-1.57.0/phase-9-cases.jsonl`, and two are explicitly
+`unsupported` storage-tree observations. Failed recipes never publish the
+upstream empty placeholder entry, while `--clean` preserves permanent lock
+files and the versioned cache directory. Removing those locks would
+reintroduce an unlink/recreate split-lock race. Both differences name their
+reason and `PROJECT_PLAN_PR-105` tracking in the machine map; Phase 10 owns
+their final compatibility resolution.
 
 ## Gates
 
-`tools/check_phase9_runtime.sh` runs the focused scheduler, cache, runtime and
-store suites on Native and wasm1. It also executes real CLI workflows for
+`tools/check_phase9_runtime.sh` runs the focused scheduler, cache, runtime,
+store and process suites on Native and wasm1, including the exact capture limit
+and one-byte overflow boundary. It also executes real CLI workflows for
 parallel output, missing/directory/symlink inputs, multiple inputs/outputs,
 working-directory and dangling outputs, bypass, clean, crash recovery, and two
 concurrent Native processes contending for the same digest.
 
-The clean local regression passes 262 Native and 258 wasm1 tests, strict
+The clean local regression passes 263 Native and 259 wasm1 tests, strict
 all-backend compilation, formatting, 21-package architecture boundaries,
 2,417-row compatibility verification, Phase 8 regression and the Phase 9
 runtime gate. Merged commit, PR number and remote CI run are recorded only

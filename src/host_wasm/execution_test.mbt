@@ -22,7 +22,28 @@ async test "wasm execution cache store uses the shared manifest contract" {
   }
   @host.HostCacheStore::write_cache_manifest(host, lease, b"manifest")
   @host.HostCacheStore::release_cache_lease(host, lease)
+  let stale = try! directory.join(
+    try! @path.PathValue::new(
+      "." + digest + "." + "2".repeat(24) + ".tmp",
+      Unix,
+    ),
+  )
+  let unrelated_temporary = try! directory.join(
+    try! @path.PathValue::new("." + digest + ".not-owned.tmp", Unix),
+  )
+  @async_fs.write_file(
+    stale.as_string(),
+    b"stale",
+    create_mode=CreateOrTruncate,
+  )
+  @async_fs.write_file(
+    unrelated_temporary.as_string(),
+    b"keep",
+    create_mode=CreateOrTruncate,
+  )
   let next = @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
+  assert_false(@host.HostFs::file_exists(host, stale))
+  assert_true(@host.HostFs::file_exists(host, unrelated_temporary))
   assert_eq(
     @host.HostCacheStore::read_cache_manifest(host, next),
     Some(b"manifest"),

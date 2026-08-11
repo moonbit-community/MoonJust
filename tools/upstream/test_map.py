@@ -160,6 +160,18 @@ PHASE_PREFIXES = {
 }
 
 
+PHASE_9_STORAGE_DIFFERENCES = {
+    "cache::clean_path_removes_empty_entries": (
+        "MoonJust never publishes the upstream empty failed-run cache entry and "
+        "therefore has no empty entry to remove."
+    ),
+    "cache::clean_removes_cache_directory": (
+        "MoonJust preserves permanent digest lock files and the versioned cache "
+        "directory to prevent an unlink/recreate split-lock race."
+    ),
+}
+
+
 PHASE_TEST_ANCHORS = {
     3: {
         "parser": (
@@ -664,6 +676,17 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="ADR-0001",
                 reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
             )
+        elif phase == 9 and name in PHASE_9_STORAGE_DIFFERENCES:
+            row.update(
+                disposition="unsupported",
+                targets=["native", "wasm1"],
+                evidence=[
+                    "docs/adr/0008-cache-format-locking-and-hashing.md",
+                    "docs/PHASE_9_REPORT.md",
+                ],
+                tracking="PROJECT_PLAN_PR-105",
+                reason=PHASE_9_STORAGE_DIFFERENCES[name],
+            )
         elif phase <= 7 or phase == 9:
             test_anchor = anchor_dict(phase, category, name)
             row.update(
@@ -798,9 +821,11 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
                     f"row {expected_id} points to a missing test declaration "
                     f"{anchor['suite']}::{anchor['test_name']}"
                 )
-        if row["disposition"] in {"not-applicable", "excluded-completion"} and not row.get(
-            "reason"
-        ):
+        if row["disposition"] in {
+            "not-applicable",
+            "excluded-completion",
+            "unsupported",
+        } and not row.get("reason"):
             raise ValueError(f"row {expected_id} requires a reason")
 
 

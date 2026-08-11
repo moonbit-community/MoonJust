@@ -46,6 +46,77 @@ fn native_valid_cache_digest(digest : String) -> Bool {
 }
 
 ///|
+fn native_hex_cache_suffix(suffix : String) -> Bool {
+  if suffix.length() != 24 {
+    return false
+  }
+  for character in suffix {
+    if !(character >= '0' && character <= '9') &&
+      !(character >= 'a' && character <= 'f') {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn native_fallback_cache_suffix(suffix : String) -> Bool {
+  let characters = suffix.to_array()
+  let mut separator = -1
+  for index, character in characters {
+    if character == '-' {
+      if separator != -1 {
+        return false
+      }
+      separator = index
+    } else if character < '0' || character > '9' {
+      return false
+    }
+  }
+  separator > 0 && separator < characters.length() - 1
+}
+
+///|
+fn native_cache_temporary_digest(name : String) -> String? {
+  if name.length() < 70 ||
+    !name.has_prefix(".") ||
+    !name.has_suffix(".tmp") ||
+    name.unsafe_get(65) != '.' {
+    return None
+  }
+  let digest = name[1:65].to_owned()
+  let suffix = name[66:name.length() - 4].to_owned()
+  if native_valid_cache_digest(digest) &&
+    (native_hex_cache_suffix(suffix) || native_fallback_cache_suffix(suffix)) {
+    Some(digest)
+  } else {
+    None
+  }
+}
+
+///|
+async fn clean_native_cache_temporaries(
+  directory : @path.PathValue,
+  digest : String,
+) -> Unit raise @host.HostError {
+  let names = @async_fs.readdir(directory.as_string(), sort=true) catch {
+    error => raise native_cache_error(error)
+  }
+  for name in names {
+    if native_cache_temporary_digest(name) != Some(digest) {
+      continue
+    }
+    let path = native_cache_child(directory, name)
+    try @async_fs.remove(path.as_string()) catch {
+      @os_error.OSError(_) as error if error.is_ENOENT() => ()
+      error => raise native_cache_error(error)
+    } noraise {
+      _ => ()
+    }
+  }
+}
+
+///|
 fn next_native_cache_token() -> Int {
   let mut token = native_cache_token.val
   while native_cache_locks.contains(token) {
@@ -90,6 +161,15 @@ pub impl @host.HostCacheStore for NativeFs with fn acquire_cache_lease(
     error => {
       file.close()
       raise native_cache_error(error)
+    }
+  } noraise {
+    _ => ()
+  }
+  try clean_native_cache_temporaries(directory, digest) catch {
+    error => {
+      file.unlock()
+      file.close()
+      raise error
     }
   } noraise {
     _ => ()

@@ -37,7 +37,9 @@ versioned, locked across processes and atomically published after output checks.
 - Upstream: `just 1.57.0`, commit
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
-- Validated upstream registrations: 1,597 executable rows across Phases 2-7 and 9.
+- Validated upstream registrations: 1,595 executable rows across Phases 2-7 and 9.
+- Registered compatibility differences: two Phase 9 cache storage-tree cases,
+  with exact reasons and Phase 10 tracking in the machine map.
 - Explicitly excluded or not applicable: shell completion, Rust-internal tests,
   and product-maintenance commands.
 - Deferred: 784 upstream registrations owned by the remaining full-executor and
@@ -153,7 +155,11 @@ or process-isolation vulnerabilities privately as described in
 Environment and override containers deliberately avoid `Debug` derivations.
 Diagnostics redact dotenv values, command arguments, child stderr and host
 environment entries. Atomic writes use same-directory temporary files, mode
-`0600`, synchronization before commit and typed cleanup failures.
+`0600`, synchronization before commit and typed cleanup failures. Cache leases
+remove only strictly recognized stale commit temporaries while holding the
+matching digest lock. Child stdout and stderr are drained concurrently;
+retained streams have a 16 MiB per-stream limit, and overflow cancels the
+child with a deterministic error.
 
 ## Development workflow
 

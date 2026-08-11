@@ -216,6 +216,25 @@ async test "cache store serializes leases commits atomically and cleans manifest
     waiter.wait()
   }
   assert_true(second_acquired.val)
+  let stale_random = try! directory.join(
+    try! @path.PathValue::new(
+      "." + digest + "." + "1".repeat(24) + ".tmp",
+      Unix,
+    ),
+  )
+  let stale_fallback = try! directory.join(
+    try! @path.PathValue::new("." + digest + ".7-3.tmp", Unix),
+  )
+  let unrelated_temporary = try! directory.join(
+    try! @path.PathValue::new("." + digest + ".not-owned.tmp", Unix),
+  )
+  for path in [stale_random, stale_fallback, unrelated_temporary] {
+    @async_fs.write_file(
+      path.as_string(),
+      b"stale",
+      create_mode=CreateOrTruncate,
+    )
+  }
   let third = try
     @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
   catch {
@@ -223,6 +242,9 @@ async test "cache store serializes leases commits atomically and cleans manifest
   } noraise {
     value => value
   }
+  assert_false(@host.HostFs::file_exists(host, stale_random))
+  assert_false(@host.HostFs::file_exists(host, stale_fallback))
+  assert_true(@host.HostFs::file_exists(host, unrelated_temporary))
   assert_eq(
     @host.HostCacheStore::read_cache_manifest(host, third),
     Some(b"manifest"),

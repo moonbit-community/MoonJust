@@ -31,16 +31,18 @@ scope and test snapshots; this document is the current cross-phase verdict.
 | 6 | query CLI and read-only Wasm inspection | complete | passed | 86 covered registrations, 134/133 target tests, 24-case query oracle |
 | 7 | HostFs transactions, dotenv, invocation, cwd and environment composition | complete | passed | 188 covered registrations, 211/208 target tests, five dedicated gates |
 | 8 | sequential executor preview, process adapters, scripts, effects, output and cancellation | complete | passed | PR-080..087, 236/232 target tests, executor gate, security audit, protected-main CI |
-| 9 | bounded concurrency, persistent cache, atomic store, cleanup and determinism | complete | pending remote CI | PR-090..094, 74 mapped registrations, 1,000-DAG stress, crash/two-process gates |
+| 9 | bounded concurrency, persistent cache, atomic store, cleanup and determinism | complete | pending remote CI | PR-090..094, 72 covered plus 2 registered differences, 1,000-DAG stress, crash/two-process gates |
 
 No applicable completed Phase 0-9 contract row remains `blocked-platform` or
 `unverified`; Phase 6's explicitly inventoried unsupported options are stable
 diagnostics rather than silent omissions. The compatibility inventory still
 tracks 732 Phase 8 upstream registrations as `planned`: the sequential executor
 preview is audited at its declared contract boundary, while full upstream
-compatibility mapping remains a later compatibility task. Phase 9's 74 cache,
-clean and parallel registrations now have executable Native/wasm1 family evidence.
-Phase 10 interactive/product tooling remains intentionally outside this exit.
+compatibility mapping remains a later compatibility task. Phase 9's cache,
+clean and parallel inventory has 72 executable Native/wasm1 family
+registrations and two explicit storage-tree differences with Phase 10
+tracking. Phase 10 interactive/product tooling remains intentionally outside
+this exit.
 
 ## Machine-verified compatibility accounting
 
@@ -50,23 +52,24 @@ registrations. `tools/upstream/test_map.py` and
 disposition, target matrix, evidence paths, executable test declarations, and
 deterministic case manifests.
 
-| Owner phase | Registrations | Covered | Excluded / not applicable | Planned for later |
-| ---: | ---: | ---: | ---: | ---: |
-| 2 | 93 | 92 | 1 | 0 |
-| 3 | 324 | 324 | 0 | 0 |
-| 4 | 427 | 427 | 0 | 0 |
-| 5 | 406 | 406 | 0 | 0 |
-| 6 | 121 | 86 | 35 | 0 |
-| 7 | 188 | 188 | 0 | 0 |
-| 8 | 732 | 0 | 0 | 732 |
-| 9 | 74 | 74 | 0 | 0 |
-| 10 | 52 | 0 | 0 | 52 |
-| **Total** | **2,417** | **1,597** | **36** | **784** |
+| Owner phase | Registrations | Covered | Unsupported | Excluded / not applicable | Planned for later |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | 93 | 92 | 0 | 1 | 0 |
+| 3 | 324 | 324 | 0 | 0 | 0 |
+| 4 | 427 | 427 | 0 | 0 | 0 |
+| 5 | 406 | 406 | 0 | 0 | 0 |
+| 6 | 121 | 86 | 0 | 35 | 0 |
+| 7 | 188 | 188 | 0 | 0 | 0 |
+| 8 | 732 | 0 | 0 | 0 | 732 |
+| 9 | 74 | 72 | 2 | 0 | 0 |
+| 10 | 52 | 0 | 0 | 0 | 52 |
+| **Total** | **2,417** | **1,595** | **2** | **36** | **784** |
 
 The 36 exclusions are one Rust-private lexer helper, 30 shell-completion
-registrations, and five product-maintenance registrations. The 784 later rows
-are not silently counted as compatibility: they require the remaining full
-executor, interactive, or release-tooling behavior owned by later phases.
+registrations, and five product-maintenance registrations. The two unsupported
+Phase 9 rows are the documented cache storage-tree differences. The 784 later
+rows are not silently counted as compatibility: they require the remaining
+full executor, interactive, or release-tooling behavior owned by later phases.
 
 Phase 7's 188 executable rows are grouped by deterministic family anchors:
 51 dotenv, 86 invocation, 30 working-directory, and 21 CLI environment rows.
@@ -78,12 +81,12 @@ matrix and fixtures rather than by claiming the 732 still-planned upstream
 registrations. Those rows remain explicit compatibility work and are not
 silently counted as covered by the preview.
 
-Phase 9's 74 rows use deterministic family anchors for bounded prior and
-subsequent parallel dependencies, failures and job limits, plus cache keys,
-runtime invalidation, output failures, gating, diagnostics, bypass, selective
-clean and lexical `clean(path)` cases.
-The machine manifest does not treat the project-owned on-disk format as an
-upstream byte-for-byte format claim.
+Phase 9's 72 covered rows use deterministic family anchors for bounded prior
+and subsequent parallel dependencies, failures and job limits, plus cache
+keys, runtime invalidation, output failures, gating, diagnostics, bypass,
+selective clean and lexical `clean(path)` cases. The other two rows are
+machine-registered as unsupported with exact reasons, so the project-owned
+on-disk format is not misreported as an upstream byte-for-byte match.
 
 ## Target and quality matrix
 
@@ -93,8 +96,8 @@ baseline completed all required jobs; Phase 9 local gates currently report:
 | Gate | Result |
 | --- | --- |
 | `moon check --target all --warn-list +73` | pass |
-| `moon test --target native` | 262 passed, 0 failed |
-| `moon test --target wasm` | 258 passed, 0 failed |
+| `moon test --target native` | 263 passed, 0 failed |
+| `moon test --target wasm` | 259 passed, 0 failed |
 | Architecture boundary check | twenty-one core packages and adapter leaves pass |
 | Compatibility snapshot and manifest verifier | 2,417 registrations verified |
 | Real differential smoke | 6 matches, 4 registered expected differences, 0 failures |
@@ -107,8 +110,8 @@ baseline completed all required jobs; Phase 9 local gates currently report:
 | Phase 7 environment differential | pass; seven precedence cases |
 | Phase 8 executor gate | pass; dry-run, Native/wasm CLI corpus and executor package cases |
 | Phase 8 security audit | pass; command construction, temporary scripts, process policy, redaction and cleanup |
-| Phase 9 runtime gate | pass locally; scheduler/cache/store suites, adversarial Native cache matrix, crash recovery and two-process contention |
-| Phase 9 cache/concurrency audit | pass locally; final diff and protected-main rerun pending |
+| Phase 9 runtime gate | pass locally; scheduler/cache/store/process suites, exact and overflowing process-output limits, adversarial Native cache matrix, crash recovery and two-process contention |
+| Phase 9 cache/concurrency audit | second review remediated unbounded process collection and stale commit temporaries; final protected-main rerun pending |
 | Public interface and formatting review | `moon info && moon fmt` pass; no unintended `.mbti` changes |
 | Native platform smoke | Ubuntu, macOS and Windows pass; post-merge CI [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
 
@@ -269,6 +272,9 @@ Native/wasm1 CLI miss/hit/invalidation workflows.
   sandbox for untrusted justfiles, so users must apply an OS/container boundary.
 - Atomic writes use same-directory temporary files, mode `0600`, synchronization
   before commit and best-effort cleanup that preserves the original typed error.
+- Process stdout and stderr are drained concurrently in bounded chunks; each
+  retained stream has a 16 MiB limit whose overflow cancels the child and emits
+  one stable diagnostic instead of allocating without bound.
 - Temporary executor scripts use exclusive creation, constrained permissions,
   final extensions and cleanup protected from cancellation. Command structure,
   and environment keys remain inspectable while captured bytes, stdin and
@@ -277,7 +283,8 @@ Native/wasm1 CLI miss/hit/invalidation workflows.
   character and oversized contracts before host storage sees a filename;
   manifests and input/output collections have explicit allocation limits.
 - Cache publication uses same-directory exclusive temporaries, mode `0600`,
-  Full sync and atomic rename; cancellation-protected defers release leases.
+  Full sync and atomic rename; cancellation-protected defers release leases,
+  and the next locked lease removes only strictly recognized stale temporaries.
 - Public `.mbti` changes are limited to the reviewed Phase 9 scheduler, cache,
   host-store, task-plan and CLI contracts.
 

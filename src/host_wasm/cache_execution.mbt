@@ -35,6 +35,50 @@ fn execution_valid_cache_digest(digest : String) -> Bool {
 }
 
 ///|
+fn execution_cache_temporary_digest(name : String) -> String? {
+  if name.length() != 94 ||
+    !name.has_prefix(".") ||
+    !name.has_suffix(".tmp") ||
+    name.unsafe_get(65) != '.' {
+    return None
+  }
+  let digest = name[1:65].to_owned()
+  let suffix = name[66:90].to_owned()
+  if !execution_valid_cache_digest(digest) {
+    return None
+  }
+  for character in suffix {
+    if !(character >= '0' && character <= '9') &&
+      !(character >= 'a' && character <= 'f') {
+      return None
+    }
+  }
+  Some(digest)
+}
+
+///|
+async fn clean_execution_cache_temporaries(
+  directory : @path.PathValue,
+  digest : String,
+) -> Unit raise @host.HostError {
+  let names = @async_fs.readdir(directory.as_string(), sort=true) catch {
+    error => raise execution_cache_error(error)
+  }
+  for name in names {
+    if execution_cache_temporary_digest(name) != Some(digest) {
+      continue
+    }
+    let path = execution_cache_child(directory, name)
+    try @async_fs.remove(path.as_string()) catch {
+      @os_error.OSError(_) as error if error.is_ENOENT() => ()
+      error => raise execution_cache_error(error)
+    } noraise {
+      _ => ()
+    }
+  }
+}
+
+///|
 fn next_execution_cache_token() -> Int {
   let mut token = execution_cache_token.val
   while execution_cache_locks.contains(token) {
@@ -90,6 +134,15 @@ pub impl @host.HostCacheStore for ExecutionFs with fn acquire_cache_lease(
     error => {
       file.close()
       raise execution_cache_error(error)
+    }
+  } noraise {
+    _ => ()
+  }
+  try clean_execution_cache_temporaries(directory, digest) catch {
+    error => {
+      file.unlock()
+      file.close()
+      raise error
     }
   } noraise {
     _ => ()
