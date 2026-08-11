@@ -18,6 +18,8 @@ import {
 }
 
 // Values
+pub async fn[T : @host.HostFs + @host.HostCacheStore] execute_clean_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError
+
 pub fn[T : @host.HostFs + @host.HostTemp] execute_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError
 
 pub fn[T : @host.HostFs + @host.HostTemp] execute_file_command(T, @cli.CliArguments, ApplicationContext) -> @cli.ApplicationResponse raise ApplicationError

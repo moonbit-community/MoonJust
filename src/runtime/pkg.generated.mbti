@@ -8,7 +8,7 @@ import {
 }
 
 // Values
-pub async fn[P : @host.HostAsyncProcess, S : @host.HostAsyncScriptTemp, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan(P, S, H, @executor.ExecutionPlan) -> @executor.ExecutionReport raise RuntimeError
+pub async fn[P : @host.HostAsyncProcess, S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan(P, S, H, @executor.ExecutionPlan) -> @executor.ExecutionReport raise RuntimeError
 
 // Errors
 pub(all) suberror RuntimeError {

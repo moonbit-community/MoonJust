@@ -7,6 +7,14 @@ All notable changes to MoonJust will be documented here. The project follows
 
 ### Added
 
+- Phase 9 bounded FIFO recipe scheduling with `--jobs`, parallel dependency
+  groups, serial fences, deterministic output, and stable failure selection.
+- Phase 9 versioned BLAKE3 cache keys, strict manifests, Native/wasm1
+  per-digest locks, atomic publication, selective clean, corruption recovery,
+  crash recovery, and cross-process contention handling.
+- Phase 9 resource hardening with incremental input hashing, concurrently
+  drained process pipes, a 16 MiB per-stream capture budget, and locked stale
+  cache-temporary cleanup.
 - Phase 8 shell-independent process IR with explicit environment and stdio
   policies, signal-aware results, deterministic fake-host assertions, and
   redacted structural diagnostics.

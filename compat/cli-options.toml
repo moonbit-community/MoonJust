@@ -125,7 +125,7 @@ status = "planned"
 [[option]]
 name = "--jobs"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--justfile"
@@ -161,7 +161,7 @@ status = "implemented"
 [[option]]
 name = "--no-cache"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--no-deps"
@@ -286,7 +286,7 @@ status = "planned"
 [[command]]
 name = "--clean"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--command"

@@ -3,7 +3,7 @@ phase = 4
 upstream = "just 1.57.0"
 status = "implemented"
 plan_exit = "passed"
-audit = "docs/PHASE_0_7_AUDIT.md"
+audit = "docs/PHASE_0_9_AUDIT.md"
 
 [contracts]
 symbols = "ordered variables, recipes and aliases with duplicate settings"

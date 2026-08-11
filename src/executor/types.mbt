@@ -4,9 +4,13 @@ pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
   verbose : Bool
+  verbosity : Int
   time : Bool
   timestamp : String?
   command_color : CommandColor?
+  jobs : Int
+  cache_enabled : Bool
+  unstable : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -18,7 +22,22 @@ pub fn ExecutionOptions::new(
   timestamp? : String,
   command_color? : CommandColor,
 ) -> ExecutionOptions {
-  { dry_run, quiet, verbose, time, timestamp, command_color }
+  {
+    dry_run,
+    quiet,
+    verbose,
+    verbosity: if verbose {
+      1
+    } else {
+      0
+    },
+    time,
+    timestamp,
+    command_color,
+    jobs: 1,
+    cache_enabled: true,
+    unstable: false,
+  }
 }
 
 ///|
@@ -30,7 +49,56 @@ pub fn ExecutionOptions::from_values(
   timestamp : String?,
   command_color : CommandColor?,
 ) -> ExecutionOptions {
-  { dry_run, quiet, verbose, time, timestamp, command_color }
+  {
+    dry_run,
+    quiet,
+    verbose,
+    verbosity: if verbose {
+      1
+    } else {
+      0
+    },
+    time,
+    timestamp,
+    command_color,
+    jobs: 1,
+    cache_enabled: true,
+    unstable: false,
+  }
+}
+
+///|
+/// Return a copy with the bounded scheduler width selected by the application.
+pub fn ExecutionOptions::with_jobs(
+  self : ExecutionOptions,
+  jobs : Int,
+) -> ExecutionOptions {
+  { ..self, jobs, }
+}
+
+///|
+/// Return a copy with recipe caching enabled or disabled.
+pub fn ExecutionOptions::with_cache(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, cache_enabled: enabled }
+}
+
+///|
+pub fn ExecutionOptions::with_unstable(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, unstable: enabled }
+}
+
+///|
+pub fn ExecutionOptions::with_verbosity(
+  self : ExecutionOptions,
+  verbosity : Int,
+) -> ExecutionOptions {
+  { ..self, verbose: verbosity > 0, verbosity }
 }
 
 ///|
@@ -49,6 +117,11 @@ pub fn ExecutionOptions::verbose(self : ExecutionOptions) -> Bool {
 }
 
 ///|
+pub fn ExecutionOptions::verbosity(self : ExecutionOptions) -> Int {
+  self.verbosity
+}
+
+///|
 pub fn ExecutionOptions::time(self : ExecutionOptions) -> Bool {
   self.time
 }
@@ -63,6 +136,21 @@ pub fn ExecutionOptions::command_color(
   self : ExecutionOptions,
 ) -> CommandColor? {
   self.command_color
+}
+
+///|
+pub fn ExecutionOptions::jobs(self : ExecutionOptions) -> Int {
+  self.jobs
+}
+
+///|
+pub fn ExecutionOptions::cache_enabled(self : ExecutionOptions) -> Bool {
+  self.cache_enabled
+}
+
+///|
+pub fn ExecutionOptions::unstable(self : ExecutionOptions) -> Bool {
+  self.unstable
 }
 
 ///|
@@ -342,6 +430,131 @@ pub(all) enum PlannedStep {
 } derive(Debug)
 
 ///|
+/// Evaluated cache contract attached only to script recipe tasks. Input file
+/// digests are intentionally deferred until dependencies have completed.
+pub struct CacheDirective {
+  recipe : String
+  body : String
+  interpreter : String
+  interpreter_arguments : Array[String]
+  environment : Array[(String, String)]
+  extension : String
+  working_directory : @path.PathValue
+  positional : Array[String]
+  extra : String
+  inputs : Array[String]
+  outputs : Array[String]
+} derive(Eq)
+
+///|
+/// Script bodies, arguments, and environment values may contain secrets.
+pub impl Debug for CacheDirective with fn to_repr(self) {
+  Repr::record({
+    "recipe": Repr(self.recipe),
+    "body_bytes": Repr(@utf8.encode(self.body).length()),
+    "interpreter": Repr(self.interpreter),
+    "interpreter_argument_count": Repr(self.interpreter_arguments.length()),
+    "environment_keys": Repr(self.environment.map(fn(entry) { entry.0 })),
+    "extension": Repr(self.extension),
+    "working_directory": Repr(self.working_directory),
+    "positional_count": Repr(self.positional.length()),
+    "extra_bytes": Repr(@utf8.encode(self.extra).length()),
+    "input_count": Repr(self.inputs.length()),
+    "output_count": Repr(self.outputs.length()),
+  })
+}
+
+///|
+fn CacheDirective::new(
+  recipe : String,
+  body : String,
+  interpreter : String,
+  interpreter_arguments : Array[String],
+  environment : Array[(String, String)],
+  extension : String,
+  working_directory : @path.PathValue,
+  positional : Array[String],
+  extra : String,
+  inputs : Array[String],
+  outputs : Array[String],
+) -> CacheDirective {
+  {
+    recipe,
+    body,
+    interpreter,
+    interpreter_arguments,
+    environment,
+    extension,
+    working_directory,
+    positional,
+    extra,
+    inputs,
+    outputs,
+  }
+}
+
+///|
+pub fn CacheDirective::recipe(self : CacheDirective) -> String {
+  self.recipe
+}
+
+///|
+pub fn CacheDirective::body(self : CacheDirective) -> String {
+  self.body
+}
+
+///|
+pub fn CacheDirective::interpreter(self : CacheDirective) -> String {
+  self.interpreter
+}
+
+///|
+pub fn CacheDirective::interpreter_arguments(
+  self : CacheDirective,
+) -> ArrayView[String] {
+  self.interpreter_arguments[:]
+}
+
+///|
+pub fn CacheDirective::environment(
+  self : CacheDirective,
+) -> ArrayView[(String, String)] {
+  self.environment[:]
+}
+
+///|
+pub fn CacheDirective::extension(self : CacheDirective) -> String {
+  self.extension
+}
+
+///|
+pub fn CacheDirective::working_directory(
+  self : CacheDirective,
+) -> @path.PathValue {
+  self.working_directory
+}
+
+///|
+pub fn CacheDirective::positional(self : CacheDirective) -> ArrayView[String] {
+  self.positional[:]
+}
+
+///|
+pub fn CacheDirective::extra(self : CacheDirective) -> String {
+  self.extra
+}
+
+///|
+pub fn CacheDirective::inputs(self : CacheDirective) -> ArrayView[String] {
+  self.inputs[:]
+}
+
+///|
+pub fn CacheDirective::outputs(self : CacheDirective) -> ArrayView[String] {
+  self.outputs[:]
+}
+
+///|
 /// Runtime-owned temporary path and its exact process request.
 pub struct MaterializedScript {
   path : @path.PathValue
@@ -372,6 +585,74 @@ pub struct ExecutionPlan {
   commands : Array[PlannedCommand]
   stderr : Bytes
   options : ExecutionOptions
+  tasks : Array[ExecutionTask]
+  cache_directory : @path.PathValue?
+}
+
+///|
+/// A recipe-level unit in the explicit execution DAG. Dependencies reference
+/// task ids in the same plan and are always lower than the task id.
+pub struct ExecutionTask {
+  id : Int
+  order : Int
+  recipe : String
+  steps : Array[PlannedStep]
+  dependencies : Array[Int]
+  cache : CacheDirective?
+}
+
+///|
+pub impl Debug for ExecutionTask with fn to_repr(self) {
+  Repr::record({
+    "id": Repr(self.id),
+    "order": Repr(self.order),
+    "recipe": Repr(self.recipe),
+    "step_count": Repr(self.steps.length()),
+    "dependencies": Repr(self.dependencies),
+    "cache_enabled": Repr(self.cache is Some(_)),
+  })
+}
+
+///|
+fn ExecutionTask::new(
+  id : Int,
+  order : Int,
+  recipe : String,
+  steps : Array[PlannedStep],
+  dependencies : ArrayView[Int],
+  cache? : CacheDirective,
+) -> ExecutionTask {
+  { id, order, recipe, steps, dependencies: dependencies.to_owned(), cache }
+}
+
+///|
+pub fn ExecutionTask::id(self : ExecutionTask) -> Int {
+  self.id
+}
+
+///|
+pub fn ExecutionTask::order(self : ExecutionTask) -> Int {
+  self.order
+}
+
+///|
+pub fn ExecutionTask::recipe(self : ExecutionTask) -> String {
+  self.recipe
+}
+
+///|
+pub fn ExecutionTask::steps(self : ExecutionTask) -> ArrayView[PlannedStep] {
+  self.steps[:]
+}
+
+///|
+pub fn ExecutionTask::dependencies(self : ExecutionTask) -> ArrayView[Int] {
+  self.dependencies[:]
+}
+
+///|
+pub fn ExecutionTask::cache(self : ExecutionTask) -> CacheDirective? {
+  self.cache
 }
 
 ///|
@@ -380,8 +661,10 @@ fn ExecutionPlan::new(
   commands : Array[PlannedCommand],
   stderr : Bytes,
   options : ExecutionOptions,
+  tasks? : Array[ExecutionTask] = [],
+  cache_directory? : @path.PathValue,
 ) -> ExecutionPlan {
-  { steps, commands, stderr, options }
+  { steps, commands, stderr, options, tasks, cache_directory }
 }
 
 ///|
@@ -407,11 +690,22 @@ pub fn ExecutionPlan::options(self : ExecutionPlan) -> ExecutionOptions {
 }
 
 ///|
+pub fn ExecutionPlan::tasks(self : ExecutionPlan) -> ArrayView[ExecutionTask] {
+  self.tasks[:]
+}
+
+///|
+pub fn ExecutionPlan::cache_directory(self : ExecutionPlan) -> @path.PathValue? {
+  self.cache_directory
+}
+
+///|
 pub impl Debug for ExecutionPlan with fn to_repr(self) {
   Repr::record({
     "command_count": Repr(self.commands.length()),
     "step_count": Repr(self.steps.length()),
     "stderr_bytes": Repr(self.stderr.length()),
+    "task_count": Repr(self.tasks.length()),
   })
 }
 

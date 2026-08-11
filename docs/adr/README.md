@@ -15,6 +15,7 @@ are changed only by a new ADR that records migration and compatibility impact.
 | [0005](0005-errors-and-exit-status.md) | Error and exit status model | Accepted |
 | [0006](0006-public-api-and-semver.md) | Public API and semantic versioning | Accepted |
 | [0007](0007-markdown-tangle.md) | Markdown tangle adapter | Accepted |
+| [0008](0008-cache-format-locking-and-hashing.md) | Cache format, locking, and hashing | Accepted |
 | [0009](0009-wasm-support-boundary.md) | Wasm support boundary | Accepted |
 | [0011](0011-phase-5-hash-and-regexp-dependencies.md) | Phase 5 hash and regexp dependencies | Accepted |
 | [0012](0012-phase-7-filesystem-transactions.md) | Phase 7 filesystem transactions | Accepted |

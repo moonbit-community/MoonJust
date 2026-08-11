@@ -1,0 +1,85 @@
+[parallel]
+root: left right
+
+left:
+  @printf 'left\n'
+
+right:
+  @printf 'right\n'
+
+[cache(inputs="input", outputs="artifact")]
+[script]
+cached:
+  #!/bin/sh
+  printf 'cached-run\n'
+  sleep 0.1
+  cp input artifact
+
+[cache(outputs="crash-artifact")]
+[script]
+crash:
+  #!/bin/sh
+  if [ ! -e crash-started ]; then
+    : > crash-started
+    printf '%s\n' "$$" > crash-child.pid
+    while :; do :; done
+  fi
+  printf 'crash-recovered\n'
+  printf 'complete\n' > crash-artifact
+
+[cache(inputs="missing-input")]
+[script]
+missing-input:
+  #!/bin/sh
+  printf 'should-not-run\n'
+
+[cache(inputs="input-dir")]
+[script]
+directory-input:
+  #!/bin/sh
+  printf 'should-not-run\n'
+
+[cache(inputs="input-link", outputs="link-artifact")]
+[script]
+symlink-input:
+  #!/bin/sh
+  printf 'symlink-run\n'
+  cp input-link link-artifact
+
+[cache(inputs="input-dir-link")]
+[script]
+symlink-directory-input:
+  #!/bin/sh
+  printf 'should-not-run\n'
+
+[cache(inputs=["input-a", "input-b"], outputs=["artifact-a", "artifact-b"])]
+[script]
+multiple:
+  #!/bin/sh
+  printf 'multiple-run\n'
+  cp input-a artifact-a
+  cp input-b artifact-b
+
+[cache(outputs="output-dir")]
+[script]
+directory-output:
+  #!/bin/sh
+  printf 'directory-output-run\n'
+  mkdir -p output-dir
+
+[working-directory("nested")]
+[cache(outputs="cwd-artifact")]
+[script]
+cwd-output:
+  #!/bin/sh
+  printf 'cwd-output-run\n'
+  : > cwd-artifact
+
+[cache(outputs="dangling-output")]
+[script]
+dangling-output:
+  #!/bin/sh
+  printf 'dangling-output-run\n'
+  if [ ! -L dangling-output ]; then
+    : > dangling-output
+  fi

@@ -17,6 +17,7 @@ pub struct ExecutionFs {
 }
 pub fn ExecutionFs::new() -> Self
 pub impl @host.HostAsyncScriptTemp for ExecutionFs
+pub impl @host.HostCacheStore for ExecutionFs
 pub impl @host.HostFs for ExecutionFs
 pub impl @host.HostTemp for ExecutionFs
 

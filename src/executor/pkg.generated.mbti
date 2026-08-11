@@ -35,7 +35,7 @@ pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(T, PlannedS
 
 pub fn plan_recipe_graph(@semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @environment.ShellConfiguration, @path.PathValue, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions) -> ExecutionPlan raise ExecutionError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_recipe_graph_async(P, H, @semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions) -> ExecutionPlan raise ExecutionError
+pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_recipe_graph_async(P, H, @semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions, cache_directory? : @path.PathValue) -> ExecutionPlan raise ExecutionError
 
 pub fn plan_script_recipe(@syntax.Recipe, @evaluator.Environment, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], quiet? : Bool) -> PlannedScript raise ExecutionError
 
@@ -64,6 +64,32 @@ pub fn ExecutionError::host(@host.HostError) -> Self
 pub fn ExecutionError::message(Self) -> String
 
 // Types and methods
+pub struct CacheDirective {
+  recipe : String
+  body : String
+  interpreter : String
+  interpreter_arguments : Array[String]
+  environment : Array[(String, String)]
+  extension : String
+  working_directory : @path.PathValue
+  positional : Array[String]
+  extra : String
+  inputs : Array[String]
+  outputs : Array[String]
+} derive(Eq)
+pub fn CacheDirective::body(Self) -> String
+pub fn CacheDirective::environment(Self) -> ArrayView[(String, String)]
+pub fn CacheDirective::extension(Self) -> String
+pub fn CacheDirective::extra(Self) -> String
+pub fn CacheDirective::inputs(Self) -> ArrayView[String]
+pub fn CacheDirective::interpreter(Self) -> String
+pub fn CacheDirective::interpreter_arguments(Self) -> ArrayView[String]
+pub fn CacheDirective::outputs(Self) -> ArrayView[String]
+pub fn CacheDirective::positional(Self) -> ArrayView[String]
+pub fn CacheDirective::recipe(Self) -> String
+pub fn CacheDirective::working_directory(Self) -> @path.PathValue
+pub impl @debug.Debug for CacheDirective
+
 pub(all) enum CommandColor {
   Black
   Red
@@ -79,29 +105,45 @@ pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
   verbose : Bool
+  verbosity : Int
   time : Bool
   timestamp : String?
   command_color : CommandColor?
+  jobs : Int
+  cache_enabled : Bool
+  unstable : Bool
 } derive(Eq, @debug.Debug)
+pub fn ExecutionOptions::cache_enabled(Self) -> Bool
 pub fn ExecutionOptions::command_color(Self) -> CommandColor?
 pub fn ExecutionOptions::dry_run(Self) -> Bool
 pub fn ExecutionOptions::from_values(Bool, Bool, Bool, Bool, String?, CommandColor?) -> Self
+pub fn ExecutionOptions::jobs(Self) -> Int
 pub fn ExecutionOptions::new(dry_run? : Bool, quiet? : Bool, verbose? : Bool, time? : Bool, timestamp? : String, command_color? : CommandColor) -> Self
 pub fn ExecutionOptions::quiet(Self) -> Bool
 pub fn ExecutionOptions::time(Self) -> Bool
 pub fn ExecutionOptions::timestamp(Self) -> String?
+pub fn ExecutionOptions::unstable(Self) -> Bool
 pub fn ExecutionOptions::verbose(Self) -> Bool
+pub fn ExecutionOptions::verbosity(Self) -> Int
+pub fn ExecutionOptions::with_cache(Self, Bool) -> Self
+pub fn ExecutionOptions::with_jobs(Self, Int) -> Self
+pub fn ExecutionOptions::with_unstable(Self, Bool) -> Self
+pub fn ExecutionOptions::with_verbosity(Self, Int) -> Self
 
 pub struct ExecutionPlan {
   steps : Array[PlannedStep]
   commands : Array[PlannedCommand]
   stderr : Bytes
   options : ExecutionOptions
+  tasks : Array[ExecutionTask]
+  cache_directory : @path.PathValue?
 }
+pub fn ExecutionPlan::cache_directory(Self) -> @path.PathValue?
 pub fn ExecutionPlan::commands(Self) -> ArrayView[PlannedCommand]
 pub fn ExecutionPlan::options(Self) -> ExecutionOptions
 pub fn ExecutionPlan::stderr(Self) -> BytesView
 pub fn ExecutionPlan::steps(Self) -> ArrayView[PlannedStep]
+pub fn ExecutionPlan::tasks(Self) -> ArrayView[ExecutionTask]
 pub impl @debug.Debug for ExecutionPlan
 
 pub struct ExecutionReport {
@@ -114,6 +156,22 @@ pub fn ExecutionReport::new(Bytes, Bytes, Int) -> Self
 pub fn ExecutionReport::stderr(Self) -> BytesView
 pub fn ExecutionReport::stdout(Self) -> BytesView
 pub impl @debug.Debug for ExecutionReport
+
+pub struct ExecutionTask {
+  id : Int
+  order : Int
+  recipe : String
+  steps : Array[PlannedStep]
+  dependencies : Array[Int]
+  cache : CacheDirective?
+}
+pub fn ExecutionTask::cache(Self) -> CacheDirective?
+pub fn ExecutionTask::dependencies(Self) -> ArrayView[Int]
+pub fn ExecutionTask::id(Self) -> Int
+pub fn ExecutionTask::order(Self) -> Int
+pub fn ExecutionTask::recipe(Self) -> String
+pub fn ExecutionTask::steps(Self) -> ArrayView[PlannedStep]
+pub impl @debug.Debug for ExecutionTask
 
 pub struct MaterializedScript {
   path : @path.PathValue

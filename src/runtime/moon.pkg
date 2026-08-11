@@ -1,7 +1,11 @@
 import {
+  "moonbit-community/MoonJust/src/cache",
   "moonbit-community/MoonJust/src/executor",
   "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/scheduler",
   "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {

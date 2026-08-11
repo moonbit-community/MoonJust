@@ -1,7 +1,7 @@
 # Phase 3 completion report
 
 - Status: Implemented; Phase 3 exit passed
-- Strict review: 2026-08-06 ([Phase 0-7 audit](PHASE_0_7_AUDIT.md))
+- Strict review: 2026-08-06 ([Phase 0-9 audit](PHASE_0_9_AUDIT.md))
 - Historical phase snapshot; the current cross-phase verdict is in the audit above.
 - Upstream baseline: `just 1.57.0`
 - Required implementation targets: Native and wasm1

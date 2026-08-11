@@ -7,9 +7,9 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> Phase 0-8 exits have passed. MoonJust `0.5.0-alpha` is an execution preview
-> with native and policy-controlled wasm1 recipe processes. Parallel scheduling,
-> cache, complete platform edges, interactive mode and completion remain later-phase work.
+> Phase 0-8 exits have passed. Phase 9 implementation and local gates are
+> complete; its final exit awaits protected remote CI. MoonJust `0.6.0-alpha`
+> adds bounded parallel scheduling and a versioned Native/wasm1 recipe cache.
 
 ## What is delivered
 
@@ -25,27 +25,30 @@ The completed phases establish a usable and auditable foundation:
 | Environment | dotenv parsing/discovery, required/list/command modes, overrides, shell/tempdir and child-environment composition |
 | Invocation | positional/variadic parameters, recipe-local options, flags, repetition, patterns and stable usage errors |
 | Working directory | invocation, project, module, evaluation and recipe directory model with `no-cd` and recipe overrides |
-| Executor | ordered recipe lines, scripts/shebangs, effects, dependencies, dry-run, failure and signal propagation |
+| Executor | bounded jobs, parallel/serial dependency fences, scripts, cache, dry-run, deterministic output/failure and cancellation cleanup |
 | Wasm boundary | separate read-only inspect and process-enabled execution policies |
 
-The CLI validates the complete recipe graph before ordinary recipe execution,
-then runs deterministic sequential steps. Phase 9 owns parallelism and cache.
+The CLI validates the complete recipe graph before execution, then runs ready
+tasks through a bounded FIFO scheduler. Cache entries are BLAKE3-keyed,
+versioned, locked across processes and atomically published after output checks.
 
 ## Compatibility and support
 
 - Upstream: `just 1.57.0`, commit
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
-- Validated upstream registrations: 1,523 executable rows across Phases 2-7.
+- Validated upstream registrations: 1,595 executable rows across Phases 2-7 and 9.
+- Registered compatibility differences: two Phase 9 cache storage-tree cases,
+  with exact reasons and Phase 10 tracking in the machine map.
 - Explicitly excluded or not applicable: shell completion, Rust-internal tests,
   and product-maintenance commands.
-- Deferred: 858 upstream registrations owned by Phases 8-10 for execution,
-  parallel/cache behavior, interactive tooling and release commands.
+- Deferred: 784 upstream registrations owned by the remaining full-executor and
+  Phase 10 interactive/release compatibility work.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 
 The complete decision record is in the
-[Phase 0-7 strict audit](docs/PHASE_0_7_AUDIT.md). Machine-readable scope and
+[Phase 0-9 strict audit](docs/PHASE_0_9_AUDIT.md). Machine-readable scope and
 phase contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
@@ -151,8 +154,13 @@ or process-isolation vulnerabilities privately as described in
 
 Environment and override containers deliberately avoid `Debug` derivations.
 Diagnostics redact dotenv values, command arguments, child stderr and host
-environment entries. Atomic writes use same-directory temporary files, mode
-`0600`, synchronization before commit and typed cleanup failures.
+environment entries. Atomic writes use one reserved same-directory temporary
+name per digest, mode `0600`, synchronization before commit and typed cleanup
+failures. The next matching lease and full cache clean remove that name only
+while holding the digest lock; lookalike files are preserved. Child stdout and
+stderr are drained concurrently;
+retained streams have a 16 MiB per-stream limit, and overflow cancels the
+child with a deterministic error.
 
 ## Development workflow
 
@@ -177,7 +185,7 @@ definition of ready and required PR evidence.
 ## Documentation index
 
 - [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and future phases.
-- [Phase 0-7 strict audit](docs/PHASE_0_7_AUDIT.md): current cross-phase verdict and publication evidence.
+- [Phase 0-9 strict audit](docs/PHASE_0_9_AUDIT.md): current cross-phase verdict and publication evidence.
 - [Phase 0 report](docs/PHASE_0_REPORT.md) through [Phase 7 report](docs/PHASE_7_REPORT.md): phase-local delivery records.
 - [Architecture](docs/ARCHITECTURE.md): package boundaries and capability flow.
 - [ADR index](docs/adr/README.md): accepted design decisions.
