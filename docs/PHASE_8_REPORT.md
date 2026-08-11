@@ -41,7 +41,7 @@ stdio, script, and process contracts before the runtime grants process access.
 
 ## Security and scope
 
-The focused review is recorded in [`PHASE_8_SECURITY_AUDIT.md`](PHASE_8_SECURITY_AUDIT.md).
+The focused review is recorded in [`PHASE_0_8_AUDIT.md`](PHASE_0_8_AUDIT.md).
 Temporary scripts are exclusively created, minimally permissioned, and cleaned
 under cancellation protection. Command diagnostics redact values and preserve
 separate output streams. Parallel scheduling, persistent cache, interactive

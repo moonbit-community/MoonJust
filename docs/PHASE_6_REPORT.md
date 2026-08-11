@@ -5,7 +5,7 @@
 - Strict second review: passed against `main` at
   `8e9a3830d5e643c0e209db5a142c27d457932bb9`
 - Historical phase snapshot; the current cross-phase verdict is in
-  [`PHASE_0_7_AUDIT.md`](PHASE_0_7_AUDIT.md).
+  [`PHASE_0_8_AUDIT.md`](PHASE_0_8_AUDIT.md).
 - Upstream baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Required targets: Native and wasm1
 - Release identity: `0.3.0-alpha.0`

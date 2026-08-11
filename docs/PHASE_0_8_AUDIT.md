@@ -1,14 +1,14 @@
-# Phase 0-7 strict exit audit
+# Phase 0-8 strict exit audit
 
-- Review date: 2026-08-08
+- Review date: 2026-08-10
 - Reviewed implementation baseline: `main` at
-  `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17`
-- Final post-merge CI: [run 31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788)
+  `91efac57788d851c4e38ab9027b5eb9099724b17`
+- Final post-merge CI: [run 31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821)
 - Accepted specification: [`docs/PROJECT_PLAN.md`](PROJECT_PLAN.md) v1.0
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
-- MoonJust application identity: `0.3.0-alpha.0`
-- Required targets: Native and wasm1 through `moonrun`/`moonx`
+- MoonJust application identity: `0.5.0-alpha`
+- Required targets: Native and wasm1 through `moonrun`/`moonx`; Native smoke on Ubuntu, macOS and Windows
 
 ## Audit rule
 
@@ -31,11 +31,16 @@ scope and test snapshots; this document is the current cross-phase verdict.
 | 5 | values, evaluator, builtins, effects and hashing | complete | passed | 406 mapped registrations, typed 83-builtin registry, Rust oracle, ASan |
 | 6 | query CLI and read-only Wasm inspection | complete | passed | 86 covered registrations, 134/133 target tests, 24-case query oracle |
 | 7 | HostFs transactions, dotenv, invocation, cwd and environment composition | complete | passed | 188 covered registrations, 211/208 target tests, five dedicated gates |
+| 8 | sequential executor preview, process adapters, scripts, effects, output and cancellation | complete | passed | PR-080..087, 236/232 target tests, executor gate, security audit, protected-main CI |
 
-No applicable completed Phase 0-7 corpus row remains `blocked-platform` or
+No applicable completed Phase 0-8 contract row remains `blocked-platform` or
 `unverified`; Phase 6's explicitly inventoried unsupported options are stable
-diagnostics rather than silent omissions. Phase 8 execution, Phase 9 parallel/cache behavior, and Phase 10
-interactive/product tooling remain intentionally outside this exit.
+diagnostics rather than silent omissions. The compatibility inventory still
+tracks 732 Phase 8 upstream registrations as `planned`: the sequential executor
+preview is audited at its declared contract boundary, while full upstream
+compatibility mapping remains a later compatibility task. Phase 9 parallel/cache
+behavior and Phase 10 interactive/product tooling remain intentionally outside
+this exit.
 
 ## Machine-verified compatibility accounting
 
@@ -68,9 +73,14 @@ Phase 7's 188 executable rows are grouped by deterministic family anchors:
 Repeated anchors are explicitly family evidence; they are not claimed as 188
 independent one-to-one ports.
 
+Phase 8's sequential executor preview is verified by its dedicated contract
+matrix and fixtures rather than by claiming the 732 still-planned upstream
+registrations. Those rows remain explicit compatibility work and are not
+silently counted as covered by the preview.
+
 ## Target and quality matrix
 
-The final `main` CI run [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788)
+The final `main` CI run [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821)
 completed all four required jobs:
 
 | Gate | Result |
@@ -88,8 +98,10 @@ completed all four required jobs:
 | Phase 7 invocation differential | pass; 11 argv and three Native/wasm1 usage cases |
 | Phase 7 working-directory differential | pass; nine model and two CLI cases |
 | Phase 7 environment differential | pass; seven precedence cases |
+| Phase 8 executor gate | pass; dry-run, Native/wasm CLI corpus and executor package cases |
+| Phase 8 security audit | pass; command construction, temporary scripts, process policy, redaction and cleanup |
 | Public interface and formatting review | `moon info && moon fmt` pass; no unintended `.mbti` changes |
-| Native platform smoke | Ubuntu, macOS and Windows pass |
+| Native platform smoke | Ubuntu, macOS and Windows pass; post-merge CI [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
 
 Phase 5's Native C-binding ASan run remains an additional non-CI evidence
 requirement and passed all 109 Native tests without sanitizer findings. The
@@ -172,6 +184,46 @@ invocation, project, module, evaluation and recipe paths. CLI overrides,
 shell ordering, tempdir and child-environment precedence are composed before
 the explicit Phase 8 executor boundary.
 
+### Phase 8: sequential executor preview
+
+Application planning validates the complete recipe graph and composes explicit
+shell, cwd, environment, dotenv, stdio, script and process contracts before the
+runtime grants process access. The executor preserves source order, dependency
+order, once keys, starred and parameterized dependencies, echo/quiet and
+ignored-failure semantics, dry-run purity, separate output streams, stable
+failures, timing and cancellation boundaries.
+
+#### Command construction and process policy
+
+Every ordinary process is a `CommandSpec`; the shell program and arguments stay
+separate, while environment, cwd and all stdio policies are explicit and
+FakeHost-assertable. Debug implementations report command structure and
+environment keys only. Captured bytes, stdin and environment values are never
+rendered. Shell arguments are passed exactly as configured: Unix `shell()` uses
+the shell's `$0` positional-argument contract, while cmd and PowerShell omit
+the Unix shell name as required by their invocation models.
+
+Native and wasm process adapters pass exact cwd/env/stdin and capture streams
+internally before publishing inherited output. Non-zero statuses map to typed
+signals; cancellation delegates to async/process-group termination and reap.
+The execute policy explicitly grants environment, filesystem and process
+capabilities. The inspect policy remains deny-write and deny-spawn; execution
+is never inferred from inspect mode.
+
+#### Temporary scripts
+
+Names combine a recipe stem with a cryptographic or host-random suffix;
+separators are rejected and the required extension remains final. Native
+creation is exclusive. Wasm creation uses `async/fs` `CreateNew` with policy
+authorization and mode `0600` or `0700` for shebang execution. Cleanup is
+registered in a structured task-group defer protected from cancellation and is
+also attempted after materialization, specification or host failures. Dry-run
+evaluates a redacted textual representation and never creates a file.
+
+Full upstream corpus mapping, parallel scheduling, persistent cache,
+interactive terminal streaming, complete Windows job-object parity and
+browser/wasm-gc process execution remain deferred.
+
 ## Security and architecture verdict
 
 - Pure parser, semantic, evaluator, invocation, working-directory and
@@ -179,11 +231,15 @@ the explicit Phase 8 executor boundary.
 - Secrets are excluded from `Debug` representations and dotenv/override
   diagnostics; command argv, stderr and environment values are not retained in
   structural errors.
-- Wasm policies are deny-by-default for inspection. Allowing a future process
-  policy will not be treated as sandboxing the child process; users must apply
-  an OS/container boundary for untrusted justfiles.
+- Wasm inspection remains deny-by-default for writes and process spawn. The
+  execute policy grants process capabilities explicitly; this is not a
+  sandbox for untrusted justfiles, so users must apply an OS/container boundary.
 - Atomic writes use same-directory temporary files, mode `0600`, synchronization
   before commit and best-effort cleanup that preserves the original typed error.
+- Temporary executor scripts use exclusive creation, constrained permissions,
+  final extensions and cleanup protected from cancellation. Command structure,
+  and environment keys remain inspectable while captured bytes, stdin and
+  environment values are not exposed by diagnostics.
 - No public `.mbti` change was introduced by this documentation audit.
 
 ## Documentation consistency review
@@ -208,13 +264,14 @@ green:
 | Phase 7 functional delivery ([#28-#32](https://github.com/moonbit-community/MoonJust/pulls?q=is%3Apr+is%3Amerged+32)) | `3f1c1363c43e57c4881559077c1180507a1a8cfd` | [31243986487](https://github.com/moonbit-community/MoonJust/actions/runs/31243986487) | [31244169707](https://github.com/moonbit-community/MoonJust/actions/runs/31244169707) |
 | Phase 7 second-audit remediation ([#33](https://github.com/moonbit-community/MoonJust/pull/33)) | `d80d8a394301fe4286c6a4b7b00592e586a9e029` | [31244887123](https://github.com/moonbit-community/MoonJust/actions/runs/31244887123) | [31244990807](https://github.com/moonbit-community/MoonJust/actions/runs/31244990807) |
 | Final audited evidence ([#34](https://github.com/moonbit-community/MoonJust/pull/34)) | `9d0ba3418e419bbf57e1e350a0d7be10f04f6f17` | [31245191266](https://github.com/moonbit-community/MoonJust/actions/runs/31245191266) | [31245291788](https://github.com/moonbit-community/MoonJust/actions/runs/31245291788) |
+| Phase 8 sequential executor preview ([#37](https://github.com/moonbit-community/MoonJust/pull/37)) | `91efac57788d851c4e38ab9027b5eb9099724b17` | [31393683064](https://github.com/moonbit-community/MoonJust/actions/runs/31393683064) | [31395657821](https://github.com/moonbit-community/MoonJust/actions/runs/31395657821) |
 
 ## Conclusion
 
-Phase 0-7 is complete and re-certified. MoonJust is a query-capable,
-pre-execution-compatible alpha implementation for Native and wasm1. It is not
-yet a production recipe runner: process construction/execution, parallelism,
-cache, signals, interactive tooling and completion remain explicitly owned by
-Phases 8-10. Any future claim beyond this boundary requires a new phase audit,
-updated compatibility map, dedicated differential evidence and a new protected
-main CI record.
+Phase 0-8 is complete and re-certified. MoonJust is a query-capable,
+pre-execution-compatible sequential executor preview for Native and wasm1. It
+is not yet a production recipe runner: parallel scheduling, persistent cache,
+interactive tooling, complete Windows job-object parity and browser/wasm-gc
+process execution remain explicitly owned by Phases 9-10. Any future claim
+beyond this boundary requires a new phase audit, updated compatibility map,
+dedicated differential evidence and a new protected-main CI record.

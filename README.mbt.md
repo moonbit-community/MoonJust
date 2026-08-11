@@ -45,7 +45,7 @@ then runs deterministic sequential steps. Phase 9 owns parallelism and cache.
   sandboxing are not supported claims.
 
 The complete decision record is in the
-[Phase 0-7 strict audit](docs/PHASE_0_7_AUDIT.md). Machine-readable scope and
+[Phase 0-8 strict audit](docs/PHASE_0_8_AUDIT.md). Machine-readable scope and
 phase contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
@@ -177,7 +177,7 @@ definition of ready and required PR evidence.
 ## Documentation index
 
 - [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and future phases.
-- [Phase 0-7 strict audit](docs/PHASE_0_7_AUDIT.md): current cross-phase verdict and publication evidence.
+- [Phase 0-8 strict audit](docs/PHASE_0_8_AUDIT.md): current cross-phase verdict and publication evidence.
 - [Phase 0 report](docs/PHASE_0_REPORT.md) through [Phase 7 report](docs/PHASE_7_REPORT.md): phase-local delivery records.
 - [Architecture](docs/ARCHITECTURE.md): package boundaries and capability flow.
 - [ADR index](docs/adr/README.md): accepted design decisions.
