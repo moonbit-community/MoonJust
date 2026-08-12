@@ -1,4 +1,5 @@
 ///|
+#cfg(not(platform="windows"))
 fn unix_path(value : String) -> @path.PathValue {
   try! @path.PathValue::new(value, Unix)
 }
