@@ -25,23 +25,26 @@ case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*)
     expected_os=windows
     cat >"$work/justfile" <<'EOF'
-set windows-powershell
+set windows-shell := ['cmd.exe', '/D', '/C']
+set script-interpreter := ['powershell.exe', '-NoLogo', '-NoProfile', '-File']
+
 [confirm('Run phase 10?')]
 confirm:
-  Write-Output phase10-confirm
+  echo phase10-confirm
 
 alpha:
-  Write-Output phase10-choice
+  echo phase10-choice
 
-[shell('cmd.exe', '/C')]
 cmd-probe:
   echo phase10-cmd
 
 # `phase10` platform probe
+[script]
 platform:
   Write-Output {{os()}}
   Write-Output {{arch()}}
 
+[script]
 fail:
   exit 7
 
