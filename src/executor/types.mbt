@@ -155,6 +155,7 @@ pub fn ExecutionOptions::unstable(self : ExecutionOptions) -> Bool {
 
 ///|
 pub(all) enum CommandColor {
+  Bold
   Black
   Red
   Green
@@ -587,6 +588,47 @@ pub struct ExecutionPlan {
   options : ExecutionOptions
   tasks : Array[ExecutionTask]
   cache_directory : @path.PathValue?
+  confirmations : Array[ConfirmationRequest]
+}
+
+///|
+/// A fully evaluated confirmation that must be accepted before any process is
+/// started. Requests preserve upstream pre-order recipe traversal.
+pub struct ConfirmationRequest {
+  recipe : String
+  prompt : String
+  is_dependency : Bool
+} derive(Eq, Debug)
+
+///|
+pub fn ConfirmationRequest::new(
+  recipe : String,
+  prompt : String,
+  is_dependency : Bool,
+) -> ConfirmationRequest {
+  { recipe, prompt, is_dependency }
+}
+
+///|
+pub fn ConfirmationRequest::recipe(self : ConfirmationRequest) -> String {
+  self.recipe
+}
+
+///|
+pub fn ConfirmationRequest::prompt(self : ConfirmationRequest) -> String {
+  self.prompt
+}
+
+///|
+pub fn ConfirmationRequest::is_dependency(self : ConfirmationRequest) -> Bool {
+  self.is_dependency
+}
+
+///|
+/// Return true only for the affirmative forms accepted by upstream just.
+pub fn confirmation_answer_is_yes(answer : String) -> Bool {
+  let normalized = answer.trim().to_lower()
+  normalized == "y" || normalized == "yes"
 }
 
 ///|
@@ -663,8 +705,9 @@ fn ExecutionPlan::new(
   options : ExecutionOptions,
   tasks? : Array[ExecutionTask] = [],
   cache_directory? : @path.PathValue,
+  confirmations? : Array[ConfirmationRequest] = [],
 ) -> ExecutionPlan {
-  { steps, commands, stderr, options, tasks, cache_directory }
+  { steps, commands, stderr, options, tasks, cache_directory, confirmations }
 }
 
 ///|
@@ -697,6 +740,13 @@ pub fn ExecutionPlan::tasks(self : ExecutionPlan) -> ArrayView[ExecutionTask] {
 ///|
 pub fn ExecutionPlan::cache_directory(self : ExecutionPlan) -> @path.PathValue? {
   self.cache_directory
+}
+
+///|
+pub fn ExecutionPlan::confirmations(
+  self : ExecutionPlan,
+) -> ArrayView[ConfirmationRequest] {
+  self.confirmations[:]
 }
 
 ///|

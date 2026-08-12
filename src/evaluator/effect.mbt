@@ -456,6 +456,7 @@ fn style_code(style : String) -> String? {
 fn[T : @host.HostTerminal] style_value(
   host : T,
   arguments : Array[Value],
+  context : EvaluationContext,
   span : @source.Span,
 ) -> Value raise EvaluationError {
   let styles = value_strings("style", arguments[0], span)
@@ -467,12 +468,20 @@ fn[T : @host.HostTerminal] style_value(
   let terminal = @host.HostTerminal::terminal_info(host) catch {
     error => raise Host(error, span~)
   }
-  let mut active = terminal.color_supported()
+  let mode = context.color_mode().unwrap_or("auto")
+  let mut active = true
+  let mut stream_selected = false
   let codes : Array[String] = []
   for style in styles {
     match style {
-      "stdout" => active = active && terminal.stdout_is_terminal()
-      "stderr" => active = active && terminal.stderr_is_terminal()
+      "stdout" => {
+        stream_selected = true
+        active = active && terminal.stdout_is_terminal()
+      }
+      "stderr" => {
+        stream_selected = true
+        active = active && terminal.stderr_is_terminal()
+      }
       "command" => codes.push("1")
       "error" => codes.push("31;1")
       "warning" => codes.push("33;1")
@@ -481,6 +490,13 @@ fn[T : @host.HostTerminal] style_value(
           Some(code) => codes.push(code)
           None => raise effect_failure("invalid style: `" + style + "`", span)
         }
+    }
+  }
+  if stream_selected {
+    active = match mode {
+      "always" => true
+      "never" => false
+      _ => active && terminal.color_supported()
     }
   }
   if !active || codes.is_empty() {
@@ -694,7 +710,7 @@ pub fn[
       String(uuid_text(bytes))
     }
     "shell" => raise EffectRequired(effect="process", span~)
-    "style" => style_value(host, arguments, span)
+    "style" => style_value(host, arguments, context, span)
     "which" => {
       let executable = expect_string(name, arguments, 0, span)
       String(which_value(host, executable, context, span))

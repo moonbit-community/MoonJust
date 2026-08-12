@@ -281,12 +281,62 @@ fn alias_annotation(aliases : ArrayView[String]) -> String {
 }
 
 ///|
+fn paint(value : String, code : String, active : Bool) -> String {
+  if active {
+    "\u{001b}[" + code + "m" + value + "\u{001b}[0m"
+  } else {
+    value
+  }
+}
+
+///|
+fn styled_doc(value : String, active : Bool) -> String {
+  if !active {
+    return value
+  }
+  let characters = value.to_array()
+  let builder = StringBuilder()
+  let mut start = 0
+  let mut index = 0
+  while index < characters.length() {
+    if characters[index] != '`' {
+      index += 1
+      continue
+    }
+    if start < index {
+      builder.write_string(
+        paint(String::from_array(characters[start:index]), "34", true),
+      )
+    }
+    let mut end = index + 1
+    while end < characters.length() && characters[end] != '`' {
+      end += 1
+    }
+    if end < characters.length() {
+      end += 1
+    }
+    builder.write_string(
+      paint(String::from_array(characters[index:end]), "36", true),
+    )
+    start = end
+    index = end
+  }
+  if start < characters.length() {
+    builder.write_string(
+      paint(String::from_array(characters[start:]), "34", true),
+    )
+  }
+  builder.to_string()
+}
+
+///|
 fn write_list_line(
   builder : StringBuilder,
   prefix : String,
   label : String,
   annotations : ArrayView[String],
   maximum : Int,
+  color : Bool,
 ) -> Unit {
   builder.write_string(prefix)
   builder.write_string(label)
@@ -295,8 +345,9 @@ fn write_list_line(
     for _ in 0..<padding {
       builder.write_char(' ')
     }
-    builder.write_string("# ")
-    builder.write_string(annotations.join(" "))
+    builder.write_string(paint("#", "34", color))
+    builder.write_char(' ')
+    builder.write_string(styled_doc(annotations.join(" "), color))
   }
   builder.write_char('\n')
 }
@@ -311,6 +362,7 @@ fn list_text(
   loaded : @loader.LoadedSource,
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
+  color : Bool,
 ) -> String raise ApplicationError {
   let docs = recipe_docs(loaded.ast())
   for group in arguments.values("group") {
@@ -334,7 +386,10 @@ fn list_text(
       continue
     }
     let signature = recipe_signature(recipe)
-    maximum = Int::max(maximum, display_width(signature))
+    let signature_width = display_width(signature)
+    if signature_width <= 50 {
+      maximum = Int::max(maximum, signature_width)
+    }
     let doc = match attributes.doc() {
       Some(value) if !value.trim().is_empty() => Some(value)
       Some(_) => None
@@ -347,12 +402,12 @@ fn list_text(
     }
     if alias_style == "separate" {
       for alias_name in aliases {
-        maximum = Int::max(
-          maximum,
-          display_width(
-            alias_name + signature.view(start_offset=name.length()).to_owned(),
-          ),
+        let alias_width = display_width(
+          alias_name + signature.view(start_offset=name.length()).to_owned(),
         )
+        if alias_width <= 50 {
+          maximum = Int::max(maximum, alias_width)
+        }
       }
     }
     rows.push({
@@ -428,7 +483,36 @@ fn list_text(
       if alias_style == "right" && !row.aliases.is_empty() {
         annotations.push(alias_annotation(row.aliases))
       }
-      write_list_line(builder, prefix, row.signature, annotations, maximum)
+      if display_width(row.signature) > 50 && row.doc is Some(value) {
+        builder.write_string(prefix)
+        builder.write_string(paint("#", "34", color))
+        builder.write_char(' ')
+        builder.write_string(styled_doc(value, color))
+        builder.write_char('\n')
+        let remaining : Array[String] = []
+        for annotation in annotations {
+          if annotation != value {
+            remaining.push(annotation)
+          }
+        }
+        write_list_line(
+          builder,
+          prefix,
+          row.signature,
+          remaining,
+          maximum,
+          color,
+        )
+      } else {
+        write_list_line(
+          builder,
+          prefix,
+          row.signature,
+          annotations,
+          maximum,
+          color,
+        )
+      }
       if alias_style == "separate" {
         for alias_name in row.aliases {
           write_list_line(
@@ -437,6 +521,7 @@ fn list_text(
             alias_signature(row, alias_name),
             ["alias for `" + row.name + "`"],
             maximum,
+            color,
           )
         }
       }
@@ -643,9 +728,10 @@ fn query_text(
   loaded : @loader.LoadedSource,
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
+  color : Bool,
 ) -> String raise ApplicationError {
   match arguments.command() {
-    ListCommand => list_text(loaded, compilation, arguments)
+    ListCommand => list_text(loaded, compilation, arguments, color)
     ShowCommand => show_text(loaded, compilation, arguments)
     SummaryCommand =>
       visible_recipe_names(compilation, arguments).join(" ") + "\n"
@@ -700,15 +786,27 @@ fn query_text(
 }
 
 ///|
-pub fn[T : @host.HostFs] execute_query_command(
-  host : T,
+fn[F : @host.HostFs, T : @host.HostTerminal] execute_query_command_with_terminal(
+  host : F,
+  terminal_host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,
 ) -> @cli.ApplicationResponse raise ApplicationError {
   let loaded = load_input(host, arguments, context)
   let compilation = compile_loaded(loaded)
   validate_variable_overrides(compilation, arguments)
-  let output = query_text(loaded, compilation, arguments)
+  let color = match arguments.value("color").unwrap_or("auto") {
+    "always" => true
+    "never" => false
+    "auto" => {
+      let terminal = @host.HostTerminal::terminal_info(terminal_host) catch {
+        error => raise Host(error)
+      }
+      terminal.color_supported() && terminal.stdout_is_terminal()
+    }
+    _ => raise Query("invalid --color value")
+  }
+  let output = query_text(loaded, compilation, arguments, color)
   let stderr = if arguments.command() == SummaryCommand &&
     visible_recipe_names(compilation, arguments).is_empty() {
     b"justfile contains no recipes\n"
@@ -716,4 +814,13 @@ pub fn[T : @host.HostFs] execute_query_command(
     b""
   }
   @cli.ApplicationResponse::success(stdout=@utf8.encode(output), stderr~)
+}
+
+///|
+pub fn[T : @host.HostFs + @host.HostTerminal] execute_query_command(
+  host : T,
+  arguments : @cli.CliArguments,
+  context : ApplicationContext,
+) -> @cli.ApplicationResponse raise ApplicationError {
+  execute_query_command_with_terminal(host, host, arguments, context)
 }

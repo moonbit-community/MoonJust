@@ -33,6 +33,8 @@ fn[T : @host.HostFs + @host.HostTemp] format_response(
   match selection {
     Stdin =>
       @cli.ApplicationResponse::success(stdout=@utf8.encode(result.formatted()))
+    File(_) | Search if @loader.is_markdown_path(loaded.path()) =>
+      @cli.ApplicationResponse::success(stdout=@utf8.encode(result.formatted()))
     Search | File(_) => {
       if result.changed() {
         @host.write_file_atomic(

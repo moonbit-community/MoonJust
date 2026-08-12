@@ -234,6 +234,15 @@ test "terminal, signal, and platform observations are queued values" {
 }
 
 ///|
+test "signal numbers and exit codes preserve the process contract" {
+  assert_eq(@host.SignalKind::Hangup.number(), 1)
+  assert_eq(@host.SignalKind::Interrupt.exit_code(), 130)
+  assert_eq(@host.SignalKind::Terminate.exit_code(), 143)
+  assert_eq(@host.SignalKind::OtherSignal(9).exit_code(), 137)
+  assert_eq(@host.SignalKind::OtherSignal(255).exit_code(), 255)
+}
+
+///|
 test "unavailable capabilities remain distinct from policy denial" {
   let host = fake()
   host.mark_unavailable(Process)

@@ -14,6 +14,8 @@ pub(all) enum CommandKind {
   JsonCommand
   EvaluateCommand
   GroupsCommand
+  ChooseCommand
+  EditCommand
   CleanCommand
 } derive(Eq, Debug)
 
@@ -76,6 +78,24 @@ pub fn CliArguments::variable_overrides(
 /// empty array means `--clear-shell-args` won by command-line order.
 pub fn CliArguments::shell_arguments(self : CliArguments) -> Array[String]? {
   self.shell_arguments.map(fn(arguments) { arguments.copy() })
+}
+
+///|
+/// Preserve global configuration while turning one chooser line into a normal
+/// recipe invocation. The caller receives a fresh positional array.
+pub fn CliArguments::with_run_positionals(
+  self : CliArguments,
+  positional : Array[String],
+) -> CliArguments {
+  {
+    command: RunCommand,
+    flags: self.flags,
+    counts: self.counts,
+    values: self.values,
+    positional: positional.copy(),
+    variable_overrides: self.variable_overrides,
+    shell_arguments: self.shell_arguments,
+  }
 }
 
 ///|
@@ -229,7 +249,6 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       long="group",
       about="Only list recipes in group",
       action=Append,
-      requires=["list"],
     ),
     option("indentation", long="indentation", about="Recipe indentation"),
     option("jobs", long="jobs", about="Maximum parallel jobs"),
@@ -372,6 +391,12 @@ fn command_kind(matches : @argparse.Matches) -> CommandKind {
   if matches.flags.get("groups").unwrap_or(false) {
     return GroupsCommand
   }
+  if matches.flags.get("choose").unwrap_or(false) {
+    return ChooseCommand
+  }
+  if matches.flags.get("edit").unwrap_or(false) {
+    return EditCommand
+  }
   if matches.flags.get("clean").unwrap_or(false) {
     return CleanCommand
   }
@@ -402,6 +427,10 @@ fn supported_option(token : String) -> Bool {
     | "--evaluate"
     | "--eval"
     | "--groups"
+    | "--choose"
+    | "--chooser"
+    | "--edit"
+    | "-e"
     | "--group"
     | "--no-aliases"
     | "--unstable"
@@ -413,8 +442,8 @@ fn supported_option(token : String) -> Bool {
     | "--dump-format"
     | "--evaluate-format"
     | "--justfile"
+    | "--justfile-name"
     | "-f"
-    | "--dotenv-command"
     | "--dotenv-filename"
     | "-F"
     | "--dotenv-path"
@@ -440,6 +469,7 @@ fn supported_option(token : String) -> Bool {
     | "-d"
     | "--jobs"
     | "--no-cache"
+    | "--yes"
     | "--clean" => true
     _ => false
   }
@@ -478,9 +508,10 @@ fn supported_value_option(name : String) -> Bool {
     | "--dump-format"
     | "--evaluate-format"
     | "--group"
+    | "--chooser"
     | "--justfile"
+    | "--justfile-name"
     | "-f"
-    | "--dotenv-command"
     | "--dotenv-filename"
     | "-F"
     | "--dotenv-path"
@@ -520,6 +551,9 @@ fn command_option(name : String) -> Bool {
     | "--json"
     | "--evaluate"
     | "--groups"
+    | "--choose"
+    | "--edit"
+    | "-e"
     | "--clean" => true
     _ => false
   }
@@ -812,8 +846,12 @@ fn validate_choice(
 ///|
 fn command_accepts_overrides(command : CommandKind) -> Bool {
   match command {
-    RunCommand | ListCommand | ShowCommand | UsageCommand | EvaluateCommand =>
-      true
+    RunCommand
+    | ListCommand
+    | ShowCommand
+    | UsageCommand
+    | EvaluateCommand
+    | ChooseCommand => true
     _ => false
   }
 }
@@ -842,7 +880,16 @@ pub fn parse_arguments(
   validate_choice(matches, "alias-style", ["left", "right", "separate"])
   validate_choice(matches, "dump-format", ["json", "just"])
   validate_choice(matches, "evaluate-format", ["just", "shell"])
+  validate_choice(matches, "color", ["always", "auto", "never"])
+  validate_choice(matches, "command-color", [
+    "black", "blue", "cyan", "green", "purple", "red", "yellow",
+  ])
   let command = command_kind(matches)
+  if !matches.values.get("group").unwrap_or([]).is_empty() &&
+    command != ListCommand &&
+    command != ChooseCommand {
+    raise Invalid("error: '--group' requires '--list' or '--choose'")
+  }
   if !environment_argv.variable_overrides.is_empty() &&
     !command_accepts_overrides(command) {
     raise Invalid(

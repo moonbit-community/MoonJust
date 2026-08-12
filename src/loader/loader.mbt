@@ -197,6 +197,33 @@ fn lower_ascii(value : String) -> String {
 }
 
 ///|
+/// Return whether a filesystem input uses the Markdown justfile extension.
+pub fn is_markdown_path(path : @path.PathValue) -> Bool {
+  match path.extension() {
+    Some(extension) => lower_ascii(extension) == "md"
+    None => false
+  }
+}
+
+///|
+fn source_from_file_bytes(
+  bytes : Bytes,
+  source_id : @source.SourceId,
+  path : @path.PathValue,
+) -> @source.Source raise LoaderError {
+  let source = @source.Source::from_bytes(source_id, path.as_string(), bytes) catch {
+    error => raise InvalidSource(error)
+  }
+  if is_markdown_path(path) {
+    (@formatter.tangle(source) catch {
+      _ => raise Host(InvalidInput("invalid Markdown source"))
+    }).source()
+  } else {
+    source
+  }
+}
+
+///|
 fn candidate_names(filename : String) -> Array[String] {
   let result : Array[String] = [filename]
   if filename == "justfile" {
@@ -312,9 +339,7 @@ pub fn[T : @host.HostFs] load(
   let bytes = @host.HostFs::read_file(host, path) catch {
     error => raise Host(error)
   }
-  let source = @source.Source::from_bytes(source_id, path.as_string(), bytes) catch {
-    error => raise InvalidSource(error)
-  }
+  let source = source_from_file_bytes(bytes, source_id, path)
   let ast = @parser.parse(source) catch { error => raise Parse(error) }
   let canonical_path = @host.HostFs::canonicalize(host, path) catch {
     error => raise Host(error)
@@ -338,13 +363,11 @@ pub fn load_bytes(
   source_id : @source.SourceId,
   display_name : String,
 ) -> LoadedSource raise LoaderError {
-  let source = @source.Source::from_bytes(source_id, display_name, bytes) catch {
-    error => raise InvalidSource(error)
-  }
-  let ast = @parser.parse(source) catch { error => raise Parse(error) }
   let path = @path.PathValue::new(display_name, Unix) catch {
     _ => raise Host(InvalidInput("invalid source display name"))
   }
+  let source = source_from_file_bytes(bytes, source_id, path)
+  let ast = @parser.parse(source) catch { error => raise Parse(error) }
   {
     path,
     canonical_path: path,

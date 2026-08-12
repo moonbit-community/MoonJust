@@ -27,6 +27,7 @@ pub(all) struct EvaluationContext {
   num_jobs : Int?
   is_dependency : Bool
   utc_offset_seconds : Int?
+  color_mode : String?
 } derive(Eq, Debug)
 
 ///|
@@ -55,6 +56,7 @@ pub fn EvaluationContext::new(
   num_jobs? : Int,
   is_dependency? : Bool = false,
   utc_offset_seconds? : Int,
+  color_mode? : String,
 ) -> EvaluationContext {
   {
     cwd,
@@ -81,7 +83,13 @@ pub fn EvaluationContext::new(
     num_jobs,
     is_dependency,
     utc_offset_seconds,
+    color_mode,
   }
+}
+
+///|
+pub fn EvaluationContext::color_mode(self : EvaluationContext) -> String? {
+  self.color_mode
 }
 
 ///|
@@ -383,7 +391,8 @@ fn context_builtin(
         Some(value) => String(value.to_string())
         None => String("")
       }
-    "is_dependency" => Bool(context.is_dependency)
+    "is_dependency" =>
+      String(if context.is_dependency { "true" } else { "false" })
     "recipe_name" => String(require_context_string(name, context.recipe, span))
     "just_version" => String("1.57.0")
     _ => return None

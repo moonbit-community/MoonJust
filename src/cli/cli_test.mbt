@@ -145,6 +145,38 @@ test "phase 9 execution and cache options remain global" {
 }
 
 ///|
+test "phase 10 yes flag is a supported global confirmation bypass" {
+  let parsed = try! @cli.parse_arguments(["--yes", "build"], {})
+  assert_true(parsed.flag("yes"))
+  assert_eq(parsed.positional(), ["build"])
+}
+
+///|
+test "phase 10 interactive commands retain global inputs and overrides" {
+  let choose = try! @cli.parse_arguments(
+    ["--choose", "--chooser", "head -n1", "--set", "mode", "ci"],
+    {},
+  )
+  assert_eq(choose.command(), ChooseCommand)
+  assert_eq(choose.value("chooser"), Some("head -n1"))
+  assert_eq(choose.variable_overrides(), [("mode", "ci")])
+  assert_eq((try! @cli.parse_arguments(["--edit"], {})).command(), EditCommand)
+  assert_eq((try! @cli.parse_arguments(["-e"], {})).command(), EditCommand)
+  assert_eq(
+    (try! @cli.parse_arguments(["--choose", "--group", "ci"], {})).values(
+      "group",
+    ),
+    ["ci"],
+  )
+  try @cli.parse_arguments(["--group", "ci", "build"], {}) catch {
+    Invalid(message) => assert_true(message.contains("--list' or '--choose"))
+    Unsupported(_) => fail("expected group relationship error")
+  } noraise {
+    _ => fail("expected group to require list or choose")
+  }
+}
+
+///|
 test "argparse composition enforces command relationships" {
   try @cli.parse_arguments(["--check"], {}) catch {
     Invalid(message) => assert_true(message.contains("required argument"))
@@ -155,6 +187,47 @@ test "argparse composition enforces command relationships" {
   let dry_run = @cli.parse_arguments(["--fmt", "--dry-run"], {})
   assert_eq(dry_run.command(), FormatCommand)
   assert_true(dry_run.flag("dry-run"))
+}
+
+///|
+test "phase 10 CLI validates command conflicts color aliases and verbosity" {
+  for
+    arguments in [
+      ["--choose", "--dump"],
+      ["--edit", "--list"],
+      ["--fmt", "--summary"],
+      ["--evaluate", "--variables"],
+      ["--clean", "--show", "build"],
+    ] {
+    try @cli.parse_arguments(arguments, {}) catch {
+      Invalid(message) => assert_false(message.is_empty())
+      error => fail("unexpected command conflict error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected command conflict")
+    }
+  }
+  assert_eq(
+    (try! @cli.parse_arguments(["--format"], {})).command(),
+    FormatCommand,
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["--initialize"], {})).command(),
+    InitCommand,
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["-vvv", "build"], {})).count("verbose"),
+    3,
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["--color=never", "build"], {})).value("color"),
+    Some("never"),
+  )
+  try @cli.parse_arguments(["--color", "sometimes", "build"], {}) catch {
+    Invalid(message) => assert_true(message.contains("invalid value"))
+    error => fail("unexpected color validation error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected invalid color")
+  }
 }
 
 ///|
@@ -242,6 +315,7 @@ test "query format choices are validated and ignored options are unsupported" {
     arguments in [
       ["--list", "--list-submodules"],
       ["--default-list"],
+      ["--dotenv-command", "printf MODE=ci"],
       ["--dump", "--indentation", "  "],
     ] {
     try @cli.parse_arguments(arguments, {}) catch {
@@ -251,6 +325,13 @@ test "query format choices are validated and ignored options are unsupported" {
       _ => fail("expected unsupported option")
     }
   }
+}
+
+///|
+test "phase 10 justfile-name is a supported value option" {
+  let parsed = try! parse_arguments(["--list", "--justfile-name", "tasks.md"], {})
+  assert_eq(parsed.command(), ListCommand)
+  assert_eq(parsed.value("justfile-name"), Some("tasks.md"))
 }
 
 ///|
@@ -265,12 +346,7 @@ test "dotenv options append values and enforce upstream conflicts" {
     {},
   )
   assert_eq(filenames.values("dotenv-filename"), [".env.one", ".env.two"])
-  for
-    arguments in [
-      ["--dotenv-command", "true", "--no-dotenv"],
-      ["--dotenv-command", "true", "--dotenv-path", ".env"],
-      ["--dotenv-filename", ".env", "--dotenv-path", ".other"],
-    ] {
+  for arguments in [["--dotenv-filename", ".env", "--dotenv-path", ".other"]] {
     try parse_arguments(arguments, {}) catch {
       Invalid(_) => ()
       error => fail("unexpected dotenv CLI error: \{Repr(error)}")

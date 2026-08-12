@@ -233,19 +233,15 @@ pub impl @host.HostRandom for NativeFs with fn random_bytes(
 
 ///|
 pub impl @host.HostTerminal for NativeFs with fn terminal_info(_self : NativeFs) -> @host.TerminalInfo raise @host.HostError {
-  @host.TerminalInfo::new(false, false, false, false)
+  detected_terminal_info()
 }
 
 ///|
 pub impl @host.HostPlatform for NativeFs with fn platform_info(_self : NativeFs) -> @host.PlatformInfo raise @host.HostError {
   let flavor = native_path_flavor()
   @host.PlatformInfo::new(
-    if flavor == Windows {
-      Windows
-    } else {
-      Other("unix")
-    },
-    "unknown",
+    detected_operating_system(),
+    detected_architecture(),
     flavor,
   )
 }

@@ -1,7 +1,7 @@
 schema_version = 1
 upstream = "just 1.57.0"
 
-# Status values: planned, implemented, excluded.
+# Status values: implemented, unsupported, excluded.
 # Tier values: A, B, W, X.
 
 [[option]]
@@ -12,12 +12,14 @@ status = "implemented"
 [[option]]
 name = "--allow-missing"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Missing recipes and modules are rejected; --allow-missing execution semantics are not implemented."
 
 [[option]]
 name = "--ceiling"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Search ceiling control is not implemented."
 
 [[option]]
 name = "--check"
@@ -28,7 +30,7 @@ requires = ["--fmt"]
 [[option]]
 name = "--chooser"
 tier = "B"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--clear-shell-args"
@@ -38,12 +40,12 @@ status = "implemented"
 [[option]]
 name = "--color"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--command-color"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--complete-aliases"
@@ -54,29 +56,32 @@ reason = "Completion is outside project scope."
 [[option]]
 name = "--cygpath"
 tier = "B"
-status = "planned"
+status = "unsupported"
+reason = "MoonJust does not perform Cygwin path conversion."
 
 [[option]]
 name = "--default-list"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Default-list invocation behavior is not implemented."
 
 [[option]]
 name = "--dotenv-command"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Command-produced dotenv loading is not implemented."
 
 [[option]]
 name = "--dotenv-filename"
 short = "-F"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--dotenv-path"
 short = "-E"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--dry-run"
@@ -98,29 +103,33 @@ status = "implemented"
 [[option]]
 name = "--explain"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Recipe documentation is not emitted before execution."
 
 [[option]]
 name = "--global-justfile"
 short = "-g"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Global justfile discovery is not implemented."
 
 [[option]]
 name = "--group"
 tier = "A"
 status = "implemented"
-requires = ["--list"]
+modes = ["--list", "--choose"]
 
 [[option]]
 name = "--highlight"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Recipe source highlighting is not implemented."
 
 [[option]]
 name = "--indentation"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "CLI indentation override is rejected."
 
 [[option]]
 name = "--jobs"
@@ -136,7 +145,7 @@ status = "implemented"
 [[option]]
 name = "--justfile-name"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--list-heading"
@@ -151,7 +160,8 @@ status = "implemented"
 [[option]]
 name = "--list-submodules"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Module recipe listing is not implemented."
 
 [[option]]
 name = "--no-aliases"
@@ -167,28 +177,31 @@ status = "implemented"
 name = "--no-deps"
 aliases = ["--no-dependencies"]
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Dependency suppression is not implemented."
 
 [[option]]
 name = "--no-dotenv"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--no-highlight"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Recipe source highlighting is not implemented."
 
 [[option]]
 name = "--one"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Single-invocation enforcement is not implemented."
 
 [[option]]
 name = "--quiet"
 short = "-q"
 tier = "A"
-status = "planned"
+status = "implemented"
 conflicts = ["--dry-run"]
 
 [[option]]
@@ -209,7 +222,8 @@ status = "implemented"
 [[option]]
 name = "--shell-command"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "Arbitrary shell-command execution is not implemented."
 
 [[option]]
 name = "--tempdir"
@@ -219,17 +233,17 @@ status = "implemented"
 [[option]]
 name = "--time"
 tier = "B"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--timestamp"
 tier = "B"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--timestamp-format"
 tier = "B"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--unsorted"
@@ -241,13 +255,12 @@ status = "implemented"
 name = "--unstable"
 tier = "X"
 status = "implemented"
-reason = "Recognized as an explicit, side-effect-free gate for unstable inspect formats."
 
 [[option]]
 name = "--verbose"
 short = "-v"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--working-directory"
@@ -259,7 +272,7 @@ requires = ["--justfile"]
 [[option]]
 name = "--yes"
 tier = "A"
-status = "planned"
+status = "implemented"
 
 [[option]]
 name = "--help"
@@ -277,11 +290,12 @@ status = "implemented"
 name = "--changelog"
 tier = "X"
 status = "excluded"
+reason = "Upstream product-maintenance output is outside MoonJust compatibility."
 
 [[command]]
 name = "--choose"
 tier = "B"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--clean"
@@ -292,7 +306,8 @@ status = "implemented"
 name = "--command"
 short = "-c"
 tier = "A"
-status = "planned"
+status = "unsupported"
+reason = "The arbitrary command subcommand is rejected before execution."
 
 [[command]]
 name = "--completions"
@@ -309,7 +324,7 @@ status = "implemented"
 name = "--edit"
 short = "-e"
 tier = "B"
-status = "planned"
+status = "implemented"
 
 [[command]]
 name = "--evaluate"
@@ -349,6 +364,7 @@ status = "implemented"
 name = "--man"
 tier = "X"
 status = "excluded"
+reason = "Man-page generation is outside project scope."
 
 [[command]]
 name = "--request"

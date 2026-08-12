@@ -226,7 +226,14 @@ test "evaluation context supplies invocation facts without ambient fallbacks" {
   )
   assert_eq(
     evaluate_with_context(expression("is_dependency()"), context),
-    Bool(true),
+    String("true"),
+  )
+  assert_eq(
+    evaluate_with_context(
+      expression("is_dependency()"),
+      EvaluationContext::new(is_dependency=false),
+    ),
+    String("false"),
   )
   assert_eq(
     evaluate_with_context(expression("executable_directory()"), context),
@@ -350,6 +357,48 @@ test "effect context connects fs random clock process terminal and PATH facts" {
       span,
     ),
     String("\u{001b}[44;38;2;0;255;0mok\u{001b}[0m"),
+  )
+  host.set_terminal(@host.TerminalInfo::new(false, false, false, false))
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "style",
+      [String("red"), String("always-styled")],
+      EvaluationContext::new(cwd~),
+      span,
+    ),
+    String("\u{001b}[31malways-styled\u{001b}[0m"),
+  )
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "style",
+      [List([String("red"), String("stdout")]), String("plain")],
+      EvaluationContext::new(cwd~),
+      span,
+    ),
+    String("plain"),
+  )
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "style",
+      [List([String("red"), String("stdout")]), String("forced")],
+      EvaluationContext::new(cwd~, color_mode="always"),
+      span,
+    ),
+    String("\u{001b}[31mforced\u{001b}[0m"),
+  )
+  host.set_terminal(@host.TerminalInfo::new(true, true, true, true))
+  assert_eq(
+    call_effect_with_context(
+      host,
+      "style",
+      [List([String("red"), String("stdout")]), String("never")],
+      EvaluationContext::new(cwd~, color_mode="never"),
+      span,
+    ),
+    String("never"),
   )
   let command = @host.CommandSpec::new("sh", [
     "-cu", "printf %s $1", "printf %s $1", "ok",

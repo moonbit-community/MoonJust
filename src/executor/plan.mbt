@@ -435,6 +435,15 @@ async fn[
 }
 
 ///|
+fn confirmation_text(value : @value.Value) -> String {
+  match value {
+    List(elements) =>
+      elements.map(fn(element) { element.to_string() }).join(" ")
+    _ => value.to_string()
+  }
+}
+
+///|
 async fn[
   P : @host.HostAsyncProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
@@ -456,6 +465,8 @@ async fn[
   entry_dependencies : Array[Int],
   tasks : Array[ExecutionTask],
   stderr : Array[Byte],
+  confirmations : Array[ConfirmationRequest],
+  is_dependency : Bool,
 ) -> Int raise ExecutionError {
   let key = execution_key(name, arguments)
   guard ran.get(key) is None else { return ran.get(key).unwrap() }
@@ -486,10 +497,37 @@ async fn[
   let recipe_context = @evaluator.EvaluationContext::new(
     cwd=recipe_cwd,
     recipe=name,
+    is_dependency~,
+    color_mode=context.color_mode().unwrap_or("auto"),
   )
   let recipe_environment = recipe_process_environment(
     process, host, attributes, scope, recipe_context, recipe_shell, process_environment,
   )
+  match attributes {
+    Some(value) if value.confirm() => {
+      let prompt = match value.confirm_prompt() {
+        Some(expression) =>
+          confirmation_text(
+            @evaluator.evaluate_with_async_effects(
+              process,
+              host,
+              expression,
+              recipe_context,
+              @evaluator.EffectShell::new(
+                recipe_shell.program(),
+                recipe_shell.arguments().to_owned(),
+              ),
+              environment=scope,
+            ) catch {
+              error => raise Evaluation(error)
+            },
+          )
+        None => "Run recipe `" + name + "`?"
+      }
+      confirmations.push(ConfirmationRequest::new(name, prompt, is_dependency))
+    }
+    _ => ()
+  }
   stack.push(key)
   let parallel = attributes.map(fn(value) { value.parallel() }).unwrap_or(false)
   let dependency_terminals : Array[Int] = []
@@ -509,7 +547,7 @@ async fn[
               dependency.name(),
               [element],
               global,
-              context,
+              recipe_context,
               shell,
               cwd,
               process_environment,
@@ -524,6 +562,8 @@ async fn[
               },
               tasks,
               stderr,
+              confirmations,
+              true,
             )
             if !dependency_terminals.contains(terminal) {
               dependency_terminals.push(terminal)
@@ -540,7 +580,7 @@ async fn[
             dependency.name(),
             [value],
             global,
-            context,
+            recipe_context,
             shell,
             cwd,
             process_environment,
@@ -555,6 +595,8 @@ async fn[
             },
             tasks,
             stderr,
+            confirmations,
+            true,
           )
           if !dependency_terminals.contains(terminal) {
             dependency_terminals.push(terminal)
@@ -572,7 +614,7 @@ async fn[
         dependency.name(),
         values,
         global,
-        context,
+        recipe_context,
         shell,
         cwd,
         process_environment,
@@ -587,6 +629,8 @@ async fn[
         },
         tasks,
         stderr,
+        confirmations,
+        true,
       )
       if !dependency_terminals.contains(terminal) {
         dependency_terminals.push(terminal)
@@ -747,7 +791,7 @@ async fn[
       dependency.name(),
       values,
       global,
-      context,
+      recipe_context,
       shell,
       cwd,
       process_environment,
@@ -762,6 +806,8 @@ async fn[
       },
       tasks,
       stderr,
+      confirmations,
+      true,
     )
     if !subsequent_terminals.contains(terminal) {
       subsequent_terminals.push(terminal)
@@ -810,6 +856,7 @@ pub async fn[
   let commands : Array[PlannedCommand] = []
   let stderr : Array[Byte] = []
   let tasks : Array[ExecutionTask] = []
+  let confirmations : Array[ConfirmationRequest] = []
   let ran : Map[String, Int] = Map([])
   let mut root_fence : Array[Int] = []
   for request in requests {
@@ -831,6 +878,8 @@ pub async fn[
       root_fence,
       tasks,
       stderr,
+      confirmations,
+      false,
     )
     root_fence = [terminal]
   }
@@ -848,6 +897,7 @@ pub async fn[
         options,
         tasks~,
         cache_directory=value,
+        confirmations~,
       )
     None =>
       ExecutionPlan::new(
@@ -856,6 +906,7 @@ pub async fn[
         Bytes::from_array(stderr),
         options,
         tasks~,
+        confirmations~,
       )
   }
 }

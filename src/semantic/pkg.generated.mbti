@@ -80,6 +80,7 @@ pub struct RecipeAttributes {
   shell : Array[@syntax.Expression]
   script : Bool
   confirm : Bool
+  confirm_prompt : @syntax.Expression?
   default_value : @syntax.Expression?
   continue_signals : Array[String]
   env : Array[(@syntax.Expression, @syntax.Expression)]
@@ -97,6 +98,7 @@ pub struct RecipeAttributes {
 pub fn RecipeAttributes::args(Self) -> ArrayView[@syntax.AttributeArgument]
 pub fn RecipeAttributes::cache(Self) -> ArrayView[@syntax.AttributeArgument]
 pub fn RecipeAttributes::confirm(Self) -> Bool
+pub fn RecipeAttributes::confirm_prompt(Self) -> @syntax.Expression?
 pub fn RecipeAttributes::continue_signals(Self) -> ArrayView[String]
 pub fn RecipeAttributes::default(Self) -> @syntax.Expression?
 pub fn RecipeAttributes::doc(Self) -> String?

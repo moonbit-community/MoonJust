@@ -27,10 +27,10 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 ### 2.1 本地仓库
 
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
-- 模块名：`moonbit-community/MoonJust`，模块版本 `0.6.0`，应用版本 `0.6.0-alpha`，许可证 `Apache-2.0`。
+- 模块名：`moonbit-community/MoonJust`，模块版本 `0.7.0`，应用版本 `0.7.0-alpha`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
+- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10 已完成本地实现，正在等待远程 CI 和二次复核。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -679,6 +679,13 @@ protected-main CI 证据见 [`PHASE_9_REPORT.md`](PHASE_9_REPORT.md) 和
 | PR-103 | terminal rendering | color、Unicode width、style | NO_COLOR/forced color/宽字符 golden |
 | PR-104 | Markdown 完整收束 | cmark 依赖或专用实现最终决策 | 常规 Markdown 升 Tier A，边界状态登记 |
 | PR-105 | compatibility audit | 全 flags/settings/attrs/builtins/tests inventory | 无“未分类”条目 |
+
+执行状态：Phase 10 已于 2026-08-12 完成本地实现和第一轮严格复核。PR-100
+至 PR-105、296/291 项测试、2,417 项上游登记的零 `planned` 分类、真实
+macOS 平台门禁和 Markdown 上游 oracle 证据见
+[`PHASE_10_REPORT.md`](PHASE_10_REPORT.md) 与
+[`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)；远程三平台 CI、二次复核、
+合并和 protected-main CI 尚未完成，因此阶段出口仍为 pending。
 
 ### Phase 11：发布工程与 MoonX
 

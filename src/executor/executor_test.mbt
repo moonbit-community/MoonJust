@@ -311,6 +311,28 @@ test "unignored exit and signal failures stop later commands" {
     _ => fail("expected command failure")
   }
   assert_eq(host.process_calls().length(), 1)
+
+  let signaled_host = fake_host()
+  signaled_host.expect_process(
+    spec(shell, "first"),
+    @host.ProcessResult::from_signal(Terminate, b"partial\n", b"warning\n"),
+  )
+  try
+    execute_recipe_lines(
+      signaled_host,
+      recipe,
+      environment,
+      shell,
+      unix_path("/workspace"),
+      process_environment=[("MODE", "test")],
+    )
+  catch {
+    CommandSignaled(recipe="build", line=1, signal=Terminate) as error =>
+      assert_eq(error.exit_code(), 143)
+    error => fail("unexpected signal error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected signal failure")
+  }
 }
 
 ///|

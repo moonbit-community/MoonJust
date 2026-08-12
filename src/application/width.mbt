@@ -4,7 +4,10 @@ fn is_combining(code : Int) -> Bool {
   (code >= 0x1ab0 && code <= 0x1aff) ||
   (code >= 0x1dc0 && code <= 0x1dff) ||
   (code >= 0x20d0 && code <= 0x20ff) ||
-  (code >= 0xfe20 && code <= 0xfe2f)
+  (code >= 0xfe00 && code <= 0xfe0f) ||
+  (code >= 0xfe20 && code <= 0xfe2f) ||
+  (code >= 0xe0100 && code <= 0xe01ef) ||
+  (code >= 0x1f3fb && code <= 0x1f3ff)
 }
 
 ///|
@@ -25,14 +28,36 @@ fn is_wide(code : Int) -> Bool {
 ///|
 fn display_width(value : String) -> Int {
   let mut width = 0
+  let mut previous_wide = false
+  let mut join_next = false
+  let mut regional_pending = false
   for character in value {
     let code = character.to_int()
-    if is_combining(code) {
+    if code < 0x20 || (code >= 0x7f && code < 0xa0) || is_combining(code) {
       ()
+    } else if code == 0x200d {
+      join_next = true
+    } else if code >= 0x1f1e6 && code <= 0x1f1ff {
+      if regional_pending {
+        regional_pending = false
+      } else {
+        width += 2
+        regional_pending = true
+      }
+      previous_wide = true
+      join_next = false
     } else if is_wide(code) {
-      width += 2
+      if !(join_next && previous_wide) {
+        width += 2
+      }
+      previous_wide = true
+      join_next = false
+      regional_pending = false
     } else {
       width += 1
+      previous_wide = false
+      join_next = false
+      regional_pending = false
     }
   }
   width

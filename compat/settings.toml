@@ -1,38 +1,166 @@
-schema_version = 1
+schema_version = 2
 upstream = "just 1.57.0"
-status = "implemented"
+
+# A setting is implemented only when it changes parsing, evaluation, or
+# execution as specified. Recognition and JSON serialization alone are not
+# sufficient.
+
+[[setting]]
+name = "allow-duplicate-recipes"
 tier = "A"
-names = [
-  "allow-duplicate-recipes",
-  "allow-duplicate-variables",
-  "default-list",
-  "default-script",
-  "dotenv-command",
-  "dotenv-filename",
-  "dotenv-load",
-  "dotenv-override",
-  "dotenv-path",
-  "dotenv-required",
-  "export",
-  "fallback",
-  "guards",
-  "ignore-comments",
-  "indentation",
-  "lazy",
-  "lists",
-  "minimum-version",
-  "no-cd",
-  "no-exit-message",
-  "positional-arguments",
-  "quiet",
-  "script-interpreter",
-  "shell",
-  "tempdir",
-  "unstable",
-  "windows-powershell",
-  "windows-shell",
-  "working-directory",
-]
+status = "implemented"
+
+[[setting]]
+name = "allow-duplicate-variables"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "default-list"
+tier = "A"
+status = "unsupported"
+reason = "The setting is parsed but does not select list mode for the default invocation."
+
+[[setting]]
+name = "default-script"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "dotenv-command"
+tier = "A"
+status = "unsupported"
+reason = "Command-produced dotenv loading is not implemented."
+
+[[setting]]
+name = "dotenv-filename"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "dotenv-load"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "dotenv-override"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "dotenv-path"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "dotenv-required"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "export"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "fallback"
+tier = "A"
+status = "unsupported"
+reason = "Optional module fallback semantics are not implemented."
+
+[[setting]]
+name = "guards"
+tier = "A"
+status = "unsupported"
+reason = "Guard-line execution semantics are not implemented."
+
+[[setting]]
+name = "ignore-comments"
+tier = "A"
+status = "unsupported"
+reason = "Recipe comment suppression and evaluation semantics are not implemented."
+
+[[setting]]
+name = "indentation"
+tier = "A"
+status = "unsupported"
+reason = "The setting is retained for inspection but does not alter recipe indentation."
+
+[[setting]]
+name = "lazy"
+tier = "A"
+status = "unsupported"
+reason = "MoonJust always uses deterministic lazy variable resolution and does not implement this compatibility toggle."
+
+[[setting]]
+name = "lists"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "minimum-version"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "no-cd"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "no-exit-message"
+tier = "A"
+status = "unsupported"
+reason = "Recipe failure exit-message suppression is not implemented."
+
+[[setting]]
+name = "positional-arguments"
+tier = "A"
+status = "unsupported"
+reason = "Positional recipe arguments are not exported through upstream shell variables."
+
+[[setting]]
+name = "quiet"
+tier = "A"
+status = "unsupported"
+reason = "The setting is parsed but does not configure global execution output."
+
+[[setting]]
+name = "script-interpreter"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "shell"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "tempdir"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "unstable"
+tier = "X"
+status = "unsupported"
+reason = "Unstable features are enabled only by the explicit --unstable CLI gate."
+
+[[setting]]
+name = "windows-powershell"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "windows-shell"
+tier = "A"
+status = "implemented"
+
+[[setting]]
+name = "working-directory"
+tier = "A"
+status = "unsupported"
+reason = "Static recipe cwd selection is implemented, but the setting does not yet change the cwd of effectful global backticks and shell functions."
 
 [[conflict]]
 left = "dotenv-command"

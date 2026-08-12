@@ -132,6 +132,23 @@ pub(all) enum SignalKind {
 } derive(Eq, Debug)
 
 ///|
+/// Return the conventional Unix signal number used by just's exit-status
+/// contract. Unknown native signals retain their positive numeric value.
+pub fn SignalKind::number(self : SignalKind) -> Int {
+  match self {
+    Hangup => 1
+    Interrupt => 2
+    Terminate => 15
+    OtherSignal(value) => Int::max(1, value)
+  }
+}
+
+///|
+pub fn SignalKind::exit_code(self : SignalKind) -> Int {
+  128 + Int::min(self.number(), 127)
+}
+
+///|
 /// How a child stream is connected to the MoonJust process.
 pub(all) enum StdioBehavior {
   /// Capture the stream in the returned `ProcessResult`.

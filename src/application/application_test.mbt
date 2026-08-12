@@ -47,6 +47,36 @@ test "format writes only after a successful parse" {
 }
 
 ///|
+test "phase 10 Markdown format prints canonical source without mutation" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/tasks.MD", Unix)
+  let original = b"# prose\n```just\nx:=\"y\"\n```\n"
+  host.put_file(file, original)
+  let response = @application.execute_file_command(
+    host,
+    @cli.parse_arguments(["--fmt", "--justfile", "tasks.MD"], {}),
+    context,
+  )
+  assert_eq(response.exit_code(), 0)
+  assert_true((try! @utf8.decode(response.stdout())).contains("x := \"y\""))
+  assert_eq(response.stderr(), b"")
+  assert_eq(try! host.read_file(file), original)
+}
+
+///|
+test "phase 10 justfile-name discovers and tangles Markdown" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/tasks.md", Unix)
+  host.put_file(file, b"```just\nbuild:\n```\n")
+  let response = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--justfile-name", "tasks.md"], {}),
+    context,
+  )
+  assert_true((try! @utf8.decode(response.stdout())).contains("build"))
+}
+
+///|
 test "format writes a canonical symlink target and leaves the display path intact" {
   let (host, context) = fake_context()
   let link = @path.PathValue::new("/workspace/justfile", Unix)
@@ -103,6 +133,54 @@ test "relative justfile and working directory use explicit invocation cwd" {
     error => fail("unexpected relative input error: \{Repr(error)}")
   } noraise {
     _ => fail("expected Phase 8 executor boundary")
+  }
+}
+
+///|
+async test "phase 10 string settings select dotenv and temporary directories" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"set dotenv-filename := \".env.ci\"\nset tempdir := \".tmp\"\n[script]\nbuild:\n  echo ok\n",
+  )
+  host.put_file(@path.PathValue::new("/workspace/.env.ci", Unix), b"MODE=ci\n")
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["build"], {}),
+    context,
+  )
+  match plan.tasks()[0].steps()[0] {
+    Script(script, _) => {
+      assert_eq(
+        script.configuration().temporary_directory(),
+        @path.PathValue::new("/workspace/.tmp", Unix),
+      )
+      assert_true(script.environment().contains(("MODE", "ci")))
+    }
+    _ => fail("expected string-setting script task")
+  }
+}
+
+///|
+async test "phase 10 module working-directory selects recipe cwd" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"set working-directory := \"build\"\n[script]\nrun:\n  echo ok\n",
+  )
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["run"], {}),
+    context,
+  )
+  match plan.tasks()[0].steps()[0] {
+    Script(script, _) =>
+      assert_eq(script.cwd(), @path.PathValue::new("/workspace/build", Unix))
+    _ => fail("expected working-directory line task")
   }
 }
 
@@ -199,6 +277,87 @@ test "list renders docs aliases groups and hides private recipes" {
   assert_true(text.contains("[ci]\n"))
   assert_true(text.contains("build target # build docs [alias: b]"))
   assert_false(text.contains("secret"))
+}
+
+///|
+test "phase 10 list color highlights doc backticks on stdout" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"# Comment `` `with backticks` and trailing text\nrecipe:\n",
+  )
+  let forced = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--color", "always"], {}),
+    context,
+  )
+  assert_eq(
+    forced.stdout(),
+    @utf8.encode(
+      "Available recipes:\n    recipe \u{001b}[34m#\u{001b}[0m " +
+      "\u{001b}[34mComment \u{001b}[0m" +
+      "\u{001b}[36m``\u{001b}[0m" +
+      "\u{001b}[34m \u{001b}[0m" +
+      "\u{001b}[36m`with backticks`\u{001b}[0m" +
+      "\u{001b}[34m and trailing text\u{001b}[0m\n",
+    ),
+  )
+  host.put_file(file, b"# Comment `with unclosed backtick\nrecipe:\n")
+  let unclosed = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--color=always"], {}),
+    context,
+  )
+  assert_true(
+    (try! @utf8.decode(unclosed.stdout())).contains(
+      "\u{001b}[36m`with unclosed backtick\u{001b}[0m",
+    ),
+  )
+}
+
+///|
+test "phase 10 list auto and never color obey stdout terminal" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"# `doc`\nrecipe:\n")
+  host.set_terminal(@host.TerminalInfo::new(false, true, false, true))
+  let automatic = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list"], {}),
+    context,
+  )
+  assert_true((try! @utf8.decode(automatic.stdout())).contains("\u{001b}[36m"))
+  let never = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list", "--color", "never"], {}),
+    context,
+  )
+  assert_false((try! @utf8.decode(never.stdout())).contains("\u{001b}["))
+  host.set_terminal(@host.TerminalInfo::new(false, false, true, true))
+  let redirected = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list"], {}),
+    context,
+  )
+  assert_false((try! @utf8.decode(redirected.stdout())).contains("\u{001b}["))
+}
+
+///|
+test "phase 10 list places wide signature documentation above" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"# comment\nfoo bar=\"..................................................\":\n# short\ntiny:\n",
+  )
+  let listed = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--list"], {}),
+    context,
+  )
+  assert_eq(
+    listed.stdout(),
+    b"Available recipes:\n    # comment\n    foo bar=\"..................................................\"\n    tiny # short\n",
+  )
 }
 
 ///|
@@ -781,4 +940,390 @@ async test "cache expressions resolve in recipe scope and require scripts" {
   } noraise {
     _ => fail("expected cache script requirement")
   }
+}
+
+///|
+async test "confirmation plan preserves parent-first dependency context and prompts" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"target := 'production'\n[confirm('Deploy ' + target + '?')]\nroot: (dep 'staging')\n  @echo root\n\n[confirm(if is_dependency() == 'true' { 'dep ' + target + '?' } else { 'direct?' })]\ndep target:\n  @echo dep\n",
+  )
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["root"], {}),
+    context,
+  )
+  assert_eq(plan.confirmations().length(), 2)
+  assert_eq(plan.confirmations()[0].recipe(), "root")
+  assert_eq(plan.confirmations()[0].prompt(), "Deploy production?")
+  assert_false(plan.confirmations()[0].is_dependency())
+  assert_eq(plan.confirmations()[1].recipe(), "dep")
+  assert_eq(plan.confirmations()[1].prompt(), "dep staging?")
+  assert_true(plan.confirmations()[1].is_dependency())
+  assert_true(@executor.confirmation_answer_is_yes(" YES\r\n"))
+  assert_false(@executor.confirmation_answer_is_yes("true"))
+}
+
+///|
+test "phase 10 confirm attributes format and reject excess prompt arguments" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"[confirm('prompt')]\nfoo:\n")
+  let dumped = @application.execute_inspect_command(
+    host,
+    try! @cli.parse_arguments(["--dump"], {}),
+    context,
+  )
+  assert_eq(dumped.stdout(), b"[confirm('prompt')]\nfoo:\n")
+  host.put_file(file, b"[confirm('A', 'B')]\nfoo:\n")
+  try
+    @application.execute_inspect_command(
+      host,
+      try! @cli.parse_arguments(["--dump"], {}),
+      context,
+    )
+  catch {
+    Load(Parse(error)) =>
+      assert_eq(error.message(), "invalid arguments for attribute `confirm`")
+    error => fail("unexpected confirm arity error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected excess confirm prompt failure")
+  }
+}
+
+///|
+async test "editor uses visual precedence and opens invalid source from its directory" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"this is not valid just syntax")
+  host.set_env("VISUAL", "visual-editor")
+  host.set_env("EDITOR", "ignored-editor")
+  let expected = try! @host.CommandSpec::new("visual-editor", [
+    "/workspace/justfile",
+  ])
+  expected.set_cwd(@path.PathValue::new("/workspace", Unix))
+  expected.set_inherit_stdin(true)
+  expected.set_stdout(Inherit)
+  expected.set_stderr(Inherit)
+  host.expect_process(expected, @host.ProcessResult::new(0, b"", b""))
+  let response = try! @application.execute_edit_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["--edit"], {}),
+    context,
+  )
+  assert_eq(response.exit_code(), 0)
+  assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
+async test "phase 10 editor falls back through EDITOR and vim" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/tasks.just", Unix)
+  host.put_file(file, b"invalid source")
+  host.set_env("EDITOR", "configured-editor")
+  let configured = try! @host.CommandSpec::new("configured-editor", [
+    "/workspace/tasks.just",
+  ])
+  configured.set_cwd(@path.PathValue::new("/workspace", Unix))
+  configured.set_inherit_stdin(true)
+  configured.set_stdout(Inherit)
+  configured.set_stderr(Inherit)
+  host.expect_process(configured, @host.ProcessResult::new(0, b"", b""))
+  ignore(
+    try! @application.execute_edit_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--edit", "--justfile-name", "tasks.just"], {}),
+      context,
+    ),
+  )
+  assert_eq(host.pending_process_expectations(), 0)
+  let (fallback_host, fallback_context) = fake_context()
+  fallback_host.put_file(file, b"invalid source")
+  let fallback = try! @host.CommandSpec::new("vim", ["/workspace/tasks.just"])
+  fallback.set_cwd(@path.PathValue::new("/workspace", Unix))
+  fallback.set_inherit_stdin(true)
+  fallback.set_stdout(Inherit)
+  fallback.set_stderr(Inherit)
+  fallback_host.expect_process(fallback, @host.ProcessResult::new(0, b"", b""))
+  ignore(
+    try! @application.execute_edit_command_async(
+      fallback_host,
+      fallback_host,
+      fallback_host,
+      try! @cli.parse_arguments(["--edit", "--justfile-name", "tasks.just"], {}),
+      fallback_context,
+    ),
+  )
+  assert_eq(fallback_host.pending_process_expectations(), 0)
+}
+
+///|
+async test "phase 10 interactive invocation and exit failures retain context" {
+  let (host, context) = fake_context()
+  host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
+  host.set_env("VISUAL", "broken-editor")
+  try
+    @application.execute_edit_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--edit"], {}),
+      context,
+    )
+  catch {
+    error => {
+      assert_eq(error.exit_code(), 1)
+      assert_true(
+        error.message().contains("editor `broken-editor` invocation failed"),
+      )
+    }
+  } noraise {
+    _ => fail("expected editor invocation failure")
+  }
+  let editor = try! @host.CommandSpec::new("broken-editor", [
+    "/workspace/justfile",
+  ])
+  editor.set_cwd(@path.PathValue::new("/workspace", Unix))
+  editor.set_inherit_stdin(true)
+  editor.set_stdout(Inherit)
+  editor.set_stderr(Inherit)
+  host.expect_process(editor, @host.ProcessResult::new(2, b"", b""))
+  try
+    @application.execute_edit_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--edit"], {}),
+      context,
+    )
+  catch {
+    error => {
+      assert_eq(error.exit_code(), 2)
+      assert_true(error.message().contains("editor `broken-editor` failed"))
+    }
+  } noraise {
+    _ => fail("expected editor exit failure")
+  }
+}
+
+///|
+async test "chooser filters candidates and preserves each selected invocation" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"mode := 'local'\n[group('ci')]\nfirst:\n  @echo {{mode}}\n\n[group('ci')]\nvariadic *args:\n  @echo {{args}}\n\nrequires arg:\n  @echo {{arg}}\n\n[private]\nsecret:\n\n_hidden:\n",
+  )
+  host.set_env("JUST_CHOOSER", "cat")
+  let expected = try! @host.CommandSpec::new("sh", ["-cu", "cat"])
+  expected.set_cwd(@path.PathValue::new("/workspace", Unix))
+  expected.set_stdin(b"first\nvariadic\n")
+  expected.set_stdout(Capture)
+  expected.set_stderr(Inherit)
+  host.expect_process(
+    expected,
+    @host.ProcessResult::new(0, b"first\nvariadic one two\n", b""),
+  )
+  let arguments = try! @cli.parse_arguments(
+    ["--choose", "--group", "ci", "--set", "mode", "release"],
+    {},
+  )
+  let selections = try! @application.execute_choose_command_async(
+    host, host, host, arguments, context,
+  )
+  assert_eq(selections, [["first"], ["variadic", "one", "two"]])
+  assert_eq(
+    arguments.with_run_positionals(selections[0]).variable_overrides(),
+    [("mode", "release")],
+  )
+  assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
+async test "phase 10 chooser rejects an empty public zero-argument candidate set" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"_private:\n\nrequired argument:\n",
+  )
+  try
+    @application.execute_choose_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--choose"], {}),
+      context,
+    )
+  catch {
+    Query(message) =>
+      assert_eq(message, "justfile contains no choosable recipes")
+    error => fail("unexpected empty chooser error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected no chooser candidates")
+  }
+  assert_eq(host.process_calls().length(), 0)
+}
+
+///|
+async test "phase 10 default chooser is deterministic and source-aware" {
+  let (host, context) = fake_context()
+  host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
+  let command = "fzf --multi --preview 'just --unstable --color always --justfile \"/workspace/justfile\" --show {}'"
+  let expected = try! @host.CommandSpec::new("sh", ["-cu", command])
+  expected.set_cwd(@path.PathValue::new("/workspace", Unix))
+  expected.set_stdin(b"build\n")
+  expected.set_stdout(Capture)
+  expected.set_stderr(Inherit)
+  host.expect_process(expected, @host.ProcessResult::new(130, b"", b""))
+  assert_eq(
+    try! @application.execute_choose_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--choose"], {}),
+      context,
+    ),
+    [],
+  )
+}
+
+///|
+async test "chooser cancellation succeeds and signals preserve exit status" {
+  let (host, context) = fake_context()
+  host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
+  let cancelled = try! @host.CommandSpec::new("sh", ["-cu", "cancel"])
+  cancelled.set_cwd(@path.PathValue::new("/workspace", Unix))
+  cancelled.set_stdin(b"build\n")
+  cancelled.set_stdout(Capture)
+  cancelled.set_stderr(Inherit)
+  host.expect_process(cancelled, @host.ProcessResult::new(130, b"", b""))
+  let cancelled_arguments = try! @cli.parse_arguments(
+    ["--choose", "--chooser", "cancel"],
+    {},
+  )
+  assert_eq(
+    try! @application.execute_choose_command_async(
+      host, host, host, cancelled_arguments, context,
+    ),
+    [],
+  )
+  let signaled = try! @host.CommandSpec::new("sh", ["-cu", "signal"])
+  signaled.set_cwd(@path.PathValue::new("/workspace", Unix))
+  signaled.set_stdin(b"build\n")
+  signaled.set_stdout(Capture)
+  signaled.set_stderr(Inherit)
+  host.expect_process(
+    signaled,
+    @host.ProcessResult::from_signal(Terminate, b"", b""),
+  )
+  try
+    @application.execute_choose_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--choose", "--chooser", "signal"], {}),
+      context,
+    )
+  catch {
+    error => {
+      assert_eq(error.exit_code(), 143)
+      assert_true(error.message().contains("signal 15"))
+    }
+  } noraise {
+    _ => fail("expected chooser signal failure")
+  }
+}
+
+///|
+async test "phase 10 chooser nonzero status is propagated" {
+  let (host, context) = fake_context()
+  host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
+  let failed = try! @host.CommandSpec::new("sh", ["-cu", "fail"])
+  failed.set_cwd(@path.PathValue::new("/workspace", Unix))
+  failed.set_stdin(b"build\n")
+  failed.set_stdout(Capture)
+  failed.set_stderr(Inherit)
+  host.expect_process(failed, @host.ProcessResult::new(2, b"", b""))
+  try
+    @application.execute_choose_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["--choose", "--chooser", "fail"], {}),
+      context,
+    )
+  catch {
+    error => {
+      assert_eq(error.exit_code(), 2)
+      assert_true(error.message().contains("chooser `fail` failed"))
+    }
+  } noraise {
+    _ => fail("expected chooser status failure")
+  }
+}
+
+///|
+async test "command color follows forced auto never and explicit color modes" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"build:\n  echo ok\n",
+  )
+  host.set_terminal(@host.TerminalInfo::new(false, false, false, false))
+  let automatic = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["build"], {}),
+    context,
+  )
+  assert_eq(automatic.options().command_color(), None)
+  let forced = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["--color", "always", "build"], {}),
+    context,
+  )
+  assert_eq(forced.options().command_color(), Some(Bold))
+  assert_eq(
+    @executor.render_command_echo(
+      "echo ok",
+      color=forced.options().command_color(),
+    ),
+    b"\x1b[1mecho ok\x1b[0m\n",
+  )
+  let purple = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(
+      ["--color", "always", "--command-color", "purple", "build"],
+      {},
+    ),
+    context,
+  )
+  assert_eq(purple.options().command_color(), Some(Magenta))
+  assert_eq(
+    @executor.render_command_echo(
+      "echo ok",
+      color=purple.options().command_color(),
+    ),
+    b"\x1b[1;35mecho ok\x1b[0m\n",
+  )
+  host.set_terminal(@host.TerminalInfo::new(false, false, true, true))
+  let disabled = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["--color", "never", "build"], {}),
+    context,
+  )
+  assert_eq(disabled.options().command_color(), None)
 }

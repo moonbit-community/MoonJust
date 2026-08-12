@@ -35,3 +35,19 @@ async test "process adapter maps nonzero exit termination" {
   )
   assert_eq(result.termination(), Exited(7))
 }
+
+///|
+async test "discarded streams are drained without being retained" {
+  let command = try! @host.CommandSpec::new("/bin/sh", [
+    "-c", "printf ignored; printf warning >&2",
+  ])
+  command.set_stdout(Discard)
+  command.set_stderr(Discard)
+  let result = try! @host.HostAsyncProcess::run_process_async(
+    ProcessAdapter::new(),
+    command,
+  )
+  assert_eq(result.termination(), Exited(0))
+  assert_eq(result.stdout(), b"")
+  assert_eq(result.stderr(), b"")
+}
