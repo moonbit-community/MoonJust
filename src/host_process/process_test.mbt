@@ -59,9 +59,10 @@ async test "discarded streams are drained without being retained" {
 ///|
 #cfg(platform="windows")
 async test "Windows process adapter preserves env buffered stdin and output" {
-  let command = try! @host.CommandSpec::new("cmd.exe", [
-    "/D", "/V:ON", "/C", "set /p INPUT=& <nul set /p =!MODE!^|!INPUT!",
+  let command = try! @host.CommandSpec::new("powershell.exe", [
+    "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "$value = [Console]::In.ReadToEnd(); [Console]::Out.Write($env:MODE + '|' + $value)",
   ])
+  command.set_cwd(try! @path.PathValue::new(".", Windows))
   try! command.add_environment("MODE", "test")
   command.set_stdin(b"input")
   command.set_stdout(Capture)
