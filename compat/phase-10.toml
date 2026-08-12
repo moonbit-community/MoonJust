@@ -2,7 +2,7 @@ schema_version = 1
 phase = 10
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "pending-remediation-ci-and-merge"
+plan_exit = "passed"
 report = "docs/PHASE_10_REPORT.md"
 audit = "docs/PHASE_0_10_AUDIT.md"
 
@@ -26,9 +26,9 @@ planned_registrations = 0
 [target_matrix]
 native = "local pass: 300 tests and macOS aarch64 real platform gate"
 wasm1 = "local pass: 295 tests and explicit portable platform/terminal fallback"
-linux = "first PR CI passed; remediation CI pending"
-macos = "local pass on macOS aarch64; first PR CI passed; remediation CI pending"
-windows = "first PR CI passed; remediation CI pending"
+linux = "pass: remediation PR CI and protected-main CI"
+macos = "pass: local macOS aarch64 gate, remediation PR CI and protected-main CI"
+windows = "pass: remediation PR CI and protected-main CI"
 
 [evidence]
 compatibility_gate = "tools/check_phase10.sh"
@@ -36,3 +36,10 @@ platform_gate = "tools/check_phase10_platform.sh"
 case_manifest = "tests/upstream/just-1.57.0/phase-10-cases.jsonl"
 markdown_adr = "docs/adr/0017-markdown-tangle-final-implementation.md"
 completion_report = "docs/PHASE_10_REPORT.md"
+
+[remote_evidence]
+delivery_pr = "https://github.com/moonbit-community/MoonJust/pull/41"
+merge_commit = "d18b64ee2bacd3afc0de6801ff3352c0b9224e2b"
+first_pr_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31611054327"
+remediation_pr_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31617660952"
+post_merge_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31618046344"

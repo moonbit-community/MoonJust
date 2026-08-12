@@ -1,17 +1,22 @@
 # Phase 0-10 strict exit audit
 
 - Review date: 2026-08-13
-- Reviewed baseline: Phase 10 delivery branch after first green PR CI
+- Reviewed implementation baseline: `d18b64ee2bacd3afc0de6801ff3352c0b9224e2b`
+- Delivery: [PR #41](https://github.com/moonbit-community/MoonJust/pull/41)
+- Remediation PR CI:
+  [31617660952](https://github.com/moonbit-community/MoonJust/actions/runs/31617660952)
+- Delivery protected-main CI:
+  [31618046344](https://github.com/moonbit-community/MoonJust/actions/runs/31618046344)
 - Accepted specification: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)
 - Phase 10 detail: [`PHASE_10_REPORT.md`](PHASE_10_REPORT.md)
 
 ## Verdict
 
 Phase 0-9 remain complete under their previously merged evidence. Phase 10's
-first PR CI passed, and the required second review found and remediated a CLI
-environment entry-point gap. Phase 10 is not yet declared through its final
-exit: remediation CI, merge and protected-main CI are still pending. This
-document will be finalized only after those external gates pass.
+first PR CI passed, the required second review found and remediated a CLI
+environment entry-point gap, the remediation CI passed, PR #41 merged through
+protected checks, and the resulting `main` workflow passed. Phase 10 therefore
+satisfies every declared exit condition.
 
 ## Phase 10 strict review
 
@@ -36,7 +41,7 @@ before delivery:
 - the map generator's own anchor/case validation omitted its newly generated
   Phase 8 and Phase 10 rows;
 - the Phase 10 gate assumed a pre-existing upstream checkout instead of
-  reconstructing the pinned oracle.
+  reconstructing the pinned oracle;
 - all upstream `JUST_*` argument aliases were absent from declarative CLI
   registration, and the production entry point passed an empty environment;
 - `JUST_JUSTFILE=-` could not trigger stdin capture because stdin needs were
@@ -59,8 +64,9 @@ fails CI on name drift, missing reasons, absent anchors or any planned row.
 | Upstream registration classification | 2,417 classified; 0 planned |
 | First PR CI | run 31611054327 passed quality, Ubuntu, macOS and Windows |
 | Second review | completed; CLI environment remediation applied |
-| Remediation PR CI | pending |
-| Protected-main CI | pending |
+| Remediation PR CI | run 31617660952 passed quality, Ubuntu, macOS and Windows |
+| Delivery merge | PR #41 merged as `d18b64ee2bacd3afc0de6801ff3352c0b9224e2b` |
+| Protected-main CI | run 31618046344 passed quality, Ubuntu, macOS and Windows |
 
 ## Compatibility boundary
 
@@ -83,7 +89,7 @@ not expose captured stdin or environment values.
 
 ## Exit condition
 
-Phase 10 may be marked complete only after the delivery PR is green on quality,
-Ubuntu, macOS and Windows jobs; a second code/document review finds no open
-plan gap; the PR is merged through protected checks; and the resulting `main`
-workflow is successful. Until then, this audit intentionally remains pending.
+All declared exit conditions are satisfied: the delivery and remediation PR
+checks passed quality, Ubuntu, macOS and Windows; the second code/document
+review has no open plan gap; PR #41 merged through protected checks; and the
+resulting `main` workflow succeeded. Phase 10 is complete.
