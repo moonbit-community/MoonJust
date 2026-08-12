@@ -80,7 +80,7 @@ part of `working-directory` remains explicitly unsupported.
 
 ## Gates
 
-Local evidence currently passes 296 Native and 291 wasm1 tests, strict
+Local evidence currently passes 297 Native and 292 wasm1 tests, strict
 all-backend checking, formatting, public compatibility verification, the
 macOS aarch64 real platform gate, and all five pinned upstream tangle tests.
 `tools/check_phase10_platform.sh` is also installed in the Ubuntu, macOS and

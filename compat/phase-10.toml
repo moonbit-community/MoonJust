@@ -24,8 +24,8 @@ phase_8_not_applicable_registrations = 3
 planned_registrations = 0
 
 [target_matrix]
-native = "local pass: 296 tests and macOS aarch64 real platform gate"
-wasm1 = "local pass: 291 tests and explicit portable platform/terminal fallback"
+native = "local pass: 297 tests and macOS aarch64 real platform gate"
+wasm1 = "local pass: 292 tests and explicit portable platform/terminal fallback"
 linux = "pending remote ubuntu-latest Phase 10 platform gate"
 macos = "local pass on macOS aarch64; remote runner pending"
 windows = "pending remote windows-latest Phase 10 platform gate"

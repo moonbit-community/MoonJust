@@ -154,6 +154,46 @@ async test "script dry run preserves backticks without process or temp effects" 
 }
 
 ///|
+async test "script attributes preserve inferred interpreter extension" {
+  let compilation = try! @semantic.compile(
+    try! @parser.parse(source("[script]\nbuild:\n  Write-Output phase10\n")),
+  )
+  let environment = try! @evaluator.evaluate_compilation(compilation)
+  let interpreter = try! @environment.ShellConfiguration::new(
+    "powershell.exe",
+    ["-NoLogo", "-NoProfile", "-File"],
+  )
+  let host = fake_host()
+  let plan = try! plan_recipe_graph_async(
+    host,
+    host,
+    compilation,
+    [RecipeRequest::new("build")],
+    environment,
+    @evaluator.EvaluationContext::new(cwd=unix_path("/workspace")),
+    interpreter,
+    unix_path("/workspace"),
+    ScriptConfiguration::new(
+      interpreter,
+      unix_path("/tmp"),
+      @host.PlatformInfo::new(Windows, "x86_64", Windows),
+    ),
+  )
+  guard plan.steps()[0] is Script(script, _) else {
+    fail("expected a planned script")
+  }
+  assert_eq(script.configuration().extension(), None)
+  let materialized = try! materialize_script(host, script)
+  assert_true(materialized.path().as_string().has_suffix(".ps1"))
+  assert_eq(materialized.spec().arguments(), [
+    "-NoLogo",
+    "-NoProfile",
+    "-File",
+    materialized.path().as_string(),
+  ])
+}
+
+///|
 test "quiet discards child streams while verbose timestamp and color force echo" {
   let (compilation, recipe) = compile_recipe("@build:\n  @echo visible\n")
   let environment = try! @evaluator.evaluate_compilation(compilation)

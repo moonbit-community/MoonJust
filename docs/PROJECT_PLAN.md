@@ -681,7 +681,7 @@ protected-main CI 证据见 [`PHASE_9_REPORT.md`](PHASE_9_REPORT.md) 和
 | PR-105 | compatibility audit | 全 flags/settings/attrs/builtins/tests inventory | 无“未分类”条目 |
 
 执行状态：Phase 10 已于 2026-08-12 完成本地实现和第一轮严格复核。PR-100
-至 PR-105、296/291 项测试、2,417 项上游登记的零 `planned` 分类、真实
+至 PR-105、297/292 项测试、2,417 项上游登记的零 `planned` 分类、真实
 macOS 平台门禁和 Markdown 上游 oracle 证据见
 [`PHASE_10_REPORT.md`](PHASE_10_REPORT.md) 与
 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)；远程三平台 CI、二次复核、

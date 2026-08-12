@@ -655,16 +655,28 @@ async fn[
     recipe_has_shebang(recipe)
   if is_script {
     let extension = match attributes {
-      Some(value) => value.extension()
+      Some(value) =>
+        match value.extension() {
+          Some(extension) => Some(extension)
+          None => configuration.extension()
+        }
       None => configuration.extension()
     }
-    let extension = extension.unwrap_or("")
-    let script_configuration = ScriptConfiguration::new(
-      configuration.interpreter(),
-      configuration.temporary_directory(),
-      configuration.platform(),
-      extension~,
-    )
+    let script_configuration = match extension {
+      Some(extension) =>
+        ScriptConfiguration::new(
+          configuration.interpreter(),
+          configuration.temporary_directory(),
+          configuration.platform(),
+          extension~,
+        )
+      None =>
+        ScriptConfiguration::new(
+          configuration.interpreter(),
+          configuration.temporary_directory(),
+          configuration.platform(),
+        )
+    }
     let planned = plan_script_recipe_async(
       process,
       host,

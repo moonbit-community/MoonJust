@@ -45,8 +45,8 @@ fails CI on name drift, missing reasons, absent anchors or any planned row.
 
 | Evidence | Result |
 | --- | --- |
-| Native tests | 296 passed, 0 failed |
-| wasm1 tests | 291 passed, 0 failed |
+| Native tests | 297 passed, 0 failed |
+| wasm1 tests | 292 passed, 0 failed |
 | All stable backend checks | pass |
 | Phase 10 Native/wasm compatibility gate | pass |
 | Pinned upstream tangle tests | 5 passed, 0 failed |
