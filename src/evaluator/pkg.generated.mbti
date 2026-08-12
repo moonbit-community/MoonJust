@@ -120,8 +120,10 @@ pub(all) struct EvaluationContext {
   num_jobs : Int?
   is_dependency : Bool
   utc_offset_seconds : Int?
+  color_mode : String?
 } derive(Eq, @debug.Debug)
 pub fn EvaluationContext::cache_directory(Self) -> @path.PathValue?
+pub fn EvaluationContext::color_mode(Self) -> String?
 pub fn EvaluationContext::config_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::config_local_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::cwd(Self) -> @path.PathValue?
@@ -137,7 +139,7 @@ pub fn EvaluationContext::justfile(Self) -> @path.PathValue?
 pub fn EvaluationContext::module_file(Self) -> @path.PathValue?
 pub fn EvaluationContext::module_name(Self) -> String?
 pub fn EvaluationContext::module_path(Self) -> String?
-pub fn EvaluationContext::new(cwd? : @path.PathValue, recipe? : String, module_name? : String, source? : @source.SourceId, justfile? : @path.PathValue, source_file? : @path.PathValue, module_file? : @path.PathValue, module_path? : String, executable? : @path.PathValue, executable_directory? : @path.PathValue, invocation_directory? : @path.PathValue, invocation_directory_native? : @path.PathValue, home_directory? : @path.PathValue, config_directory? : @path.PathValue, config_local_directory? : @path.PathValue, data_directory? : @path.PathValue, data_local_directory? : @path.PathValue, cache_directory? : @path.PathValue, runtime_directory? : @path.PathValue, pid? : Int, num_cpus? : Int, num_jobs? : Int, is_dependency? : Bool, utc_offset_seconds? : Int) -> Self
+pub fn EvaluationContext::new(cwd? : @path.PathValue, recipe? : String, module_name? : String, source? : @source.SourceId, justfile? : @path.PathValue, source_file? : @path.PathValue, module_file? : @path.PathValue, module_path? : String, executable? : @path.PathValue, executable_directory? : @path.PathValue, invocation_directory? : @path.PathValue, invocation_directory_native? : @path.PathValue, home_directory? : @path.PathValue, config_directory? : @path.PathValue, config_local_directory? : @path.PathValue, data_directory? : @path.PathValue, data_local_directory? : @path.PathValue, cache_directory? : @path.PathValue, runtime_directory? : @path.PathValue, pid? : Int, num_cpus? : Int, num_jobs? : Int, is_dependency? : Bool, utc_offset_seconds? : Int, color_mode? : String) -> Self
 pub fn EvaluationContext::num_cpus(Self) -> Int?
 pub fn EvaluationContext::num_jobs(Self) -> Int?
 pub fn EvaluationContext::pid(Self) -> Int?

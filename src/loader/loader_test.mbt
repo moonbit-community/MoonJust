@@ -198,3 +198,28 @@ test "global fallback and stdin loading are explicit" {
   )
   assert_true(markdown.source().text().contains("from_markdown:"))
 }
+
+///|
+test "phase 10 filesystem loading tangles Markdown case insensitively" {
+  let host = fake()
+  let path = @path.PathValue::new("/workspace/tasks.MD", Unix)
+  host.put_file(
+    path, b"# prose\n```text\ngarbage[\n```\n```just\nbuild:\n```\n",
+  )
+  let loaded = try! load(host, path, @source.SourceId::new(1010))
+  assert_true(loaded.source().text().contains("build:"))
+  assert_false(loaded.source().text().contains("garbage["))
+  assert_eq(loaded.source().line_text(6), "build:")
+  assert_eq(loaded.module_directory(), @path.PathValue::new("/workspace", Unix))
+}
+
+///|
+test "phase 10 in-memory loading follows Markdown extension routing" {
+  let loaded = try! load_bytes(
+    b"prose\n~~~just\nrelease:\n~~~\n",
+    @source.SourceId::new(1011),
+    "release.md",
+  )
+  assert_true(loaded.source().text().contains("release:"))
+  assert_false(loaded.source().text().contains("prose"))
+}

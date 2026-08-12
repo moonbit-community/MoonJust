@@ -72,7 +72,10 @@ fn[T : @host.HostFs] load_input_with_directories(
       (loaded, directories)
     }
     Search => {
-      let path = @loader.discover(host, context.cwd()) catch {
+      let options = @loader.SearchOptions::new(
+        filename=arguments.value("justfile-name").unwrap_or("justfile"),
+      )
+      let path = @loader.discover(host, context.cwd(), options~) catch {
         error => raise Load(error)
       }
       let directories = @workdir.WorkingDirectoryModel::from_justfile(

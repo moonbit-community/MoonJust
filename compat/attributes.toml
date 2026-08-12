@@ -1,67 +1,158 @@
-schema_version = 1
+schema_version = 2
 upstream = "just 1.57.0"
-status = "implemented"
-names = [
-  "android",
-  "arg",
-  "cache",
-  "confirm",
-  "continue",
-  "default",
-  "doc",
-  "dragonfly",
-  "env",
-  "exit-message",
-  "extension",
-  "freebsd",
-  "group",
-  "linux",
-  "macos",
-  "metadata",
-  "netbsd",
-  "no-cd",
-  "no-exit-message",
-  "no-quiet",
-  "openbsd",
-  "parallel",
-  "positional-arguments",
-  "private",
-  "script",
-  "shell",
-  "unix",
-  "windows",
-  "working-directory",
-]
 
-[tiers]
-a = [
-  "android",
-  "arg",
-  "cache",
-  "continue",
-  "default",
-  "doc",
-  "dragonfly",
-  "env",
-  "exit-message",
-  "extension",
-  "freebsd",
-  "group",
-  "linux",
-  "macos",
-  "metadata",
-  "netbsd",
-  "no-cd",
-  "no-exit-message",
-  "no-quiet",
-  "openbsd",
-  "parallel",
-  "positional-arguments",
-  "private",
-  "script",
-  "shell",
-  "unix",
-  "windows",
-  "working-directory",
-]
-b = ["confirm"]
+# An attribute is implemented only when its runtime or query behavior is
+# connected. Parser recognition and JSON output alone are classified as
+# unsupported.
+
+[[attribute]]
+name = "android"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "arg"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "cache"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "confirm"
+tier = "B"
+status = "implemented"
+
+[[attribute]]
+name = "continue"
+tier = "A"
+status = "unsupported"
+reason = "Signal continuation and forwarding semantics are not implemented."
+
+[[attribute]]
+name = "default"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "doc"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "dragonfly"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "env"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "exit-message"
+tier = "A"
+status = "unsupported"
+reason = "Recipe failure exit-message emission is not implemented."
+
+[[attribute]]
+name = "extension"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "freebsd"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "group"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "linux"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "macos"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "metadata"
+tier = "A"
+status = "unsupported"
+reason = "Metadata is retained for inspection but has no execution consumer."
+
+[[attribute]]
+name = "netbsd"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "no-cd"
+tier = "A"
+status = "unsupported"
+reason = "Recipe-level no-cd does not yet override the selected module working directory."
+
+[[attribute]]
+name = "no-exit-message"
+tier = "A"
+status = "unsupported"
+reason = "Recipe failure exit-message suppression is not implemented."
+
+[[attribute]]
+name = "no-quiet"
+tier = "A"
+status = "unsupported"
+reason = "Recipe-level override of a quiet setting is not implemented."
+
+[[attribute]]
+name = "openbsd"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "parallel"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "positional-arguments"
+tier = "A"
+status = "unsupported"
+reason = "Positional recipe arguments are not exported through upstream shell variables."
+
+[[attribute]]
+name = "private"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "script"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "shell"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "unix"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "windows"
+tier = "A"
+status = "implemented"
+
+[[attribute]]
+name = "working-directory"
+tier = "A"
+status = "implemented"

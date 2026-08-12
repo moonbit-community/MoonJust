@@ -112,6 +112,58 @@ fn first_info_token(info : String) -> String? {
 }
 
 ///|
+fn leading_spaces(line : String) -> Int {
+  let chars = line.to_array()
+  let mut count = 0
+  while count < chars.length() && chars[count] == ' ' {
+    count += 1
+  }
+  count
+}
+
+///|
+fn list_content_indent(line : String) -> Int? {
+  let chars = line.to_array()
+  let indent = leading_spaces(line)
+  if indent > 3 || indent >= chars.length() {
+    return None
+  }
+  let mut marker_end = indent
+  if chars[indent] == '-' || chars[indent] == '+' || chars[indent] == '*' {
+    marker_end += 1
+  } else if chars[indent].is_ascii_digit() {
+    while marker_end < chars.length() &&
+          chars[marker_end].is_ascii_digit() &&
+          marker_end - indent < 9 {
+      marker_end += 1
+    }
+    if marker_end == indent ||
+      marker_end >= chars.length() ||
+      (chars[marker_end] != '.' && chars[marker_end] != ')') {
+      return None
+    }
+    marker_end += 1
+  } else {
+    return None
+  }
+  if marker_end >= chars.length() ||
+    (chars[marker_end] != ' ' && chars[marker_end] != '\t') {
+    return None
+  }
+  let mut content = marker_end
+  while content < chars.length() &&
+        chars[content] == ' ' &&
+        content - marker_end < 4 {
+    content += 1
+  }
+  if content == marker_end {
+    Some(content + 1)
+  } else {
+    Some(content)
+  }
+}
+
+///|
 fn append_line(
   output : Array[Byte],
   source : @source.Source,
@@ -157,6 +209,7 @@ pub fn tangle(
   let mut ignored_fence_length = 0
   let mut selected = false
   let mut in_html_comment = false
+  let mut active_list_indent : Int? = None
   let mut selected_blocks = 0
   for line in 1..<=source.line_count() {
     let text = try! source.line_text(line)
@@ -173,6 +226,17 @@ pub fn tangle(
         in_html_comment = true
       }
       continue
+    }
+    let list_indent = list_content_indent(text)
+    let indentation = leading_spaces(text)
+    match list_indent {
+      Some(value) => active_list_indent = Some(value)
+      None =>
+        match active_list_indent {
+          Some(value) if !text.trim().is_empty() && indentation < value =>
+            active_list_indent = None
+          _ => ()
+        }
     }
     match ignored_fence_character {
       Some(character) => {
@@ -192,8 +256,14 @@ pub fn tangle(
               append_line(output, source, line, selected)
             }
           None =>
-            match fence_open(text) {
-              Some((character, length, info)) => {
+            match (active_list_indent, fence_open(text)) {
+              (Some(value), Some((character, length, _))) if indentation >=
+                value => {
+                ignored_fence_character = Some(character)
+                ignored_fence_length = length
+                append_line(output, source, line, false)
+              }
+              (_, Some((character, length, info))) => {
                 fence_character = Some(character)
                 fence_length = length
                 selected = first_info_token(info) == Some("just")
@@ -202,7 +272,7 @@ pub fn tangle(
                 }
                 append_line(output, source, line, false)
               }
-              None => {
+              (_, None) => {
                 let trimmed = text.trim()
                 if trimmed != text {
                   match fence_open(trimmed.to_owned()) {

@@ -18,6 +18,8 @@ python3 ./tools/upstream/phase5_oracle.py --upstream ./_build/upstream/just-1.57
 ./tools/check_phase7_environment.sh
 ./tools/check_phase8_executor.sh
 ./tools/check_phase9_runtime.sh
+./tools/check_phase10.sh
+./tools/check_phase10_platform.sh
 moon check --target all --warn-list +73
 ./tools/test_with_count.sh native
 ./tools/test_with_count.sh wasm

@@ -10,6 +10,7 @@ pub struct RecipeAttributes {
   shell : Array[@syntax.Expression]
   script : Bool
   confirm : Bool
+  confirm_prompt : @syntax.Expression?
   default_value : @syntax.Expression?
   continue_signals : Array[String]
   env : Array[(@syntax.Expression, @syntax.Expression)]
@@ -77,6 +78,13 @@ pub fn RecipeAttributes::script(self : RecipeAttributes) -> Bool {
 ///|
 pub fn RecipeAttributes::confirm(self : RecipeAttributes) -> Bool {
   self.confirm
+}
+
+///|
+pub fn RecipeAttributes::confirm_prompt(
+  self : RecipeAttributes,
+) -> @syntax.Expression? {
+  self.confirm_prompt
 }
 
 ///|
@@ -195,6 +203,7 @@ fn compile_attributes(
   let shell : Array[@syntax.Expression] = []
   let mut script = false
   let mut confirm = false
+  let mut confirm_prompt : @syntax.Expression? = None
   let mut default_value : @syntax.Expression? = None
   let continue_signals : Array[String] = []
   let env : Array[(@syntax.Expression, @syntax.Expression)] = []
@@ -240,7 +249,12 @@ fn compile_attributes(
             for argument in attribute.arguments() {
               cache.push(argument)
             }
-          "confirm" => confirm = true
+          "confirm" => {
+            confirm = true
+            if attribute.arguments().length() == 1 {
+              confirm_prompt = attribute.arguments()[0].value()
+            }
+          }
           "continue" =>
             for argument in attribute.arguments() {
               match argument.value() {
@@ -406,6 +420,7 @@ fn compile_attributes(
     shell,
     script,
     confirm,
+    confirm_prompt,
     default_value,
     continue_signals,
     env,

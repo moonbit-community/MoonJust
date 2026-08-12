@@ -95,6 +95,9 @@ jobs:
       - name: Verify Phase 9 scheduler and cache runtime
         run: ./tools/check_phase9_runtime.sh
 
+      - name: Verify Phase 10 compatibility convergence
+        run: ./tools/check_phase10.sh
+
       - name: Verify Phase 6 query oracle
         run: ./tools/check_phase6_oracle.sh
 
@@ -142,3 +145,7 @@ jobs:
 
       - name: Smoke-test Native CLI
         run: moon run --target native cmd/just -- --version
+
+      - name: Verify Phase 10 native platform behavior
+        shell: bash
+        run: ./tools/check_phase10_platform.sh

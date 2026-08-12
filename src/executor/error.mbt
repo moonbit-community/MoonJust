@@ -37,7 +37,7 @@ pub fn ExecutionError::host(error : @host.HostError) -> ExecutionError {
 pub fn ExecutionError::exit_code(self : ExecutionError) -> Int {
   match self {
     CommandFailed(exit_code~, ..) => exit_code
-    CommandSignaled(..) => 128
+    CommandSignaled(signal~, ..) => signal.exit_code()
     Evaluation(_)
     | Host(_)
     | InvalidShebang(..)

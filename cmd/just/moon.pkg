@@ -6,7 +6,7 @@ import {
   "moonbit-community/MoonJust/src/host_native",
   "moonbit-community/MoonJust/src/host_process",
   "moonbit-community/MoonJust/src/host_wasm",
-  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/executor",
   "moonbit-community/MoonJust/src/runtime",
   "moonbitlang/async",
   "moonbitlang/async/io",

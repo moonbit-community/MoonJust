@@ -39,7 +39,7 @@ status = "implemented"
 package = "src/host"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 12
+black_box_tests = 13
 evidence = "memory fs, atomic temp cleanup, env, clock, random, redacted process IR, explicit stdio, terminal, signal, platform, denied and unavailable capabilities"
 
 [[contract]]
@@ -49,5 +49,5 @@ status = "implemented"
 package = "src/cli"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 22
-evidence = "usage, compilation, capability, recipe exit, signal exit, immutable requests, binary streams, argparse and environment composition"
+black_box_tests = 29
+evidence = "usage, compilation, capability, recipe exit, signal exit, immutable requests, binary streams, argparse, complete JUST_* bindings and environment composition"

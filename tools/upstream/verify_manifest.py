@@ -21,6 +21,78 @@ PHASE_9_STORAGE_DIFFERENCES = {
     "cache::clean_path_removes_empty_entries",
     "cache::clean_removes_cache_directory",
 }
+CLI_OPTION_NAMES = {
+    "--alias-style", "--allow-missing", "--ceiling", "--check", "--chooser",
+    "--clear-shell-args", "--color", "--command-color", "--complete-aliases",
+    "--cygpath", "--default-list", "--dotenv-command", "--dotenv-filename",
+    "--dotenv-path", "--dry-run", "--dump-format", "--evaluate-format", "--explain",
+    "--global-justfile", "--group", "--highlight", "--indentation", "--jobs",
+    "--justfile", "--justfile-name", "--list-heading", "--list-prefix", "--list-submodules",
+    "--no-aliases", "--no-cache", "--no-deps", "--no-dotenv", "--no-highlight", "--one",
+    "--quiet", "--set", "--shell", "--shell-arg", "--shell-command", "--tempdir", "--time",
+    "--timestamp", "--timestamp-format", "--unsorted", "--unstable", "--verbose",
+    "--working-directory", "--yes", "--help", "--version",
+}
+CLI_COMMAND_NAMES = {
+    "--changelog", "--choose", "--clean", "--command", "--completions", "--dump", "--edit",
+    "--evaluate", "--fmt", "--groups", "--init", "--json", "--list", "--man", "--request",
+    "--show", "--summary", "--usage", "--variables",
+}
+CLI_ENV_BINDINGS = {
+    "JUST_ALIAS_STYLE": "--alias-style",
+    "JUST_ALLOW_MISSING": "--allow-missing",
+    "JUST_CEILING": "--ceiling",
+    "JUST_CHOOSER": "--chooser",
+    "JUST_COLOR": "--color",
+    "JUST_COMMAND_COLOR": "--command-color",
+    "JUST_COMPLETE_ALIASES": "--complete-aliases",
+    "JUST_CYGPATH": "--cygpath",
+    "JUST_DEFAULT_LIST": "--default-list",
+    "JUST_DOTENV_COMMAND": "--dotenv-command",
+    "JUST_DRY_RUN": "--dry-run",
+    "JUST_DUMP_FORMAT": "--dump-format",
+    "JUST_EVALUATE_FORMAT": "--evaluate-format",
+    "JUST_EXPLAIN": "--explain",
+    "JUST_GROUP": "--group",
+    "JUST_HIGHLIGHT": "--highlight",
+    "JUST_INDENTATION": "--indentation",
+    "JUST_JOBS": "--jobs",
+    "JUST_JUSTFILE": "--justfile",
+    "JUST_JUSTFILE_NAME": "--justfile-name",
+    "JUST_LIST_HEADING": "--list-heading",
+    "JUST_LIST_PREFIX": "--list-prefix",
+    "JUST_LIST_SUBMODULES": "--list-submodules",
+    "JUST_NO_ALIASES": "--no-aliases",
+    "JUST_NO_CACHE": "--no-cache",
+    "JUST_NO_DEPS": "--no-deps",
+    "JUST_NO_DOTENV": "--no-dotenv",
+    "JUST_NO_HIGHLIGHT": "--no-highlight",
+    "JUST_ONE": "--one",
+    "JUST_QUIET": "--quiet",
+    "JUST_TEMPDIR": "--tempdir",
+    "JUST_TIME": "--time",
+    "JUST_TIMESTAMP": "--timestamp",
+    "JUST_TIMESTAMP_FORMAT": "--timestamp-format",
+    "JUST_UNSORTED": "--unsorted",
+    "JUST_UNSTABLE": "--unstable",
+    "JUST_VERBOSE": "--verbose",
+    "JUST_WORKING_DIRECTORY": "--working-directory",
+    "JUST_YES": "--yes",
+}
+SETTING_NAMES = {
+    "allow-duplicate-recipes", "allow-duplicate-variables", "default-list", "default-script",
+    "dotenv-command", "dotenv-filename", "dotenv-load", "dotenv-override", "dotenv-path",
+    "dotenv-required", "export", "fallback", "guards", "ignore-comments", "indentation", "lazy",
+    "lists", "minimum-version", "no-cd", "no-exit-message", "positional-arguments", "quiet",
+    "script-interpreter", "shell", "tempdir", "unstable", "windows-powershell", "windows-shell",
+    "working-directory",
+}
+ATTRIBUTE_NAMES = {
+    "android", "arg", "cache", "confirm", "continue", "default", "doc", "dragonfly", "env",
+    "exit-message", "extension", "freebsd", "group", "linux", "macos", "metadata", "netbsd",
+    "no-cd", "no-exit-message", "no-quiet", "openbsd", "parallel", "positional-arguments", "private",
+    "script", "shell", "unix", "windows", "working-directory",
+}
 
 
 def root() -> Path:
@@ -107,12 +179,16 @@ def validate_map() -> None:
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
-        if row["owner_phase"] in {3, 4, 5, 6, 7, 9} and row["disposition"] == "covered-by":
+        if row["owner_phase"] in {3, 4, 5, 6, 7, 8, 9, 10} and row["disposition"] == "covered-by":
             validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
             expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
-        if row["owner_phase"] in {3, 4, 5, 6, 7, 9} and row["disposition"] == "covered-by":
+        if row["owner_phase"] in {3, 4, 5, 6, 7, 8, 9, 10} and row["disposition"] == "covered-by":
             expect(row["disposition"] == "covered-by", f"Phase {row['owner_phase']} row {index} is not executable")
             expect(row["targets"] == ["native", "wasm1"], f"Phase {row['owner_phase']} row {index} target matrix is incomplete")
+        expect(
+            row["disposition"] != "planned",
+            f"upstream registration {row['id']} remains planned",
+        )
 
     lexer_names = [name for name in names if name.startswith("lexer::tests::")]
     expect(len(lexer_names) == EXPECTED_LEXER_REGISTRATIONS, "lexer registration count changed")
@@ -122,7 +198,7 @@ def validate_map() -> None:
         all(row["disposition"] in {"covered-by", "not-applicable"} for row in phase2_rows),
         "Phase 2 contains an unclassified upstream registration",
     )
-    for phase in (3, 4, 5, 6, 7, 9):
+    for phase in (3, 4, 5, 6, 7, 8, 9, 10):
         cases = repo / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         rows_for_phase = [
             row
@@ -216,12 +292,71 @@ def validate() -> None:
     expect(len(cli["command"]) == 19, "CLI command inventory changed")
     cli_entries = cli["option"] + cli["command"]
     expect(len({entry["name"] for entry in cli_entries}) == 69, "CLI inventory contains duplicates")
+    expect(set(entry["name"] for entry in cli["option"]) == CLI_OPTION_NAMES, "CLI option inventory names changed")
+    expect(set(entry["name"] for entry in cli["command"]) == CLI_COMMAND_NAMES, "CLI command inventory names changed")
     expect(
-        all(entry["status"] in {"planned", "implemented", "excluded"} for entry in cli_entries),
-        "CLI inventory contains an invalid status",
+        all(entry["status"] in {"implemented", "unsupported", "excluded"} for entry in cli_entries),
+        "CLI inventory contains an unclassified or invalid status",
     )
-    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 22, "implemented CLI option count changed")
-    expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 12, "implemented command count changed")
+    for entry in cli_entries:
+        if entry["status"] in {"unsupported", "excluded"}:
+            expect(bool(entry.get("reason")), f"{entry['name']} lacks a status reason")
+    manifest_env_bindings = {
+        entry["env"]: entry["name"]
+        for entry in cli["option"]
+        if "env" in entry
+    }
+    expect(
+        manifest_env_bindings == CLI_ENV_BINDINGS,
+        "CLI environment bindings differ from upstream arguments.rs",
+    )
+    for entry in cli["option"]:
+        if "env" not in entry:
+            continue
+        env_status = entry.get("env_status", entry["status"])
+        expect(
+            env_status in {"implemented", "unsupported"},
+            f"{entry['env']} has an invalid environment status",
+        )
+        if env_status == "unsupported" and entry["status"] == "implemented":
+            expect(
+                bool(entry.get("env_reason")),
+                f"{entry['env']} lacks an environment-specific reason",
+            )
+    cli_source = (repo / "src/cli/arguments.mbt").read_text(encoding="utf-8")
+    implemented_env = {
+        entry["env"]
+        for entry in cli["option"]
+        if "env" in entry and entry.get("env_status", entry["status"]) == "implemented"
+    }
+    unsupported_env = set(CLI_ENV_BINDINGS) - implemented_env
+    for name in implemented_env:
+        expect(
+            f'env="{name}"' in cli_source,
+            f"implemented CLI environment binding {name} is not registered",
+        )
+    for name in unsupported_env:
+        expect(
+            f'("{name}",' in cli_source or f'env.get("{name}")' in cli_source,
+            f"unsupported CLI environment binding {name} lacks an explicit diagnostic",
+        )
+    main_source = (repo / "cmd/just/main.mbt").read_text(encoding="utf-8")
+    expect(
+        "HostEnv::env_entries(environment_host)" in main_source,
+        "production CLI does not pass the HostEnv snapshot to argparse",
+    )
+    platform_gate = (repo / "tools/check_phase10_platform.sh").read_text(encoding="utf-8")
+    for required_probe in ("JUST_YES=1", "JUST_JUSTFILE=-"):
+        expect(
+            required_probe in platform_gate,
+            f"Phase 10 platform gate lacks {required_probe} entry-point coverage",
+        )
+    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 35, "implemented CLI option count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in cli["option"]) == 14, "unsupported CLI option count changed")
+    expect(sum(entry["status"] == "excluded" for entry in cli["option"]) == 1, "excluded CLI option count changed")
+    expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 14, "implemented CLI command count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in cli["command"]) == 1, "unsupported CLI command count changed")
+    expect(sum(entry["status"] == "excluded" for entry in cli["command"]) == 4, "excluded CLI command count changed")
 
     builtins = load(repo / "compat/builtins.toml")
     expect(builtins["registry"]["canonical_count"] == 83, "builtin count changed")
@@ -379,6 +514,72 @@ def validate() -> None:
         "Phase 9 storage differences lack targets, tracking, or reasons",
     )
 
+    phase10 = load(repo / "compat/phase-10.toml")
+    expect(phase10["status"] == "implemented", "Phase 10 status is not implemented")
+    expect(
+        phase10["plan_exit"] in {
+            "pending-remote-ci-and-second-audit",
+            "pending-remediation-ci-and-merge",
+            "passed",
+        },
+        "Phase 10 exit has an invalid state",
+    )
+    phase10_rows = [
+        json.loads(line)
+        for line in (repo / "tests/upstream/just-1.57.0/test-map.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if json.loads(line)["owner_phase"] == 10
+    ]
+    phase8_rows = [
+        json.loads(line)
+        for line in (repo / "tests/upstream/just-1.57.0/test-map.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if json.loads(line)["owner_phase"] == 8
+    ]
+    expect(len(phase10_rows) == 52, "Phase 10 registration count changed")
+    compatibility = phase10["compatibility"]
+    expect(
+        compatibility["covered_registrations"]
+        == sum(row["disposition"] == "covered-by" for row in phase10_rows)
+        == 40,
+        "Phase 10 covered registration count changed",
+    )
+    expect(
+        compatibility["unsupported_registrations"]
+        == sum(row["disposition"] == "unsupported" for row in phase10_rows)
+        == 4,
+        "Phase 10 unsupported registration count changed",
+    )
+    expect(
+        compatibility["excluded_registrations"]
+        == sum(row["disposition"] in {"excluded-completion", "not-applicable"} for row in phase10_rows)
+        == 8,
+        "Phase 10 excluded registration count changed",
+    )
+    expect(
+        compatibility["phase_8_covered_registrations"]
+        == sum(row["disposition"] == "covered-by" for row in phase8_rows)
+        == 209,
+        "Phase 8 covered registration count changed",
+    )
+    expect(
+        compatibility["phase_8_unsupported_registrations"]
+        == sum(row["disposition"] == "unsupported" for row in phase8_rows)
+        == 520,
+        "Phase 8 unsupported registration count changed",
+    )
+    expect(
+        compatibility["phase_8_not_applicable_registrations"]
+        == sum(row["disposition"] == "not-applicable" for row in phase8_rows)
+        == 3,
+        "Phase 8 not-applicable registration count changed",
+    )
+    expect(compatibility["planned_registrations"] == 0, "Phase 10 records planned registrations")
+    for evidence in phase10["evidence"].values():
+        expect((repo / evidence).exists(), f"Phase 10 evidence is missing: {evidence}")
+
     policy = load(repo / "policies/inspect.toml")
     expect(policy["fs"]["write"] == [], "Phase 6 inspect policy grants filesystem writes")
     expect(policy["process"]["spawn"] is False, "Phase 6 inspect policy grants process spawn")
@@ -386,9 +587,22 @@ def validate() -> None:
     wasm_interface = (repo / "src/host_wasm/pkg.generated.mbti").read_text(encoding="utf-8")
     expect("HostProcess" not in wasm_interface, "Wasm inspect adapter exposes HostProcess")
 
-    for registry in ("settings.toml", "attributes.toml"):
-        manifest = load(repo / "compat" / registry)
-        expect(manifest["status"] == "implemented", f"{registry} is not implemented")
+    settings = load(repo / "compat/settings.toml")
+    expect(set(entry["name"] for entry in settings["setting"]) == SETTING_NAMES, "settings inventory names changed")
+    for entry in settings["setting"]:
+        expect(entry["status"] in {"implemented", "unsupported"}, f"setting {entry['name']} is unclassified")
+        if entry["status"] == "unsupported":
+            expect(bool(entry.get("reason")), f"setting {entry['name']} lacks a reason")
+    expect(sum(entry["status"] == "implemented" for entry in settings["setting"]) == 17, "implemented setting count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in settings["setting"]) == 12, "unsupported setting count changed")
+    attributes = load(repo / "compat/attributes.toml")
+    expect(set(entry["name"] for entry in attributes["attribute"]) == ATTRIBUTE_NAMES, "attributes inventory names changed")
+    for entry in attributes["attribute"]:
+        expect(entry["status"] in {"implemented", "unsupported"}, f"attribute {entry['name']} is unclassified")
+        if entry["status"] == "unsupported":
+            expect(bool(entry.get("reason")), f"attribute {entry['name']} lacks a reason")
+    expect(sum(entry["status"] == "implemented" for entry in attributes["attribute"]) == 22, "implemented attribute count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in attributes["attribute"]) == 7, "unsupported attribute count changed")
     builtins = load(repo / "compat/builtins.toml")
     expect(builtins["registry"]["status"] == "implemented", "builtins.toml is not implemented")
 

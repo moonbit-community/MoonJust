@@ -1,6 +1,7 @@
 ///|
 fn color_code(color : CommandColor) -> String {
   match color {
+    Bold => "1"
     Black => "30"
     Red => "31"
     Green => "32"
@@ -16,7 +17,11 @@ fn color_code(color : CommandColor) -> String {
 fn paint_command(text : String, color : CommandColor?) -> String {
   match color {
     Some(value) =>
-      "\u{001b}[1;" + color_code(value) + "m" + text + "\u{001b}[0m"
+      "\u{001b}[" +
+      (if value == Bold { "1" } else { "1;" + color_code(value) }) +
+      "m" +
+      text +
+      "\u{001b}[0m"
     None => text
   }
 }

@@ -17,6 +17,8 @@ pub fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScri
 
 pub async fn[T : @host.HostAsyncScriptTemp] cleanup_materialized_script_async(T, MaterializedScript) -> Unit raise ExecutionError
 
+pub fn confirmation_answer_is_yes(String) -> Bool
+
 pub fn[T : @host.HostProcess] execute_recipe_graph(T, @semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @environment.ShellConfiguration, @path.PathValue, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions) -> ExecutionReport raise ExecutionError
 
 pub fn[T : @host.HostProcess] execute_recipe_lines(T, @syntax.Recipe, @evaluator.Environment, @environment.ShellConfiguration, @path.PathValue, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions) -> ExecutionReport raise ExecutionError
@@ -91,6 +93,7 @@ pub fn CacheDirective::working_directory(Self) -> @path.PathValue
 pub impl @debug.Debug for CacheDirective
 
 pub(all) enum CommandColor {
+  Bold
   Black
   Red
   Green
@@ -100,6 +103,16 @@ pub(all) enum CommandColor {
   Cyan
   White
 } derive(Eq, @debug.Debug)
+
+pub struct ConfirmationRequest {
+  recipe : String
+  prompt : String
+  is_dependency : Bool
+} derive(Eq, @debug.Debug)
+pub fn ConfirmationRequest::is_dependency(Self) -> Bool
+pub fn ConfirmationRequest::new(String, String, Bool) -> Self
+pub fn ConfirmationRequest::prompt(Self) -> String
+pub fn ConfirmationRequest::recipe(Self) -> String
 
 pub struct ExecutionOptions {
   dry_run : Bool
@@ -137,9 +150,11 @@ pub struct ExecutionPlan {
   options : ExecutionOptions
   tasks : Array[ExecutionTask]
   cache_directory : @path.PathValue?
+  confirmations : Array[ConfirmationRequest]
 }
 pub fn ExecutionPlan::cache_directory(Self) -> @path.PathValue?
 pub fn ExecutionPlan::commands(Self) -> ArrayView[PlannedCommand]
+pub fn ExecutionPlan::confirmations(Self) -> ArrayView[ConfirmationRequest]
 pub fn ExecutionPlan::options(Self) -> ExecutionOptions
 pub fn ExecutionPlan::stderr(Self) -> BytesView
 pub fn ExecutionPlan::steps(Self) -> ArrayView[PlannedStep]

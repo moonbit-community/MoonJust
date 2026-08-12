@@ -14,6 +14,8 @@ import {
 // Values
 pub fn[T : @host.HostFs] discover(T, @path.PathValue, options? : SearchOptions) -> @path.PathValue raise LoaderError
 
+pub fn is_markdown_path(@path.PathValue) -> Bool
+
 pub fn[T : @host.HostFs] load(T, @path.PathValue, @source.SourceId) -> LoadedSource raise LoaderError
 
 pub fn load_bytes(Bytes, @source.SourceId, String) -> LoadedSource raise LoaderError

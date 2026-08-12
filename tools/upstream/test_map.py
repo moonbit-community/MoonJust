@@ -172,6 +172,71 @@ PHASE_9_STORAGE_DIFFERENCES = {
 }
 
 
+PHASE_10_INTERACTIVE_DIFFERENCES = {
+    "choose::chooser_selections_are_processed_separately": (
+        "Chooser output that names a module recipe is rejected because module-path "
+        "execution is not yet part of MoonJust's compilation model."
+    ),
+    "choose::recipes_in_submodules_can_be_chosen": (
+        "Chooser candidates currently contain root recipes only; module recipe "
+        "selection remains a registered Tier B difference."
+    ),
+    "choose::skip_recipes_in_private_modules": (
+        "Private-module filtering cannot be independently verified until module "
+        "recipe candidates are represented by the chooser."
+    ),
+    "choose::visit_modules_in_alphabetical_order": (
+        "Module recipe candidates are not exposed, so their alphabetical traversal "
+        "order is not applicable to the current chooser."
+    ),
+}
+
+
+PHASE_8_UNSUPPORTED_CATEGORIES = {
+    "allow_missing": "The --allow-missing execution mode is not implemented.",
+    "command": "The upstream --command subcommand is not implemented.",
+    "constants": "Unstable justfile constants are not implemented.",
+    "error_messages": "Exact upstream legacy diagnostic wording is not a compatibility promise.",
+    "explain": "The --explain execution mode is not implemented.",
+    "guards": "Guard-line execution semantics are parsed but not implemented.",
+    "ignore_comments": "The ignore-comments execution setting is parsed but not implemented.",
+    "invocation_parser": "Module-path and trailing-separator invocation forms are not implemented.",
+    "justfile": "This upstream Rust integration/helper family lacks one-to-one MoonJust execution evidence.",
+    "no_exit_message": "Recipe exit-message suppression and override semantics are not implemented.",
+    "options": "Recipe option forwarding through dependencies is not implemented.",
+    "positional_arguments": "Positional-arguments environment semantics are parsed but not implemented.",
+    "private": "The complete private alias, module, recipe, and variable behavior is not implemented.",
+    "request": "The upstream private request testing interface is not a product API.",
+    "resolve": "MoonJust delegates executable lookup to the process host and does not implement upstream pre-resolution semantics.",
+    "shell_expansion": "Shell-expanded string literals are not implemented.",
+    "signals": "Signal forwarding and continue-attribute timing are not implemented.",
+    "summary": "Module-aware and unstable summary behavior is not implemented.",
+    "working_directory": "Effectful working-directory expressions are not covered by executable compatibility tests.",
+}
+
+
+PHASE_8_UNSUPPORTED_MARKERS = (
+    "submodule",
+    "module_alias",
+    "module_path",
+    "in_module",
+    "cross_module",
+    "modules_sharing",
+    "imports_shared",
+    "absent_optional_module",
+    "highlight",
+    "default_list",
+    "no_dependencies",
+    "no_deps",
+    "one_flag",
+    "search_directory",
+    "constant",
+    "fifo",
+    "directory_is_ignored",
+    "no_quiet",
+)
+
+
 PHASE_TEST_ANCHORS = {
     3: {
         "parser": (
@@ -365,6 +430,90 @@ PHASE_TEST_ANCHORS = {
             "jobs must be a positive integer before execution planning",
         ),
     },
+    8: {
+        "bom": (
+            "src/lexer/lexer_test.mbt",
+            "operators, comments, BOM, CRLF, and continued lines",
+        ),
+        "cli": (
+            "src/cli/cli_test.mbt",
+            "phase 10 CLI validates command conflicts color aliases and verbosity",
+        ),
+        "dependency": (
+            "src/executor/executor_test.mbt",
+            "dependency graph is deterministic and once is keyed by parameter values",
+        ),
+        "effect": (
+            "src/evaluator/evaluator_test.mbt",
+            "configured shell captures stdout and removes exactly one line ending",
+        ),
+        "environment": (
+            "src/environment/environment_test.mbt",
+            "process environment precedence table is complete",
+        ),
+        "evaluation": (
+            "src/evaluator/evaluator_test.mbt",
+            "pure evaluation supports conditions, lists, concatenation and builtins",
+        ),
+        "lexer": (
+            "src/lexer/lexer_test.mbt",
+            "recipe bodies preserve text, prefixes, blank lines, and brace escapes",
+        ),
+        "invocation": (
+            "src/invocation/invocation_test.mbt",
+            "long short combined repeatable and terminator options match upstream",
+        ),
+        "line": (
+            "src/executor/executor_test.mbt",
+            "ordinary line evaluates interpolation and captures exact process request",
+        ),
+        "output": (
+            "src/executor/executor_test.mbt",
+            "quiet discards child streams while verbose timestamp and color force echo",
+        ),
+        "platform": (
+            "src/executor/executor_test.mbt",
+            "shell families preserve representative argv without quoting rewrites",
+        ),
+        "query": (
+            "src/application/application_test.mbt",
+            "list renders docs aliases groups and hides private recipes",
+        ),
+        "script": (
+            "src/executor/executor_test.mbt",
+            "shebang script uses executable temporary path and always cleans it",
+        ),
+        "semantic": (
+            "src/semantic/semantic_test.mbt",
+            "settings and attributes expose complete typed contracts",
+        ),
+        "signal": (
+            "src/host/fake_host_test.mbt",
+            "signal numbers and exit codes preserve the process contract",
+        ),
+        "style": (
+            "src/evaluator/evaluator_test.mbt",
+            "effect context connects fs random clock process terminal and PATH facts",
+        ),
+    },
+    10: {
+        "choose": (
+            "src/application/application_test.mbt",
+            "chooser filters candidates and preserves each selected invocation",
+        ),
+        "confirm": (
+            "src/application/application_test.mbt",
+            "confirmation plan preserves parent-first dependency context and prompts",
+        ),
+        "edit": (
+            "src/application/application_test.mbt",
+            "editor uses visual precedence and opens invalid source from its directory",
+        ),
+        "list": (
+            "src/application/application_test.mbt",
+            "phase 10 list color highlights doc backticks on stdout",
+        ),
+    },
 }
 
 
@@ -490,6 +639,73 @@ def deferred_phase_7_owner(name: str) -> int:
     return 8
 
 
+def phase_8_difference_reason(name: str) -> str | None:
+    category = name.split("::", 1)[0]
+    if category in PHASE_8_UNSUPPORTED_CATEGORIES:
+        return PHASE_8_UNSUPPORTED_CATEGORIES[category]
+    if category in {"examples", "misc"}:
+        return (
+            "This heterogeneous upstream integration registration has no "
+            "one-to-one executable MoonJust evidence and is conservatively "
+            "registered as unsupported."
+        )
+    if category in {"dotenv", "init", "json", "list", "lists", "overrides", "show"}:
+        return (
+            f"The complete upstream {category} integration surface is not yet "
+            "covered by MoonJust's executable compatibility corpus."
+        )
+    if category == "quiet" and any(marker in name for marker in ("choose_", "edit_", "init_", "show_")):
+        return "Quiet-mode interaction with this subcommand is not implemented."
+    if category == "run" and any(marker in name for marker in ("one_flag", "time_reports")):
+        return "This optional run-mode behavior is not implemented."
+    if category == "timestamps" and "invalid_format_string" in name:
+        return "MoonJust preserves unknown timestamp directives instead of rejecting them."
+    if category == "unstable":
+        return "User-defined function unstable gating and per-module propagation are not implemented."
+    if any(marker in name for marker in PHASE_8_UNSUPPORTED_MARKERS):
+        return "The required module, search, or optional CLI behavior is not implemented."
+    return None
+
+
+def phase_8_anchor_key(category: str) -> str:
+    if category == "byte_order_mark":
+        return "bom"
+    if category in {"executor", "script", "shebang"}:
+        return "script"
+    if category in {"config", "positional"}:
+        return "cli"
+    if category in {"default", "assignment"}:
+        return "semantic"
+    if category in {"export", "unexport", "no_cd"}:
+        return "environment"
+    if category in {"interpolation", "delimiters"}:
+        return "evaluation"
+    if category in {"newline_escape", "keyword", "multibyte_char", "indentation"}:
+        return "lexer"
+    if category in {"line_prefixes"}:
+        return "line"
+    if category in {"quiet", "timestamps"}:
+        return "output"
+    if category == "style":
+        return "style"
+    if category in {"run"}:
+        return "dependency"
+    if category in {"shell", "shell_kind"}:
+        return "platform"
+    if category in {"signal"}:
+        return "signal"
+    if category in {"groups", "no_aliases", "usage"}:
+        return "query"
+    raise ValueError(f"Phase 8 category {category!r} lacks a conservative classification")
+
+
+def phase_10_anchor_key(name: str) -> str:
+    category = name.split("::", 1)[0]
+    if category == "config":
+        return "edit"
+    return category
+
+
 def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str, str]:
     """Return the executable family test that owns an upstream category."""
     if phase == 3:
@@ -594,6 +810,57 @@ def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str,
         if any(marker in name for marker in ("body_change", "environment_invalidates", "extension_invalidates", "extra_invalidates", "interpreter_invalidates", "positional_arguments", "working_directory_invalidates")):
             return PHASE_TEST_ANCHORS[9]["cache_key"]
         return PHASE_TEST_ANCHORS[9]["cache_runtime"]
+    if phase == 8:
+        return PHASE_TEST_ANCHORS[8][phase_8_anchor_key(category)]
+    if phase == 10 and name is not None:
+        key = phase_10_anchor_key(name)
+        if key == "list":
+            if name == "list::doc_above_wide_signature":
+                return (
+                    "src/application/application_test.mbt",
+                    "phase 10 list places wide signature documentation above",
+                )
+            if "::tests::" in name:
+                return (
+                    "src/application/width_wbtest.mbt",
+                    "phase 10 human-readable lists use upstream conjunctions and ticks",
+                )
+        if key == "choose":
+            if name in {"choose::cancelled_by_user", "choose::chooser_signal_exit_code_is_propagated"}:
+                return (
+                    "src/application/application_test.mbt",
+                    "chooser cancellation succeeds and signals preserve exit status",
+                )
+            if name == "choose::status_error":
+                return (
+                    "src/application/application_test.mbt",
+                    "phase 10 chooser nonzero status is propagated",
+                )
+            if name == "choose::invoke_error_function":
+                return (
+                    "src/application/application_test.mbt",
+                    "phase 10 interactive invocation and exit failures retain context",
+                )
+        if key == "edit":
+            if name in {"edit::invoke_error", "edit::status_error"}:
+                return (
+                    "src/application/application_test.mbt",
+                    "phase 10 interactive invocation and exit failures retain context",
+                )
+            if name == "edit::editor_precedence":
+                return (
+                    "src/application/application_test.mbt",
+                    "phase 10 editor falls back through EDITOR and vim",
+                )
+        if key == "confirm" and any(
+            marker in name
+            for marker in ("dump", "format", "too_many", "argument")
+        ):
+            return (
+                "src/application/application_test.mbt",
+                "phase 10 confirm attributes format and reject excess prompt arguments",
+            )
+        return PHASE_TEST_ANCHORS[10][key]
     raise ValueError(f"phase {phase} has no executable anchor mapping")
 
 
@@ -636,7 +903,11 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             "upstream_name": name,
             "category": category,
             "owner_phase": phase,
-            "tier": "X" if category == "completions" else "A",
+            "tier": (
+                "B"
+                if phase == 10 and category in {"choose", "confirm", "edit", "list"}
+                else "X" if category == "completions" else "A"
+            ),
             "targets": [],
             "disposition": "planned",
             "evidence": ["docs/PROJECT_PLAN.md"],
@@ -687,6 +958,83 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="PROJECT_PLAN_PR-105",
                 reason=PHASE_9_STORAGE_DIFFERENCES[name],
             )
+        elif phase == 8 and category in {"examples", "request"}:
+            row.update(
+                tier="X",
+                disposition="not-applicable",
+                evidence=["docs/adr/0002-compatibility-baseline.md"],
+                tracking=f"MJ-COMPAT-{index:04d}",
+                reason=(
+                    "Upstream repository fixture or Rust-private testing interface "
+                    "has no user-observable MoonJust behavior."
+                ),
+            )
+        elif phase == 8 and phase_8_difference_reason(name) is not None:
+            row.update(
+                disposition="unsupported",
+                targets=["native", "wasm1"],
+                evidence=["docs/PROJECT_PLAN.md", "docs/PHASE_8_REPORT.md"],
+                tracking=f"MJ-COMPAT-{index:04d}",
+                reason=phase_8_difference_reason(name),
+            )
+        elif phase == 8:
+            test_anchor = anchor_dict(phase, category, name)
+            row.update(
+                disposition="covered-by",
+                targets=["native", "wasm1"],
+                evidence=[
+                    "tests/upstream/just-1.57.0/phase-8-cases.jsonl",
+                    test_anchor["suite"],
+                    "docs/PHASE_8_REPORT.md",
+                ],
+                tracking="MJ-PHASE-8-CORPUS",
+                test_anchor=test_anchor,
+            )
+        elif phase == 10 and category == "config" and "completions" in name:
+            row.update(
+                tier="X",
+                disposition="excluded-completion",
+                evidence=["docs/adr/0002-compatibility-baseline.md"],
+                tracking="ADR-0002",
+                reason="Shell completion generation is excluded from the compatibility scope.",
+            )
+        elif phase == 10 and category == "config" and "changelog" in name:
+            row.update(
+                tier="X",
+                disposition="not-applicable",
+                evidence=["docs/adr/0001-product-and-command-name.md"],
+                tracking="ADR-0001",
+                reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
+            )
+        elif phase == 10 and category == "count":
+            row.update(
+                tier="X",
+                disposition="not-applicable",
+                evidence=["docs/adr/0002-compatibility-baseline.md"],
+                tracking=f"MJ-COMPAT-{index:04d}",
+                reason="Rust-private count display helper has no user-observable compatibility surface.",
+            )
+        elif phase == 10 and name in PHASE_10_INTERACTIVE_DIFFERENCES:
+            row.update(
+                disposition="unsupported",
+                targets=["native", "wasm1"],
+                evidence=["docs/PROJECT_PLAN.md"],
+                tracking=f"MJ-COMPAT-{index:04d}",
+                reason=PHASE_10_INTERACTIVE_DIFFERENCES[name],
+            )
+        elif phase == 10:
+            test_anchor = anchor_dict(phase, category, name)
+            row.update(
+                disposition="covered-by",
+                targets=["native", "wasm1"],
+                evidence=[
+                    "tests/upstream/just-1.57.0/phase-10-cases.jsonl",
+                    test_anchor["suite"],
+                    "docs/PROJECT_PLAN.md",
+                ],
+                tracking="MJ-PHASE-10-CORPUS",
+                test_anchor=test_anchor,
+            )
         elif phase <= 7 or phase == 9:
             test_anchor = anchor_dict(phase, category, name)
             row.update(
@@ -712,7 +1060,7 @@ def encoded_rows(rows: list[dict[str, object]]) -> str:
 
 
 def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6, 7, 9):
+    for phase in (3, 4, 5, 6, 7, 8, 9, 10):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         phase_rows = [
             row
@@ -744,7 +1092,7 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
 
 
 def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6, 7, 9):
+    for phase in (3, 4, 5, 6, 7, 8, 9, 10):
         path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
         cases = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
         expected = [
@@ -808,7 +1156,7 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} has no evidence list")
         if not isinstance(row.get("tracking"), str) or not row["tracking"]:
             raise ValueError(f"row {expected_id} has no tracking owner")
-        if row.get("owner_phase") in {3, 4, 5, 6, 7, 9} and row["disposition"] == "covered-by":
+        if row.get("owner_phase") in {3, 4, 5, 6, 7, 8, 9, 10} and row["disposition"] == "covered-by":
             anchor = row.get("test_anchor")
             if not isinstance(anchor, dict) or set(anchor) != {"suite", "test_name"}:
                 raise ValueError(f"row {expected_id} has no executable test anchor")
@@ -827,6 +1175,8 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             "unsupported",
         } and not row.get("reason"):
             raise ValueError(f"row {expected_id} requires a reason")
+        if row["disposition"] == "planned":
+            raise ValueError(f"row {expected_id} remains planned")
 
 
 def main() -> int:

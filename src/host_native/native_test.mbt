@@ -155,6 +155,29 @@ test "native environment adapter exposes deterministic snapshots and cwd" {
 }
 
 ///|
+test "native platform and terminal adapter reports real target facts" {
+  let host = NativeFs::new()
+  let platform = @host.HostPlatform::platform_info(host)
+  assert_true(
+    platform.operating_system() == Linux ||
+    platform.operating_system() == Macos ||
+    platform.operating_system() == Windows ||
+    platform.operating_system() == Other("native"),
+  )
+  assert_true(platform.architecture() != "unknown")
+  assert_eq(
+    platform.path_flavor(),
+    if platform.operating_system() == Windows {
+      Windows
+    } else {
+      Unix
+    },
+  )
+  let terminal = @host.HostTerminal::terminal_info(host)
+  ignore(terminal)
+}
+
+///|
 async test "cache store serializes leases commits atomically and cleans manifests" {
   let directory = try! @path.PathValue::new(
     "_build/native-cache-store-test",

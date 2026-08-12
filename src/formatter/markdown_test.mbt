@@ -89,3 +89,60 @@ test "phase 3 markdown hardening rejects line and byte budgets" {
     _ => fail("expected Markdown line limit")
   }
 }
+
+///|
+fn visible_tangled_lines(text : String, id : Int) -> Array[String] {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(id),
+    "upstream.md",
+    text,
+  )
+  let tangled = try! @formatter.tangle(source).source()
+  let result : Array[String] = []
+  for line in 1..<=tangled.line_count() {
+    let value = try! tangled.line_text(line)
+    if !value.trim().is_empty() {
+      result.push(value)
+    }
+  }
+  result
+}
+
+///|
+test "phase 10 markdown matches pinned upstream info string corpus" {
+  assert_eq(
+    visible_tangled_lines(
+      "```just foo\none:\n```\n``` just\ntwo:\n```\n" +
+      "```justfile\nignored\n```\n```JUST\nignored\n```\n```just`\nignored\n",
+      1010,
+    ),
+    ["one:", "two:"],
+  )
+}
+
+///|
+test "phase 10 markdown matches pinned upstream fence corpus" {
+  assert_eq(
+    visible_tangled_lines(
+      "~~~just\ntilde:\n~~~\n``just\nignored\n" +
+      "```just\nmatching:\n~~~\nstill-selected\n`````  \n" +
+      "````just\nlong:\n```\nstill-long\n````\n" +
+      "```just\nunclosed:\ncontinues\n",
+      1011,
+    ),
+    [
+      "tilde:", "matching:", "~~~", "still-selected", "long:", "```", "still-long",
+      "unclosed:", "continues",
+    ],
+  )
+}
+
+///|
+test "phase 10 markdown rejects CommonMark nested and invisible blocks" {
+  let text = "~~~~\n```just\nouter-fence:\n```\n~~~~\n" +
+    "<!--\n```just\ncomment:\n```\n-->\n" +
+    "> ```just\n> quote:\n> ```\n" +
+    "- item\n\n  ```just\n  list:\n  ```\n" +
+    "```just\ntop-level:\n```\n"
+  assert_eq(visible_tangled_lines(text, 1012), ["top-level:"])
+}

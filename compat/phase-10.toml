@@ -1,0 +1,38 @@
+schema_version = 1
+phase = 10
+upstream = "just 1.57.0"
+status = "implemented"
+plan_exit = "pending-remediation-ci-and-merge"
+report = "docs/PHASE_10_REPORT.md"
+audit = "docs/PHASE_0_10_AUDIT.md"
+
+[contracts]
+windows = "real OS/architecture/TTY detection, Windows path flavor, cmd and PowerShell script execution, status propagation"
+unix = "real Linux/macOS facts, shebang executable permissions, structured signals and graceful cancellation"
+interactive = "confirm and --yes, chooser precedence/cancellation/selections, editor precedence and inherited stdio"
+terminal = "auto/always/never color, NO_COLOR, command style, Unicode display width and stable list layout"
+markdown = "automatic Markdown loading, top-level fenced-just extraction, byte-preserving diagnostics and canonical non-mutating format output"
+inventory = "all CLI flags, commands, settings, attributes, builtins and 2,417 upstream registrations explicitly classified"
+
+[compatibility]
+covered_registrations = 40
+unsupported_registrations = 4
+excluded_registrations = 8
+phase_8_covered_registrations = 209
+phase_8_unsupported_registrations = 520
+phase_8_not_applicable_registrations = 3
+planned_registrations = 0
+
+[target_matrix]
+native = "local pass: 300 tests and macOS aarch64 real platform gate"
+wasm1 = "local pass: 295 tests and explicit portable platform/terminal fallback"
+linux = "first PR CI passed; remediation CI pending"
+macos = "local pass on macOS aarch64; first PR CI passed; remediation CI pending"
+windows = "first PR CI passed; remediation CI pending"
+
+[evidence]
+compatibility_gate = "tools/check_phase10.sh"
+platform_gate = "tools/check_phase10_platform.sh"
+case_manifest = "tests/upstream/just-1.57.0/phase-10-cases.jsonl"
+markdown_adr = "docs/adr/0017-markdown-tangle-final-implementation.md"
+completion_report = "docs/PHASE_10_REPORT.md"

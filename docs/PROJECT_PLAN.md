@@ -2,7 +2,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-11；Phase 0-9 已完成并通过全部阶段出口。Phase 9 由 [PR #38](https://github.com/moonbit-community/MoonJust/pull/38) 合并为 `d28d0b685ff886841f984510ee6a8fb8341cba2c`，PR CI [31480537856](https://github.com/moonbit-community/MoonJust/actions/runs/31480537856) 与 protected-main CI [31480779327](https://github.com/moonbit-community/MoonJust/actions/runs/31480779327) 均通过；完整结论见 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
+> 最近严格复核：2026-08-13；Phase 0-9 已完成并通过全部阶段出口。Phase 10 首轮 PR CI [31611054327](https://github.com/moonbit-community/MoonJust/actions/runs/31611054327) 已通过，二次严格复核已完成并补齐 CLI 环境绑定，修复后 CI、合并和 protected-main CI 尚待完成；完整结论见 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -27,10 +27,10 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 ### 2.1 本地仓库
 
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
-- 模块名：`moonbit-community/MoonJust`，模块版本 `0.6.0`，应用版本 `0.6.0-alpha`，许可证 `Apache-2.0`。
+- 模块名：`moonbit-community/MoonJust`，模块版本 `0.7.0`，应用版本 `0.7.0-alpha`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。
+- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10 已完成本地实现、首轮远端 CI 和二次严格复核，正在等待 remediation CI、合并和 protected-main CI。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -679,6 +679,14 @@ protected-main CI 证据见 [`PHASE_9_REPORT.md`](PHASE_9_REPORT.md) 和
 | PR-103 | terminal rendering | color、Unicode width、style | NO_COLOR/forced color/宽字符 golden |
 | PR-104 | Markdown 完整收束 | cmark 依赖或专用实现最终决策 | 常规 Markdown 升 Tier A，边界状态登记 |
 | PR-105 | compatibility audit | 全 flags/settings/attrs/builtins/tests inventory | 无“未分类”条目 |
+
+执行状态：Phase 10 已于 2026-08-13 完成本地实现、首轮三平台远端 CI 和
+二次严格复核。PR-100 至 PR-105、300/295 项测试、39 个上游 `JUST_*`
+环境绑定、2,417 项上游登记的零 `planned` 分类、真实 macOS 平台门禁和
+Markdown 上游 oracle 证据见
+[`PHASE_10_REPORT.md`](PHASE_10_REPORT.md) 与
+[`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)；二次复核补丁的远程三平台
+CI、合并和 protected-main CI 尚未完成，因此阶段出口仍为 pending。
 
 ### Phase 11：发布工程与 MoonX
 

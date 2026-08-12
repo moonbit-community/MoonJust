@@ -5,6 +5,14 @@ fn evaluated_shell_setting(
   name : String,
 ) -> @environment.ShellConfiguration? raise ApplicationError {
   match compilation.settings().get(name) {
+    Some(Text(program)) => {
+      let arguments = if name == "shell" { ["-cu"] } else { [] }
+      Some(
+        @environment.ShellConfiguration::new(program, arguments) catch {
+          error => raise Environment(error)
+        },
+      )
+    }
     Some(Expression(expression)) => {
       let value = @evaluator.evaluate(expression, environment=global) catch {
         error => raise Evaluation(error)
@@ -39,6 +47,7 @@ fn evaluated_string_setting(
   name : String,
 ) -> String? raise ApplicationError {
   match compilation.settings().get(name) {
+    Some(Text(value)) => Some(value)
     Some(Expression(expression)) => {
       let value = @evaluator.evaluate(expression, environment=global) catch {
         error => raise Evaluation(error)
@@ -82,20 +91,36 @@ fn selected_shell(
 }
 
 ///|
-fn selected_command_color(
+fn[T : @host.HostTerminal] selected_command_color(
+  effects : T,
   arguments : @cli.CliArguments,
 ) -> @executor.CommandColor? raise ApplicationError {
-  guard arguments.value("command-color") is Some(value) else { return None }
+  let mode = arguments.value("color").unwrap_or("auto")
+  let active = match mode {
+    "always" => true
+    "never" => false
+    "auto" => {
+      let terminal = @host.HostTerminal::terminal_info(effects) catch {
+        error => raise Host(error)
+      }
+      terminal.color_supported() && terminal.stderr_is_terminal()
+    }
+    _ => raise Query("invalid --color value")
+  }
+  if !active {
+    return None
+  }
+  guard arguments.value("command-color") is Some(value) else {
+    return Some(Bold)
+  }
   match value {
     "black" => Some(Black)
     "red" => Some(Red)
     "green" => Some(Green)
     "yellow" => Some(Yellow)
     "blue" => Some(Blue)
-    "magenta" => Some(Magenta)
+    "purple" => Some(Magenta)
     "cyan" => Some(Cyan)
-    "white" => Some(White)
-    "none" => None
     _ => raise Query("invalid --command-color value")
   }
 }
@@ -239,6 +264,7 @@ fn setting_string_values(
   name : String,
 ) -> Array[String] raise ApplicationError {
   match compilation.settings().get(name) {
+    Some(Text(value)) => [value]
     Some(Expression(expression)) => {
       let evaluated = @evaluator.evaluate(expression, environment=global) catch {
         error => raise Evaluation(error)
@@ -323,7 +349,7 @@ fn[F : @host.HostFs] compose_dotenv_environment(
 
 ///|
 /// Validate and plan a run command without granting process capability.
-pub fn[F : @host.HostFs, E : @host.HostEnv] plan_run_command(
+pub fn[F : @host.HostFs, E : @host.HostEnv + @host.HostTerminal] plan_run_command(
   host : F,
   environment_host : E,
   arguments : @cli.CliArguments,
@@ -347,6 +373,9 @@ pub fn[F : @host.HostFs, E : @host.HostEnv] plan_run_command(
   let global = @evaluator.evaluate_compilation(compilation, overrides~) catch {
     error => raise Evaluation(error)
   }
+  let module_setting = evaluated_string_setting(
+    compilation, global, "working-directory",
+  )
   let requests : Array[@executor.RecipeRequest] = []
   for invocation in invocations {
     requests.push(
@@ -363,6 +392,7 @@ pub fn[F : @host.HostFs, E : @host.HostEnv] plan_run_command(
     context.cwd().flavor(),
   )
   let cwd = directories.recipe_directory(
+    module_setting~,
     module_no_cd=compilation.settings().bool("no-cd"),
   ) catch {
     error => raise WorkingDirectory(error)
@@ -372,7 +402,7 @@ pub fn[F : @host.HostFs, E : @host.HostEnv] plan_run_command(
     global,
     context.cwd().flavor(),
   )
-  let command_color = selected_command_color(arguments)
+  let command_color = selected_command_color(environment_host, arguments)
   let options = execution_options(arguments, None, command_color)
   @executor.plan_recipe_graph(
     compilation,
@@ -481,7 +511,10 @@ pub async fn[
   ) catch {
     error => raise WorkingDirectory(error)
   }
-  let context = @evaluator.EvaluationContext::new(cwd~)
+  let context = @evaluator.EvaluationContext::new(
+    cwd~,
+    color_mode=arguments.value("color").unwrap_or("auto"),
+  )
   let global = @evaluator.evaluate_compilation_with_async_effects(
     process,
     effects,
@@ -492,6 +525,19 @@ pub async fn[
   ) catch {
     error => raise Evaluation(error)
   }
+  let module_setting = evaluated_string_setting(
+    compilation, global, "working-directory",
+  )
+  let cwd = directories.recipe_directory(
+    module_setting~,
+    module_no_cd=compilation.settings().bool("no-cd"),
+  ) catch {
+    error => raise WorkingDirectory(error)
+  }
+  let context = @evaluator.EvaluationContext::new(
+    cwd~,
+    color_mode=arguments.value("color").unwrap_or("auto"),
+  )
   let shell = selected_shell(compilation, global, arguments, cwd.flavor())
   let requests : Array[@executor.RecipeRequest] = []
   for invocation in invocations {
@@ -508,10 +554,8 @@ pub async fn[
   let environment = compose_dotenv_environment(
     filesystem, compilation, arguments, global, cwd, environment,
   )
-  let platform = if cwd.flavor() == Windows {
-    @host.PlatformInfo::new(Windows, "unknown", Windows)
-  } else {
-    @host.PlatformInfo::new(Other("unix"), "unknown", Unix)
+  let platform = @host.HostPlatform::platform_info(effects) catch {
+    error => raise Host(error)
   }
   let script_interpreter = evaluated_shell_setting(
     compilation, global, "script-interpreter",
@@ -532,7 +576,7 @@ pub async fn[
     platform,
   )
   let timestamp = selected_timestamp(effects, arguments)
-  let command_color = selected_command_color(arguments)
+  let command_color = selected_command_color(effects, arguments)
   let options = execution_options(arguments, timestamp, command_color)
   let cache_directory = cache_directory(directories.project_directory())
   @executor.plan_recipe_graph_async(

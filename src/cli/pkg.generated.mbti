@@ -74,6 +74,7 @@ pub fn CliArguments::shell_arguments(Self) -> Array[String]?
 pub fn CliArguments::value(Self, String) -> String?
 pub fn CliArguments::values(Self, String) -> ArrayView[String]
 pub fn CliArguments::variable_overrides(Self) -> ArrayView[(String, String)]
+pub fn CliArguments::with_run_positionals(Self, Array[String]) -> Self
 
 pub(all) enum CommandKind {
   RunCommand
@@ -89,6 +90,8 @@ pub(all) enum CommandKind {
   JsonCommand
   EvaluateCommand
   GroupsCommand
+  ChooseCommand
+  EditCommand
   CleanCommand
 } derive(Eq, @debug.Debug)
 

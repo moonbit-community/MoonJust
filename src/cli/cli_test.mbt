@@ -145,6 +145,38 @@ test "phase 9 execution and cache options remain global" {
 }
 
 ///|
+test "phase 10 yes flag is a supported global confirmation bypass" {
+  let parsed = try! @cli.parse_arguments(["--yes", "build"], {})
+  assert_true(parsed.flag("yes"))
+  assert_eq(parsed.positional(), ["build"])
+}
+
+///|
+test "phase 10 interactive commands retain global inputs and overrides" {
+  let choose = try! @cli.parse_arguments(
+    ["--choose", "--chooser", "head -n1", "--set", "mode", "ci"],
+    {},
+  )
+  assert_eq(choose.command(), ChooseCommand)
+  assert_eq(choose.value("chooser"), Some("head -n1"))
+  assert_eq(choose.variable_overrides(), [("mode", "ci")])
+  assert_eq((try! @cli.parse_arguments(["--edit"], {})).command(), EditCommand)
+  assert_eq((try! @cli.parse_arguments(["-e"], {})).command(), EditCommand)
+  assert_eq(
+    (try! @cli.parse_arguments(["--choose", "--group", "ci"], {})).values(
+      "group",
+    ),
+    ["ci"],
+  )
+  try @cli.parse_arguments(["--group", "ci", "build"], {}) catch {
+    Invalid(message) => assert_true(message.contains("--list' or '--choose"))
+    Unsupported(_) => fail("expected group relationship error")
+  } noraise {
+    _ => fail("expected group to require list or choose")
+  }
+}
+
+///|
 test "argparse composition enforces command relationships" {
   try @cli.parse_arguments(["--check"], {}) catch {
     Invalid(message) => assert_true(message.contains("required argument"))
@@ -155,6 +187,47 @@ test "argparse composition enforces command relationships" {
   let dry_run = @cli.parse_arguments(["--fmt", "--dry-run"], {})
   assert_eq(dry_run.command(), FormatCommand)
   assert_true(dry_run.flag("dry-run"))
+}
+
+///|
+test "phase 10 CLI validates command conflicts color aliases and verbosity" {
+  for
+    arguments in [
+      ["--choose", "--dump"],
+      ["--edit", "--list"],
+      ["--fmt", "--summary"],
+      ["--evaluate", "--variables"],
+      ["--clean", "--show", "build"],
+    ] {
+    try @cli.parse_arguments(arguments, {}) catch {
+      Invalid(message) => assert_false(message.is_empty())
+      error => fail("unexpected command conflict error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected command conflict")
+    }
+  }
+  assert_eq(
+    (try! @cli.parse_arguments(["--format"], {})).command(),
+    FormatCommand,
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["--initialize"], {})).command(),
+    InitCommand,
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["-vvv", "build"], {})).count("verbose"),
+    3,
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["--color=never", "build"], {})).value("color"),
+    Some("never"),
+  )
+  try @cli.parse_arguments(["--color", "sometimes", "build"], {}) catch {
+    Invalid(message) => assert_true(message.contains("invalid value"))
+    error => fail("unexpected color validation error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected invalid color")
+  }
 }
 
 ///|
@@ -242,6 +315,7 @@ test "query format choices are validated and ignored options are unsupported" {
     arguments in [
       ["--list", "--list-submodules"],
       ["--default-list"],
+      ["--dotenv-command", "printf MODE=ci"],
       ["--dump", "--indentation", "  "],
     ] {
     try @cli.parse_arguments(arguments, {}) catch {
@@ -251,6 +325,13 @@ test "query format choices are validated and ignored options are unsupported" {
       _ => fail("expected unsupported option")
     }
   }
+}
+
+///|
+test "phase 10 justfile-name is a supported value option" {
+  let parsed = try! parse_arguments(["--list", "--justfile-name", "tasks.md"], {})
+  assert_eq(parsed.command(), ListCommand)
+  assert_eq(parsed.value("justfile-name"), Some("tasks.md"))
 }
 
 ///|
@@ -265,12 +346,7 @@ test "dotenv options append values and enforce upstream conflicts" {
     {},
   )
   assert_eq(filenames.values("dotenv-filename"), [".env.one", ".env.two"])
-  for
-    arguments in [
-      ["--dotenv-command", "true", "--no-dotenv"],
-      ["--dotenv-command", "true", "--dotenv-path", ".env"],
-      ["--dotenv-filename", ".env", "--dotenv-path", ".other"],
-    ] {
+  for arguments in [["--dotenv-filename", ".env", "--dotenv-path", ".other"]] {
     try parse_arguments(arguments, {}) catch {
       Invalid(_) => ()
       error => fail("unexpected dotenv CLI error: \{Repr(error)}")
@@ -356,6 +432,89 @@ test "tempdir is a supported global value" {
   let parsed = try! parse_arguments(["--tempdir", "build/tmp", "default"], {})
   assert_eq(parsed.value("tempdir"), Some("build/tmp"))
   assert_eq(parsed.positional(), ["default"])
+}
+
+///|
+test "supported JUST environment aliases parse with argv precedence" {
+  let from_environment = try! parse_arguments(["build"], {
+    "JUST_COLOR": "always",
+    "JUST_JOBS": "3",
+    "JUST_NO_CACHE": "yes",
+    "JUST_TIMESTAMP_FORMAT": "%s",
+    "JUST_VERBOSE": "2",
+    "JUST_YES": "1",
+  })
+  assert_eq(from_environment.value("color"), Some("always"))
+  assert_eq(from_environment.value("jobs"), Some("3"))
+  assert_true(from_environment.flag("no-cache"))
+  assert_eq(from_environment.value("timestamp-format"), Some("%s"))
+  assert_eq(from_environment.count("verbose"), 2)
+  assert_true(from_environment.flag("yes"))
+  let explicit = try! parse_arguments(
+    ["--color", "never", "--jobs", "7", "--no-cache", "build"],
+    { "JUST_COLOR": "always", "JUST_JOBS": "3", "JUST_NO_CACHE": "0" },
+  )
+  assert_eq(explicit.value("color"), Some("never"))
+  assert_eq(explicit.value("jobs"), Some("7"))
+  assert_true(explicit.flag("no-cache"))
+  let false_flags = try! parse_arguments(["build"], {
+    "JUST_DRY_RUN": "0",
+    "JUST_NO_CACHE": "false",
+    "JUST_QUIET": "no",
+  })
+  assert_false(false_flags.flag("dry-run"))
+  assert_false(false_flags.flag("no-cache"))
+  assert_false(false_flags.flag("quiet"))
+}
+
+///|
+test "unsupported JUST environment aliases fail only when enabled" {
+  let disabled = try! parse_arguments(["build"], {
+    "JUST_ALLOW_MISSING": "false",
+  })
+  assert_eq(disabled.positional(), ["build"])
+  for
+    environment in [
+      { "JUST_ALLOW_MISSING": "true" },
+      { "JUST_CEILING": "/workspace" },
+    ] {
+    try parse_arguments(["build"], environment) catch {
+      Unsupported(_) => ()
+      error => fail("unexpected environment alias error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected unsupported environment alias failure")
+    }
+  }
+  assert_true(
+    (try! parse_arguments(["--help"], { "JUST_ALLOW_MISSING": "true" })).flag(
+      "help",
+    ),
+  )
+  assert_true(
+    (try! parse_arguments(["--version"], {
+      "JUST_CEILING": "/workspace",
+      "JUST_DRY_RUN": "1",
+      "JUST_QUIET": "1",
+    })).flag("version"),
+  )
+}
+
+///|
+test "JUST_UNSTABLE uses upstream falsey and arbitrary truthy semantics" {
+  for value in ["0", "", "false"] {
+    assert_false(
+      (try! parse_arguments(["build"], { "JUST_UNSTABLE": value })).flag(
+        "unstable",
+      ),
+    )
+  }
+  for value in ["1", "true", "enabled"] {
+    assert_true(
+      (try! parse_arguments(["build"], { "JUST_UNSTABLE": value })).flag(
+        "unstable",
+      ),
+    )
+  }
 }
 
 ///|

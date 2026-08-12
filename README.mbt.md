@@ -8,8 +8,9 @@ the upstream Rust library API is not part of MoonJust's public API.
 > **Current status**
 >
 > Phase 0-9 exits have passed, including protected-main CI. MoonJust
-> `0.6.0-alpha` adds bounded parallel scheduling and a versioned Native/wasm1
-> recipe cache. Phase 10 owns platform and Tier B convergence.
+> `0.7.0-alpha` implements the Phase 10 platform, interactive, terminal,
+> Markdown and compatibility-convergence contracts; remote CI and the required
+> second review are still pending.
 
 ## What is delivered
 
@@ -26,6 +27,8 @@ The completed phases establish a usable and auditable foundation:
 | Invocation | positional/variadic parameters, recipe-local options, flags, repetition, patterns and stable usage errors |
 | Working directory | invocation, project, module, evaluation and recipe directory model with `no-cd` and recipe overrides |
 | Executor | bounded jobs, parallel/serial dependency fences, scripts, cache, dry-run, deterministic output/failure and cancellation cleanup |
+| Platform and terminal | real Native OS/architecture/TTY facts, signal-aware statuses, deterministic color and Unicode display width |
+| Interactive and Markdown | confirm/yes, chooser/editor workflows and automatic source-aware Markdown extraction |
 | Wasm boundary | separate read-only inspect and process-enabled execution policies |
 
 The CLI validates the complete recipe graph before execution, then runs ready
@@ -37,18 +40,17 @@ versioned, locked across processes and atomically published after output checks.
 - Upstream: `just 1.57.0`, commit
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
-- Validated upstream registrations: 1,595 executable rows across Phases 2-7 and 9.
-- Registered compatibility differences: two Phase 9 cache storage-tree cases,
-  with exact reasons and Phase 10 tracking in the machine map.
-- Explicitly excluded or not applicable: shell completion, Rust-internal tests,
-  and product-maintenance commands.
-- Deferred: 784 upstream registrations owned by the remaining full-executor and
-  Phase 10 interactive/release compatibility work.
+- Validated upstream registrations: 1,844 executable family rows.
+- Registered compatibility differences: 526 unsupported rows with exact
+  reasons and tracking ownership in the machine map.
+- Explicitly excluded or not applicable: 35 shell-completion rows and 12
+  Rust-internal or product-maintenance rows.
+- Deferred or unclassified upstream registrations: zero.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 
 The complete decision record is in the
-[Phase 0-9 strict audit](docs/PHASE_0_9_AUDIT.md). Machine-readable scope and
+[Phase 0-10 strict audit](docs/PHASE_0_10_AUDIT.md). Machine-readable scope and
 phase contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
@@ -95,8 +97,9 @@ moonrun --policy policies/inspect.toml \
 ```
 
 The gate checks architecture boundaries, pinned upstream metadata, the
-differential harness, all stable backends, Wasm policy, five Phase 7
-differentials, public interfaces, and the complete Native/wasm1 test matrix.
+differential harness, all stable backends, Wasm policy, Phase 7 differentials,
+Phase 8-10 runtime gates, the pinned Markdown oracle, public interfaces, and
+the complete Native/wasm1 test matrix.
 
 ## Architecture
 
@@ -119,7 +122,7 @@ loader -> source -> lexer -> parser -> semantic model
               working directory + environment configuration
                                   |
                                   v
-                    Phase 8 executor boundary
+              Phase 10 platform-aware executor boundary
 ```
 
 The core never reads process-global environment or filesystem state directly.

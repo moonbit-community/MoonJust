@@ -35,24 +35,6 @@ fn environment_map(command : @host.CommandSpec) -> Map[String, String] {
 }
 
 ///|
-async fn publish_inherited(
-  command : @host.CommandSpec,
-  stdout : Bytes,
-  stderr : Bytes,
-) -> Unit raise @host.HostError {
-  if command.stdout() == Inherit && !stdout.is_empty() {
-    @stdio.stdout.write(stdout) catch {
-      _ => raise InvalidInput("failed to write inherited process stdout")
-    }
-  }
-  if command.stderr() == Inherit && !stderr.is_empty() {
-    @stdio.stderr.write(stderr) catch {
-      _ => raise InvalidInput("failed to write inherited process stderr")
-    }
-  }
-}
-
-///|
 async fn read_bounded_process_output(
   reader : @process.ReadFromProcess,
   limit : Int,
@@ -120,18 +102,64 @@ async fn run_process_with_output_limit(
       let (stdout_reader, stdout_target) = @process.read_from_process()
       let (stderr_reader, stderr_target) = @process.read_from_process()
       let process = if command.inherits_stdin() {
-        @process.spawn(
-          group,
-          command.program(),
-          command.arguments(),
-          extra_env=environment_map(command),
-          inherit_env=command.inherits_environment(),
-          stdin=@stdio.stdin,
-          stdout=stdout_target,
-          stderr=stderr_target,
-          cwd~,
-          no_wait=true,
-        )
+        match (command.stdout(), command.stderr()) {
+          (Inherit, Inherit) =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=@stdio.stdin,
+              stdout=@stdio.stdout,
+              stderr=@stdio.stderr,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+          (Inherit, _) =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=@stdio.stdin,
+              stdout=@stdio.stdout,
+              stderr=stderr_target,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+          (_, Inherit) =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=@stdio.stdin,
+              stdout=stdout_target,
+              stderr=@stdio.stderr,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+          _ =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=@stdio.stdin,
+              stdout=stdout_target,
+              stderr=stderr_target,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+        }
       } else {
         let (child_stdin, writer) = @process.write_to_process()
         group.spawn_bg(() => {
@@ -144,35 +172,91 @@ async fn run_process_with_output_limit(
             }
           }
         })
-        @process.spawn(
-          group,
-          command.program(),
-          command.arguments(),
-          extra_env=environment_map(command),
-          inherit_env=command.inherits_environment(),
-          stdin=child_stdin,
-          stdout=stdout_target,
-          stderr=stderr_target,
-          cwd~,
-          no_wait=true,
-        )
+        match (command.stdout(), command.stderr()) {
+          (Inherit, Inherit) =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=child_stdin,
+              stdout=@stdio.stdout,
+              stderr=@stdio.stderr,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+          (Inherit, _) =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=child_stdin,
+              stdout=@stdio.stdout,
+              stderr=stderr_target,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+          (_, Inherit) =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=child_stdin,
+              stdout=stdout_target,
+              stderr=@stdio.stderr,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+          _ =>
+            @process.spawn(
+              group,
+              command.program(),
+              command.arguments(),
+              extra_env=environment_map(command),
+              inherit_env=command.inherits_environment(),
+              stdin=child_stdin,
+              stdout=stdout_target,
+              stderr=stderr_target,
+              cwd~,
+              cancel_handler=@process.graceful_cancel(timeout=5000),
+              no_wait=true,
+            )
+        }
       }
-      let stdout_task = group.spawn(() => {
-        read_bounded_process_output(
-          stdout_reader,
-          output_limit,
-          command.stdout() != Discard,
-          process,
-        )
-      })
-      let stderr_task = group.spawn(() => {
-        read_bounded_process_output(
-          stderr_reader,
-          output_limit,
-          command.stderr() != Discard,
-          process,
-        )
-      })
+      let stdout_task = if command.stdout() == Inherit {
+        stdout_reader.close()
+        group.spawn(() => (b"", false))
+      } else {
+        group.spawn(() => {
+          read_bounded_process_output(
+            stdout_reader,
+            output_limit,
+            command.stdout() == Capture,
+            process,
+          )
+        })
+      }
+      let stderr_task = if command.stderr() == Inherit {
+        stderr_reader.close()
+        group.spawn(() => (b"", false))
+      } else {
+        group.spawn(() => {
+          read_bounded_process_output(
+            stderr_reader,
+            output_limit,
+            command.stderr() == Capture,
+            process,
+          )
+        })
+      }
       let status = try process.wait() catch {
         _ => {
           process.cancel()
@@ -199,7 +283,6 @@ async fn run_process_with_output_limit(
   guard status is Some(status) else {
     raise InvalidInput("process execution failed")
   }
-  publish_inherited(command, stdout, stderr)
   process_result(command, status, stdout, stderr)
 }
 
