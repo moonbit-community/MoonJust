@@ -111,6 +111,7 @@ fn flag(
   long? : String = name,
   about? : String = "",
   action? : @argparse.FlagAction = SetTrue,
+  env? : StringView,
   requires? : ArrayView[String] = [],
   conflicts? : ArrayView[String] = [],
 ) -> @argparse.FlagArg {
@@ -122,11 +123,20 @@ fn flag(
         long~,
         about~,
         action~,
+        env?,
         requires~,
         conflicts_with=conflicts,
       )
     None =>
-      FlagArg(name, long~, about~, action~, requires~, conflicts_with=conflicts)
+      FlagArg(
+        name,
+        long~,
+        about~,
+        action~,
+        env?,
+        requires~,
+        conflicts_with=conflicts,
+      )
   }
 }
 
@@ -137,6 +147,7 @@ fn option(
   long? : String = name,
   about? : String = "",
   action? : @argparse.OptionAction = Set,
+  env? : StringView,
   defaults? : ArrayView[String] = [],
   requires? : ArrayView[String] = [],
   conflicts? : ArrayView[String] = [],
@@ -149,6 +160,7 @@ fn option(
         long~,
         about~,
         action~,
+        env?,
         default_values=defaults,
         requires~,
         conflicts_with=conflicts,
@@ -160,6 +172,7 @@ fn option(
         long~,
         about~,
         action~,
+        env?,
         default_values=defaults,
         requires~,
         conflicts_with=conflicts,
@@ -202,6 +215,7 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       "alias-style",
       long="alias-style",
       about="Set list alias display style",
+      env="JUST_ALIAS_STYLE",
       defaults=["right"],
     ),
     option(
@@ -209,9 +223,21 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       long="ceiling",
       about="Stop justfile search above this directory",
     ),
-    option("chooser", long="chooser", about="Override chooser binary"),
-    option("color", long="color", about="Color mode", defaults=["auto"]),
-    option("command-color", long="command-color", about="Recipe command color"),
+    option(
+      "chooser",
+      long="chooser",
+      about="Override chooser binary",
+      env="JUST_CHOOSER",
+    ),
+    option("color", long="color", about="Color mode", env="JUST_COLOR", defaults=[
+      "auto",
+    ]),
+    option(
+      "command-color",
+      long="command-color",
+      about="Recipe command color",
+      env="JUST_COMMAND_COLOR",
+    ),
     option("cygpath", long="cygpath", about="Path conversion binary", defaults=[
       "cygpath",
     ]),
@@ -238,33 +264,56 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       action=Append,
       conflicts=["dotenv-command", "dotenv-filename"],
     ),
-    option("dump-format", long="dump-format", about="Dump format", defaults=[
-      "just",
-    ]),
-    option("evaluate-format", long="evaluate-format", about="Evaluate format", defaults=[
-      "just",
-    ]),
+    option(
+      "dump-format",
+      long="dump-format",
+      about="Dump format",
+      env="JUST_DUMP_FORMAT",
+      defaults=["just"],
+    ),
+    option(
+      "evaluate-format",
+      long="evaluate-format",
+      about="Evaluate format",
+      env="JUST_EVALUATE_FORMAT",
+      defaults=["just"],
+    ),
     option(
       "group",
       long="group",
       about="Only list recipes in group",
       action=Append,
+      env="JUST_GROUP",
     ),
     option("indentation", long="indentation", about="Recipe indentation"),
-    option("jobs", long="jobs", about="Maximum parallel jobs"),
+    option("jobs", long="jobs", about="Maximum parallel jobs", env="JUST_JOBS"),
     option(
       "justfile",
       short='f',
       long="justfile",
       about="Use justfile or - for stdin",
+      env="JUST_JUSTFILE",
     ),
-    option("justfile-name", long="justfile-name", about="Search filename"),
-    option("list-heading", long="list-heading", about="List heading", defaults=[
-      "Available recipes:\n",
-    ]),
-    option("list-prefix", long="list-prefix", about="List item prefix", defaults=[
-      "    ",
-    ]),
+    option(
+      "justfile-name",
+      long="justfile-name",
+      about="Search filename",
+      env="JUST_JUSTFILE_NAME",
+    ),
+    option(
+      "list-heading",
+      long="list-heading",
+      about="List heading",
+      env="JUST_LIST_HEADING",
+      defaults=["Available recipes:\n"],
+    ),
+    option(
+      "list-prefix",
+      long="list-prefix",
+      about="List item prefix",
+      env="JUST_LIST_PREFIX",
+      defaults=["    "],
+    ),
     option("shell", long="shell", about="Recipe shell"),
     option("shell-arg", long="shell-arg", about="Shell argument", action=Append),
     option("set", long="set", about="Override variable", action=Append),
@@ -273,11 +322,17 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       long="shell-command",
       about="Run command with recipe shell",
     ),
-    option("tempdir", long="tempdir", about="Temporary directory"),
+    option(
+      "tempdir",
+      long="tempdir",
+      about="Temporary directory",
+      env="JUST_TEMPDIR",
+    ),
     option(
       "timestamp-format",
       long="timestamp-format",
       about="Timestamp format",
+      env="JUST_TIMESTAMP_FORMAT",
       defaults=["%H:%M:%S"],
     ),
     option(
@@ -285,6 +340,7 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       short='d',
       long="working-directory",
       about="Working directory",
+      env="JUST_WORKING_DIRECTORY",
       requires=["justfile"],
     ),
   ]
@@ -296,31 +352,43 @@ fn other_flags() -> Array[@argparse.FlagArg] {
     flag("allow-missing", about="Ignore missing recipe and module errors"),
     flag("clear-shell-args", about="Clear shell arguments"),
     flag("default-list", about="List recipes with no arguments"),
-    flag("dry-run", short='n', about="Print commands without running", conflicts=[
-      "quiet",
-    ]),
+    flag(
+      "dry-run",
+      short='n',
+      about="Print commands without running",
+      env="JUST_DRY_RUN",
+      conflicts=["quiet"],
+    ),
     flag("explain", about="Print recipe docs before running"),
     flag("global-justfile", short='g', about="Use global justfile"),
     flag("highlight", about="Highlight echoed recipe lines"),
     flag("list-submodules", about="List submodule recipes"),
-    flag("no-aliases", about="Hide aliases"),
-    flag("no-cache", about="Bypass recipe cache"),
+    flag("no-aliases", about="Hide aliases", env="JUST_NO_ALIASES"),
+    flag("no-cache", about="Bypass recipe cache", env="JUST_NO_CACHE"),
     flag("no-deps", long="no-deps", about="Do not run dependencies"),
     flag(
       "no-dependencies",
       long="no-dependencies",
       about="Do not run dependencies",
     ),
-    flag("no-dotenv", about="Do not load dotenv"),
+    flag("no-dotenv", about="Do not load dotenv", env="JUST_NO_DOTENV"),
     flag("no-highlight", about="Do not highlight commands"),
     flag("one", about="Allow only one recipe"),
-    flag("quiet", short='q', about="Suppress output", conflicts=["dry-run"]),
-    flag("time", about="Print recipe timing"),
-    flag("timestamp", about="Print command timestamps"),
-    flag("unsorted", short='u', about="Use source order"),
-    flag("unstable", about="Enable unstable features"),
-    flag("verbose", short='v', about="Verbose output", action=Count),
-    flag("yes", about="Automatically confirm recipes"),
+    flag("quiet", short='q', about="Suppress output", env="JUST_QUIET", conflicts=[
+      "dry-run",
+    ]),
+    flag("time", about="Print recipe timing", env="JUST_TIME"),
+    flag("timestamp", about="Print command timestamps", env="JUST_TIMESTAMP"),
+    flag("unsorted", short='u', about="Use source order", env="JUST_UNSORTED"),
+    flag("unstable", about="Enable unstable features", env="JUST_UNSTABLE"),
+    flag(
+      "verbose",
+      short='v',
+      about="Verbose output",
+      action=Count,
+      env="JUST_VERBOSE",
+    ),
+    flag("yes", about="Automatically confirm recipes", env="JUST_YES"),
     flag("complete-aliases", about="Completion aliases"),
   ]
 }
@@ -844,6 +912,103 @@ fn validate_choice(
 }
 
 ///|
+fn enabled_environment_flag(value : String) -> Bool raise CliParseError {
+  match value.trim().to_lower() {
+    "1" | "true" | "yes" | "on" => true
+    "0" | "false" | "no" | "off" | "" => false
+    _ =>
+      raise Invalid("error: invalid boolean value '\{value}' from environment")
+  }
+}
+
+///|
+fn enabled_unstable_environment(value : String) -> Bool {
+  match value.trim().to_lower() {
+    "0" | "false" | "no" | "off" | "" => false
+    _ => true
+  }
+}
+
+///|
+fn check_unsupported_environment(
+  env : Map[String, String],
+) -> Unit raise CliParseError {
+  for
+    entry in [
+      ("JUST_ALLOW_MISSING", "--allow-missing", true),
+      ("JUST_CEILING", "--ceiling", false),
+      ("JUST_COMPLETE_ALIASES", "--complete-aliases", true),
+      ("JUST_CYGPATH", "--cygpath", false),
+      ("JUST_DEFAULT_LIST", "--default-list", true),
+      ("JUST_DOTENV_COMMAND", "--dotenv-command", false),
+      ("JUST_EXPLAIN", "--explain", true),
+      ("JUST_HIGHLIGHT", "--highlight", true),
+      ("JUST_INDENTATION", "--indentation", false),
+      ("JUST_LIST_SUBMODULES", "--list-submodules", true),
+      ("JUST_NO_DEPS", "--no-deps", true),
+      ("JUST_NO_HIGHLIGHT", "--no-highlight", true),
+      ("JUST_ONE", "--one", true),
+    ] {
+    let (name, option_name, is_flag) = entry
+    guard env.get(name) is Some(value) else { continue }
+    if !is_flag || enabled_environment_flag(value) {
+      raise Unsupported(option_name)
+    }
+  }
+}
+
+///|
+fn normalize_supported_environment(
+  env : Map[String, String],
+) -> Map[String, String] raise CliParseError {
+  let normalized : Map[String, String] = Map([])
+  for name, value in env {
+    if name == "JUST_UNSTABLE" {
+      if enabled_unstable_environment(value) {
+        normalized[name] = "true"
+      }
+    } else if [
+        "JUST_DRY_RUN", "JUST_NO_ALIASES", "JUST_NO_CACHE", "JUST_NO_DOTENV", "JUST_QUIET",
+        "JUST_TIME", "JUST_TIMESTAMP", "JUST_UNSORTED", "JUST_YES",
+      ].contains(name) {
+      if enabled_environment_flag(value) {
+        normalized[name] = "true"
+      }
+    } else {
+      normalized[name] = value
+    }
+  }
+  normalized
+}
+
+///|
+fn early_exit_requested(argv : ArrayView[String]) -> Bool {
+  let command_mode = has_command_mode_before_invocation(argv)
+  let mut consumes_value = false
+  for token in argv {
+    if consumes_value {
+      consumes_value = false
+      continue
+    }
+    if token == "--" {
+      return false
+    }
+    if token.has_prefix("-") && token != "-" {
+      let name = option_name(token)
+      if name == "--help" || name == "-h" || name == "--version" || name == "-V" {
+        return true
+      }
+      if supported_value_option(name) && !token.contains("=") {
+        consumes_value = true
+      }
+    } else if !command_mode {
+      return false
+    }
+  }
+  false
+}
+
+///|
 fn command_accepts_overrides(command : CommandKind) -> Bool {
   match command {
     RunCommand
@@ -862,6 +1027,11 @@ pub fn parse_arguments(
   argv : ArrayView[String],
   env : Map[String, String],
 ) -> CliArguments raise CliParseError {
+  let normalized_env = if early_exit_requested(argv) {
+    Map([])
+  } else {
+    normalize_supported_environment(env)
+  }
   let environment_argv = normalize_environment_argv(argv)
   check_supported(environment_argv.argv)
   let normalized = normalize_argv(environment_argv.argv)
@@ -873,9 +1043,13 @@ pub fn parse_arguments(
   let matches = @argparse.Command::parse(
     parser_command(),
     argv=parser_input[:],
-    env~,
+    env=normalized_env,
   ) catch {
     error => raise Invalid(error.to_string())
+  }
+  if !matches.flags.get("help").unwrap_or(false) &&
+    !matches.flags.get("version").unwrap_or(false) {
+    check_unsupported_environment(env)
   }
   validate_choice(matches, "alias-style", ["left", "right", "separate"])
   validate_choice(matches, "dump-format", ["json", "just"])

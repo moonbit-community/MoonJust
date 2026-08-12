@@ -3,8 +3,8 @@
 - Scope: PR-100 through PR-105 from `docs/PROJECT_PLAN.md`
 - Compatibility baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Release identity: `0.7.0-alpha`
-- Local review date: 2026-08-12
-- Delivery: pending pull request and remote CI
+- Local review date: 2026-08-13
+- Delivery: first PR CI passed; second-audit remediation CI and merge pending
 
 ## Delivered contracts
 
@@ -69,7 +69,11 @@ conservatively: 209 covered, 520 unsupported and three not applicable. A family
 anchor is evidence for a behavior family, not a claim that MoonJust copied each
 Rust test one-for-one.
 
-The CLI inventory contains 50 options and 19 commands. Settings (29),
+The CLI inventory contains 50 options and 19 commands. All 39 upstream
+`JUST_*` argument bindings are also exact-name checked: implemented options use
+the HostEnv snapshot with `argv > env > default` precedence, unsupported
+bindings fail explicitly when enabled, and `JUST_JUSTFILE=-` reads stdin before
+dispatch. Settings (29),
 attributes (29), and builtins (83) are exact-name checked. Recognition or JSON
 serialization alone no longer counts as implementation; partial behaviors are
 marked unsupported with a concrete reason. The audit also fixed string-valued
@@ -80,9 +84,11 @@ part of `working-directory` remains explicitly unsupported.
 
 ## Gates
 
-Local evidence currently passes 297 Native and 292 wasm1 tests, strict
+Local evidence currently passes 300 Native and 295 wasm1 tests, strict
 all-backend checking, formatting, public compatibility verification, the
 macOS aarch64 real platform gate, and all five pinned upstream tangle tests.
 `tools/check_phase10_platform.sh` is also installed in the Ubuntu, macOS and
-Windows Native matrix. Remote PR and protected-main evidence will be recorded
-only after those runs complete.
+Windows Native matrix. The first PR run, GitHub Actions run `31611054327`,
+passed quality, Ubuntu, macOS and Windows. The mandatory second audit then found
+and repaired the CLI environment entry-point gap; remediation CI, merge and
+protected-main evidence remain pending.

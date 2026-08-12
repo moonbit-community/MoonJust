@@ -133,6 +133,18 @@ grep -q 'was not confirmed' "$work/eof.stderr" || fail "confirmation EOF did not
 tr -d '\r' <"$work/yes.stdout" | grep -qx 'phase10-confirm' || fail "--yes did not bypass the prompt"
 ! grep -q 'Run phase 10?' "$work/yes.stderr" || fail "--yes still emitted a prompt"
 
+(cd "$work" && JUST_YES=1 "$cli" confirm </dev/null >env-yes.stdout 2>env-yes.stderr)
+tr -d '\r' <"$work/env-yes.stdout" | grep -qx 'phase10-confirm' || fail "JUST_YES did not bypass the prompt"
+! grep -q 'Run phase 10?' "$work/env-yes.stderr" || fail "JUST_YES still emitted a prompt"
+
+printf 'stdin-env:\n  echo phase10-stdin-env\n' | (cd "$work" && JUST_JUSTFILE=- "$cli" stdin-env >env-stdin.stdout 2>env-stdin.stderr)
+tr -d '\r' <"$work/env-stdin.stdout" | grep -qx 'phase10-stdin-env' || fail "JUST_JUSTFILE=- did not read stdin"
+
+(cd "$work" && JUST_JUSTFILE=- "$cli" --justfile justfile alpha </dev/null >env-override.stdout 2>env-override.stderr)
+tr -d '\r' <"$work/env-override.stdout" | grep -qx 'phase10-choice' || fail "argv justfile did not override JUST_JUSTFILE"
+(cd "$work" && JUST_ALLOW_MISSING=1 JUST_DRY_RUN=1 JUST_QUIET=1 "$cli" --version </dev/null >env-version.stdout 2>env-version.stderr)
+grep -q '^moonjust 0.7.0-alpha' "$work/env-version.stdout" || fail "--version did not override unsupported environment diagnostics"
+
 (cd "$work" && "$cli" script >script.stdout 2>script.stderr)
 tr -d '\r' <"$work/script.stdout" | grep -qx 'phase10-script' || fail "platform script did not execute"
 

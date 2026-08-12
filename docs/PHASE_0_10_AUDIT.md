@@ -1,16 +1,17 @@
 # Phase 0-10 strict exit audit
 
-- Review date: 2026-08-12
-- Reviewed baseline: Phase 10 delivery branch, remote evidence pending
+- Review date: 2026-08-13
+- Reviewed baseline: Phase 10 delivery branch after first green PR CI
 - Accepted specification: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)
 - Phase 10 detail: [`PHASE_10_REPORT.md`](PHASE_10_REPORT.md)
 
 ## Verdict
 
-Phase 0-9 remain complete under their previously merged evidence. Phase 10 is
-locally complete and is not yet declared through its final exit: pull-request
-CI, the required second review, merge, and protected-main CI are still pending.
-This document will be finalized only after those external gates pass.
+Phase 0-9 remain complete under their previously merged evidence. Phase 10's
+first PR CI passed, and the required second review found and remediated a CLI
+environment entry-point gap. Phase 10 is not yet declared through its final
+exit: remediation CI, merge and protected-main CI are still pending. This
+document will be finalized only after those external gates pass.
 
 ## Phase 10 strict review
 
@@ -36,6 +37,10 @@ before delivery:
   Phase 8 and Phase 10 rows;
 - the Phase 10 gate assumed a pre-existing upstream checkout instead of
   reconstructing the pinned oracle.
+- all upstream `JUST_*` argument aliases were absent from declarative CLI
+  registration, and the production entry point passed an empty environment;
+- `JUST_JUSTFILE=-` could not trigger stdin capture because stdin needs were
+  decided before argument parsing.
 
 The corrected design keeps platform conditionals in adapter leaves, reports
 unsupported behavior explicitly, restores the fixed oracle automatically, and
@@ -45,15 +50,16 @@ fails CI on name drift, missing reasons, absent anchors or any planned row.
 
 | Evidence | Result |
 | --- | --- |
-| Native tests | 297 passed, 0 failed |
-| wasm1 tests | 292 passed, 0 failed |
+| Native tests | 300 passed, 0 failed |
+| wasm1 tests | 295 passed, 0 failed |
 | All stable backend checks | pass |
 | Phase 10 Native/wasm compatibility gate | pass |
 | Pinned upstream tangle tests | 5 passed, 0 failed |
 | Local macOS aarch64 platform gate | pass |
 | Upstream registration classification | 2,417 classified; 0 planned |
-| PR CI | pending |
-| Second review | pending after PR CI |
+| First PR CI | run 31611054327 passed quality, Ubuntu, macOS and Windows |
+| Second review | completed; CLI environment remediation applied |
+| Remediation PR CI | pending |
 | Protected-main CI | pending |
 
 ## Compatibility boundary

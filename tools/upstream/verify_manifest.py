@@ -38,6 +38,47 @@ CLI_COMMAND_NAMES = {
     "--evaluate", "--fmt", "--groups", "--init", "--json", "--list", "--man", "--request",
     "--show", "--summary", "--usage", "--variables",
 }
+CLI_ENV_BINDINGS = {
+    "JUST_ALIAS_STYLE": "--alias-style",
+    "JUST_ALLOW_MISSING": "--allow-missing",
+    "JUST_CEILING": "--ceiling",
+    "JUST_CHOOSER": "--chooser",
+    "JUST_COLOR": "--color",
+    "JUST_COMMAND_COLOR": "--command-color",
+    "JUST_COMPLETE_ALIASES": "--complete-aliases",
+    "JUST_CYGPATH": "--cygpath",
+    "JUST_DEFAULT_LIST": "--default-list",
+    "JUST_DOTENV_COMMAND": "--dotenv-command",
+    "JUST_DRY_RUN": "--dry-run",
+    "JUST_DUMP_FORMAT": "--dump-format",
+    "JUST_EVALUATE_FORMAT": "--evaluate-format",
+    "JUST_EXPLAIN": "--explain",
+    "JUST_GROUP": "--group",
+    "JUST_HIGHLIGHT": "--highlight",
+    "JUST_INDENTATION": "--indentation",
+    "JUST_JOBS": "--jobs",
+    "JUST_JUSTFILE": "--justfile",
+    "JUST_JUSTFILE_NAME": "--justfile-name",
+    "JUST_LIST_HEADING": "--list-heading",
+    "JUST_LIST_PREFIX": "--list-prefix",
+    "JUST_LIST_SUBMODULES": "--list-submodules",
+    "JUST_NO_ALIASES": "--no-aliases",
+    "JUST_NO_CACHE": "--no-cache",
+    "JUST_NO_DEPS": "--no-deps",
+    "JUST_NO_DOTENV": "--no-dotenv",
+    "JUST_NO_HIGHLIGHT": "--no-highlight",
+    "JUST_ONE": "--one",
+    "JUST_QUIET": "--quiet",
+    "JUST_TEMPDIR": "--tempdir",
+    "JUST_TIME": "--time",
+    "JUST_TIMESTAMP": "--timestamp",
+    "JUST_TIMESTAMP_FORMAT": "--timestamp-format",
+    "JUST_UNSORTED": "--unsorted",
+    "JUST_UNSTABLE": "--unstable",
+    "JUST_VERBOSE": "--verbose",
+    "JUST_WORKING_DIRECTORY": "--working-directory",
+    "JUST_YES": "--yes",
+}
 SETTING_NAMES = {
     "allow-duplicate-recipes", "allow-duplicate-variables", "default-list", "default-script",
     "dotenv-command", "dotenv-filename", "dotenv-load", "dotenv-override", "dotenv-path",
@@ -260,6 +301,56 @@ def validate() -> None:
     for entry in cli_entries:
         if entry["status"] in {"unsupported", "excluded"}:
             expect(bool(entry.get("reason")), f"{entry['name']} lacks a status reason")
+    manifest_env_bindings = {
+        entry["env"]: entry["name"]
+        for entry in cli["option"]
+        if "env" in entry
+    }
+    expect(
+        manifest_env_bindings == CLI_ENV_BINDINGS,
+        "CLI environment bindings differ from upstream arguments.rs",
+    )
+    for entry in cli["option"]:
+        if "env" not in entry:
+            continue
+        env_status = entry.get("env_status", entry["status"])
+        expect(
+            env_status in {"implemented", "unsupported"},
+            f"{entry['env']} has an invalid environment status",
+        )
+        if env_status == "unsupported" and entry["status"] == "implemented":
+            expect(
+                bool(entry.get("env_reason")),
+                f"{entry['env']} lacks an environment-specific reason",
+            )
+    cli_source = (repo / "src/cli/arguments.mbt").read_text(encoding="utf-8")
+    implemented_env = {
+        entry["env"]
+        for entry in cli["option"]
+        if "env" in entry and entry.get("env_status", entry["status"]) == "implemented"
+    }
+    unsupported_env = set(CLI_ENV_BINDINGS) - implemented_env
+    for name in implemented_env:
+        expect(
+            f'env="{name}"' in cli_source,
+            f"implemented CLI environment binding {name} is not registered",
+        )
+    for name in unsupported_env:
+        expect(
+            f'("{name}",' in cli_source or f'env.get("{name}")' in cli_source,
+            f"unsupported CLI environment binding {name} lacks an explicit diagnostic",
+        )
+    main_source = (repo / "cmd/just/main.mbt").read_text(encoding="utf-8")
+    expect(
+        "HostEnv::env_entries(environment_host)" in main_source,
+        "production CLI does not pass the HostEnv snapshot to argparse",
+    )
+    platform_gate = (repo / "tools/check_phase10_platform.sh").read_text(encoding="utf-8")
+    for required_probe in ("JUST_YES=1", "JUST_JUSTFILE=-"):
+        expect(
+            required_probe in platform_gate,
+            f"Phase 10 platform gate lacks {required_probe} entry-point coverage",
+        )
     expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 35, "implemented CLI option count changed")
     expect(sum(entry["status"] == "unsupported" for entry in cli["option"]) == 14, "unsupported CLI option count changed")
     expect(sum(entry["status"] == "excluded" for entry in cli["option"]) == 1, "excluded CLI option count changed")
@@ -426,7 +517,11 @@ def validate() -> None:
     phase10 = load(repo / "compat/phase-10.toml")
     expect(phase10["status"] == "implemented", "Phase 10 status is not implemented")
     expect(
-        phase10["plan_exit"] in {"pending-remote-ci-and-second-audit", "passed"},
+        phase10["plan_exit"] in {
+            "pending-remote-ci-and-second-audit",
+            "pending-remediation-ci-and-merge",
+            "passed",
+        },
         "Phase 10 exit has an invalid state",
     )
     phase10_rows = [

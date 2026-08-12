@@ -1,15 +1,12 @@
 ///|
-fn needs_stdin(arguments : ArrayView[String]) -> Bool {
-  for index, argument in arguments {
-    if argument == "--justfile=-" || argument == "-f-" {
-      return true
-    }
-    if (argument == "--justfile" || argument == "-f") &&
-      arguments.get(index + 1) == Some("-") {
-      return true
-    }
+fn[E : @host.HostEnv] parse_environment(
+  environment_host : E,
+) -> Map[String, String] raise @host.HostError {
+  let environment : Map[String, String] = Map([])
+  for entry in @host.HostEnv::env_entries(environment_host) {
+    environment[entry.0] = entry.1
   }
-  false
+  environment
 }
 
 ///|
@@ -125,7 +122,16 @@ async fn[
   argv : ArrayView[String],
   stdin : Bytes,
 ) -> @cli.ApplicationResponse {
-  let arguments = try @cli.parse_arguments(argv, {}) catch {
+  let environment = try parse_environment(environment_host) catch {
+    error =>
+      return failure(
+        "error: failed to read process environment: \{Repr(error)}",
+        1,
+      )
+  } noraise {
+    value => value
+  }
+  let arguments = try @cli.parse_arguments(argv, environment) catch {
     Invalid(message) => return failure(message, 2)
     Unsupported(name) =>
       return failure("error: option '\{name}' is not supported yet", 2)
@@ -230,16 +236,24 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 async fn main {
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
-  let stdin = if needs_stdin(argv) {
+  let environment_host = runtime_environment_host()
+  let parsed = try {
+    let environment = parse_environment(environment_host)
+    Some(@cli.parse_arguments(argv, environment))
+  } catch {
+    _ => None
+  }
+  let stdin = if parsed is Some(arguments) &&
+    !arguments.flag("help") &&
+    !arguments.flag("version") &&
+    arguments.value("justfile") == Some("-") {
     @stdio.stdin.read_all().binary() catch {
       _ => b""
     }
   } else {
     b""
   }
-  emit_response(
-    run_cli(runtime_host(), runtime_environment_host(), argv, stdin),
-  ) catch {
+  emit_response(run_cli(runtime_host(), environment_host, argv, stdin)) catch {
     _ => runtime_exit(1)
   }
 }

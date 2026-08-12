@@ -8,17 +8,20 @@ upstream = "just 1.57.0"
 name = "--alias-style"
 tier = "A"
 status = "implemented"
+env = "JUST_ALIAS_STYLE"
 
 [[option]]
 name = "--allow-missing"
 tier = "A"
 status = "unsupported"
+env = "JUST_ALLOW_MISSING"
 reason = "Missing recipes and modules are rejected; --allow-missing execution semantics are not implemented."
 
 [[option]]
 name = "--ceiling"
 tier = "A"
 status = "unsupported"
+env = "JUST_CEILING"
 reason = "Search ceiling control is not implemented."
 
 [[option]]
@@ -31,6 +34,7 @@ requires = ["--fmt"]
 name = "--chooser"
 tier = "B"
 status = "implemented"
+env = "JUST_CHOOSER"
 
 [[option]]
 name = "--clear-shell-args"
@@ -41,34 +45,41 @@ status = "implemented"
 name = "--color"
 tier = "A"
 status = "implemented"
+env = "JUST_COLOR"
 
 [[option]]
 name = "--command-color"
 tier = "A"
 status = "implemented"
+env = "JUST_COMMAND_COLOR"
 
 [[option]]
 name = "--complete-aliases"
 tier = "X"
 status = "excluded"
+env = "JUST_COMPLETE_ALIASES"
+env_status = "unsupported"
 reason = "Completion is outside project scope."
 
 [[option]]
 name = "--cygpath"
 tier = "B"
 status = "unsupported"
+env = "JUST_CYGPATH"
 reason = "MoonJust does not perform Cygwin path conversion."
 
 [[option]]
 name = "--default-list"
 tier = "A"
 status = "unsupported"
+env = "JUST_DEFAULT_LIST"
 reason = "Default-list invocation behavior is not implemented."
 
 [[option]]
 name = "--dotenv-command"
 tier = "A"
 status = "unsupported"
+env = "JUST_DOTENV_COMMAND"
 reason = "Command-produced dotenv loading is not implemented."
 
 [[option]]
@@ -88,22 +99,26 @@ name = "--dry-run"
 short = "-n"
 tier = "A"
 status = "implemented"
+env = "JUST_DRY_RUN"
 conflicts = ["--quiet"]
 
 [[option]]
 name = "--dump-format"
 tier = "A"
 status = "implemented"
+env = "JUST_DUMP_FORMAT"
 
 [[option]]
 name = "--evaluate-format"
 tier = "A"
 status = "implemented"
+env = "JUST_EVALUATE_FORMAT"
 
 [[option]]
 name = "--explain"
 tier = "A"
 status = "unsupported"
+env = "JUST_EXPLAIN"
 reason = "Recipe documentation is not emitted before execution."
 
 [[option]]
@@ -117,84 +132,99 @@ reason = "Global justfile discovery is not implemented."
 name = "--group"
 tier = "A"
 status = "implemented"
+env = "JUST_GROUP"
 modes = ["--list", "--choose"]
 
 [[option]]
 name = "--highlight"
 tier = "A"
 status = "unsupported"
+env = "JUST_HIGHLIGHT"
 reason = "Recipe source highlighting is not implemented."
 
 [[option]]
 name = "--indentation"
 tier = "A"
 status = "unsupported"
+env = "JUST_INDENTATION"
 reason = "CLI indentation override is rejected."
 
 [[option]]
 name = "--jobs"
 tier = "A"
 status = "implemented"
+env = "JUST_JOBS"
 
 [[option]]
 name = "--justfile"
 short = "-f"
 tier = "A"
 status = "implemented"
+env = "JUST_JUSTFILE"
 
 [[option]]
 name = "--justfile-name"
 tier = "A"
 status = "implemented"
+env = "JUST_JUSTFILE_NAME"
 
 [[option]]
 name = "--list-heading"
 tier = "A"
 status = "implemented"
+env = "JUST_LIST_HEADING"
 
 [[option]]
 name = "--list-prefix"
 tier = "A"
 status = "implemented"
+env = "JUST_LIST_PREFIX"
 
 [[option]]
 name = "--list-submodules"
 tier = "A"
 status = "unsupported"
+env = "JUST_LIST_SUBMODULES"
 reason = "Module recipe listing is not implemented."
 
 [[option]]
 name = "--no-aliases"
 tier = "A"
 status = "implemented"
+env = "JUST_NO_ALIASES"
 
 [[option]]
 name = "--no-cache"
 tier = "A"
 status = "implemented"
+env = "JUST_NO_CACHE"
 
 [[option]]
 name = "--no-deps"
 aliases = ["--no-dependencies"]
 tier = "A"
 status = "unsupported"
+env = "JUST_NO_DEPS"
 reason = "Dependency suppression is not implemented."
 
 [[option]]
 name = "--no-dotenv"
 tier = "A"
 status = "implemented"
+env = "JUST_NO_DOTENV"
 
 [[option]]
 name = "--no-highlight"
 tier = "A"
 status = "unsupported"
+env = "JUST_NO_HIGHLIGHT"
 reason = "Recipe source highlighting is not implemented."
 
 [[option]]
 name = "--one"
 tier = "A"
 status = "unsupported"
+env = "JUST_ONE"
 reason = "Single-invocation enforcement is not implemented."
 
 [[option]]
@@ -202,6 +232,7 @@ name = "--quiet"
 short = "-q"
 tier = "A"
 status = "implemented"
+env = "JUST_QUIET"
 conflicts = ["--dry-run"]
 
 [[option]]
@@ -229,50 +260,59 @@ reason = "Arbitrary shell-command execution is not implemented."
 name = "--tempdir"
 tier = "A"
 status = "implemented"
+env = "JUST_TEMPDIR"
 
 [[option]]
 name = "--time"
 tier = "B"
 status = "implemented"
+env = "JUST_TIME"
 
 [[option]]
 name = "--timestamp"
 tier = "B"
 status = "implemented"
+env = "JUST_TIMESTAMP"
 
 [[option]]
 name = "--timestamp-format"
 tier = "B"
 status = "implemented"
+env = "JUST_TIMESTAMP_FORMAT"
 
 [[option]]
 name = "--unsorted"
 short = "-u"
 tier = "A"
 status = "implemented"
+env = "JUST_UNSORTED"
 
 [[option]]
 name = "--unstable"
 tier = "X"
 status = "implemented"
+env = "JUST_UNSTABLE"
 
 [[option]]
 name = "--verbose"
 short = "-v"
 tier = "A"
 status = "implemented"
+env = "JUST_VERBOSE"
 
 [[option]]
 name = "--working-directory"
 short = "-d"
 tier = "A"
 status = "implemented"
+env = "JUST_WORKING_DIRECTORY"
 requires = ["--justfile"]
 
 [[option]]
 name = "--yes"
 tier = "A"
 status = "implemented"
+env = "JUST_YES"
 
 [[option]]
 name = "--help"

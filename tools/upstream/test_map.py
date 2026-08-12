@@ -661,7 +661,7 @@ def phase_8_difference_reason(name: str) -> str | None:
     if category == "timestamps" and "invalid_format_string" in name:
         return "MoonJust preserves unknown timestamp directives instead of rejecting them."
     if category == "unstable":
-        return "JUST_UNSTABLE environment and per-module unstable propagation are not implemented."
+        return "User-defined function unstable gating and per-module propagation are not implemented."
     if any(marker in name for marker in PHASE_8_UNSUPPORTED_MARKERS):
         return "The required module, search, or optional CLI behavior is not implemented."
     return None

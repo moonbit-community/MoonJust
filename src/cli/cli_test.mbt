@@ -435,6 +435,89 @@ test "tempdir is a supported global value" {
 }
 
 ///|
+test "supported JUST environment aliases parse with argv precedence" {
+  let from_environment = try! parse_arguments(["build"], {
+    "JUST_COLOR": "always",
+    "JUST_JOBS": "3",
+    "JUST_NO_CACHE": "yes",
+    "JUST_TIMESTAMP_FORMAT": "%s",
+    "JUST_VERBOSE": "2",
+    "JUST_YES": "1",
+  })
+  assert_eq(from_environment.value("color"), Some("always"))
+  assert_eq(from_environment.value("jobs"), Some("3"))
+  assert_true(from_environment.flag("no-cache"))
+  assert_eq(from_environment.value("timestamp-format"), Some("%s"))
+  assert_eq(from_environment.count("verbose"), 2)
+  assert_true(from_environment.flag("yes"))
+  let explicit = try! parse_arguments(
+    ["--color", "never", "--jobs", "7", "--no-cache", "build"],
+    { "JUST_COLOR": "always", "JUST_JOBS": "3", "JUST_NO_CACHE": "0" },
+  )
+  assert_eq(explicit.value("color"), Some("never"))
+  assert_eq(explicit.value("jobs"), Some("7"))
+  assert_true(explicit.flag("no-cache"))
+  let false_flags = try! parse_arguments(["build"], {
+    "JUST_DRY_RUN": "0",
+    "JUST_NO_CACHE": "false",
+    "JUST_QUIET": "no",
+  })
+  assert_false(false_flags.flag("dry-run"))
+  assert_false(false_flags.flag("no-cache"))
+  assert_false(false_flags.flag("quiet"))
+}
+
+///|
+test "unsupported JUST environment aliases fail only when enabled" {
+  let disabled = try! parse_arguments(["build"], {
+    "JUST_ALLOW_MISSING": "false",
+  })
+  assert_eq(disabled.positional(), ["build"])
+  for
+    environment in [
+      { "JUST_ALLOW_MISSING": "true" },
+      { "JUST_CEILING": "/workspace" },
+    ] {
+    try parse_arguments(["build"], environment) catch {
+      Unsupported(_) => ()
+      error => fail("unexpected environment alias error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected unsupported environment alias failure")
+    }
+  }
+  assert_true(
+    (try! parse_arguments(["--help"], { "JUST_ALLOW_MISSING": "true" })).flag(
+      "help",
+    ),
+  )
+  assert_true(
+    (try! parse_arguments(["--version"], {
+      "JUST_CEILING": "/workspace",
+      "JUST_DRY_RUN": "1",
+      "JUST_QUIET": "1",
+    })).flag("version"),
+  )
+}
+
+///|
+test "JUST_UNSTABLE uses upstream falsey and arbitrary truthy semantics" {
+  for value in ["0", "", "false"] {
+    assert_false(
+      (try! parse_arguments(["build"], { "JUST_UNSTABLE": value })).flag(
+        "unstable",
+      ),
+    )
+  }
+  for value in ["1", "true", "enabled"] {
+    assert_true(
+      (try! parse_arguments(["build"], { "JUST_UNSTABLE": value })).flag(
+        "unstable",
+      ),
+    )
+  }
+}
+
+///|
 test "commands that do not accept variable overrides reject set explicitly" {
   for
     arguments in [
