@@ -95,7 +95,17 @@ EOF
   *) fail "unsupported runner operating system: $(uname -s)" ;;
 esac
 
+set +e
 (cd "$work" && "$cli" platform >platform.stdout 2>platform.stderr)
+platform_status=$?
+set -e
+if [ "$platform_status" -ne 0 ]; then
+  echo "Phase 10 platform stdout:" >&2
+  cat "$work/platform.stdout" >&2
+  echo "Phase 10 platform stderr:" >&2
+  cat "$work/platform.stderr" >&2
+  fail "platform recipe exited with status $platform_status"
+fi
 actual_os=$(sed -n '1p' "$work/platform.stdout" | tr -d '\r')
 [ "$actual_os" = "$expected_os" ] || fail "reported OS '$actual_os', expected '$expected_os'"
 actual_arch=$(sed -n '2p' "$work/platform.stdout" | tr -d '\r')
