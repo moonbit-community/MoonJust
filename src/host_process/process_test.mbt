@@ -4,6 +4,7 @@ fn unix_path(value : String) -> @path.PathValue {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "process adapter preserves cwd env buffered stdin and output" {
   let command = try! @host.CommandSpec::new("/bin/sh", [
     "-c", "printf '%s|%s|' \"$MODE\" \"$PWD\"; cat",
@@ -27,6 +28,7 @@ async test "process adapter preserves cwd env buffered stdin and output" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "process adapter maps nonzero exit termination" {
   let failed = try! @host.CommandSpec::new("/bin/sh", ["-c", "exit 7"])
   let result = try! @host.HostAsyncProcess::run_process_async(
@@ -37,9 +39,57 @@ async test "process adapter maps nonzero exit termination" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "discarded streams are drained without being retained" {
   let command = try! @host.CommandSpec::new("/bin/sh", [
     "-c", "printf ignored; printf warning >&2",
+  ])
+  command.set_stdout(Discard)
+  command.set_stderr(Discard)
+  let result = try! @host.HostAsyncProcess::run_process_async(
+    ProcessAdapter::new(),
+    command,
+  )
+  assert_eq(result.termination(), Exited(0))
+  assert_eq(result.stdout(), b"")
+  assert_eq(result.stderr(), b"")
+}
+
+///|
+#cfg(platform="windows")
+async test "Windows process adapter preserves env buffered stdin and output" {
+  let command = try! @host.CommandSpec::new("cmd.exe", [
+    "/D", "/V:ON", "/C", "set /p INPUT=& <nul set /p =!MODE!^|!INPUT!",
+  ])
+  try! command.add_environment("MODE", "test")
+  command.set_stdin(b"input")
+  command.set_stdout(Capture)
+  command.set_stderr(Capture)
+  let result = try! @host.HostAsyncProcess::run_process_async(
+    ProcessAdapter::new(),
+    command,
+  )
+  assert_eq(result.termination(), Exited(0))
+  assert_eq(result.stdout(), b"test|input")
+  assert_eq(result.stderr(), b"")
+}
+
+///|
+#cfg(platform="windows")
+async test "Windows process adapter maps nonzero exit termination" {
+  let failed = try! @host.CommandSpec::new("cmd.exe", ["/D", "/C", "exit /B 7"])
+  let result = try! @host.HostAsyncProcess::run_process_async(
+    ProcessAdapter::new(),
+    failed,
+  )
+  assert_eq(result.termination(), Exited(7))
+}
+
+///|
+#cfg(platform="windows")
+async test "Windows discarded streams are drained without being retained" {
+  let command = try! @host.CommandSpec::new("cmd.exe", [
+    "/D", "/C", "echo ignored& echo warning 1>&2",
   ])
   command.set_stdout(Discard)
   command.set_stderr(Discard)
