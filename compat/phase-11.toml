@@ -55,5 +55,7 @@ cold_candidate_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/
 matrix_pr = "https://github.com/moonbit-community/MoonJust/pull/46"
 matrix_merge = "09ac48c0a00dbf572e2d6242574da820446544f2"
 matrix_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31677294787"
+candidate_baseline = "ec960b5a1cdf8bce63fcaae79f63b4f9947490f3"
+candidate_baseline_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31697473589"
 candidate_workflow = "https://github.com/moonbit-community/MoonJust/actions/runs/31698189163"
 post_merge_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31677969665"
