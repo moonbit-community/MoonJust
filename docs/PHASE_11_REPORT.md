@@ -13,8 +13,11 @@
 - Remote candidate remediation: [PR #44](https://github.com/moonbit-community/MoonJust/pull/44),
   [PR #45](https://github.com/moonbit-community/MoonJust/pull/45) and
   [PR #46](https://github.com/moonbit-community/MoonJust/pull/46)
-- Final protected-main CI:
+- Remediated implementation protected-main CI:
   [31677969665](https://github.com/moonbit-community/MoonJust/actions/runs/31677969665)
+- Audit-closure baseline: `ec960b5a1cdf8bce63fcaae79f63b4f9947490f3`;
+  protected-main CI
+  [31697473589](https://github.com/moonbit-community/MoonJust/actions/runs/31697473589)
 - Candidate workflow:
   [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163)
 - Strict review: [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)
@@ -107,7 +110,8 @@ executable API guide adds three tests; the complete matrices pass 303 Native
 and 298 wasm1 tests, and all stable backends type-check.
 Both successful PR CI runs and the mandatory second audit are complete. The
 delivery and three candidate-remediation PRs merged through required checks;
-the final protected-main CI passed quality plus Ubuntu, macOS and Windows.
+the audit-closure protected-main CI passed quality plus Ubuntu, macOS and
+Windows.
 The manually dispatched candidate workflow then passed source validation,
 Linux x86_64, macOS arm64 and Windows x86_64 Native artifacts, the wasm1 MoonX
 asset and GitHub OIDC attestations. Phase 11 is complete. The workflow did not

@@ -11,8 +11,11 @@
 - Candidate-remediation PRs: [#44](https://github.com/moonbit-community/MoonJust/pull/44),
   [#45](https://github.com/moonbit-community/MoonJust/pull/45) and
   [#46](https://github.com/moonbit-community/MoonJust/pull/46)
-- Final protected-main CI:
+- Remediated implementation protected-main CI:
   [31677969665](https://github.com/moonbit-community/MoonJust/actions/runs/31677969665)
+- Audit-closure baseline: `ec960b5a1cdf8bce63fcaae79f63b4f9947490f3`;
+  protected-main CI
+  [31697473589](https://github.com/moonbit-community/MoonJust/actions/runs/31697473589)
 - Successful candidate workflow:
   [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163)
 - Accepted specification: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)
@@ -102,9 +105,10 @@ extraction. Twelve independent tamper classes are rejected.
 | Second review | completed; candidate-integrity remediation applied in `f4e96ef` |
 | Second-review PR CI | run 31669564990 passed quality, Ubuntu, macOS and Windows |
 | Candidate remediations | PRs #44-#46 passed checks and merged as `9e85f81`, `ab22da4` and `09ac48c` |
-| Supported candidate workflow | run 31698189163 on final `main` passed source validation, three Native artifacts, wasm1 asset and OIDC attestations |
+| Supported candidate workflow | run 31698189163 on audit-closure baseline `ec960b5a` passed source validation, three Native artifacts, wasm1 asset and OIDC attestations |
 | Delivery merge | PR #43 merged as `b4b318c981a4b81a681afb6a4a00418d70cd046a` |
-| Final protected-main CI | run 31677969665 passed quality, Ubuntu, macOS and Windows |
+| Remediated implementation CI | run 31677969665 passed quality, Ubuntu, macOS and Windows |
+| Audit-closure protected-main CI | run 31697473589 passed quality, Ubuntu, macOS and Windows on `ec960b5a` |
 
 ## Publication boundary
 
