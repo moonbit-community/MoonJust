@@ -7,10 +7,10 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> Phase 0-9 exits have passed, including protected-main CI. MoonJust
-> `0.7.0-alpha` implements the Phase 10 platform, interactive, terminal,
-> Markdown and compatibility-convergence contracts; remote CI and the required
-> second review are still pending.
+> Phase 0-10 exits have passed, including protected-main CI. MoonJust
+> `0.7.0-alpha.1` implements the Phase 11 release-engineering contracts;
+> Phase 11 remote CI, candidate attestation and the required second review are
+> still pending.
 
 ## What is delivered
 
@@ -30,6 +30,7 @@ The completed phases establish a usable and auditable foundation:
 | Platform and terminal | real Native OS/architecture/TTY facts, signal-aware statuses, deterministic color and Unicode display width |
 | Interactive and Markdown | confirm/yes, chooser/editor workflows and automatic source-aware Markdown extraction |
 | Wasm boundary | separate read-only inspect and process-enabled execution policies |
+| Release engineering | validated Mooncakes source package, MoonX staging, cross-platform candidates, checksums, SBOM/provenance and upgrade rollback |
 
 The CLI validates the complete recipe graph before execution, then runs ready
 tasks through a bounded FIFO scheduler. Cache entries are BLAKE3-keyed,
@@ -98,8 +99,8 @@ moonrun --policy policies/inspect.toml \
 
 The gate checks architecture boundaries, pinned upstream metadata, the
 differential harness, all stable backends, Wasm policy, Phase 7 differentials,
-Phase 8-10 runtime gates, the pinned Markdown oracle, public interfaces, and
-the complete Native/wasm1 test matrix.
+Phase 8-11 runtime/release gates, the pinned Markdown oracle, public
+interfaces, and the complete Native/wasm1 test matrix.
 
 ## Architecture
 
@@ -188,7 +189,9 @@ definition of ready and required PR evidence.
 ## Documentation index
 
 - [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and future phases.
-- [Phase 0-9 strict audit](docs/PHASE_0_9_AUDIT.md): current cross-phase verdict and publication evidence.
+- [Phase 0-10 strict audit](docs/PHASE_0_10_AUDIT.md): current completed cross-phase verdict and remote evidence.
+- [Phase 11 report](docs/PHASE_11_REPORT.md): release-candidate engineering and local exit evidence.
+- [Public API](docs/API.md) and [release policy](docs/RELEASE_POLICY.md): package surface, candidate integrity and maintainer-only publication boundary.
 - [Phase 0 report](docs/PHASE_0_REPORT.md) through [Phase 7 report](docs/PHASE_7_REPORT.md): phase-local delivery records.
 - [Architecture](docs/ARCHITECTURE.md): package boundaries and capability flow.
 - [ADR index](docs/adr/README.md): accepted design decisions.

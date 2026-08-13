@@ -1,6 +1,6 @@
 name = "moonbit-community/MoonJust"
 
-version = "0.7.0"
+version = "0.7.0-alpha.1"
 
 readme = "README.mbt.md"
 
@@ -8,7 +8,7 @@ repository = "https://github.com/moonbit-community/MoonJust"
 
 license = "Apache-2.0"
 
-keywords = [ ]
+keywords = [ "command-runner", "just", "task-runner", "wasm" ]
 
 preferred_target = "wasm"
 

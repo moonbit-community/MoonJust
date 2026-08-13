@@ -1,0 +1,30 @@
+# Public API
+
+The executable API guide and compiled examples are in
+[`API.mbt.md`](../API.mbt.md). This file is retained as a stable documentation
+index for source packages and generated Mooncakes documentation.
+
+MoonJust's supported library surface is the root
+`moonbit-community/MoonJust` package. Its generated interface is committed as
+`pkg.generated.mbti`; target-specific adapters and executable composition are
+not stable API promises before the Phase 12 beta freeze.
+
+`parse` preserves UTF-8 byte spans, `format_source` returns canonical source,
+and `compile_source` performs static validation without filesystem or process
+access. Loading imports and modules remains an explicit host-level operation.
+
+## Evaluate
+
+`evaluate_expression` evaluates a parsed expression with an explicit
+environment and evaluation budget. It is the pure evaluator facade; host
+effects such as filesystem access, environment lookup and process spawning are
+not granted by this function.
+
+## Build identity
+
+`version`, `compatible_just_version`, and `version_line` expose the MoonJust
+application version and the pinned upstream compatibility baseline. Release
+automation checks these values against the packaged metadata.
+
+Run `moon info` to regenerate the formal interfaces and `moon doc` to generate
+the complete package documentation from committed `///` comments.

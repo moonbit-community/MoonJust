@@ -1,0 +1,45 @@
+schema_version = 1
+phase = 11
+upstream = "just 1.57.0"
+status = "implemented"
+plan_exit = "pending-remote-evidence"
+report = "docs/PHASE_11_REPORT.md"
+audit = "pending-second-review"
+
+[contracts]
+mooncakes = "complete module metadata, source package validation, documented public facade and exact moonx executable coordinate"
+policy = "deny, inspect, CI and execute policies with real capability-denial and allow-path smoke tests"
+artifacts = "release-mode Linux, macOS and Windows Native executables plus linear-memory wasm1, SHA-256 checksums and clean extraction smoke tests"
+supply_chain = "CycloneDX SBOM, SLSA-compatible provenance predicate, checksums and GitHub OIDC artifact attestations bound to commit and toolchain"
+upgrade = "cold source-package install, previous-release replacement, corpus execution and byte-preserving rollback without shared project build cache"
+publication = "repository automation prepares and attests candidates only; formal Mooncakes publication, tags and GitHub Releases are maintainer-only"
+
+[mooncakes]
+module = "moonbit-community/MoonJust"
+version = "0.7.0-alpha.1"
+package = "cmd/just"
+coordinate = "moonbit-community/MoonJust/cmd/just@0.7.0-alpha.1"
+wasm_asset = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/just.wasm"
+wasm_checksum = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/just.wasm.sha256"
+
+[toolchain]
+moon = "0.1.20260803"
+moonc = "release CI: 0.10.6+62c2592d1; provenance records the exact builder value"
+moonrun = "0.1.20260803"
+moonx = "0.1.0"
+
+[evidence]
+release_gate = "tools/check_phase11.sh"
+policy_gate = "tools/release/check_policies.sh"
+artifact_builder = "tools/release/build_artifacts.sh"
+artifact_verifier = "tools/release/verify_bundle.py"
+supply_chain_verifier = "tools/release/verify_supply_chain.py"
+upgrade_rehearsal = "tools/release/rehearse_upgrade.sh"
+release_workflow = ".github/workflows/release.yml"
+
+[remote_evidence]
+delivery_pr = "pending"
+first_pr_ci = "pending"
+second_review_ci = "pending"
+merge_commit = "pending"
+post_merge_ci = "pending"

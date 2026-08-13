@@ -19,10 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
 
       - name: Install MoonBit
-        uses: hustcer/setup-moonbit@v1.22
+        uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
         with:
           version: 0.10.6+62c2592d1
 
@@ -54,7 +56,7 @@ jobs:
         run: ./tools/spikes/check_ecosystem.sh
 
       - name: Cache pinned upstream oracle
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ~/.cargo/registry
@@ -98,6 +100,9 @@ jobs:
       - name: Verify Phase 10 compatibility convergence
         run: ./tools/check_phase10.sh
 
+      - name: Verify Phase 11 release engineering
+        run: ./tools/check_phase11.sh
+
       - name: Verify Phase 6 query oracle
         run: ./tools/check_phase6_oracle.sh
 
@@ -130,10 +135,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Install MoonBit
-        uses: hustcer/setup-moonbit@v1.22
+        uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
         with:
           version: 0.10.6+62c2592d1
 
@@ -149,3 +154,30 @@ jobs:
       - name: Verify Phase 10 native platform behavior
         shell: bash
         run: ./tools/check_phase10_platform.sh
+
+      - name: Build and verify Phase 11 release artifact
+        shell: bash
+        env:
+          MOONJUST_BUILDER_ID: https://github.com/moonbit-community/MoonJust/.github/workflows/ci.yml
+        run: |
+          case "${{ runner.os }}-${{ runner.arch }}" in
+            Linux-X64) platform=linux-x86_64 ;;
+            Linux-ARM64) platform=linux-aarch64 ;;
+            macOS-X64) platform=macos-x86_64 ;;
+            macOS-ARM64) platform=macos-aarch64 ;;
+            Windows-X64) platform=windows-x86_64 ;;
+            *) echo "unsupported runner ${{ runner.os }}-${{ runner.arch }}" >&2; exit 1 ;;
+          esac
+          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="$platform" ./tools/release/build_artifacts.sh)
+          python3 ./tools/release/verify_bundle.py \
+            --repo . --archive "$archive" --platform "$platform"
+
+      - name: Upload Phase 11 release artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: moonjust-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            _build/release/moonjust-*
+            _build/release/assets/**
+            _build/release/build-*.json
+          if-no-files-found: error

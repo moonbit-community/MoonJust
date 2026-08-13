@@ -143,7 +143,7 @@ tr -d '\r' <"$work/env-stdin.stdout" | grep -qx 'phase10-stdin-env' || fail "JUS
 (cd "$work" && JUST_JUSTFILE=- "$cli" --justfile justfile alpha </dev/null >env-override.stdout 2>env-override.stderr)
 tr -d '\r' <"$work/env-override.stdout" | grep -qx 'phase10-choice' || fail "argv justfile did not override JUST_JUSTFILE"
 (cd "$work" && JUST_ALLOW_MISSING=1 JUST_DRY_RUN=1 JUST_QUIET=1 "$cli" --version </dev/null >env-version.stdout 2>env-version.stderr)
-grep -q '^moonjust 0.7.0-alpha' "$work/env-version.stdout" || fail "--version did not override unsupported environment diagnostics"
+grep -q '^moonjust 0.7.0-alpha.1' "$work/env-version.stdout" || fail "--version did not override unsupported environment diagnostics"
 
 (cd "$work" && "$cli" script >script.stdout 2>script.stderr)
 tr -d '\r' <"$work/script.stdout" | grep -qx 'phase10-script' || fail "platform script did not execute"
