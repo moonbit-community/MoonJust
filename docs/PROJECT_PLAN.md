@@ -706,8 +706,9 @@ Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程
 十二类篡改拒绝和 Phase 10 到 Phase 11 升级/精确回滚证据见
 [`PHASE_11_REPORT.md`](PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
 不执行正式发布、创建 tag 或 GitHub Release；这些操作仅由维护者本人完成。
-远端 PR CI、强制二次复核、candidate workflow、合并与 protected-main CI
-完成前，阶段出口保持 pending。
+两轮远端 PR CI 与强制二次复核已经通过，审计见
+[`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。candidate workflow、合并与
+protected-main CI 完成前，阶段出口保持 pending。
 
 ### Phase 12：Beta、RC 和 GA
 

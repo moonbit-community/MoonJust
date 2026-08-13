@@ -2,9 +2,9 @@ schema_version = 1
 phase = 11
 upstream = "just 1.57.0"
 status = "implemented"
-plan_exit = "pending-remote-evidence"
+plan_exit = "pending-candidate-and-merge-evidence"
 report = "docs/PHASE_11_REPORT.md"
-audit = "pending-second-review"
+audit = "docs/PHASE_0_11_AUDIT.md"
 
 [contracts]
 mooncakes = "complete module metadata, source package validation, documented public facade and exact moonx executable coordinate"
@@ -21,6 +21,8 @@ package = "cmd/just"
 coordinate = "moonbit-community/MoonJust/cmd/just@0.7.0-alpha.1"
 wasm_asset = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/just.wasm"
 wasm_checksum = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/just.wasm.sha256"
+wasm_sbom = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/sbom.cdx.json"
+wasm_provenance = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/provenance.intoto.json"
 
 [toolchain]
 moon = "0.1.20260803"
@@ -38,8 +40,10 @@ upgrade_rehearsal = "tools/release/rehearse_upgrade.sh"
 release_workflow = ".github/workflows/release.yml"
 
 [remote_evidence]
-delivery_pr = "pending"
-first_pr_ci = "pending"
-second_review_ci = "pending"
+delivery_pr = "https://github.com/moonbit-community/MoonJust/pull/43"
+first_pr_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31667796269"
+second_review_commit = "f4e96ef78cc40253a31b9e9f644af6ed9ca833f7"
+second_review_ci = "https://github.com/moonbit-community/MoonJust/actions/runs/31669564990"
+candidate_workflow = "pending"
 merge_commit = "pending"
 post_merge_ci = "pending"

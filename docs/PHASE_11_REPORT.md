@@ -4,7 +4,12 @@
 - Compatibility baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Candidate identity: `0.7.0-alpha.1`
 - Local review date: 2026-08-13
-- Delivery PR and remote evidence: pending
+- Delivery: [PR #43](https://github.com/moonbit-community/MoonJust/pull/43)
+- Remote evidence: first successful PR CI
+  [31667796269](https://github.com/moonbit-community/MoonJust/actions/runs/31667796269)
+  and second-review PR CI
+  [31669564990](https://github.com/moonbit-community/MoonJust/actions/runs/31669564990)
+- Strict review: [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)
 - Publication boundary: candidate preparation only; formal publication, tags
   and GitHub Releases are maintainer-only and were not performed
 
@@ -87,6 +92,6 @@ cache-disabled rebuild, repeatability, four policy modes, artifact/SBOM/
 provenance, tamper rejection, MoonX staging and upgrade/rollback checks. The
 executable API guide adds three tests; the complete matrices pass 303 Native
 and 298 wasm1 tests, and all stable backends type-check.
-Remote PR CI, the mandatory second audit, the candidate attestation workflow,
-merge and protected-main CI remain explicit exit prerequisites and are not yet
-recorded as complete.
+Both successful PR CI runs and the mandatory second audit are complete. The
+candidate attestation workflow, merge and protected-main CI remain explicit
+exit prerequisites and are not yet recorded as complete.

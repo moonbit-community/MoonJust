@@ -9,8 +9,8 @@ the upstream Rust library API is not part of MoonJust's public API.
 >
 > Phase 0-10 exits have passed, including protected-main CI. MoonJust
 > `0.7.0-alpha.1` implements the Phase 11 release-engineering contracts;
-> Phase 11 remote CI, candidate attestation and the required second review are
-> still pending.
+> both PR CI rounds and the required second review pass. Candidate attestation,
+> merge and protected-main CI remain pending.
 
 ## What is delivered
 
@@ -190,6 +190,7 @@ definition of ready and required PR evidence.
 
 - [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and future phases.
 - [Phase 0-10 strict audit](docs/PHASE_0_10_AUDIT.md): current completed cross-phase verdict and remote evidence.
+- [Phase 0-11 strict audit](docs/PHASE_0_11_AUDIT.md): Phase 11 second-review findings, remediation and current pending exit evidence.
 - [Phase 11 report](docs/PHASE_11_REPORT.md): release-candidate engineering and local exit evidence.
 - [Public API](docs/API.md) and [release policy](docs/RELEASE_POLICY.md): package surface, candidate integrity and maintainer-only publication boundary.
 - [Phase 0 report](docs/PHASE_0_REPORT.md) through [Phase 7 report](docs/PHASE_7_REPORT.md): phase-local delivery records.
