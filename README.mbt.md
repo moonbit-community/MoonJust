@@ -7,10 +7,10 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> Phase 0-10 exits have passed, including protected-main CI. MoonJust
-> `0.7.0-alpha.1` implements the Phase 11 release-engineering contracts;
-> both PR CI rounds and the required second review pass. Candidate attestation,
-> merge and protected-main CI remain pending.
+> Phase 0-11 exits have passed, including the required second review,
+> protected-main CI and the non-publishing candidate-attestation workflow.
+> MoonJust `0.7.0-alpha.1` implements the Phase 11 release-engineering
+> contracts. No formal publication, tag or GitHub Release was performed.
 
 ## What is delivered
 
@@ -51,7 +51,7 @@ versioned, locked across processes and atomically published after output checks.
   sandboxing are not supported claims.
 
 The complete decision record is in the
-[Phase 0-10 strict audit](docs/PHASE_0_10_AUDIT.md). Machine-readable scope and
+[Phase 0-11 strict audit](docs/PHASE_0_11_AUDIT.md). Machine-readable scope and
 phase contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
@@ -189,9 +189,9 @@ definition of ready and required PR evidence.
 ## Documentation index
 
 - [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and future phases.
-- [Phase 0-10 strict audit](docs/PHASE_0_10_AUDIT.md): current completed cross-phase verdict and remote evidence.
-- [Phase 0-11 strict audit](docs/PHASE_0_11_AUDIT.md): Phase 11 second-review findings, remediation and current pending exit evidence.
-- [Phase 11 report](docs/PHASE_11_REPORT.md): release-candidate engineering and local exit evidence.
+- [Phase 0-11 strict audit](docs/PHASE_0_11_AUDIT.md): current completed cross-phase verdict, remediation and remote evidence.
+- [Phase 0-10 strict audit](docs/PHASE_0_10_AUDIT.md): historical Phase 10 exit evidence.
+- [Phase 11 report](docs/PHASE_11_REPORT.md): release-candidate engineering and complete exit evidence.
 - [Public API](docs/API.md) and [release policy](docs/RELEASE_POLICY.md): package surface, candidate integrity and maintainer-only publication boundary.
 - [Phase 0 report](docs/PHASE_0_REPORT.md) through [Phase 7 report](docs/PHASE_7_REPORT.md): phase-local delivery records.
 - [Architecture](docs/ARCHITECTURE.md): package boundaries and capability flow.
