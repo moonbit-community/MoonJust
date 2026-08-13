@@ -2,7 +2,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-13；Phase 0-10 已完成并通过全部阶段出口。Phase 10 由 [PR #41](https://github.com/moonbit-community/MoonJust/pull/41) 合并为 `d18b64ee2bacd3afc0de6801ff3352c0b9224e2b`，二次复核修复 CI [31617660952](https://github.com/moonbit-community/MoonJust/actions/runs/31617660952) 与 protected-main CI [31618046344](https://github.com/moonbit-community/MoonJust/actions/runs/31618046344) 均通过；完整结论见 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。
+> 最近严格复核：2026-08-13；Phase 0-11 已完成并通过全部阶段出口。Phase 11 由 [PR #43](https://github.com/moonbit-community/MoonJust/pull/43) 交付，并由 [PR #44](https://github.com/moonbit-community/MoonJust/pull/44)、[PR #45](https://github.com/moonbit-community/MoonJust/pull/45) 和 [PR #46](https://github.com/moonbit-community/MoonJust/pull/46) 完成远程复核修复；protected-main CI [31677969665](https://github.com/moonbit-community/MoonJust/actions/runs/31677969665) 与非发布候选工作流 [31678658006](https://github.com/moonbit-community/MoonJust/actions/runs/31678658006) 均通过。完整结论见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -31,7 +31,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
   `0.7.0-alpha.1`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10 已于 2026-08-13 完成本地实现、两轮远端 CI、二次严格复核、合并和 protected-main CI。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。
+- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10-11 已于 2026-08-13 完成本地实现、远端 CI、二次严格复核、合并和 protected-main CI。Phase 11 的非发布候选制品与 OIDC 证明工作流亦已通过。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -598,7 +598,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-056 | clock/uuid/shell builtins | HostClock/Random/Process 接入 | deterministic tests + 目标矩阵 |
 | PR-057 | evaluator hardening | recursion/size budget、error stack | 无未控制递归和敏感环境泄漏 |
 
-执行状态：Phase 5 已于 2026-08-06 完成实现并通过阶段验收。evaluator scope/lazy 状态、83 项 typed builtin、上下文与效果能力、Regex/SemVer、SHA-256/BLAKE3 增量哈希、硬化、Rust oracle 和 Native/wasm1 矩阵见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；当前 Phase 0-10 总审计见 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。
+执行状态：Phase 5 已于 2026-08-06 完成实现并通过阶段验收。evaluator scope/lazy 状态、83 项 typed builtin、上下文与效果能力、Regex/SemVer、SHA-256/BLAKE3 增量哈希、硬化、Rust oracle 和 Native/wasm1 矩阵见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；当前 Phase 0-11 总审计见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
 
 ### Phase 6：查询型 CLI
 
@@ -700,15 +700,16 @@ Markdown 上游 oracle 证据见
 | PR-113 | supply chain | SBOM、provenance、签名、依赖审计 | 发布物可追溯到 commit/toolchain |
 | PR-114 | upgrade rehearsal | 从干净环境和上一 RC 升级/回滚 | 无本机缓存依赖；回滚文档可执行 |
 
-执行状态：Phase 11 已于 2026-08-13 完成本地实现和第一轮严格验收。
+执行状态：Phase 11 已于 2026-08-13 完整实现并通过全部阶段出口。
 PR-110 至 PR-114 的 Mooncakes/MoonX staging、四类 wasm policy、三平台
 Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程、
 十二类篡改拒绝和 Phase 10 到 Phase 11 升级/精确回滚证据见
 [`PHASE_11_REPORT.md`](PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
 不执行正式发布、创建 tag 或 GitHub Release；这些操作仅由维护者本人完成。
-两轮远端 PR CI 与强制二次复核已经通过，审计见
-[`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。candidate workflow、合并与
-protected-main CI 完成前，阶段出口保持 pending。
+交付 PR #43、三项远程复核修复 PR #44 至 #46、强制二次复核、
+protected-main CI `31677969665` 和非发布 candidate workflow `31678658006`
+均已通过，审计见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)，阶段出口为
+complete。候选工作流仅上传临时制品并生成 OIDC 证明；本阶段未执行正式发布。
 当前官方 MoonBit 安装链已移除 macOS x86_64 工具链分发，因此候选矩阵按
 第 3.3 节规则在 RC 前明确收缩为 Linux x86_64、macOS arm64 和 Windows
 x86_64；不得以模拟结果替代，待官方恢复支持并通过真实 runner 后再扩展。
@@ -1068,9 +1069,10 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 7. 用上游 tangle tests 验证 `cmark`；记录依赖体积和 source offset 可用性。
 8. 用上游 regex/SemVer/datetime 代表 corpus完成 buy/build spike。
 9. 冻结 ADR-001 至 ADR-005。
-10. Phase 0-10 均已完成实现、二次复核并通过 PR 与 protected-main CI；
-    Phase 10 功能合并见 PR #41。所有当前状态、门禁和后续限制以
-    [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md) 及各阶段报告为准。
+10. Phase 0-11 均已完成实现、二次复核并通过 PR 与 protected-main CI；
+    Phase 11 功能交付和远程复核修复见 PR #43 至 #46，非发布候选工作流
+    亦已通过。所有当前状态、门禁和后续限制以
+    [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md) 及各阶段报告为准。
 
 ## 20. 参考资料与可复核来源
 

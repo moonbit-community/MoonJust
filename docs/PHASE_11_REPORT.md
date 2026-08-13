@@ -4,11 +4,19 @@
 - Compatibility baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Candidate identity: `0.7.0-alpha.1`
 - Local review date: 2026-08-13
-- Delivery: [PR #43](https://github.com/moonbit-community/MoonJust/pull/43)
+- Delivery: [PR #43](https://github.com/moonbit-community/MoonJust/pull/43),
+  squash commit `b4b318c981a4b81a681afb6a4a00418d70cd046a`
 - Remote evidence: first successful PR CI
   [31667796269](https://github.com/moonbit-community/MoonJust/actions/runs/31667796269)
   and second-review PR CI
   [31669564990](https://github.com/moonbit-community/MoonJust/actions/runs/31669564990)
+- Remote candidate remediation: [PR #44](https://github.com/moonbit-community/MoonJust/pull/44),
+  [PR #45](https://github.com/moonbit-community/MoonJust/pull/45) and
+  [PR #46](https://github.com/moonbit-community/MoonJust/pull/46)
+- Final protected-main CI:
+  [31677969665](https://github.com/moonbit-community/MoonJust/actions/runs/31677969665)
+- Candidate workflow:
+  [31678658006](https://github.com/moonbit-community/MoonJust/actions/runs/31678658006)
 - Strict review: [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)
 - Publication boundary: candidate preparation only; formal publication, tags
   and GitHub Releases are maintainer-only and were not performed
@@ -98,5 +106,9 @@ provenance, tamper rejection, MoonX staging and upgrade/rollback checks. The
 executable API guide adds three tests; the complete matrices pass 303 Native
 and 298 wasm1 tests, and all stable backends type-check.
 Both successful PR CI runs and the mandatory second audit are complete. The
-candidate attestation workflow, merge and protected-main CI remain explicit
-exit prerequisites and are not yet recorded as complete.
+delivery and three candidate-remediation PRs merged through required checks;
+the final protected-main CI passed quality plus Ubuntu, macOS and Windows.
+The manually dispatched candidate workflow then passed source validation,
+Linux x86_64, macOS arm64 and Windows x86_64 Native artifacts, the wasm1 MoonX
+asset and GitHub OIDC attestations. Phase 11 is complete. The workflow did not
+publish a package, create or push a tag, or create a GitHub Release.
