@@ -83,5 +83,5 @@ permission. Formal publication remains exclusively a maintainer action.
 
 No second-review finding remains open. Phase 11 becomes complete only after
 the reviewed PR merges through required checks, the manual release-candidate
-workflow proves all four Native candidates plus the wasm1 asset and OIDC
+workflow proves all supported Native candidates plus the wasm1 asset and OIDC
 attestations without publishing, and the resulting protected-main CI passes.

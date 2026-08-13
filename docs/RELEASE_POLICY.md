@@ -5,6 +5,12 @@ MoonJust prepares two related release candidates from the same reviewed commit:
 - the `moonbit-community/MoonJust` source module for Mooncakes;
 - prebuilt `cmd/just` executables for Linux, macOS, Windows and wasm1.
 
+The reviewed Native candidate matrix is Linux x86_64, macOS arm64 and Windows
+x86_64. macOS x86_64 is not claimed: the official MoonBit installer removed
+Intel macOS toolchain distribution before this candidate was prepared. It must
+not be restored to the matrix until an official supported toolchain is
+available and the real-runner gate passes.
+
 The source module version in `moon.mod`, the application version reported by
 `just --version`, and every artifact provenance statement are reviewed
 together. The candidate workflow refuses a dirty tree, an unclassified

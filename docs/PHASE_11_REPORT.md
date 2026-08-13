@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | PR-110 | Complete Mooncakes metadata, safe source archive, executable public API guide and exact MoonX coordinate | `moon package`, source verifier, 3 API documentation tests and local MoonX staging |
 | PR-111 | Explicit deny, inspect, CI and execute policies with security documentation | explicit deny, omitted-section default deny, read-only query and controlled/full execution smoke tests |
-| PR-112 | Linux, macOS, Windows and wasm1 candidate artifacts with deterministic archives and checksums | platform matrix workflow, extraction verifier, exact version execution and external/embedded checksum validation |
+| PR-112 | Linux x86_64, macOS arm64, Windows x86_64 and wasm1 candidate artifacts with deterministic archives and checksums | supported-platform matrix workflow, extraction verifier, exact version execution and external/embedded checksum validation |
 | PR-113 | Dependency/license audit, CycloneDX SBOM, SLSA-compatible provenance and OIDC candidate attestation | exact three-dependency audit, commit/toolchain/target binding and twelve-class tamper rejection |
 | PR-114 | Cache-independent source rebuild plus previous-candidate upgrade and rollback | fresh source tree, caches disabled, Phase 10 query/execution parity and exact-byte rollback |
 
@@ -66,6 +66,11 @@ wasm builds from one fixed source/target path are byte-identical. The current
 Native toolchain embeds target-path information, so the project does not claim
 path-independent Native bytes. Instead, independent source-package rebuilds
 must pass exact version, query and execution corpora.
+
+The official MoonBit installer removed Intel macOS toolchain distribution, so
+the reviewed candidate matrix explicitly excludes macOS x86_64 rather than
+substituting an emulated result. The supported Native candidates are Linux
+x86_64, macOS arm64 and Windows x86_64; wasm1 remains independently packaged.
 
 ## Supply chain and upgrade
 

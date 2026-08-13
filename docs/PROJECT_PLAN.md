@@ -701,7 +701,7 @@ Markdown 上游 oracle 证据见
 | PR-114 | upgrade rehearsal | 从干净环境和上一 RC 升级/回滚 | 无本机缓存依赖；回滚文档可执行 |
 
 执行状态：Phase 11 已于 2026-08-13 完成本地实现和第一轮严格验收。
-PR-110 至 PR-114 的 Mooncakes/MoonX staging、四类 wasm policy、四平台
+PR-110 至 PR-114 的 Mooncakes/MoonX staging、四类 wasm policy、三平台
 Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程、
 十二类篡改拒绝和 Phase 10 到 Phase 11 升级/精确回滚证据见
 [`PHASE_11_REPORT.md`](PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
@@ -709,6 +709,9 @@ Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程
 两轮远端 PR CI 与强制二次复核已经通过，审计见
 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。candidate workflow、合并与
 protected-main CI 完成前，阶段出口保持 pending。
+当前官方 MoonBit 安装链已移除 macOS x86_64 工具链分发，因此候选矩阵按
+第 3.3 节规则在 RC 前明确收缩为 Linux x86_64、macOS arm64 和 Windows
+x86_64；不得以模拟结果替代，待官方恢复支持并通过真实 runner 后再扩展。
 
 ### Phase 12：Beta、RC 和 GA
 
