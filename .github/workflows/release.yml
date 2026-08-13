@@ -64,14 +64,14 @@ jobs:
           python3 ./tools/release/verify_bundle.py \
             --repo . --archive "$archive" --platform "${{ matrix.platform }}"
       - name: Attest bundles and checksums
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v3.0.0
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             _build/release/moonjust-*.tar.gz
             _build/release/moonjust-*.zip
             _build/release/moonjust-*.sha256
             _build/release/build-*.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-${{ matrix.platform }}
           path: |
@@ -108,10 +108,10 @@ jobs:
           python3 ./tools/release/check_moonx_asset.py \
             --repo . --registry _build/release \
             --coordinate "moonbit-community/MoonJust/cmd/just@$version"
-      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v3.0.0
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: _build/release/assets/**
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-wasm1
           path: _build/release/assets/**
