@@ -2,7 +2,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-13；Phase 0-11 已完成并通过全部阶段出口。Phase 11 由 [PR #43](https://github.com/moonbit-community/MoonJust/pull/43) 交付，并由 [PR #44](https://github.com/moonbit-community/MoonJust/pull/44)、[PR #45](https://github.com/moonbit-community/MoonJust/pull/45) 和 [PR #46](https://github.com/moonbit-community/MoonJust/pull/46) 完成远程复核修复；protected-main CI [31677969665](https://github.com/moonbit-community/MoonJust/actions/runs/31677969665) 与非发布候选工作流 [31678658006](https://github.com/moonbit-community/MoonJust/actions/runs/31678658006) 均通过。完整结论见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
+> 最近严格复核：2026-08-13；Phase 0-11 已完成并通过全部阶段出口。Phase 11 由 [PR #43](https://github.com/moonbit-community/MoonJust/pull/43) 交付，并由 [PR #44](https://github.com/moonbit-community/MoonJust/pull/44)、[PR #45](https://github.com/moonbit-community/MoonJust/pull/45) 和 [PR #46](https://github.com/moonbit-community/MoonJust/pull/46) 完成远程复核修复；protected-main CI [31697473589](https://github.com/moonbit-community/MoonJust/actions/runs/31697473589) 与最终提交上的非发布候选工作流 [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163) 均通过。完整结论见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -707,7 +707,7 @@ Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程
 [`PHASE_11_REPORT.md`](PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
 不执行正式发布、创建 tag 或 GitHub Release；这些操作仅由维护者本人完成。
 交付 PR #43、三项远程复核修复 PR #44 至 #46、强制二次复核、
-protected-main CI `31677969665` 和非发布 candidate workflow `31678658006`
+protected-main CI `31697473589` 和最终提交上的非发布 candidate workflow `31698189163`
 均已通过，审计见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)，阶段出口为
 complete。候选工作流仅上传临时制品并生成 OIDC 证明；本阶段未执行正式发布。
 当前官方 MoonBit 安装链已移除 macOS x86_64 工具链分发，因此候选矩阵按

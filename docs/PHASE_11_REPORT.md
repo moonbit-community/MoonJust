@@ -16,7 +16,7 @@
 - Final protected-main CI:
   [31677969665](https://github.com/moonbit-community/MoonJust/actions/runs/31677969665)
 - Candidate workflow:
-  [31678658006](https://github.com/moonbit-community/MoonJust/actions/runs/31678658006)
+  [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163)
 - Strict review: [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)
 - Publication boundary: candidate preparation only; formal publication, tags
   and GitHub Releases are maintainer-only and were not performed
