@@ -29,6 +29,7 @@ for required in API.mbt.md docs/API.md docs/RELEASE_POLICY.md LICENSE NOTICE REA
   [ -s "$repo_root/$required" ] || fail "required publication file is missing: $required"
 done
 
+moon check --target all --warn-list +73
 python3 "$release_dir/check_dependencies.py"
 moon package
 source_archive="$repo_root/_build/package/moonbit-community-MoonJust-$version.zip"
