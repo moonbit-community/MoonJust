@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: 0.10.6+62c2592d1
       - name: Ensure MoonX entry point
@@ -35,8 +35,6 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x86_64
-          - os: macos-15-intel
-            platform: macos-x86_64
           - os: macos-latest
             platform: macos-aarch64
           - os: windows-latest
@@ -50,13 +48,15 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: 0.10.6+62c2592d1
       - name: Ensure MoonX entry point
         shell: bash
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - name: Install exact dependencies
+        run: moon check --target all --warn-list +73
       - name: Build and verify
         shell: bash
         run: |
@@ -93,12 +93,14 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: 0.10.6+62c2592d1
       - name: Ensure MoonX entry point
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - name: Install exact dependencies
+        run: moon check --target all --warn-list +73
       - name: Build wasm1 staging asset
         run: MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM=linux-x86_64 ./tools/release/build_artifacts.sh
       - name: Verify staging MoonX protocol
