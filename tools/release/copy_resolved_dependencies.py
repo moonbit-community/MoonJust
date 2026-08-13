@@ -62,6 +62,15 @@ def main() -> None:
             fail(f"resolved source is missing for {name}@{version}")
         if source_version(source) != version:
             fail(f"resolved source version differs for {name}@{version}")
+        symlinks = [item for item in source.rglob("*") if item.is_symlink()]
+        if symlinks:
+            fail(f"resolved source contains a symlink: {symlinks[0]}")
+        duplicates = [item for item in source.rglob("*") if item.name.endswith(" 2")]
+        invalid_duplicates = [
+            item for item in duplicates if not item.is_dir() or any(item.iterdir())
+        ]
+        if invalid_duplicates:
+            fail(f"dependency duplicate directory is not empty: {invalid_duplicates[0]}")
         if target.exists():
             fail(f"target already exists for {name}@{version}")
         target.parent.mkdir(parents=True, exist_ok=True)

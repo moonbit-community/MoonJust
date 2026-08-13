@@ -57,8 +57,10 @@ Moon policy. Do not use it for untrusted justfiles.
 
 Each platform archive contains one executable, `LICENSE`, `NOTICE`,
 `README.mbt.md`, `SECURITY.md`, `CHANGELOG.md`, a CycloneDX SBOM, provenance,
-and a checksum manifest. Archives are built from a clean checkout with release
-mode and stripped debug information. The verification gate rejects:
+and a checksum manifest. The wasm1 MoonX asset has its own checksum, CycloneDX
+SBOM, and provenance alongside the `.wasm` file. Archives are built from a
+clean checkout with release mode and stripped debug information. The
+verification gate rejects:
 
 - absolute or parent-traversing archive paths;
 - duplicate archive entries or unexpected executable names;

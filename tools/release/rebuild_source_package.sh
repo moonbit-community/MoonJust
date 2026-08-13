@@ -30,6 +30,8 @@ with zipfile.ZipFile(archive) as stream:
     names = [item.filename for item in stream.infolist()]
     if len(names) != len(set(names)):
         raise SystemExit("source package has duplicate entries")
+    if len(names) != len({name.casefold() for name in names}):
+        raise SystemExit("source package has case-insensitive duplicate entries")
     for name in names:
         path = pathlib.PurePosixPath(name)
         if (

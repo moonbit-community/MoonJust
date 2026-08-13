@@ -76,10 +76,27 @@ MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip \
   --target wasm --target-dir "$target_dir" cmd/just
 wasm_source="$target_dir/wasm/release/build/cmd/just/just.wasm"
 [ -f "$wasm_source" ] || release_fail "wasm1 release executable is missing"
-wasm_asset="$out_root/assets/moonbit-community/MoonJust@$version/cmd/just/just.wasm"
-mkdir -p "$(dirname "$wasm_asset")"
+wasm_dir="$out_root/assets/moonbit-community/MoonJust@$version/cmd/just"
+case "$wasm_dir" in
+  "$out_root"/assets/moonbit-community/MoonJust@*/cmd/just) rm -rf -- "$wasm_dir" ;;
+  *) release_fail "refusing to reset unexpected wasm asset path: $wasm_dir" ;;
+esac
+mkdir -p "$wasm_dir"
+wasm_asset="$wasm_dir/just.wasm"
 cp "$wasm_source" "$wasm_asset"
-printf '%s  just.wasm\n' "$(release_sha256 "$wasm_asset")" >"$wasm_asset.sha256"
+wasm_digest=$(release_sha256 "$wasm_asset")
+printf '%s  just.wasm\n' "$wasm_digest" >"$wasm_asset.sha256"
+python3 "$script_dir/generate_supply_chain.py" \
+  --repo "$repo_root" \
+  --artifact "$wasm_asset" \
+  --target wasm1 \
+  --out "$wasm_dir"
+python3 "$script_dir/verify_supply_chain.py" \
+  --repo "$repo_root" \
+  --artifact "$wasm_asset" \
+  --target wasm1 \
+  --sbom "$wasm_dir/sbom.cdx.json" \
+  --provenance "$wasm_dir/provenance.intoto.json" >&2
 
 cat >"$out_root/build-$platform.json" <<EOF
 {
@@ -89,7 +106,10 @@ cat >"$out_root/build-$platform.json" <<EOF
   "platform": "$platform",
   "archive": "$(basename "$archive")",
   "archive_sha256": "$archive_digest",
-  "wasm_asset": "assets/moonbit-community/MoonJust@$version/cmd/just/just.wasm"
+  "wasm_asset": "assets/moonbit-community/MoonJust@$version/cmd/just/just.wasm",
+  "wasm_sha256": "$wasm_digest",
+  "wasm_sbom": "assets/moonbit-community/MoonJust@$version/cmd/just/sbom.cdx.json",
+  "wasm_provenance": "assets/moonbit-community/MoonJust@$version/cmd/just/provenance.intoto.json"
 }
 EOF
 

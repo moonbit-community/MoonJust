@@ -703,7 +703,7 @@ Markdown 上游 oracle 证据见
 执行状态：Phase 11 已于 2026-08-13 完成本地实现和第一轮严格验收。
 PR-110 至 PR-114 的 Mooncakes/MoonX staging、四类 wasm policy、四平台
 Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程、
-七类篡改拒绝和 Phase 10 到 Phase 11 升级/精确回滚证据见
+十二类篡改拒绝和 Phase 10 到 Phase 11 升级/精确回滚证据见
 [`PHASE_11_REPORT.md`](PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
 不执行正式发布、创建 tag 或 GitHub Release；这些操作仅由维护者本人完成。
 远端 PR CI、强制二次复核、candidate workflow、合并与 protected-main CI

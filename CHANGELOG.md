@@ -11,7 +11,7 @@ All notable changes to MoonJust will be documented here. The project follows
   aarch64, Windows x86_64, and linear-memory wasm1 artifacts.
 - Deterministic archives, SHA-256 manifests, CycloneDX 1.5 SBOMs,
   SLSA-compatible provenance, GitHub OIDC candidate attestations, exact
-  dependency/license audit, and seven-class tamper rejection.
+  dependency/license audit, and twelve-class tamper rejection.
 - Mooncakes metadata and safe source-package validation, executable public API
   documentation, and local MoonX registry staging with cold-cache checksum
   validation.

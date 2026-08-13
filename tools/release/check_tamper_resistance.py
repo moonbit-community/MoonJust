@@ -135,6 +135,30 @@ def add_symlink_entry(archive: pathlib.Path) -> None:
     temporary.replace(archive)
 
 
+def add_case_collision(archive: pathlib.Path) -> None:
+    temporary = archive.with_name(f"case-{archive.name}")
+    if archive.suffix == ".zip":
+        with zipfile.ZipFile(archive) as source, zipfile.ZipFile(
+            temporary, "w", zipfile.ZIP_DEFLATED
+        ) as output:
+            for item in source.infolist():
+                output.writestr(item, source.read(item.filename))
+            output.writestr("license", b"collision\n")
+    else:
+        with tarfile.open(archive, "r:gz") as source, tarfile.open(
+            temporary, "w:gz"
+        ) as output:
+            for item in source.getmembers():
+                stream = source.extractfile(item) if item.isfile() else None
+                output.addfile(item, stream)
+            entry = tarfile.TarInfo("license")
+            entry.size = len(b"collision\n")
+            import io
+
+            output.addfile(entry, io.BytesIO(b"collision\n"))
+    temporary.replace(archive)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=pathlib.Path, required=True)
@@ -163,6 +187,15 @@ def main() -> None:
         sidecar.write_text(f"{'0' * 64}  just.wasm\n")
         expect_rejected(repo, archive, args.platform, "wasm checksum tampering")
 
+        archive = prepare(source, root / "wasm-provenance", args.platform)
+        provenance = next((archive.parent / "assets").rglob("provenance.intoto.json"))
+        data = json.loads(provenance.read_text())
+        data["predicate"]["buildDefinition"]["resolvedDependencies"][0]["digest"][
+            "gitCommit"
+        ] = "0" * 40
+        provenance.write_text(json.dumps(data) + "\n")
+        expect_rejected(repo, archive, args.platform, "wasm provenance tampering")
+
         archive = prepare(source, root / "unsafe-path", args.platform)
         add_unsafe_entry(archive)
         bind_archive(archive, args.platform)
@@ -172,6 +205,28 @@ def main() -> None:
         add_symlink_entry(archive)
         bind_archive(archive, args.platform)
         expect_rejected(repo, archive, args.platform, "symbolic-link entry")
+
+        archive = prepare(source, root / "case-collision", args.platform)
+        add_case_collision(archive)
+        bind_archive(archive, args.platform)
+        expect_rejected(repo, archive, args.platform, "case-insensitive collision")
+
+        archive = prepare(source, root / "nested-entry", args.platform)
+        def add_nested(stage: pathlib.Path) -> None:
+            nested = stage / "unexpected" / "file"
+            nested.parent.mkdir()
+            nested.write_text("unexpected\n")
+        repack(repo, archive, add_nested)
+        bind_archive(archive, args.platform)
+        expect_rejected(repo, archive, args.platform, "unexpected nested entry")
+
+        archive = prepare(source, root / "checksum-manifest", args.platform)
+        def duplicate_checksum(stage: pathlib.Path) -> None:
+            manifest = stage / "SHA256SUMS"
+            manifest.write_text(manifest.read_text() * 2)
+        repack(repo, archive, duplicate_checksum)
+        bind_archive(archive, args.platform)
+        expect_rejected(repo, archive, args.platform, "duplicate embedded checksum")
 
         archive = prepare(source, root / "provenance", args.platform)
         def mutate_provenance(stage: pathlib.Path) -> None:
@@ -195,7 +250,17 @@ def main() -> None:
         bind_archive(archive, args.platform)
         expect_rejected(repo, archive, args.platform, "SBOM tampering")
 
-    print("Phase 11 tamper resistance verified: checksums, build record, paths, links, provenance and SBOM")
+        archive = prepare(source, root / "sbom-duplicate", args.platform)
+        def duplicate_sbom_component(stage: pathlib.Path) -> None:
+            path = stage / "sbom.cdx.json"
+            data = json.loads(path.read_text())
+            data["components"].append(data["components"][0])
+            path.write_text(json.dumps(data) + "\n")
+        repack(repo, archive, duplicate_sbom_component)
+        bind_archive(archive, args.platform)
+        expect_rejected(repo, archive, args.platform, "duplicate SBOM component")
+
+    print("Phase 11 tamper resistance verified: checksums, build record, paths, links, entries, provenance and SBOM")
 
 
 if __name__ == "__main__":

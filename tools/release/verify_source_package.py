@@ -49,6 +49,8 @@ def main() -> None:
         names = [item.filename for item in members if not item.is_dir()]
         if len(all_names) != len(set(all_names)):
             fail("archive contains duplicate entries")
+        if len(all_names) != len({name.casefold() for name in all_names}):
+            fail("archive contains case-insensitive duplicate entries")
         unsafe = [
             name
             for name in all_names
@@ -73,9 +75,12 @@ def main() -> None:
         forbidden = [
             name
             for name in names
-            if name.startswith(("_build/", ".git/", ".mooncakes/"))
-            or any(part in {"__pycache__", ".vscode"} for part in pathlib.PurePosixPath(name).parts)
-            or pathlib.PurePosixPath(name).name in {".env", "credentials.json"}
+            if any(
+                part in {"_build", ".git", ".mooncakes", "__pycache__", ".vscode"}
+                for part in pathlib.PurePosixPath(name).parts
+            )
+            or name == ".env"
+            or pathlib.PurePosixPath(name).name == "credentials.json"
             or name.endswith((".key", ".pem", ".profraw", ".pyc", ".pyo"))
         ]
         if forbidden:

@@ -21,8 +21,13 @@ def digest(path: pathlib.Path) -> str:
 def source_digest(path: pathlib.Path) -> str:
     hasher = hashlib.sha256()
     files = []
+    for duplicate in (item for item in path.rglob("*") if item.name.endswith(" 2")):
+        if not duplicate.is_dir() or any(duplicate.iterdir()):
+            fail(f"dependency duplicate directory is not empty: {duplicate}")
     for item in path.rglob("*"):
         relative = item.relative_to(path)
+        if item.is_symlink():
+            fail(f"dependency source tree contains a symlink: {path / relative}")
         if not item.is_file():
             continue
         if any(part in {".git", "_build"} or part.endswith(" 2") for part in relative.parts):
@@ -153,25 +158,27 @@ def main() -> int:
     if sbom.get("serialNumber") != f"urn:uuid:{expected_build_uuid}":
         fail("SBOM serial number differs")
     component = sbom.get("metadata", {}).get("component", {})
+    application_ref = f"pkg:mooncakes/{module_name}@{module_version}"
+    expected_application_component = {
+        "type": "application",
+        "bom-ref": application_ref,
+        "name": module_name,
+        "version": module_version,
+        "purl": application_ref,
+        "hashes": [{"alg": "SHA-256", "content": expected_digest}],
+        "licenses": [{"license": {"id": module_field(args.repo, "license")}}],
+    }
+    if component != expected_application_component:
+        fail("SBOM application component differs")
     if component.get("name") != module_name or component.get("version") != module_version:
         fail("SBOM module identity differs from moon.mod")
-    application_ref = f"pkg:mooncakes/{module_name}@{module_version}"
     if component.get("bom-ref") != application_ref or component.get("purl") != application_ref:
         fail("SBOM application package URL differs")
     if component.get("licenses") != [{"license": {"id": module_field(args.repo, "license")}}]:
         fail("SBOM application license differs")
-    hashes = {(item.get("alg"), item.get("content")) for item in component.get("hashes", [])}
-    if ("SHA-256", expected_digest) not in hashes:
+    if component.get("hashes") != [{"alg": "SHA-256", "content": expected_digest}]:
         fail("SBOM artifact digest differs")
-    actual_dependencies = {
-        (item.get("name"), item.get("version")) for item in sbom.get("components", [])
-    }
-    if actual_dependencies != expected_dependencies:
-        fail("SBOM dependency set differs from moon.mod")
-    actual_purls = {item.get("purl") for item in sbom.get("components", [])}
     expected_purls = {f"pkg:mooncakes/{name}@{version}" for name, version in expected_dependencies}
-    if actual_purls != expected_purls:
-        fail("SBOM package URLs differ from resolved dependencies")
     expected_component_details = {}
     for name, version in expected_dependencies:
         purl = f"pkg:mooncakes/{name}@{version}"
@@ -180,25 +187,56 @@ def main() -> int:
             "hashes": [{"alg": "SHA-256", "content": source_digest(source)}],
             "licenses": [{"license": {"id": dependency_license(source)}}],
         }
-    for item in sbom.get("components", []):
-        purl = item.get("purl")
-        if item.get("bom-ref") != purl or purl not in expected_component_details:
-            fail("SBOM dependency reference differs")
-        expected = expected_component_details[purl]
-        if item.get("hashes") != expected["hashes"] or item.get("licenses") != expected["licenses"]:
-            fail("SBOM dependency source digest or license differs")
+    expected_components = [
+        {
+            "type": "library",
+            "bom-ref": purl,
+            "name": name,
+            "version": version,
+            "purl": purl,
+            **expected_component_details[purl],
+        }
+        for name, version in sorted(expected_dependencies)
+        for purl in [f"pkg:mooncakes/{name}@{version}"]
+    ]
+    if sorted(sbom.get("components", []), key=lambda item: str(item.get("purl"))) != expected_components:
+        fail("SBOM dependency components differ from resolved sources")
     expected_graph = [
         {"ref": application_ref, "dependsOn": sorted(expected_purls)},
         *[{"ref": purl, "dependsOn": []} for purl in sorted(expected_purls)],
     ]
     actual_graph = [
-        {"ref": item.get("ref"), "dependsOn": sorted(item.get("dependsOn", []))}
+        {**item, "dependsOn": sorted(item.get("dependsOn", []))}
         for item in sbom.get("dependencies", [])
     ]
     if sorted(actual_graph, key=lambda item: str(item["ref"])) != sorted(
         expected_graph, key=lambda item: str(item["ref"])
     ):
         fail("SBOM dependency graph differs")
+    expected_sbom = {
+        "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.5",
+        "serialNumber": f"urn:uuid:{expected_build_uuid}",
+        "version": 1,
+        "metadata": {"component": expected_application_component},
+        "components": expected_components,
+        "dependencies": expected_graph,
+    }
+    normalized_sbom = {
+        **sbom,
+        "components": sorted(
+            sbom.get("components", []), key=lambda item: str(item.get("purl"))
+        ),
+        "dependencies": sorted(
+            actual_graph, key=lambda item: str(item.get("ref"))
+        ),
+    }
+    expected_sbom["dependencies"] = sorted(
+        expected_graph, key=lambda item: str(item.get("ref"))
+    )
+    if normalized_sbom != expected_sbom:
+        fail("SBOM contains unexpected or missing fields")
 
     provenance = json.loads(args.provenance.read_text())
     if provenance.get("_type") != "https://in-toto.io/Statement/v1":
@@ -219,8 +257,9 @@ def main() -> int:
     invocation = predicate.get("runDetails", {}).get("metadata", {}).get("invocationId")
     if invocation != f"urn:uuid:{expected_build_uuid}":
         fail("provenance invocation identity differs")
+    expected_toolchain = toolchain()
     tools = definition.get("internalParameters", {}).get("toolchain", {})
-    if tools != toolchain():
+    if tools != expected_toolchain:
         fail("provenance toolchain differs from the verifier toolchain")
     reproducibility = definition.get("internalParameters", {}).get(
         "reproducibility", {}
@@ -230,36 +269,52 @@ def main() -> int:
     if definition.get("internalParameters", {}).get("sourceDirty") is not expected_dirty:
         fail("provenance source state differs")
     resolved = definition.get("resolvedDependencies", [])
-    expected_resolved = [
+    expected_resolved_descriptors = [
         {
             "uri": "git+https://github.com/moonbit-community/MoonJust",
-            "digest": expected_commit,
+            "digest": {"gitCommit": expected_commit},
         },
         *[
             {
                 "uri": purl,
-                "digest": expected_component_details[purl]["hashes"][0]["content"],
+                "digest": {
+                    "sha256": expected_component_details[purl]["hashes"][0]["content"]
+                },
             }
             for purl in sorted(expected_purls)
         ],
     ]
-    actual_resolved = sorted(
-        (
-            {
-                "uri": item.get("uri"),
-                "digest": item.get("digest", {}).get(
-                    "sha256", item.get("digest", {}).get("gitCommit")
-                ),
-            }
-            for item in resolved
-        ),
-        key=lambda item: str(item["uri"]),
-    )
-    if actual_resolved != expected_resolved:
+    if resolved != expected_resolved_descriptors:
         fail("provenance dependencies differ from moon.mod")
     builder = predicate.get("runDetails", {}).get("builder", {}).get("id")
     if builder != expected_builder:
         fail("provenance builder identity differs")
+    expected_provenance = {
+        "_type": "https://in-toto.io/Statement/v1",
+        "subject": [expected_subject],
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "predicate": {
+            "buildDefinition": {
+                "buildType": "https://github.com/moonbit-community/MoonJust/release-candidate/v1",
+                "externalParameters": {"target": args.target, "version": module_version},
+                "internalParameters": {
+                    "toolchain": expected_toolchain,
+                    "reproducibility": {
+                        "SOURCE_DATE_EPOCH": "0",
+                        "ZERO_AR_DATE": "1",
+                    },
+                    "sourceDirty": expected_dirty,
+                },
+                "resolvedDependencies": expected_resolved_descriptors,
+            },
+            "runDetails": {
+                "builder": {"id": expected_builder},
+                "metadata": {"invocationId": f"urn:uuid:{expected_build_uuid}"},
+            },
+        },
+    }
+    if provenance != expected_provenance:
+        fail("provenance contains unexpected or missing fields")
     print("Phase 11 supply chain verified: artifact, SBOM, dependencies, commit, target, toolchain")
     return 0
 

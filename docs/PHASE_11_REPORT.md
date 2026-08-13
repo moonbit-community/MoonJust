@@ -15,7 +15,7 @@
 | PR-110 | Complete Mooncakes metadata, safe source archive, executable public API guide and exact MoonX coordinate | `moon package`, source verifier, 3 API documentation tests and local MoonX staging |
 | PR-111 | Explicit deny, inspect, CI and execute policies with security documentation | explicit deny, omitted-section default deny, read-only query and controlled/full execution smoke tests |
 | PR-112 | Linux, macOS, Windows and wasm1 candidate artifacts with deterministic archives and checksums | platform matrix workflow, extraction verifier, exact version execution and external/embedded checksum validation |
-| PR-113 | Dependency/license audit, CycloneDX SBOM, SLSA-compatible provenance and OIDC candidate attestation | exact three-dependency audit, commit/toolchain/target binding and seven-class tamper rejection |
+| PR-113 | Dependency/license audit, CycloneDX SBOM, SLSA-compatible provenance and OIDC candidate attestation | exact three-dependency audit, commit/toolchain/target binding and twelve-class tamper rejection |
 | PR-114 | Cache-independent source rebuild plus previous-candidate upgrade and rollback | fresh source tree, caches disabled, Phase 10 query/execution parity and exact-byte rollback |
 
 ## Mooncakes and MoonX
@@ -47,9 +47,13 @@ Candidate archives contain exactly one platform executable plus license,
 notice, README, security policy, changelog, checksum manifest, SBOM and
 provenance. The verifier binds the archive name and digest, build record,
 version, platform, Git commit, wasm asset/sidecar, dependency set, package URLs,
-builder identity and exact MoonBit/MoonX toolchain. Negative tests independently
+builder identity and exact MoonBit/MoonX toolchain. Every platform runner
+executes version, query, and recipe corpora from the extracted candidate rather
+than from an unrelated worktree build. Negative tests independently
 tamper with the archive sidecar, build record, wasm sidecar, archive path,
-symbolic-link entry, provenance and SBOM; all seven are rejected.
+symbolic-link entry, case-insensitive collision, nested member, embedded
+checksum manifest, Native or wasm provenance, and removed or duplicated SBOM
+components; all twelve are rejected.
 
 Archives use normalized timestamps, owners and modes. Candidate builds force
 `SOURCE_DATE_EPOCH=0` and `ZERO_AR_DATE=1`; two cache-disabled clean Native and
@@ -60,8 +64,9 @@ must pass exact version, query and execution corpora.
 
 ## Supply chain and upgrade
 
-Every Native candidate carries a CycloneDX 1.5 SBOM and an in-toto statement
-with a SLSA v1 predicate. The local verifier checks the artifact digest,
+Every Native candidate and the wasm1 MoonX asset carry a CycloneDX 1.5 SBOM
+and an in-toto statement with a SLSA v1 predicate. The local verifier checks
+the artifact digest,
 resolved Mooncakes package URLs, commit, target, version, builder, deterministic
 build parameters and exact toolchain. The manually dispatched candidate
 workflow uses pinned action commits and GitHub OIDC to attest temporary CI

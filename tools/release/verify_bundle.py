@@ -31,6 +31,8 @@ def fail(message: str) -> None:
 def safe_names(names: list[str]) -> None:
     if len(names) != len(set(names)):
         fail("archive contains duplicate entries")
+    if len(names) != len({name.casefold() for name in names}):
+        fail("archive contains case-insensitive duplicate entries")
     for raw in names:
         path = pathlib.PurePosixPath(raw)
         if (
@@ -51,7 +53,7 @@ def extract(archive: pathlib.Path, target: pathlib.Path) -> None:
                 mode = item.external_attr >> 16
                 kind = stat.S_IFMT(mode)
                 if item.is_dir():
-                    continue
+                    fail(f"archive contains an unexpected directory entry: {item.filename}")
                 if kind not in {0, stat.S_IFREG}:
                     fail(f"unsupported archive entry: {item.filename}")
                 output = target / item.filename
@@ -63,9 +65,9 @@ def extract(archive: pathlib.Path, target: pathlib.Path) -> None:
         with tarfile.open(archive, "r:gz") as stream:
             members = stream.getmembers()
             safe_names([item.name for item in members])
-            if any(not item.isfile() and not item.isdir() for item in members):
+            if any(not item.isfile() for item in members):
                 fail("archive contains unsupported non-regular entries")
-            for item in (member for member in members if member.isfile()):
+            for item in members:
                 output = target / item.name
                 output.parent.mkdir(parents=True, exist_ok=True)
                 source = stream.extractfile(item)
@@ -135,31 +137,56 @@ def main() -> None:
         "archive": archive.name,
         "archive_sha256": archive_digest,
         "wasm_asset": f"assets/moonbit-community/MoonJust@{version}/cmd/just/just.wasm",
+        "wasm_sha256": "pending",
+        "wasm_sbom": f"assets/moonbit-community/MoonJust@{version}/cmd/just/sbom.cdx.json",
+        "wasm_provenance": f"assets/moonbit-community/MoonJust@{version}/cmd/just/provenance.intoto.json",
     }
-    if build_record != expected_record:
-        fail("build record differs from repository and artifacts")
     wasm = archive.parent / expected_record["wasm_asset"]
     if not wasm.is_file():
         fail("wasm asset is missing")
+    expected_record["wasm_sha256"] = sha256(wasm)
+    if build_record != expected_record:
+        fail("build record differs from repository and artifacts")
     if checksum(pathlib.Path(f"{wasm}.sha256"), wasm.name) != sha256(wasm):
         fail("wasm asset checksum differs")
+    wasm_sbom = archive.parent / expected_record["wasm_sbom"]
+    wasm_provenance = archive.parent / expected_record["wasm_provenance"]
+    if not wasm_sbom.is_file() or not wasm_provenance.is_file():
+        fail("wasm supply-chain metadata is missing")
+    subprocess.run(
+        [
+            "python3",
+            str(repo / "tools/release/verify_supply_chain.py"),
+            "--repo",
+            str(repo),
+            "--artifact",
+            str(wasm),
+            "--target",
+            "wasm1",
+            "--sbom",
+            str(wasm_sbom),
+            "--provenance",
+            str(wasm_provenance),
+        ],
+        check=True,
+    )
 
     with tempfile.TemporaryDirectory(prefix="moonjust-bundle-") as raw:
         root = pathlib.Path(raw)
         extract(archive, root)
         executable_name = "just.exe" if args.platform.startswith("windows-") else "just"
         expected = EXPECTED_SUPPORT | {executable_name}
-        actual = {path.name for path in root.iterdir() if path.is_file()}
+        actual = {
+            path.relative_to(root).as_posix()
+            for path in root.rglob("*")
+            if path.is_file()
+        }
         if actual != expected:
             fail(f"bundle entries differ: expected {sorted(expected)}, got {sorted(actual)}")
         executable = root / executable_name
         if not args.platform.startswith("windows-"):
             executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
-        sums = {}
-        for line in (root / "SHA256SUMS").read_text().splitlines():
-            digest_value, name = line.split(None, 1)
-            sums[name.strip()] = digest_value
-        if sums != {executable_name: sha256(executable)}:
+        if checksum(root / "SHA256SUMS", executable_name) != sha256(executable):
             fail("embedded checksum manifest differs")
         subprocess.run(
             [
@@ -184,6 +211,40 @@ def main() -> None:
         result = subprocess.run([str(executable), "--version"], text=True, capture_output=True)
         if result.returncode != 0 or not result.stdout.startswith(f"moonjust {version} "):
             fail("extracted executable version smoke failed")
+        query = subprocess.run(
+            [
+                str(executable),
+                "--list",
+                "--justfile",
+                str(repo / "tests/fixtures/phase-6/justfile"),
+            ],
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        if (
+            query.returncode != 0
+            or query.stdout != "Available recipes:\n    hello # greeting\n"
+            or query.stderr
+        ):
+            fail("extracted executable query corpus failed")
+        execution = subprocess.run(
+            [
+                str(executable),
+                "--justfile",
+                str(repo / "tests/fixtures/phase-8/line.justfile"),
+                "build",
+            ],
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        if (
+            execution.returncode != 0
+            or execution.stdout != "hello world\nhidden\n"
+            or execution.stderr != "echo hello world\nfalse\n"
+        ):
+            fail("extracted executable execution corpus failed")
         print(f"Phase 11 bundle verified and executed: {args.platform}")
 
 

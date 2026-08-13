@@ -21,8 +21,13 @@ def digest(path: pathlib.Path) -> str:
 def source_digest(path: pathlib.Path) -> str:
     hasher = hashlib.sha256()
     files = []
+    for duplicate in (item for item in path.rglob("*") if item.name.endswith(" 2")):
+        if not duplicate.is_dir() or any(duplicate.iterdir()):
+            raise SystemExit(f"dependency duplicate directory is not empty: {duplicate}")
     for item in path.rglob("*"):
         relative = item.relative_to(path)
+        if item.is_symlink():
+            raise SystemExit(f"dependency source tree contains a symlink: {path / relative}")
         if not item.is_file():
             continue
         if any(part in {".git", "_build"} or part.endswith(" 2") for part in relative.parts):
@@ -111,7 +116,7 @@ def dependencies(repo: pathlib.Path) -> list[dict[str, str]]:
         )
     if not result:
         raise SystemExit("moon tree returned no resolved dependencies")
-    return result
+    return sorted(result, key=lambda item: (item["name"], item["version"]))
 
 
 def main() -> int:
