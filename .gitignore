@@ -5,5 +5,12 @@ target/
 .moonagent/
 .repos/
 .cache/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.key
+*.pem
 coverage.xml
 *.profraw

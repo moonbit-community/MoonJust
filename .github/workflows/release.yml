@@ -21,6 +21,8 @@ jobs:
       - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
         with:
           version: 0.10.6+62c2592d1
+      - name: Ensure MoonX entry point
+        run: ./tools/release/ensure_moonx.sh
       - run: moon update
       - run: ./tools/check_phase11.sh
 
@@ -51,6 +53,9 @@ jobs:
       - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
         with:
           version: 0.10.6+62c2592d1
+      - name: Ensure MoonX entry point
+        shell: bash
+        run: ./tools/release/ensure_moonx.sh
       - run: moon update
       - name: Build and verify
         shell: bash
@@ -91,6 +96,8 @@ jobs:
       - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
         with:
           version: 0.10.6+62c2592d1
+      - name: Ensure MoonX entry point
+        run: ./tools/release/ensure_moonx.sh
       - run: moon update
       - name: Build wasm1 staging asset
         run: MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM=linux-x86_64 ./tools/release/build_artifacts.sh

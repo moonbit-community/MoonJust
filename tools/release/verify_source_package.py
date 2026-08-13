@@ -74,7 +74,9 @@ def main() -> None:
             name
             for name in names
             if name.startswith(("_build/", ".git/", ".mooncakes/"))
-            or name.endswith(("credentials.json", ".profraw"))
+            or any(part in {"__pycache__", ".vscode"} for part in pathlib.PurePosixPath(name).parts)
+            or pathlib.PurePosixPath(name).name in {".env", "credentials.json"}
+            or name.endswith((".key", ".pem", ".profraw", ".pyc", ".pyo"))
         ]
         if forbidden:
             fail(f"build/cache/credential files were packaged: {forbidden}")

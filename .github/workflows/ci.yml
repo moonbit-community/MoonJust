@@ -28,6 +28,9 @@ jobs:
         with:
           version: 0.10.6+62c2592d1
 
+      - name: Ensure MoonX entry point
+        run: ./tools/release/ensure_moonx.sh
+
       - name: Report toolchain
         run: moon version --all
 
@@ -141,6 +144,10 @@ jobs:
         uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
         with:
           version: 0.10.6+62c2592d1
+
+      - name: Ensure MoonX entry point
+        shell: bash
+        run: ./tools/release/ensure_moonx.sh
 
       - name: Refresh dependencies
         run: moon update
