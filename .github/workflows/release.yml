@@ -1,0 +1,118 @@
+name: Release candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MOONJUST_BUILDER_ID: https://github.com/moonbit-community/MoonJust/.github/workflows/release.yml
+
+jobs:
+  validate:
+    name: Validate release source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
+        with:
+          version: 0.10.6+62c2592d1
+      - name: Ensure MoonX entry point
+        run: ./tools/release/ensure_moonx.sh
+      - run: moon update
+      - run: ./tools/check_phase11.sh
+
+  artifacts:
+    name: Artifact (${{ matrix.platform }})
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-15-intel
+            platform: macos-x86_64
+          - os: macos-latest
+            platform: macos-aarch64
+          - os: windows-latest
+            platform: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
+        with:
+          version: 0.10.6+62c2592d1
+      - name: Ensure MoonX entry point
+        shell: bash
+        run: ./tools/release/ensure_moonx.sh
+      - run: moon update
+      - name: Build and verify
+        shell: bash
+        run: |
+          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="${{ matrix.platform }}" ./tools/release/build_artifacts.sh)
+          python3 ./tools/release/verify_bundle.py \
+            --repo . --archive "$archive" --platform "${{ matrix.platform }}"
+      - name: Attest bundles and checksums
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v3.0.0
+        with:
+          subject-path: |
+            _build/release/moonjust-*.tar.gz
+            _build/release/moonjust-*.zip
+            _build/release/moonjust-*.sha256
+            _build/release/build-*.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: moonjust-${{ matrix.platform }}
+          path: |
+            _build/release/moonjust-*.tar.gz
+            _build/release/moonjust-*.zip
+            _build/release/moonjust-*.sha256
+            _build/release/build-*.json
+          if-no-files-found: error
+
+  wasm-asset:
+    name: MoonX wasm1 asset
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f # v1.22
+        with:
+          version: 0.10.6+62c2592d1
+      - name: Ensure MoonX entry point
+        run: ./tools/release/ensure_moonx.sh
+      - run: moon update
+      - name: Build wasm1 staging asset
+        run: MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM=linux-x86_64 ./tools/release/build_artifacts.sh
+      - name: Verify staging MoonX protocol
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
+          python3 ./tools/release/check_moonx_asset.py \
+            --repo . --registry _build/release \
+            --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v3.0.0
+        with:
+          subject-path: _build/release/assets/**
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: moonjust-wasm1
+          path: _build/release/assets/**
+          if-no-files-found: error

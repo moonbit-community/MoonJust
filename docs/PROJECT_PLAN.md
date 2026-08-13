@@ -27,7 +27,8 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 ### 2.1 本地仓库
 
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
-- 模块名：`moonbit-community/MoonJust`，模块版本 `0.7.0`，应用版本 `0.7.0-alpha`，许可证 `Apache-2.0`。
+- 模块名：`moonbit-community/MoonJust`，模块与应用候选版本
+  `0.7.0-alpha.1`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
 - Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10 已于 2026-08-13 完成本地实现、两轮远端 CI、二次严格复核、合并和 protected-main CI。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。
@@ -698,6 +699,16 @@ Markdown 上游 oracle 证据见
 | PR-112 | cross-platform artifacts | native binaries、wasm artifact、checksums | clean runner 安装并执行 corpus |
 | PR-113 | supply chain | SBOM、provenance、签名、依赖审计 | 发布物可追溯到 commit/toolchain |
 | PR-114 | upgrade rehearsal | 从干净环境和上一 RC 升级/回滚 | 无本机缓存依赖；回滚文档可执行 |
+
+执行状态：Phase 11 已于 2026-08-13 完成本地实现和第一轮严格验收。
+PR-110 至 PR-114 的 Mooncakes/MoonX staging、四类 wasm policy、四平台
+Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程、
+十二类篡改拒绝和 Phase 10 到 Phase 11 升级/精确回滚证据见
+[`PHASE_11_REPORT.md`](PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
+不执行正式发布、创建 tag 或 GitHub Release；这些操作仅由维护者本人完成。
+两轮远端 PR CI 与强制二次复核已经通过，审计见
+[`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。candidate workflow、合并与
+protected-main CI 完成前，阶段出口保持 pending。
 
 ### Phase 12：Beta、RC 和 GA
 

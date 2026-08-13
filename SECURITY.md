@@ -22,3 +22,18 @@ filesystem and process capabilities. Allowing process spawning does not imply
 that spawned processes are contained by the parent `moonrun` policy. Review
 untrusted justfiles and use an operating-system or container sandbox when
 isolation is required.
+
+The policy examples are described in [`docs/RELEASE_POLICY.md`](docs/RELEASE_POLICY.md).
+In particular, `policies/execute.toml` grants ambient filesystem, environment,
+and child-process access. A spawned process is not sandboxed by the parent
+`moonrun` policy.
+
+## Release integrity
+
+Official release bundles contain SHA-256 checksums, a CycloneDX SBOM and a
+provenance statement binding the artifact to its source commit and MoonBit
+toolchain. GitHub release-candidate artifacts are attested by the candidate
+workflow using its OIDC identity. Formal publication remains a maintainer-only
+action. Verify the checksum before execution and the attestation against
+`moonbit-community/MoonJust`; do not trust an archive whose provenance commit
+is absent from this repository.

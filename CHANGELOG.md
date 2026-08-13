@@ -7,6 +7,21 @@ All notable changes to MoonJust will be documented here. The project follows
 
 ### Added
 
+- Phase 11 release-candidate engineering for Linux x86_64, macOS x86_64 and
+  aarch64, Windows x86_64, and linear-memory wasm1 artifacts.
+- Deterministic archives, SHA-256 manifests, CycloneDX 1.5 SBOMs,
+  SLSA-compatible provenance, GitHub OIDC candidate attestations, exact
+  dependency/license audit, and twelve-class tamper rejection.
+- Mooncakes metadata and safe source-package validation, executable public API
+  documentation, and local MoonX registry staging with cold-cache checksum
+  validation.
+- Deny/default-deny, read-only inspect, controlled CI, and explicit execute
+  policies with real wasm smoke tests and documented capability boundaries.
+- Cache-disabled source-package rebuilds, fixed-path repeatability checks, and
+  Phase 10-to-11 query/execution upgrade plus byte-exact rollback rehearsal.
+- Phase 10 Native platform/architecture/TTY facts, signal-aware execution,
+  confirmation, chooser/editor workflows, deterministic terminal rendering,
+  source-aware Markdown extraction, and complete compatibility accounting.
 - Phase 9 bounded FIFO recipe scheduling with `--jobs`, parallel dependency
   groups, serial fences, deterministic output, and stable failure selection.
 - Phase 9 versioned BLAKE3 cache keys, strict manifests, Native/wasm1

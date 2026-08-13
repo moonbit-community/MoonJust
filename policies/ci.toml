@@ -1,0 +1,18 @@
+[env]
+from_host = []
+
+[fs]
+read = [
+  "../",
+]
+write = [
+  "../_build",
+]
+
+[net]
+dns = []
+connect = []
+bind = []
+
+[process]
+spawn = true
