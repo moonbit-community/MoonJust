@@ -6,30 +6,30 @@ covered_registrations = 188
 unverified_registrations = 0
 
 [hostfs]
-policy_gate = "tools/check_hostfs_policy.sh"
+policy_gate = "tools/checks/hostfs.sh"
 native_suite = "src/host_native/native_test.mbt"
 wasm_suite = "src/host_wasm/transaction/policy_fs_test.mbt"
 
 [dotenv]
 registrations = 51
 oracle = "dotenvy 0.15.7"
-differential_gate = "tools/check_dotenv_compat.sh"
+differential_gate = "tools/checks/dotenv.sh"
 suite = "src/environment/environment_test.mbt"
 
 [invocation]
 registrations = 86
 differential_cases = 14
-differential_gate = "tools/check_invocation_compat.sh"
+differential_gate = "tools/checks/invocation.sh"
 suite = "src/invocation/invocation_test.mbt"
 
 [working_directory]
 registrations = 30
 differential_cases = 11
-differential_gate = "tools/check_workdir_compat.sh"
+differential_gate = "tools/checks/workdir.sh"
 suite = "src/workdir/workdir_test.mbt"
 
 [environment]
 registrations = 21
 differential_cases = 7
-differential_gate = "tools/check_environment_compat.sh"
+differential_gate = "tools/checks/environment.sh"
 suite = "src/environment/environment_test.mbt"

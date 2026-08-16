@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 oracle="$repo_root/_build/upstream/just-1.57.0/target/release/just"
 fixture="$repo_root/tests/fixtures/execution/line.justfile"
 expected="$repo_root/tests/fixtures/execution/line.dry-run.stderr"

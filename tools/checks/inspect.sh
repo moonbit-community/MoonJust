@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 binary="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
 policy="$repo_root/policies/inspect.toml"
 fixture="$repo_root/tests/fixtures/query/justfile"

@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 fixture="$repo_root/tests/fixtures/runtime"
 work=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-runtime.XXXXXX")
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM

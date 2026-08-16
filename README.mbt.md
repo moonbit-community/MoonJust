@@ -146,7 +146,7 @@ Wasm inspection adapter receives only the capabilities its policy allows.
 | `cmd/just` | Native/wasm1 executable composition root |
 | `compat/` | machine-readable compatibility inventories and area contracts |
 | `tests/upstream/` | pinned upstream corpus, ownership map and provenance |
-| `tools/` | deterministic gates, oracle builders and differential probes |
+| `tools/` | organized checks, oracle builders, probes, and release tooling; see [`tools/README.md`](tools/README.md) |
 | `docs/` | design plan, ADRs, historical delivery reports and release audit |
 
 ## Security boundary

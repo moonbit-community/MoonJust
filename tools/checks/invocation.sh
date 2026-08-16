@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 oracle_root="$repo_root/_build/upstream/just-1.57.0"
 oracle="$oracle_root/target/release/just"
 fixture="$repo_root/tests/fixtures/invocation/invocation.justfile"
@@ -15,8 +15,8 @@ fail() {
 }
 
 "$repo_root/tools/upstream/build_oracle.sh" >/dev/null
-moon build --quiet --target native tools/invocation_probe
-probe="$repo_root/_build/native/debug/build/tools/invocation_probe/invocation_probe.exe"
+moon build --quiet --target native tools/probes/invocation_probe
+probe="$repo_root/_build/native/debug/build/tools/probes/invocation_probe/invocation_probe.exe"
 native="$repo_root/_build/native/debug/build/cmd/just/just.exe"
 wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
 policy="$repo_root/policies/inspect.toml"
