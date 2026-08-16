@@ -24,3 +24,4 @@ are changed only by a new ADR that records migration and compatibility impact.
 | [0015](0015-phase-7-working-directory-model.md) | Phase 7 working-directory model | Accepted |
 | [0016](0016-phase-7-environment-composition.md) | Phase 7 CLI environment composition | Accepted |
 | [0017](0017-markdown-tangle-final-implementation.md) | Markdown tangle final implementation | Accepted |
+| [0018](0018-public-api-package-location.md) | Public API package location | Accepted |

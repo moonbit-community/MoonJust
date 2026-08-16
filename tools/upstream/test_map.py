@@ -388,7 +388,7 @@ AREA_TEST_ANCHORS = {
             "dump and JSON inspect are deterministic and schema-pinned",
         ),
         "version": (
-            "build_info_test.mbt",
+            "api/build_info_test.mbt",
             "release metadata is explicit",
         ),
     },

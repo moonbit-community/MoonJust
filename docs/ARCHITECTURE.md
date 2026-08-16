@@ -27,7 +27,7 @@ host adapters.
 
 | Package | Responsibility | Must not own |
 | --- | --- | --- |
-| root facade | stable user-facing API and build metadata | parser internals or target FFI |
+| `api` | stable user-facing API and build metadata | parser internals or target FFI |
 | `source` | UTF-8 bytes, source IDs, byte spans, line index | terminal rendering |
 | `diagnostic` | structured diagnostic values and render contracts | process exits |
 | `path` | host-independent Unix/Windows lexical path values | filesystem canonicalization |
@@ -65,10 +65,10 @@ placeholder public APIs are not committed merely to mirror this table.
 
 ## Public API policy
 
-The root package owns public concrete types users are expected to inspect or
+The `api` package owns public concrete types users are expected to inspect or
 construct. Internal implementation packages do not leak concrete types through
 the facade. Every public change is reviewed through generated
-`pkg.generated.mbti` files and black-box tests.
+`api/pkg.generated.mbti` and black-box tests.
 
 ## Target policy
 

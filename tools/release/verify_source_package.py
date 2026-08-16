@@ -13,7 +13,7 @@ REQUIRED = {
     "README.md",
     "SECURITY.md",
     "CHANGELOG.md",
-    "API.mbt.md",
+    "api/API.mbt.md",
     "docs/API.md",
     "docs/RELEASE_POLICY.md",
     "policies/ci.toml",
@@ -21,10 +21,10 @@ REQUIRED = {
     "policies/execute.toml",
     "policies/inspect.toml",
     "moon.mod",
-    "moon.pkg",
+    "api/moon.pkg",
+    "api/pkg.generated.mbti",
     "cmd/just/moon.pkg",
     "cmd/just/pkg.generated.mbti",
-    "pkg.generated.mbti",
 }
 
 

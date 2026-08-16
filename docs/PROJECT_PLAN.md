@@ -338,11 +338,10 @@ CLI 的全部稳定全局 flags 都必须进入 `compat/cli-options.toml`，即�
 ```text
 MoonJust/
 ├── moon.mod
-├── moon.pkg
+├── api/                      # 稳定 facade，公开 Parse/Check/Format/Plan API
 ├── cmd/
 │   └── just/                 # 唯一 CLI composition root
 ├── src/
-│   ├── api/                  # 稳定 facade，公开 Parse/Check/Format/Plan API
 │   ├── source/               # UTF-8 bytes、SourceId、Span、line index
 │   ├── diagnostic/           # typed diagnostics 与 renderer
 │   ├── lexer/                # token 与缩进/recipe 状态机

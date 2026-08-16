@@ -137,6 +137,7 @@ Wasm inspection adapter receives only the capabilities its policy allows.
 
 | Path | Responsibility |
 | --- | --- |
+| `api/` | stable public library facade and build metadata |
 | `src/source`, `src/diagnostic`, `src/path` | target-independent source coordinates, diagnostics and lexical paths |
 | `src/lexer`, `src/parser`, `src/syntax`, `src/formatter` | language front end and Markdown tangle |
 | `src/semantic`, `src/loader`, `src/evaluator`, `src/builtin` | compilation, graph loading, evaluation and typed builtins |

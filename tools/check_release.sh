@@ -25,7 +25,7 @@ trap cleanup EXIT HUP INT TERM
 [ "$version" = "0.7.0-alpha.1" ] || fail "module version differs from release identity"
 grep -q '^coordinate = "moonbit-community/MoonJust/cmd/just@0.7.0-alpha.1"$' "$manifest" || \
   fail "MoonX coordinate differs"
-for required in API.mbt.md docs/API.md docs/RELEASE_POLICY.md LICENSE NOTICE README.mbt.md SECURITY.md CHANGELOG.md; do
+for required in api/API.mbt.md docs/API.md docs/RELEASE_POLICY.md LICENSE NOTICE README.mbt.md SECURITY.md CHANGELOG.md; do
   [ -s "$repo_root/$required" ] || fail "required publication file is missing: $required"
 done
 

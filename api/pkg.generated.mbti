@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbit-community/MoonJust"
+package "moonbit-community/MoonJust/api"
 
 import {
   "moonbit-community/MoonJust/src/evaluator",
