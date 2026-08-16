@@ -517,9 +517,12 @@ fn project_evaluation_context(
       }
     None => None
   }
-  let executable_directory = match (executable, platform) {
-    (Some(value), Some(info)) if info.operating_system() != Macos =>
-      value.parent()
+  let executable_directory = match platform {
+    Some(info) if info.operating_system() == Linux =>
+      prefer_path(
+        environment_path(entries, "XDG_BIN_HOME", cwd.flavor()),
+        child_path(home, ".local/bin"),
+      )
     _ => None
   }
   let (pid, num_cpus) = match platform {
