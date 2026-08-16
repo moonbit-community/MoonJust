@@ -2,7 +2,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-13；Phase 0-11 已完成并通过全部阶段出口。Phase 11 由 [PR #43](https://github.com/moonbit-community/MoonJust/pull/43) 交付，并由 [PR #44](https://github.com/moonbit-community/MoonJust/pull/44)、[PR #45](https://github.com/moonbit-community/MoonJust/pull/45) 和 [PR #46](https://github.com/moonbit-community/MoonJust/pull/46) 完成远程复核修复；审计闭合基线 `ec960b5a` 的 protected-main CI [31697473589](https://github.com/moonbit-community/MoonJust/actions/runs/31697473589) 与非发布候选工作流 [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163) 均通过。完整结论见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
+> 最近严格复核：2026-08-13；Phase 0-11 已完成并通过全部阶段出口。Phase 11 由 [PR #43](https://github.com/moonbit-community/MoonJust/pull/43) 交付，并由 [PR #44](https://github.com/moonbit-community/MoonJust/pull/44)、[PR #45](https://github.com/moonbit-community/MoonJust/pull/45) 和 [PR #46](https://github.com/moonbit-community/MoonJust/pull/46) 完成远程复核修复；审计闭合基线 `ec960b5a` 的 protected-main CI [31697473589](https://github.com/moonbit-community/MoonJust/actions/runs/31697473589) 与非发布候选工作流 [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163) 均通过。完整结论见 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -31,7 +31,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
   `0.7.0-alpha.1`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
-- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10-11 已于 2026-08-13 完成本地实现、远端 CI、二次严格复核、合并和 protected-main CI。Phase 11 的非发布候选制品与 OIDC 证明工作流亦已通过。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
+- Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10-11 已于 2026-08-13 完成本地实现、远端 CI、二次严格复核、合并和 protected-main CI。Phase 11 的非发布候选制品与 OIDC 证明工作流亦已通过。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
@@ -530,7 +530,7 @@ Rust 上游的 source offset 基于 UTF-8 byte。MoonBit `String` 的索引模�
 
 Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是拖延，而是消除会导致全项目返工的 source offset、runtime 和依赖假设。
 
-执行状态：Phase 0 已于 2026-08-04 完成。逐项证据、确定性 CI 故障及修复、已冻结决策和后续限制见 [`PHASE_0_REPORT.md`](PHASE_0_REPORT.md)。
+执行状态：Phase 0 已于 2026-08-04 完成。逐项证据、确定性 CI 故障及修复、已冻结决策和后续限制见 [`PHASE_0_REPORT.md`](reports/PHASE_0_REPORT.md)。
 
 ### Phase 1：Source、诊断和平台值模型
 
@@ -542,7 +542,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-013 | Host contract 和 fake | capability interfaces、memory fs、fake env/clock/random/process | 核心 package 无目标 FFI；fake 可复现错误 |
 | PR-014 | CLI error/exit contract | ApplicationRequest、错误分类、退出码映射 | 用法/编译/执行/能力错误端到端测试 |
 
-执行状态：Phase 1 已于 2026-08-04 完成实现。逐项测试、公开 API、架构门禁、兼容清单和后续限制见 [`PHASE_1_REPORT.md`](PHASE_1_REPORT.md)。
+执行状态：Phase 1 已于 2026-08-04 完成实现。逐项测试、公开 API、架构门禁、兼容清单和后续限制见 [`PHASE_1_REPORT.md`](reports/PHASE_1_REPORT.md)。
 
 ### Phase 2：Lexer
 
@@ -554,7 +554,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-023 | recipe/interpolation 模式 | recipe line、前缀、`{{ }}`、continuation | lexer 模式切换和嵌套错误差分通过 |
 | PR-024 | Lexer hardening | fuzz/property、资源上限、diagnostic parity | 10 万随机输入无 panic/超界；关键上游 lexer 用例全过 |
 
-执行状态：Phase 2 已于 2026-08-04 完成实现。Token/Keyword API、93 项上游登记、21 个关键 oracle、10 万输入 hardening、资源边界和后续 parser 责任见 [`PHASE_2_REPORT.md`](PHASE_2_REPORT.md)。
+执行状态：Phase 2 已于 2026-08-04 完成实现。Token/Keyword API、93 项上游登记、21 个关键 oracle、10 万输入 hardening、资源边界和后续 parser 责任见 [`PHASE_2_REPORT.md`](reports/PHASE_2_REPORT.md)。
 
 ### Phase 3：Parser、AST 与 Formatter
 
@@ -569,7 +569,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-036 | Markdown tangle | source-aware fenced `just` 提取 | 上游 tangle + CommonMark 边界；保持原行号 |
 | PR-037 | Parser hardening | fuzz、深度/大小限制、全 grammar inventory | 稳定 grammar 100% 有正反测试，无 panic |
 
-执行状态：Phase 3 已于 2026-08-06 完成实现并通过阶段验收。逐项 parser/AST、formatter、Markdown、恢复、语料和 hardening 证据见 [`PHASE_3_REPORT.md`](PHASE_3_REPORT.md)。
+执行状态：Phase 3 已于 2026-08-06 完成实现并通过阶段验收。逐项 parser/AST、formatter、Markdown、恢复、语料和 hardening 证据见 [`PHASE_3_REPORT.md`](reports/PHASE_3_REPORT.md)。
 
 ### Phase 4：语义分析和加载图
 
@@ -583,7 +583,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-045 | recipe/alias/dependency validation | 缺失名称、循环、参数静态检查 | 不启动进程即可发现全部静态错误 |
 | PR-046 | Compilation API | immutable semantic model、query facade | 黑盒 API 文档测试；`.mbti` 审查 |
 
-执行状态：Phase 4 已于 2026-08-06 完成实现并通过阶段验收。逐项 semantic、HostFs、loader、加载图、静态校验和公开 API 证据见 [`PHASE_4_REPORT.md`](PHASE_4_REPORT.md)。
+执行状态：Phase 4 已于 2026-08-06 完成实现并通过阶段验收。逐项 semantic、HostFs、loader、加载图、静态校验和公开 API 证据见 [`PHASE_4_REPORT.md`](reports/PHASE_4_REPORT.md)。
 
 ### Phase 5：值、求值与内建函数
 
@@ -598,7 +598,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 | PR-056 | clock/uuid/shell builtins | HostClock/Random/Process 接入 | deterministic tests + 目标矩阵 |
 | PR-057 | evaluator hardening | recursion/size budget、error stack | 无未控制递归和敏感环境泄漏 |
 
-执行状态：Phase 5 已于 2026-08-06 完成实现并通过阶段验收。evaluator scope/lazy 状态、83 项 typed builtin、上下文与效果能力、Regex/SemVer、SHA-256/BLAKE3 增量哈希、硬化、Rust oracle 和 Native/wasm1 矩阵见 [`PHASE_5_REPORT.md`](PHASE_5_REPORT.md)；当前 Phase 0-11 总审计见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)。
+执行状态：Phase 5 已于 2026-08-06 完成实现并通过阶段验收。evaluator scope/lazy 状态、83 项 typed builtin、上下文与效果能力、Regex/SemVer、SHA-256/BLAKE3 增量哈希、硬化、Rust oracle 和 Native/wasm1 矩阵见 [`PHASE_5_REPORT.md`](reports/PHASE_5_REPORT.md)；当前 Phase 0-11 总审计见 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。
 
 ### Phase 6：查询型 CLI
 
@@ -614,7 +614,7 @@ Phase 0 结束前禁止大规模翻译 parser 或 executor。它的目的不是�
 
 执行状态：Phase 6 已于 2026-08-07 完成实现并通过阶段出口。PR-060 至
 PR-064、二次严格复核补救、Native/wasm1 门禁、固定上游 oracle 以及
-Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_6_REPORT.md`](PHASE_6_REPORT.md)。
+Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_6_REPORT.md`](reports/PHASE_6_REPORT.md)。
 Phase 6 阶段应用版本为 `0.3.0-alpha.0`（模块版本 `0.3.0`），仍明确禁止作为生产 recipe runner。
 
 ### Phase 7：文件、环境、dotenv 和 invocation
@@ -630,7 +630,7 @@ Phase 6 阶段应用版本为 `0.3.0-alpha.0`（模块版本 `0.3.0`），仍明
 执行状态：Phase 7 已于 2026-08-08 完成实现并通过阶段出口。PR-070 至
 PR-074、二次严格复核补救、188 项固定上游用例映射、五组专项门禁、
 211/208 项 Native/wasm1 测试以及 Ubuntu/macOS/Windows 远程 CI 证据见
-[`PHASE_7_REPORT.md`](PHASE_7_REPORT.md)。recipe 进程构建与执行仍严格
+[`PHASE_7_REPORT.md`](reports/PHASE_7_REPORT.md)。recipe 进程构建与执行仍严格
 属于 Phase 8。
 
 ### Phase 8：Executor
@@ -650,7 +650,7 @@ Phase 8 结束发布 `0.5.0-alpha`，标记为执行预览，不保证并行/cac
 
 执行状态：Phase 8 已于 2026-08-10 完成实现并通过阶段出口。PR-080 至
 PR-087、二次严格安全复核、236/232 项阶段出口测试、执行器专项门禁以及
-Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_8_REPORT.md`](PHASE_8_REPORT.md)。
+Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_8_REPORT.md`](reports/PHASE_8_REPORT.md)。
 并行、持久化 cache、交互终端和完整平台边界已明确留给 Phase 9/10。
 
 ### Phase 9：并行、缓存和健壮性
@@ -666,8 +666,8 @@ Ubuntu/macOS/Windows 远程 CI 证据见 [`PHASE_8_REPORT.md`](PHASE_8_REPORT.md
 执行状态：Phase 9 已于 2026-08-11 完成实现并通过阶段出口。PR-090 至
 PR-094、二次严格复核、72 项可执行登记与 2 项明确差异、263/259 项阶段
 出口测试、1000 次 DAG 压力、崩溃恢复和双进程争用门禁，以及 PR #38 与
-protected-main CI 证据见 [`PHASE_9_REPORT.md`](PHASE_9_REPORT.md) 和
-[`PHASE_0_9_AUDIT.md`](PHASE_0_9_AUDIT.md)。当前补充复核测试矩阵为
+protected-main CI 证据见 [`PHASE_9_REPORT.md`](reports/PHASE_9_REPORT.md) 和
+[`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。当前补充复核测试矩阵为
 265/261；其后交互、完整平台和兼容收束由 Phase 10 完成。
 
 ### Phase 10：平台和 Tier B 收束
@@ -685,8 +685,8 @@ protected-main CI 证据见 [`PHASE_9_REPORT.md`](PHASE_9_REPORT.md) 和
 二次严格复核。PR-100 至 PR-105、300/295 项测试、39 个上游 `JUST_*`
 环境绑定、2,417 项上游登记的零 `planned` 分类、真实 macOS 平台门禁和
 Markdown 上游 oracle 证据见
-[`PHASE_10_REPORT.md`](PHASE_10_REPORT.md) 与
-[`PHASE_0_10_AUDIT.md`](PHASE_0_10_AUDIT.md)。PR #41、二次复核修复 CI
+[`PHASE_10_REPORT.md`](reports/PHASE_10_REPORT.md) 与
+[`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。PR #41、二次复核修复 CI
 `31617660952`、合并提交 `d18b64e` 和 protected-main CI `31618046344`
 均已通过，阶段出口为 complete。
 
@@ -704,12 +704,12 @@ Markdown 上游 oracle 证据见
 PR-110 至 PR-114 的 Mooncakes/MoonX staging、四类 wasm policy、三平台
 Native 与 wasm1 候选制品、checksum/SBOM/provenance/OIDC attestation 流程、
 十二类篡改拒绝和 Phase 10 到 Phase 11 升级/精确回滚证据见
-[`PHASE_11_REPORT.md`](PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
+[`PHASE_11_REPORT.md`](reports/PHASE_11_REPORT.md)。仓库自动化只准备并验证候选物，
 不执行正式发布、创建 tag 或 GitHub Release；这些操作仅由维护者本人完成。
 交付 PR #43、三项远程复核修复 PR #44 至 #46、强制二次复核、
 审计闭合基线 `ec960b5a` 的 protected-main CI `31697473589` 和非发布
 candidate workflow `31698189163`
-均已通过，审计见 [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md)，阶段出口为
+均已通过，审计见 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)，阶段出口为
 complete。候选工作流仅上传临时制品并生成 OIDC 证明；本阶段未执行正式发布。
 当前官方 MoonBit 安装链已移除 macOS x86_64 工具链分发，因此候选矩阵按
 第 3.3 节规则在 RC 前明确收缩为 Linux x86_64、macOS arm64 和 Windows
@@ -1073,7 +1073,7 @@ MoonJust 使用自己的 SemVer。版本号不假装与上游相同；发布 met
 10. Phase 0-11 均已完成实现、二次复核并通过 PR 与 protected-main CI；
     Phase 11 功能交付和远程复核修复见 PR #43 至 #46，非发布候选工作流
     亦已通过。所有当前状态、门禁和后续限制以
-    [`PHASE_0_11_AUDIT.md`](PHASE_0_11_AUDIT.md) 及各阶段报告为准。
+    [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md) 及各阶段报告为准。
 
 ## 20. 参考资料与可复核来源
 

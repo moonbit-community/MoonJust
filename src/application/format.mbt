@@ -313,7 +313,7 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response_async(
 }
 
 ///|
-/// Execute the Phase 6 file-oriented commands without ambient process state.
+/// Execute the file-oriented commands without ambient process state.
 pub fn[T : @host.HostFs + @host.HostTemp] execute_file_command(
   host : T,
   arguments : @cli.CliArguments,

@@ -11,13 +11,13 @@ trap cleanup EXIT HUP INT TERM
 
 mkdir -p "$temporary_root/cases/01-match/tree" "$temporary_root/cases/02-diff/tree"
 cat >"$temporary_root/cases.toml" <<'EOF'
-schema_version = 2
+schema_version = 3
 upstream = "self-test"
 
 [[case]]
 id = "MJ-COMPAT-SELF-MATCH"
 directory = "01-match"
-owner_phase = 0
+owner_area = "differential-harness"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -25,7 +25,7 @@ upstream_tests = []
 [[case]]
 id = "MJ-COMPAT-SELF-DIFF"
 directory = "02-diff"
-owner_phase = 0
+owner_area = "differential-harness"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []

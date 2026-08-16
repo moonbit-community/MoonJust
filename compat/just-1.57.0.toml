@@ -1,4 +1,4 @@
-schema_version = 2
+schema_version = 3
 
 [upstream]
 repository = "https://github.com/casey/just"
@@ -15,7 +15,7 @@ registrations = 2417
 path = "tests/upstream/just-1.57.0/test-list.txt"
 sha256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
 mapping = "tests/upstream/just-1.57.0/test-map.jsonl"
-mapping_schema = 2
+mapping_schema = 3
 mapping_generator = "tools/upstream/test_map.py"
 
 [scope]
@@ -32,14 +32,15 @@ builtins = "compat/builtins.toml"
 settings = "compat/settings.toml"
 attributes = "compat/attributes.toml"
 provenance = "tests/upstream/NOTICE.md"
-phase_1 = "compat/phase-1.toml"
-phase_2 = "compat/phase-2.toml"
-phase_3 = "compat/phase-3.toml"
-phase_4 = "compat/phase-4.toml"
-phase_5 = "compat/phase-5.toml"
-phase_6 = "compat/phase-6.toml"
-phase_7 = "compat/phase-7.toml"
-phase_8 = "compat/phase-8.toml"
-phase_9 = "compat/phase-9.toml"
-phase_10 = "compat/phase-10.toml"
+core_contracts = "compat/core-contracts.toml"
+lexer = "compat/lexer.toml"
+parser_formatter = "compat/parser-formatter.toml"
+semantic_loader = "compat/semantic-loader.toml"
+evaluator_builtins = "compat/evaluator-builtins.toml"
+query_cli = "compat/query-cli.toml"
+execution_context = "compat/execution-context.toml"
+executor = "compat/executor.toml"
+runtime_cache = "compat/runtime-cache.toml"
+platform_compatibility = "compat/platform-compatibility.toml"
+release_readiness = "compat/release-readiness.toml"
 differential_cases = "tests/differential/cases.toml"

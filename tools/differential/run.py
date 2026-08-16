@@ -64,8 +64,8 @@ def remove_tree(path: Path) -> None:
 
 def load_cases(manifest_path: Path) -> list[Case]:
     manifest = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != 2:
-        fail("differential manifest schema_version must be 2")
+    if manifest.get("schema_version") != 3:
+        fail("differential manifest schema_version must be 3")
     rows = manifest.get("case", [])
     if not rows:
         fail("differential manifest contains no cases")

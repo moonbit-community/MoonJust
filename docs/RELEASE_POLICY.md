@@ -84,9 +84,9 @@ attestation against this repository.
 
 ## Upgrade and rollback
 
-No RC exists before Phase 12, so the Phase 11 rehearsal uses the Phase 10 alpha
-merge as its previous candidate. It builds that immutable commit in a separate
-source tree, verifies it, replaces it with the Phase 11 candidate archive, runs
+The upgrade rehearsal uses a checksum-pinned previous candidate. It builds that
+immutable commit in a separate source tree, verifies it, replaces it with the
+current candidate archive, runs
 the query corpus, then restores the exact previous bytes and verifies them
 again. The release gate also rebuilds the candidate from the source package
 with independently copied exact dependency sources and global dependency and

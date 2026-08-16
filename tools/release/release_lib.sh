@@ -1,7 +1,7 @@
 #!/bin/sh
 
 release_fail() {
-  echo "Phase 11 release error: $1" >&2
+  echo "Release release error: $1" >&2
   exit 1
 }
 

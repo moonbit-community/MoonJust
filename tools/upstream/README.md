@@ -21,9 +21,9 @@ The command fails rather than updating the snapshot if the commit or expected
 compatibility PR; do not change the expected count to make CI green.
 
 `test_map.py` generates one deterministic JSONL row for every pinned
-registration using schema v2. Differential rows name a case executed against
+registration using schema version 3. Differential rows name a case executed against
 the official, native and wasm binaries. Contract rows carry a stable contract
-case ID plus an executable `suite`/`test_name` anchor, and each generated phase
+case ID plus an executable `suite`/`test_name` anchor, and each generated area
 case explicitly lists its upstream registration. The verifier reads the
 referenced MoonBit source and checks that the named declaration exists.
 Completion and maintenance rows remain explicitly excluded or not applicable;

@@ -25,7 +25,7 @@ EXPECTED_SUPPORT = {
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"Phase 11 bundle error: {message}")
+    raise SystemExit(f"Release bundle error: {message}")
 
 
 def safe_names(names: list[str]) -> None:
@@ -206,7 +206,7 @@ def main() -> None:
             check=True,
         )
         if args.platform.startswith("windows-") and shutil.which("cmd") is None:
-            print("Phase 11 bundle verified structurally; Windows execution deferred to Windows runner")
+            print("Release bundle verified structurally; Windows execution deferred to Windows runner")
             return
         result = subprocess.run([str(executable), "--version"], text=True, capture_output=True)
         if result.returncode != 0 or not result.stdout.startswith(f"moonjust {version} "):
@@ -216,7 +216,7 @@ def main() -> None:
                 str(executable),
                 "--list",
                 "--justfile",
-                str(repo / "tests/fixtures/phase-6/justfile"),
+                str(repo / "tests/fixtures/query/justfile"),
             ],
             text=True,
             capture_output=True,
@@ -232,7 +232,7 @@ def main() -> None:
             [
                 str(executable),
                 "--justfile",
-                str(repo / "tests/fixtures/phase-8/line.justfile"),
+                str(repo / "tests/fixtures/execution/line.justfile"),
                 "build",
             ],
             text=True,
@@ -245,7 +245,7 @@ def main() -> None:
             or execution.stderr != "echo hello world\nfalse\n"
         ):
             fail("extracted executable execution corpus failed")
-        print(f"Phase 11 bundle verified and executed: {args.platform}")
+        print(f"Release bundle verified and executed: {args.platform}")
 
 
 if __name__ == "__main__":

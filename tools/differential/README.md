@@ -1,6 +1,6 @@
-# Differential harness v0
+# Differential harness
 
-The Phase 0 harness executes a pinned upstream `just` binary and a MoonJust
+The harness executes a pinned upstream `just` binary and a MoonJust
 binary in separate copies of the same fixture. It captures raw and normalized
 stdout/stderr, exit status, and the resulting filesystem tree.
 
@@ -28,21 +28,23 @@ Each case contains:
 - `expectation`: either `match` or `difference`.
 - `compat-id`: required when a difference is expected.
 
-The only v0 normalization replaces the isolated working directory with
+The baseline normalization replaces the isolated working directory with
 `<CASE_ROOT>`. Raw artifacts are retained alongside normalized files. Adding a
 normalizer requires a reviewed compatibility change.
 
-The v0 tree snapshot records directory, regular-file hash, and symlink target.
+The baseline tree snapshot records directory, regular-file hash, and symlink target.
 Permissions, mtimes, process trees, signals, and TTY behavior are added in the
-later platform harness; v0 must not be cited as evidence for those surfaces.
+platform harness; the baseline snapshot must not be cited as evidence for those
+surfaces.
 
 CI runs `tools/differential/real_smoke.sh`, which builds the pinned upstream
 source oracle and the current Native candidate before executing every baseline
-case. Cases owned by later phases may remain explicit `XDIFF` entries, but an
+case. Cases outside the implemented compatibility surface may remain explicit
+`XDIFF` entries, but an
 unexpected match, difference, timeout, exit status, or fixture-tree change
 fails the run.
 
 The ownership and reason for every current `XDIFF` are recorded in
-`tests/differential/cases.toml`. A case owned by a completed Phase 0-9 contract
+`tests/differential/cases.toml`. A case owned by a completed compatibility area
 may not be hidden there as an expected difference; it must be fixed or have a
-stable product-identity/diagnostic rationale before that phase exit is restored.
+stable product-identity or diagnostic rationale.

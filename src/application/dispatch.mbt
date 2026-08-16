@@ -1,5 +1,5 @@
 ///|
-/// Dispatch one validated Phase 6 command without granting process capability.
+/// Dispatch one validated command without granting process capability.
 pub fn[
   F : @host.HostFs + @host.HostTemp,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,

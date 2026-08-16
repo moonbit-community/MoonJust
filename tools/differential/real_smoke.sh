@@ -15,8 +15,8 @@ from pathlib import Path
 
 manifest = tomllib.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 cases = manifest.get("case", [])
-if manifest.get("schema_version") != 2:
-    raise SystemExit("differential manifest must use schema version 2")
+if manifest.get("schema_version") != 3:
+    raise SystemExit("differential manifest must use schema version 3")
 if len(cases) != 182:
     raise SystemExit(f"differential manifest expected 182 cases, found {len(cases)}")
 seen = set()
@@ -32,8 +32,14 @@ for case in cases:
         raise SystemExit(f"case {case_id} has invalid upstream_tests")
     if status == "expected-difference" and case.get("allowed_difference", "none") == "none":
         raise SystemExit(f"case {case_id} has an unbounded expected difference")
-    if not isinstance(case.get("owner_phase"), int) or case["owner_phase"] < 6:
-        raise SystemExit(f"case {case_id} has an invalid owner phase")
+    if case.get("owner_area") not in {
+        "query-cli",
+        "execution-context",
+        "executor",
+        "runtime-cache",
+        "platform-compatibility",
+    }:
+        raise SystemExit(f"case {case_id} has an invalid owner area")
     case_dir = Path(sys.argv[1]).parent / "cases" / case["directory"]
     if not (case_dir / "expectation").exists():
         raise SystemExit(f"case {case_id} is missing expectation")

@@ -24,7 +24,7 @@ jobs:
       - name: Ensure MoonX entry point
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
-      - run: ./tools/check_phase11.sh
+      - run: ./tools/check_release.sh
 
   artifacts:
     name: Artifact (${{ matrix.platform }})

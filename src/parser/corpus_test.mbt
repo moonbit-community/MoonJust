@@ -13,7 +13,7 @@ fn parser_error(text : String) -> Bool {
 }
 
 ///|
-test "phase 3 grammar corpus covers every registered setting and attribute" {
+test "grammar corpus covers every registered setting and attribute" {
   let mut id = 710
   for name in @parser.setting_names() {
     let value = match name {
@@ -61,7 +61,7 @@ test "phase 3 grammar corpus covers every registered setting and attribute" {
 }
 
 ///|
-test "phase 3 grammar corpus rejects invalid attribute arity and unknown names" {
+test "grammar corpus rejects invalid attribute arity and unknown names" {
   assert_true(parser_error("[private(\"unexpected\")]\nrecipe:\n"))
   assert_true(parser_error("[extension]\nrecipe:\n"))
   assert_true(parser_error("[group(\"a\", \"b\")]\nrecipe:\n"))
@@ -75,7 +75,7 @@ test "phase 3 grammar corpus rejects invalid attribute arity and unknown names" 
 }
 
 ///|
-test "phase 3 parser recovery preserves error locations and later items" {
+test "parser recovery preserves error locations and later items" {
   let source = corpus_source(
     701, "set not-a-setting\n[private(\"bad\")]\nbuild:\nvalid:\n",
   )
@@ -100,7 +100,7 @@ fn next_random(state : Int) -> Int {
 }
 
 ///|
-test "phase 3 parser fuzz corpus never escapes through an uncontrolled panic" {
+test "parser fuzz corpus never escapes through an uncontrolled panic" {
   let alphabet = "abcxyz0123 :=()[]{}\"'\\n,+*/!?&|#@$"
   let mut state = 17
   for index in 0..<10_000 {

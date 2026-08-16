@@ -24,4 +24,4 @@ Future copied or adapted fixtures must append a row:
 | `src/semantic/semantic_test.mbt`, `src/loader/loader_test.mbt` | `src/settings.rs`, `src/attribute.rs`, `src/analyzer.rs`, `src/search.rs`, `src/loader.rs`, `src/module.rs` | Adapted setting/attribute inventories, static checks, discovery, graph, and source-chain cases to capability-backed MoonBit tests | `MJ-SEM-LOAD-ORACLE-1.57.0` |
 | `src/builtin/builtin_test.mbt`, `src/evaluator/evaluator_test.mbt` | `src/evaluator.rs`, `src/value.rs`, `src/function.rs`, `src/function/semver.rs`, `src/function/sha256.rs` | Adapted value, scope, builtin registry, SemVer/regexp, hash, effect, and budget cases without copying Rust implementation | `MJ-EVAL-BUILTIN-ORACLE-1.57.0` |
 
-No upstream implementation source has been copied into MoonJust during Phase 0.
+No upstream implementation source was copied into MoonJust during initial development.

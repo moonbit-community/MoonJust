@@ -3,14 +3,14 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-phase_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation workdir scheduler cache executor application"
+core_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation workdir scheduler cache executor application"
 
 fail() {
   echo "architecture boundary error: $1" >&2
   exit 1
 }
 
-for package in $phase_packages; do
+for package in $core_packages; do
   package_dir="$repo_root/src/$package"
   [ -f "$package_dir/moon.pkg" ] || fail "missing src/$package/moon.pkg"
   [ -f "$package_dir/pkg.generated.mbti" ] || \

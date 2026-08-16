@@ -14,4 +14,4 @@ moon -C spikes/host-async test --target wasm
 
 The test uses `/bin/sh` to keep the process behavior controlled. It does not
 claim Windows coverage; Windows command and cancellation behavior requires a
-separate Phase 8/10 contract suite.
+separate platform contract suite.

@@ -131,7 +131,7 @@ async test "async file commands preserve init and format transactions" {
 }
 
 ///|
-test "phase 10 Markdown format prints canonical source without mutation" {
+test "Markdown format prints canonical source without mutation" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/tasks.MD", Unix)
   let original = b"# prose\n```just\nx:=\"y\"\n```\n"
@@ -148,7 +148,7 @@ test "phase 10 Markdown format prints canonical source without mutation" {
 }
 
 ///|
-test "phase 10 justfile-name discovers and tangles Markdown" {
+test "justfile-name discovers and tangles Markdown" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/tasks.md", Unix)
   host.put_file(file, b"```just\nbuild:\n```\n")
@@ -216,12 +216,12 @@ test "relative justfile and working directory use explicit invocation cwd" {
     UnsupportedCommand("recipe execution") => ()
     error => fail("unexpected relative input error: \{Repr(error)}")
   } noraise {
-    _ => fail("expected Phase 8 executor boundary")
+    _ => fail("expected executor boundary")
   }
 }
 
 ///|
-async test "phase 10 string settings select dotenv and temporary directories" {
+async test "string settings select dotenv and temporary directories" {
   let (host, context) = fake_context()
   host.put_file(
     @path.PathValue::new("/workspace/justfile", Unix),
@@ -301,7 +301,7 @@ async test "async dotenv commands populate recipe environments" {
 }
 
 ///|
-async test "phase 10 module working-directory selects recipe cwd" {
+async test "module working-directory selects recipe cwd" {
   let (host, context) = fake_context()
   host.put_file(
     @path.PathValue::new("/workspace/justfile", Unix),
@@ -571,7 +571,7 @@ test "list evaluates doc expressions, joins lists, and renders multiline docs" {
 }
 
 ///|
-test "phase 10 list color highlights doc backticks on stdout" {
+test "list color highlights doc backticks on stdout" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(
@@ -607,7 +607,7 @@ test "phase 10 list color highlights doc backticks on stdout" {
 }
 
 ///|
-test "phase 10 list auto and never color obey stdout terminal" {
+test "list auto and never color obey stdout terminal" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(file, b"# `doc`\nrecipe:\n")
@@ -634,7 +634,7 @@ test "phase 10 list auto and never color obey stdout terminal" {
 }
 
 ///|
-test "phase 10 list places wide signature documentation above" {
+test "list places wide signature documentation above" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(
@@ -777,7 +777,7 @@ test "list and usage collapse option parameters and render option metadata" {
 }
 
 ///|
-test "run commands validate invocation before the Phase 8 executor boundary" {
+test "run commands validate invocation before the executor boundary" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(
@@ -819,7 +819,7 @@ test "run commands validate invocation before the Phase 8 executor boundary" {
     @application.UnsupportedCommand("recipe execution") => ()
     error => fail("unexpected executor boundary error: \{Repr(error)}")
   } noraise {
-    _ => fail("expected Phase 8 executor boundary")
+    _ => fail("expected executor boundary")
   }
   assert_eq(host.process_calls().length(), 0)
 }
@@ -856,7 +856,7 @@ test "CLI variable overrides reach evaluate and invocation validation" {
     @application.UnsupportedCommand("recipe execution") => ()
     error => fail("unexpected override invocation error: \{Repr(error)}")
   } noraise {
-    _ => fail("expected Phase 8 executor boundary")
+    _ => fail("expected executor boundary")
   }
   try
     @application.execute_command(
@@ -1268,7 +1268,7 @@ async test "confirmation plan preserves parent-first dependency context and prom
 }
 
 ///|
-test "phase 10 confirm attributes format and reject excess prompt arguments" {
+test "confirm attributes format and reject excess prompt arguments" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(file, b"[confirm('prompt')]\nfoo:\n")
@@ -1321,7 +1321,7 @@ async test "editor uses visual precedence and opens invalid source from its dire
 }
 
 ///|
-async test "phase 10 editor falls back through EDITOR and vim" {
+async test "editor falls back through EDITOR and vim" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/tasks.just", Unix)
   host.put_file(file, b"invalid source")
@@ -1365,7 +1365,7 @@ async test "phase 10 editor falls back through EDITOR and vim" {
 }
 
 ///|
-async test "phase 10 interactive invocation and exit failures retain context" {
+async test "interactive invocation and exit failures retain context" {
   let (host, context) = fake_context()
   host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
   host.set_env("VISUAL", "broken-editor")
@@ -1446,7 +1446,7 @@ async test "chooser filters candidates and preserves each selected invocation" {
 }
 
 ///|
-async test "phase 10 chooser rejects an empty public zero-argument candidate set" {
+async test "chooser rejects an empty public zero-argument candidate set" {
   let (host, context) = fake_context()
   host.put_file(
     @path.PathValue::new("/workspace/justfile", Unix),
@@ -1471,7 +1471,7 @@ async test "phase 10 chooser rejects an empty public zero-argument candidate set
 }
 
 ///|
-async test "phase 10 default chooser is deterministic and source-aware" {
+async test "default chooser is deterministic and source-aware" {
   let (host, context) = fake_context()
   host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
   let command = "fzf --multi --preview 'just --unstable --color always --justfile \"/workspace/justfile\" --show {}'"
@@ -1544,7 +1544,7 @@ async test "chooser cancellation succeeds and signals preserve exit status" {
 }
 
 ///|
-async test "phase 10 chooser nonzero status is propagated" {
+async test "chooser nonzero status is propagated" {
   let (host, context) = fake_context()
   host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
   let failed = try! @host.CommandSpec::new("sh", ["-cu", "fail"])

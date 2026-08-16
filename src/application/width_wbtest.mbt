@@ -44,7 +44,7 @@ fn format_test_list(
 }
 
 ///|
-test "phase 10 human-readable lists use upstream conjunctions and ticks" {
+test "human-readable lists use upstream conjunctions and ticks" {
   assert_eq(format_test_list(["1"], "or", false), "1")
   assert_eq(format_test_list(["1", "2"], "or", false), "1 or 2")
   assert_eq(format_test_list(["1", "2", "3"], "or", false), "1, 2, or 3")

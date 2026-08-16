@@ -64,7 +64,7 @@ def expect_rejected(
         capture_output=True,
     )
     if result.returncode == 0:
-        raise SystemExit(f"Phase 11 tamper test accepted {reason}")
+        raise SystemExit(f"Release tamper test accepted {reason}")
 
 
 def repack(repo: pathlib.Path, archive: pathlib.Path, mutate) -> None:
@@ -260,7 +260,7 @@ def main() -> None:
         bind_archive(archive, args.platform)
         expect_rejected(repo, archive, args.platform, "duplicate SBOM component")
 
-    print("Phase 11 tamper resistance verified: checksums, build record, paths, links, entries, provenance and SBOM")
+    print("Release tamper resistance verified: checksums, build record, paths, links, entries, provenance and SBOM")
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 WASM_SKIPS = ("signals::",)
 NATIVE_SIGNAL_TESTS = {
     "signals::continue_default_excludes_hangup",

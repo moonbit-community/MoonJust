@@ -5,7 +5,7 @@ upstream = "just 1.57.0"
 status = "implemented"
 tier = "A"
 canonical_count = 83
-typed_manifest = "tests/upstream/just-1.57.0/phase-5-builtins.jsonl"
+typed_manifest = "tests/upstream/just-1.57.0/builtins.jsonl"
 canonical = [
   "absolute_path",
   "append",

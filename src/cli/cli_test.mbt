@@ -132,7 +132,7 @@ test "argparse composition preserves query flags and values" {
 }
 
 ///|
-test "phase 9 execution and cache options remain global" {
+test "execution and cache options remain global" {
   let run = try! @cli.parse_arguments(["--jobs", "4", "--no-cache", "build"], {})
   assert_eq(run.command(), RunCommand)
   assert_eq(run.value("jobs"), Some("4"))
@@ -145,14 +145,14 @@ test "phase 9 execution and cache options remain global" {
 }
 
 ///|
-test "phase 10 yes flag is a supported global confirmation bypass" {
+test "yes flag is a supported global confirmation bypass" {
   let parsed = try! @cli.parse_arguments(["--yes", "build"], {})
   assert_true(parsed.flag("yes"))
   assert_eq(parsed.positional(), ["build"])
 }
 
 ///|
-test "phase 10 interactive commands retain global inputs and overrides" {
+test "interactive commands retain global inputs and overrides" {
   let choose = try! @cli.parse_arguments(
     ["--choose", "--chooser", "head -n1", "--set", "mode", "ci"],
     {},
@@ -192,7 +192,7 @@ test "argparse composition enforces command relationships" {
 }
 
 ///|
-test "phase 10 CLI validates command conflicts color aliases and verbosity" {
+test "CLI validates command conflicts color aliases and verbosity" {
   for
     arguments in [
       ["--choose", "--dump"],
@@ -432,7 +432,7 @@ test "query format choices are validated and ignored options are unsupported" {
 }
 
 ///|
-test "phase 10 justfile-name is a supported value option" {
+test "justfile-name is a supported value option" {
   let parsed = try! parse_arguments(["--list", "--justfile-name", "tasks.md"], {})
   assert_eq(parsed.command(), ListCommand)
   assert_eq(parsed.value("justfile-name"), Some("tasks.md"))

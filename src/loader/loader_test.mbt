@@ -244,7 +244,7 @@ test "global fallback and stdin loading are explicit" {
 }
 
 ///|
-test "phase 10 filesystem loading tangles Markdown case insensitively" {
+test "filesystem loading tangles Markdown case insensitively" {
   let host = fake()
   let path = @path.PathValue::new("/workspace/tasks.MD", Unix)
   host.put_file(
@@ -258,7 +258,7 @@ test "phase 10 filesystem loading tangles Markdown case insensitively" {
 }
 
 ///|
-test "phase 10 in-memory loading follows Markdown extension routing" {
+test "in-memory loading follows Markdown extension routing" {
   let loaded = try! load_bytes(
     b"prose\n~~~just\nrelease:\n~~~\n",
     @source.SourceId::new(1011),

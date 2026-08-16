@@ -29,7 +29,7 @@ REQUIRED = {
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"Phase 11 source package error: {message}")
+    raise SystemExit(f"Release source package error: {message}")
 
 
 def field(text: str, name: str) -> str:
@@ -89,7 +89,7 @@ def main() -> None:
         if field(manifest, "name") != "moonbit-community/MoonJust":
             fail("module name differs")
         if not re.fullmatch(r"0\.7\.0-alpha\.[1-9][0-9]*", field(manifest, "version")):
-            fail("Phase 11 version is not a numbered 0.7.0 alpha prerelease")
+            fail("Release version is not a numbered 0.7.0 alpha prerelease")
         if field(manifest, "readme") != "README.mbt.md":
             fail("readme metadata differs")
         if field(manifest, "repository") != "https://github.com/moonbit-community/MoonJust":
@@ -99,7 +99,7 @@ def main() -> None:
         for keyword in ("command-runner", "just", "task-runner", "wasm"):
             if f'"{keyword}"' not in manifest:
                 fail(f"keyword {keyword!r} is missing")
-    print(f"Phase 11 source package verified: {len(names)} safe publication entries")
+    print(f"Release source package verified: {len(names)} safe publication entries")
 
 
 if __name__ == "__main__":
