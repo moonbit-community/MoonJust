@@ -117,6 +117,33 @@ fn fake() -> @host.FakeHost raise @path.PathError {
 }
 
 ///|
+async test "portable canonicalize rejects a missing final path component" {
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "x86_64", Unix, portable_runtime=true),
+  )
+  try
+    evaluate_with_async_effects(
+      host,
+      host,
+      expression("canonicalize('missing')"),
+      EvaluationContext::new(cwd~),
+      EffectShell::new("sh", ["-cu"]),
+    )
+  catch {
+    Builtin(Failure(message~), ..) => {
+      assert_true(message.contains("canonicalizing `missing`"))
+      assert_true(message.contains("NotFound"))
+    }
+    error => fail("unexpected canonicalize error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected missing canonical path failure")
+  }
+  assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
 test "effect builtins use deterministic host capabilities" {
   let host = fake()
   let cwd = @path.PathValue::new("/workspace", Unix)

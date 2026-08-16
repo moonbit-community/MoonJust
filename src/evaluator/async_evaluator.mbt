@@ -35,6 +35,18 @@ async fn[
   let name = validate_effect_arity("canonicalize", arguments, span)
   let raw = expect_string(name, arguments, 0, span)
   let path = resolve_context_path(context, raw, span)
+  ignore(
+    @host.HostFs::metadata(host, path) catch {
+      error =>
+        raise effect_failure(
+          "call to function `canonicalize` failed: I/O error canonicalizing `" +
+          raw +
+          "`: " +
+          Repr(error).to_string(),
+          span,
+        )
+    },
+  )
   let spec = @host.CommandSpec::new("/usr/bin/env", [
     "realpath",
     path.as_string(),
@@ -61,7 +73,7 @@ async fn[
       raise effect_failure(
         "call to function `canonicalize` failed: I/O error canonicalizing `" +
         raw +
-        "`",
+        "`: realpath failed",
         span,
       )
   }
