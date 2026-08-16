@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 oracle="$repo_root/_build/upstream/just-1.57.0/target/release/just"
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-workdir.XXXXXX")
 repo_relative="_build/workdir-cli.$$"
@@ -18,8 +18,8 @@ fail() {
 }
 
 "$repo_root/tools/upstream/build_oracle.sh" >/dev/null
-moon build --quiet --target native tools/workdir_probe
-probe="$repo_root/_build/native/debug/build/tools/workdir_probe/workdir_probe.exe"
+moon build --quiet --target native tools/probes/workdir_probe
+probe="$repo_root/_build/native/debug/build/tools/probes/workdir_probe/workdir_probe.exe"
 moon build --quiet --target native cmd/just
 moon build --quiet --target wasm cmd/just
 native="$repo_root/_build/native/debug/build/cmd/just/just.exe"

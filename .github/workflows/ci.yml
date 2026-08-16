@@ -44,7 +44,7 @@ jobs:
         run: moon fmt --check
 
       - name: Verify architecture boundaries
-        run: ./tools/check_architecture.sh
+        run: ./tools/checks/architecture.sh
 
       - name: Verify compatibility snapshot
         run: ./tools/upstream/verify_snapshot.sh
@@ -80,37 +80,37 @@ jobs:
         run: moon check --target all --warn-list +73
 
       - name: Verify Wasm inspect policy
-        run: ./tools/check_inspect_policy.sh
+        run: ./tools/checks/inspect.sh
 
       - name: Verify HostFs policies
-        run: ./tools/check_hostfs_policy.sh
+        run: ./tools/checks/hostfs.sh
 
       - name: Verify Dotenv differential
-        run: ./tools/check_dotenv_compat.sh
+        run: ./tools/checks/dotenv.sh
 
       - name: Verify Invocation differential
-        run: ./tools/check_invocation_compat.sh
+        run: ./tools/checks/invocation.sh
 
       - name: Verify Working-directory differential
-        run: ./tools/check_workdir_compat.sh
+        run: ./tools/checks/workdir.sh
 
       - name: Verify Environment composition differential
-        run: ./tools/check_environment_compat.sh
+        run: ./tools/checks/environment.sh
 
       - name: Verify Executor
-        run: ./tools/check_executor.sh
+        run: ./tools/checks/executor.sh
 
       - name: Verify Scheduler and cache runtime
-        run: ./tools/check_runtime.sh
+        run: ./tools/checks/runtime.sh
 
       - name: Verify Compatibility convergence
-        run: ./tools/check_compatibility.sh
+        run: ./tools/checks/compatibility.sh
 
       - name: Verify Release engineering
-        run: ./tools/check_release.sh
+        run: ./tools/checks/release.sh
 
       - name: Verify Query compatibility
-        run: ./tools/check_query_compat.sh
+        run: ./tools/checks/query.sh
 
       - name: Verify public interfaces
         run: |
@@ -118,10 +118,10 @@ jobs:
           git diff --exit-code
 
       - name: Test Native
-        run: ./tools/test_with_count.sh native
+        run: ./tools/checks/test_target.sh native
 
       - name: Test wasm1
-        run: ./tools/test_with_count.sh wasm
+        run: ./tools/checks/test_target.sh wasm
 
       - name: Smoke-test Native CLI
         run: moon run --target native cmd/just -- --version
@@ -156,14 +156,14 @@ jobs:
         run: moon update
 
       - name: Test Native
-        run: ./tools/test_with_count.sh native
+        run: ./tools/checks/test_target.sh native
 
       - name: Smoke-test Native CLI
         run: moon run --target native cmd/just -- --version
 
       - name: Verify Native platform behavior
         shell: bash
-        run: ./tools/check_platform.sh
+        run: ./tools/checks/platform.sh
 
       - name: Build and verify Release artifact
         shell: bash

@@ -32,7 +32,7 @@ moonrun = "0.1.20260803"
 moonx = "0.1.0"
 
 [evidence]
-release_gate = "tools/check_release.sh"
+release_gate = "tools/checks/release.sh"
 policy_gate = "tools/release/check_policies.sh"
 artifact_builder = "tools/release/build_artifacts.sh"
 artifact_verifier = "tools/release/verify_bundle.py"

@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 release_dir="$repo_root/tools/release"
 manifest="$repo_root/compat/release-readiness.toml"
 version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' "$repo_root/moon.mod")

@@ -2,8 +2,8 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-binary="$repo_root/_build/wasm/debug/build/tools/hostfs_probe/hostfs_probe.wasm"
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+binary="$repo_root/_build/wasm/debug/build/tools/probes/hostfs_probe/hostfs_probe.wasm"
 allow_policy="$repo_root/policies/filesystem.toml"
 deny_policy="$repo_root/policies/inspect.toml"
 work=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-hostfs.XXXXXX")
@@ -25,7 +25,7 @@ grep -Eq '^write = \["\.\./"\]$' "$allow_policy" || \
 grep -Eq '^write = \[\]$' "$deny_policy" || \
   fail "inspect policy unexpectedly grants writes"
 
-moon build --target wasm tools/hostfs_probe
+moon build --target wasm tools/probes/hostfs_probe
 [ -f "$binary" ] || fail "wasm HostFs probe is missing"
 
 moonrun --policy "$allow_policy" "$binary" allow \
