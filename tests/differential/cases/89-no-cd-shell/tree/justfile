@@ -1,0 +1,3 @@
+[no-cd]
+default:
+  cat data.txt

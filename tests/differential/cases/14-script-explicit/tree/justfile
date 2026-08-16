@@ -1,0 +1,3 @@
+[script("sh", "-eu")]
+foo:
+  printf explicit

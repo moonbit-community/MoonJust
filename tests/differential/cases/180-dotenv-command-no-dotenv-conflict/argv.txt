@@ -1,0 +1,3 @@
+--dotenv-command
+foo
+--no-dotenv

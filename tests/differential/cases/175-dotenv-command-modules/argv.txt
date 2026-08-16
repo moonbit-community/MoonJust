@@ -1,0 +1,4 @@
+--dotenv-command
+echo KEY=root
+bar
+foo::baz

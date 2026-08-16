@@ -1,0 +1,7 @@
+--set
+FOO
+baz
+--command
+sh
+-c
+printf $FOO

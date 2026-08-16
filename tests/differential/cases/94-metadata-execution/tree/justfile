@@ -1,0 +1,5 @@
+[metadata('example')]
+[metadata('sample', 'argument')]
+[no-exit-message]
+default:
+  exit 1

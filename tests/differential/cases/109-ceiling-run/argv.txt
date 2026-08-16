@@ -1,0 +1,2 @@
+--ceiling
+<CASE_ROOT>/foo

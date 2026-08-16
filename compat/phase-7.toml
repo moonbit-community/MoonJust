@@ -30,4 +30,5 @@ working_directory_gate = "tools/check_phase7_workdir.sh"
 environment_gate = "tools/check_phase7_environment.sh"
 upstream_corpus = "tests/upstream/just-1.57.0/phase-7.toml"
 upstream_covered_registrations = 188
+upstream_unverified_registrations = 0
 provenance = "tests/upstream/NOTICE.md"

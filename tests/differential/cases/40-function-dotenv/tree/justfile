@@ -1,0 +1,4 @@
+set dotenv-required
+set unstable
+f() := env('VAR')
+result := f()

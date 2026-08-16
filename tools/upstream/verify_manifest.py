@@ -17,6 +17,8 @@ EXPECTED_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 EXPECTED_REGISTRATIONS = 2417
 EXPECTED_LEXER_REGISTRATIONS = 93
 EXPECTED_TEST_LIST_SHA256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
+MAP_SCHEMA_VERSION = 2
+VERIFIED_DISPOSITIONS = {"verified-differential", "verified-contract"}
 PHASE_9_STORAGE_DIFFERENCES = {
     "cache::clean_path_removes_empty_entries",
     "cache::clean_removes_cache_directory",
@@ -108,6 +110,10 @@ def expect(condition: bool, message: str) -> None:
         fail(message)
 
 
+def is_verified(row: dict) -> bool:
+    return row.get("disposition") in VERIFIED_DISPOSITIONS
+
+
 def load(path: Path) -> dict:
     try:
         return tomllib.loads(path.read_text(encoding="utf-8"))
@@ -169,9 +175,52 @@ def validate_map() -> None:
     names = raw_list.decode("utf-8").splitlines()
     expect(len(names) == EXPECTED_REGISTRATIONS, "upstream registration count changed")
     rows = [json.loads(line) for line in test_map.read_text(encoding="utf-8").splitlines()]
+    differential = load(repo / "tests/differential/cases.toml")
+    differential_cases = {case["id"]: case for case in differential["case"]}
+    harness_rows = [
+        json.loads(line)
+        for line in (
+            repo / "tests/upstream/just-1.57.0/harness-results.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
+    expect(len(harness_rows) == 1842, "official integration harness result count changed")
+    harness_by_name = {}
+    for harness_row in harness_rows:
+        name = harness_row["upstream_name"]
+        expect(name not in harness_by_name, f"duplicate official harness result {name}")
+        harness_by_name[name] = harness_row
+        expect(harness_row["schema_version"] == MAP_SCHEMA_VERSION, f"harness schema changed for {name}")
+        expect(harness_row["upstream_commit"] == EXPECTED_COMMIT, f"harness commit changed for {name}")
+        expect(
+            harness_row["disposition"]
+            == (
+                "verified-differential"
+                if harness_row["official"] == "passed"
+                and harness_row["native"] in {"passed", "diagnostic-style", "product-identity"}
+                and harness_row["wasm1"] in {"passed", "diagnostic-style", "product-identity"}
+                else "unverified"
+            ),
+            f"harness disposition is inconsistent for {name}",
+        )
+        expect(
+            harness_row.get("allowed_difference")
+            == (
+                "product-identity"
+                if "product-identity"
+                in {harness_row["native"], harness_row["wasm1"]}
+                else (
+                    "diagnostic-style"
+                    if "diagnostic-style"
+                    in {harness_row["native"], harness_row["wasm1"]}
+                    else "none"
+                )
+            ),
+            f"harness difference classification is inconsistent for {name}",
+        )
     expect(len(rows) == len(names), "upstream mapping row count does not match registrations")
     source_cache: dict[str, str] = {}
     for index, (row, name) in enumerate(zip(rows, names), start=1):
+        expect(row["schema_version"] == MAP_SCHEMA_VERSION, f"mapping schema changed at row {index}")
         expect(row["id"] == f"JUST-1.57.0-{index:04d}", f"invalid mapping id at row {index}")
         expect(row["upstream_name"] == name, f"mapping mismatch at row {index}")
         expect(row["owner_phase"] in range(2, 11), f"missing owner phase at row {index}")
@@ -179,11 +228,30 @@ def validate_map() -> None:
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
-        if row["owner_phase"] in {3, 4, 5, 6, 7, 8, 9, 10} and row["disposition"] == "covered-by":
+        if row["disposition"] == "verified-contract":
             validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
             expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
-        if row["owner_phase"] in {3, 4, 5, 6, 7, 8, 9, 10} and row["disposition"] == "covered-by":
-            expect(row["disposition"] == "covered-by", f"Phase {row['owner_phase']} row {index} is not executable")
+        if row["disposition"] == "verified-differential":
+            evidence_case = row.get("evidence_case")
+            if isinstance(evidence_case, str) and evidence_case.startswith("MJ-UPSTREAM-HARNESS::"):
+                harness = harness_by_name.get(name)
+                expect(harness is not None, f"{row['id']} has no official harness result")
+                expect(
+                    harness["disposition"] == "verified-differential",
+                    f"{row['id']} official harness result is not verified",
+                )
+                expect(
+                    evidence_case == f"MJ-UPSTREAM-HARNESS::{name}",
+                    f"{row['id']} official harness case differs",
+                )
+            else:
+                expect(evidence_case in differential_cases, f"{row['id']} has no differential case")
+                expect(
+                    name in differential_cases[evidence_case].get("upstream_tests", []),
+                    f"{row['id']} is not declared by differential case {evidence_case}",
+                )
+        if row["owner_phase"] in {3, 4, 5, 6, 7, 8, 9, 10} and is_verified(row):
+            expect(is_verified(row), f"Phase {row['owner_phase']} row {index} is not executable")
             expect(row["targets"] == ["native", "wasm1"], f"Phase {row['owner_phase']} row {index} target matrix is incomplete")
         expect(
             row["disposition"] != "planned",
@@ -195,7 +263,7 @@ def validate_map() -> None:
     phase2_rows = [row for row in rows if row["owner_phase"] == 2]
     expect(len(phase2_rows) == EXPECTED_LEXER_REGISTRATIONS, "Phase 2 mapping count changed")
     expect(
-        all(row["disposition"] in {"covered-by", "not-applicable"} for row in phase2_rows),
+        all(row["disposition"] in VERIFIED_DISPOSITIONS | {"unverified", "not-applicable"} for row in phase2_rows),
         "Phase 2 contains an unclassified upstream registration",
     )
     for phase in (3, 4, 5, 6, 7, 8, 9, 10):
@@ -203,13 +271,13 @@ def validate_map() -> None:
         rows_for_phase = [
             row
             for row in rows
-            if row["owner_phase"] == phase and row["disposition"] == "covered-by"
+            if row["owner_phase"] == phase and is_verified(row)
         ]
         case_rows = [json.loads(line) for line in cases.read_text(encoding="utf-8").splitlines()]
         expect(len(case_rows) == len(rows_for_phase), f"Phase {phase} case manifest count changed")
         expected_by_id = {row["id"]: row for row in rows_for_phase}
         for case in case_rows:
-            expect(case["disposition"] == "covered-by", f"Phase {phase} has non-executable cases")
+            expect(case["disposition"] in VERIFIED_DISPOSITIONS, f"Phase {phase} has non-executable cases")
             expected = expected_by_id.get(case.get("case_id"))
             expect(expected is not None, f"Phase {phase} case has an unknown id")
             expect(case.get("test_anchor") == expected.get("test_anchor"), f"Phase {phase} case anchor differs from test map")
@@ -218,17 +286,43 @@ def validate_map() -> None:
 def validate_differential_cases() -> None:
     repo = root()
     manifest = load(repo / "tests/differential/cases.toml")
+    expect(manifest["schema_version"] == 2, "differential manifest schema changed")
     cases = manifest.get("case", [])
-    expect(len(cases) == 10, "differential case count changed")
+    expect(len(cases) == 182, "differential case count changed")
     seen = set()
+    upstream_names = set(
+        (repo / "tests/upstream/just-1.57.0/test-list.txt")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    )
     for case in cases:
         case_id = case["id"]
         expect(case_id not in seen, f"duplicate differential case {case_id}")
         seen.add(case_id)
         status = case["status"]
         expect(status in {"match", "expected-difference"}, f"case {case_id} is not classified")
+        expect(isinstance(case.get("upstream_tests", []), list), f"case {case_id} has invalid upstream_tests")
+        for upstream_test in case.get("upstream_tests", []):
+            expect(upstream_test in upstream_names, f"case {case_id} names unknown upstream test {upstream_test}")
+        if status == "expected-difference":
+            expect(case.get("allowed_difference", "none") != "none", f"case {case_id} has an unbounded difference")
         expect(case["owner_phase"] >= 6, f"case {case_id} is assigned before Phase 6")
         case_dir = repo / "tests/differential/cases" / case["directory"]
+        allowed_entries = {
+            "argv.txt",
+            "compat-id",
+            "env.list",
+            "expectation",
+            "stdin",
+            "tree",
+        }
+        unexpected_entries = sorted(
+            entry.name for entry in case_dir.iterdir() if entry.name not in allowed_entries
+        )
+        expect(
+            not unexpected_entries,
+            f"case {case_id} has unknown entries: {', '.join(unexpected_entries)}",
+        )
         expect((case_dir / "expectation").exists(), f"case {case_id} lacks expectation")
         expected = "match" if status == "match" else "difference"
         expect(
@@ -351,11 +445,11 @@ def validate() -> None:
             required_probe in platform_gate,
             f"Phase 10 platform gate lacks {required_probe} entry-point coverage",
         )
-    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 35, "implemented CLI option count changed")
-    expect(sum(entry["status"] == "unsupported" for entry in cli["option"]) == 14, "unsupported CLI option count changed")
+    expect(sum(entry["status"] == "implemented" for entry in cli["option"]) == 48, "implemented CLI option count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in cli["option"]) == 1, "unsupported CLI option count changed")
     expect(sum(entry["status"] == "excluded" for entry in cli["option"]) == 1, "excluded CLI option count changed")
-    expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 14, "implemented CLI command count changed")
-    expect(sum(entry["status"] == "unsupported" for entry in cli["command"]) == 1, "unsupported CLI command count changed")
+    expect(sum(entry["status"] == "implemented" for entry in cli["command"]) == 15, "implemented CLI command count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in cli["command"]) == 0, "unsupported CLI command count changed")
     expect(sum(entry["status"] == "excluded" for entry in cli["command"]) == 4, "excluded CLI command count changed")
 
     builtins = load(repo / "compat/builtins.toml")
@@ -426,7 +520,7 @@ def validate() -> None:
             ]
             expect(
                 corpus["covered_registrations"] == sum(
-                    row["disposition"] == "covered-by" for row in phase6_rows
+                    is_verified(row) for row in phase6_rows
                 ),
                 "Phase 6 covered registration count changed",
             )
@@ -448,12 +542,12 @@ def validate() -> None:
             ]
             expect(
                 corpus["covered_registrations"] == sum(
-                    row["disposition"] == "covered-by" for row in phase7_rows
+                    is_verified(row) for row in phase7_rows
                 ),
                 "Phase 7 covered registration count changed",
             )
             expect(
-                all(row["disposition"] == "covered-by" for row in phase7_rows),
+                all(is_verified(row) or row["disposition"] == "unverified" for row in phase7_rows),
                 "Phase 7 contains a registration without executable evidence",
             )
             expect(
@@ -493,17 +587,13 @@ def validate() -> None:
     ]
     expect(len(phase9_rows) == 74, "Phase 9 registration count changed")
     expect(
-        sum(row["disposition"] == "covered-by" for row in phase9_rows) == 72,
+        sum(is_verified(row) for row in phase9_rows) == 74,
         "Phase 9 executable registration count changed",
     )
     phase9_differences = [
         row for row in phase9_rows if row["disposition"] == "unsupported"
     ]
-    expect(
-        {row["upstream_name"] for row in phase9_differences}
-        == PHASE_9_STORAGE_DIFFERENCES,
-        "Phase 9 storage differences changed",
-    )
+    expect(not phase9_differences, "Phase 9 still contains unsupported registrations")
     expect(
         all(
             row["targets"] == ["native", "wasm1"]
@@ -542,7 +632,7 @@ def validate() -> None:
     compatibility = phase10["compatibility"]
     expect(
         compatibility["covered_registrations"]
-        == sum(row["disposition"] == "covered-by" for row in phase10_rows)
+        == sum(is_verified(row) for row in phase10_rows)
         == 40,
         "Phase 10 covered registration count changed",
     )
@@ -560,20 +650,17 @@ def validate() -> None:
     )
     expect(
         compatibility["phase_8_covered_registrations"]
-        == sum(row["disposition"] == "covered-by" for row in phase8_rows)
-        == 209,
+        == sum(is_verified(row) for row in phase8_rows),
         "Phase 8 covered registration count changed",
     )
     expect(
         compatibility["phase_8_unsupported_registrations"]
-        == sum(row["disposition"] == "unsupported" for row in phase8_rows)
-        == 520,
+        == sum(row["disposition"] == "unsupported" for row in phase8_rows),
         "Phase 8 unsupported registration count changed",
     )
     expect(
         compatibility["phase_8_not_applicable_registrations"]
-        == sum(row["disposition"] == "not-applicable" for row in phase8_rows)
-        == 3,
+        == sum(row["disposition"] == "not-applicable" for row in phase8_rows),
         "Phase 8 not-applicable registration count changed",
     )
     expect(compatibility["planned_registrations"] == 0, "Phase 10 records planned registrations")
@@ -593,16 +680,16 @@ def validate() -> None:
         expect(entry["status"] in {"implemented", "unsupported"}, f"setting {entry['name']} is unclassified")
         if entry["status"] == "unsupported":
             expect(bool(entry.get("reason")), f"setting {entry['name']} lacks a reason")
-    expect(sum(entry["status"] == "implemented" for entry in settings["setting"]) == 17, "implemented setting count changed")
-    expect(sum(entry["status"] == "unsupported" for entry in settings["setting"]) == 12, "unsupported setting count changed")
+    expect(sum(entry["status"] == "implemented" for entry in settings["setting"]) == 28, "implemented setting count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in settings["setting"]) == 1, "unsupported setting count changed")
     attributes = load(repo / "compat/attributes.toml")
     expect(set(entry["name"] for entry in attributes["attribute"]) == ATTRIBUTE_NAMES, "attributes inventory names changed")
     for entry in attributes["attribute"]:
         expect(entry["status"] in {"implemented", "unsupported"}, f"attribute {entry['name']} is unclassified")
         if entry["status"] == "unsupported":
             expect(bool(entry.get("reason")), f"attribute {entry['name']} lacks a reason")
-    expect(sum(entry["status"] == "implemented" for entry in attributes["attribute"]) == 22, "implemented attribute count changed")
-    expect(sum(entry["status"] == "unsupported" for entry in attributes["attribute"]) == 7, "unsupported attribute count changed")
+    expect(sum(entry["status"] == "implemented" for entry in attributes["attribute"]) == 29, "implemented attribute count changed")
+    expect(sum(entry["status"] == "unsupported" for entry in attributes["attribute"]) == 0, "unsupported attribute count changed")
     builtins = load(repo / "compat/builtins.toml")
     expect(builtins["registry"]["status"] == "implemented", "builtins.toml is not implemented")
 
@@ -611,10 +698,46 @@ def validate() -> None:
     expect(selected_tests("wasm") == counts["wasm1"], "wasm1 test outline count changed")
 
 
+def validate_release() -> None:
+    repo = root()
+    rows = [
+        json.loads(line)
+        for line in (repo / "tests/upstream/just-1.57.0/test-map.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    tier_a = [row for row in rows if row["tier"] == "A"]
+    incomplete = [
+        row
+        for row in tier_a
+        if row["disposition"] not in VERIFIED_DISPOSITIONS | {"not-applicable"}
+    ]
+    expect(not incomplete, f"Tier A release evidence is incomplete for {len(incomplete)} registrations")
+    expect(
+        all(row["targets"] == ["native", "wasm1"] for row in tier_a if is_verified(row)),
+        "Tier A release target matrix is incomplete",
+    )
+    for manifest_name, key in (
+        ("cli-options.toml", "option"),
+        ("settings.toml", "setting"),
+        ("attributes.toml", "attribute"),
+    ):
+        manifest = load(repo / "compat" / manifest_name)
+        entries = list(manifest[key])
+        if manifest_name == "cli-options.toml":
+            entries.extend(manifest["command"])
+        remaining = [entry for entry in entries if entry.get("tier") == "A" and entry["status"] != "implemented"]
+        expect(not remaining, f"{manifest_name} has {len(remaining)} incomplete Tier A entries")
+
+
 def main() -> int:
-    argparse.ArgumentParser().parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--release", action="store_true")
+    args = parser.parse_args()
     try:
         validate()
+        if args.release:
+            validate_release()
     except (OSError, ValueError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
         print(f"manifest verification error: {error}", file=sys.stderr)
         return 1

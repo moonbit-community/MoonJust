@@ -1,0 +1,2 @@
+default:
+  exit 100

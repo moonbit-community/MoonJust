@@ -1,0 +1,5 @@
+set positional-arguments
+
+default value:
+  #!/bin/sh
+  echo $1

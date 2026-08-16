@@ -1,3 +1,5 @@
+set lists
+
 [parallel]
 root: left right
 

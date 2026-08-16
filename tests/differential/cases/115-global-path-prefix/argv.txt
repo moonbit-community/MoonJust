@@ -1,0 +1,2 @@
+--global-justfile
+sub/foo

@@ -1,0 +1,7 @@
+set lazy
+set export
+
+value := 'FOO'
+
+foo:
+  @echo $value

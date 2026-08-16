@@ -1,0 +1,11 @@
+set lazy
+
+x := `echo x >> count; echo VALUE`
+
+foo: (bar x)
+
+bar value: baz
+  @echo {{value}}
+
+baz:
+  @echo {{x}}

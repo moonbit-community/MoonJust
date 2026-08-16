@@ -1,0 +1,11 @@
+set lazy
+
+x := `exit 1`
+y := x
+z := 'bar'
+
+a:
+  @echo {{y}}
+
+b:
+  @echo {{z}}

@@ -1,0 +1,5 @@
+set lists
+set dotenv-command := ['echo FOO=bar', 'echo KEY=foo', 'echo KEY=bar']
+
+@foo:
+  echo $FOO $KEY

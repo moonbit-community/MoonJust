@@ -41,17 +41,19 @@ if moonrun --policy "$policy" "$binary" \
   fail "read-only policy allowed format write"
 fi
 [ "$before" = "$(cksum "$unformatted")" ] || fail "format changed the fixture"
-grep -q 'CapabilityDenied(FsWrite)' "$work/fmt.stderr" || \
-  fail "format denial was not typed"
+grep -Eq 'error: failed to write justfile .*: Permission denied \(os error 13\)' \
+  "$work/fmt.stderr" || fail "format denial lost its stable user diagnostic"
 
 rm -f "$marker"
 if moonrun --policy "$policy" "$binary" \
-  --evaluate danger --justfile "$effect" \
+  --justfile "$effect" --evaluate danger \
   >"$work/effect.stdout" 2>"$work/effect.stderr"; then
   fail "effectful evaluate unexpectedly succeeded"
 fi
 [ ! -e "$marker" ] || fail "inspect evaluation launched a process"
-grep -q 'EffectRequired' "$work/effect.stderr" || \
-  fail "effectful evaluate did not report an effect boundary"
+grep -q 'error\[MJ-EVAL-0004\]' "$work/effect.stderr" || \
+  fail "effectful evaluate lost its stable error code"
+grep -q 'PermissionDenied(Process' "$work/effect.stderr" || \
+  fail "effectful evaluate did not report process denial"
 
 echo "Phase 6 Wasm inspect policy verified: read-only fs, no process"

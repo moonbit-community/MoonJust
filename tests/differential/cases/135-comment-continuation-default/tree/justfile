@@ -1,0 +1,5 @@
+set ignore-comments := false
+
+some_recipe:
+  # comment lines can be continued \
+  echo something-useful

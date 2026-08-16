@@ -1,0 +1,6 @@
+set lazy
+
+unused_backtick := `exit 1`
+
+foo:
+  @echo foo

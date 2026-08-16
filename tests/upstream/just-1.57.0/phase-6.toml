@@ -3,6 +3,7 @@ phase = 6
 upstream_commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 license = "CC0-1.0"
 covered_registrations = 86
+unverified_registrations = 0
 excluded_registrations = 35
 
 [cli]
@@ -14,8 +15,8 @@ stable_unsupported_or_excluded = 44
 sources = ["src/arguments.rs", "src/subcommand.rs", "src/justfile.rs"]
 
 [differential]
-baseline_cases = 10
-matching_phase_6_cases = ["MJ-COMPAT-0004", "MJ-COMPAT-0005", "MJ-COMPAT-0006", "MJ-COMPAT-0008"]
+baseline_cases = 96
+matching_phase_6_cases = ["MJ-COMPAT-0004", "MJ-COMPAT-0005", "MJ-COMPAT-0006", "MJ-COMPAT-0008", "MJ-COMPAT-0095"]
 intentional_product_identity_cases = ["MJ-COMPAT-0001"]
 
 [serialization]

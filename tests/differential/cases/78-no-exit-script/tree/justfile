@@ -1,0 +1,5 @@
+[no-exit-message]
+default:
+  #!/bin/sh
+  echo hello
+  exit 100

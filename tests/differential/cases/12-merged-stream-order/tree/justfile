@@ -1,0 +1,2 @@
+foo:
+  printf one; printf two >&2; printf three

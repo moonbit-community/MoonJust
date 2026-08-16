@@ -19,7 +19,7 @@ wasm = "moonrun process adapter with exact cwd/env/stdio and explicit inspect/ex
 [target_matrix]
 native = "pass: 236 tests"
 wasm1 = "pass: 232 tests"
-native_signal = "pass: TERM mapped to structured termination"
+native_signal = "pass: 12 pinned upstream signal/continue cases send real POSIX signals"
 wasm_policy = "execute policy permits spawn/temp scripts; inspect policy denies spawn/write"
 remote_ci = "pass: PR #37 run 31393683064"
 
@@ -27,3 +27,4 @@ remote_ci = "pass: PR #37 run 31393683064"
 executor_gate = "tools/check_phase8_executor.sh"
 security_audit = "docs/PHASE_0_9_AUDIT.md"
 upstream_smoke = "tests/fixtures/phase-8"
+native_signal_gate = "tools/upstream/run_official_harness.py"

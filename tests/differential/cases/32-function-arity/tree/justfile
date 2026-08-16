@@ -1,0 +1,3 @@
+set unstable
+f(x) := x
+result := f('one', 'two')

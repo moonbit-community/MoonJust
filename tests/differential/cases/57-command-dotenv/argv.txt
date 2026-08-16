@@ -1,0 +1,4 @@
+--command
+sh
+-c
+printf $DOTENV_KEY
