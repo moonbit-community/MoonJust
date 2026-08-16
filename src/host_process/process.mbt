@@ -12,12 +12,12 @@ const MAX_CAPTURED_STREAM_BYTES : Int = 16 * 1024 * 1024
 
 ///|
 #cfg(target="native")
-extern "C" fn stdio_kind(fd : Int) -> Int = "moonbitlang_async_kind_of_fd"
+extern "C" fn stdio_kind(fd : @types.Fd) -> Int = "moonbitlang_async_kind_of_fd"
 
 ///|
 #cfg(target="wasm")
 #unsafe_skip_stub_check
-fn stdio_kind(fd : UInt64) -> Int = "moonbitlang/async" "fd_util/kind_of_fd"
+fn stdio_kind(fd : @types.Fd) -> Int = "moonbitlang/async" "fd_util/kind_of_fd"
 
 ///|
 pub fn ProcessAdapter::new() -> ProcessAdapter {
