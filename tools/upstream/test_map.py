@@ -8,14 +8,30 @@ import hashlib
 import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
+MAP_SCHEMA_VERSION = 2
 EXPECTED_COUNT = 2417
 EXPECTED_LIST_SHA256 = (
     "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
 )
+NATIVE_SIGNAL_TESTS = {
+    "signals::continue_default_excludes_hangup",
+    "signals::continue_default_excludes_quit",
+    "signals::continue_default_line",
+    "signals::continue_default_shebang",
+    "signals::continue_explicit_excludes_unlisted",
+    "signals::continue_hangup_opt_in",
+    "signals::continue_runs_subsequents",
+    "signals::infallible_line_clears_caught_signal",
+    "signals::interrupt_backtick",
+    "signals::interrupt_command",
+    "signals::interrupt_line",
+    "signals::interrupt_shebang",
+}
 
 PHASE_PREFIXES = {
     2: {"lexer"},
@@ -168,6 +184,14 @@ PHASE_9_STORAGE_DIFFERENCES = {
     "cache::clean_removes_cache_directory": (
         "MoonJust preserves permanent digest lock files and the versioned cache "
         "directory to prevent an unlink/recreate split-lock race."
+    ),
+}
+
+
+EXPLICIT_CONTRACT_EVIDENCE = {
+    "global::not_macos": (
+        "src/application/application_test.mbt",
+        "global context follows Linux XDG lookup and project root",
     ),
 }
 
@@ -491,6 +515,18 @@ PHASE_TEST_ANCHORS = {
             "src/host/fake_host_test.mbt",
             "signal numbers and exit codes preserve the process contract",
         ),
+        "signals": (
+            "src/runtime/runtime_test.mbt",
+            "continue signals are explicit per recipe and preserve subsequent execution",
+        ),
+        "dotenv": (
+            "src/environment/environment_test.mbt",
+            "dotenv file loading implements path filename precedence and ancestor search",
+        ),
+        "justfile": (
+            "src/parser/top_level_test.mbt",
+            "top-level parser builds assignments aliases settings recipes and imports",
+        ),
         "style": (
             "src/evaluator/evaluator_test.mbt",
             "effect context connects fs random clock process terminal and PATH facts",
@@ -674,6 +710,14 @@ def phase_8_anchor_key(category: str) -> str:
         return "script"
     if category in {"config", "positional"}:
         return "cli"
+    if category == "dotenv":
+        return "dotenv"
+    if category == "invocation_parser":
+        return "invocation"
+    if category == "justfile":
+        return "justfile"
+    if category == "signals":
+        return "signals"
     if category in {"default", "assignment"}:
         return "semantic"
     if category in {"export", "unexport", "no_cd"}:
@@ -881,6 +925,32 @@ def anchor_dict(phase: int, category: str, name: str | None = None) -> dict[str,
 
 
 def build_rows(names: list[str]) -> list[dict[str, object]]:
+    differential_manifest = tomllib.loads(
+        (repository_root() / "tests/differential/cases.toml").read_text(
+            encoding="utf-8"
+        )
+    )
+    differential_evidence: dict[str, str] = {}
+    for case in differential_manifest.get("case", []):
+        case_id = case["id"]
+        for upstream_test in case.get("upstream_tests", []):
+            if upstream_test in differential_evidence:
+                raise ValueError(
+                    f"upstream test {upstream_test!r} is claimed by multiple differential cases"
+                )
+            differential_evidence[upstream_test] = case_id
+    harness_path = (
+        repository_root()
+        / "tests/upstream/just-1.57.0/harness-results.jsonl"
+    )
+    harness_evidence = {
+        row["upstream_name"]
+        for row in map(json.loads, harness_path.read_text(encoding="utf-8").splitlines())
+        if row["disposition"] == "verified-differential"
+        and row["official"] == "passed"
+        and row["native"] in {"passed", "diagnostic-style"}
+        and row["wasm1"] in {"passed", "diagnostic-style"}
+    }
     rows = []
     for index, name in enumerate(names, start=1):
         category = name.split("::", 1)[0]
@@ -898,7 +968,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             phase = deferred_phase_7_owner(name)
 
         row: dict[str, object] = {
-            "schema_version": 1,
+            "schema_version": MAP_SCHEMA_VERSION,
             "id": f"JUST-1.57.0-{index:04d}",
             "upstream_name": name,
             "category": category,
@@ -909,9 +979,10 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 else "X" if category == "completions" else "A"
             ),
             "targets": [],
-            "disposition": "planned",
+            "disposition": "unverified",
             "evidence": ["docs/PROJECT_PLAN.md"],
             "tracking": f"PROJECT_PLAN_PHASE_{phase}",
+            "reason": "No executable compatibility evidence is registered.",
         }
 
         if category == "completions":
@@ -925,12 +996,12 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             row.update(
                 disposition="not-applicable",
                 evidence=["compat/phase-2.toml"],
-                tracking="MJ-LEX-HARDEN-0001",
+                tracking=f"MJ-CONTRACT-{index:04d}",
                 reason="Rust-private helper assertion with no user-observable behavior.",
             )
         elif phase == 2:
             row.update(
-                disposition="covered-by",
+                disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
                     "compat/phase-2.toml",
@@ -938,6 +1009,11 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                     "src/lexer/hardening_test.mbt",
                 ],
                 tracking="MJ-LEX-HARDEN-0001",
+                test_anchor={
+                    "suite": "src/lexer/upstream_lexer_test.mbt",
+                    "test_name": "just 1.57.0 key token oracle corpus",
+                },
+                contract_case="MJ-CONTRACT::src/lexer/upstream_lexer_test.mbt::just 1.57.0 key token oracle corpus",
             )
         elif category in {"changelog", "man", "readme"}:
             row.update(
@@ -946,6 +1022,17 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 evidence=["docs/adr/0001-product-and-command-name.md"],
                 tracking="ADR-0001",
                 reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
+            )
+        elif name in harness_evidence and row["tier"] == "A":
+            row.update(
+                disposition="verified-differential",
+                targets=["native", "wasm1"],
+                evidence=[
+                    "tests/upstream/just-1.57.0/harness-results.jsonl",
+                    "tools/upstream/run_official_harness.py",
+                ],
+                tracking="MJ-UPSTREAM-HARNESS-1.57.0",
+                evidence_case=f"MJ-UPSTREAM-HARNESS::{name}",
             )
         elif phase == 9 and name in PHASE_9_STORAGE_DIFFERENCES:
             row.update(
@@ -958,6 +1045,47 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="PROJECT_PLAN_PR-105",
                 reason=PHASE_9_STORAGE_DIFFERENCES[name],
             )
+        elif name == "signals::forwarding":
+            row.update(
+                tier="X",
+                disposition="not-applicable",
+                evidence=["docs/adr/0002-compatibility-baseline.md"],
+                tracking="ADR-0002",
+                reason=(
+                    "The upstream registration exclusively exercises the excluded "
+                    "--request testing interface."
+                ),
+            )
+        elif name == "signals::siginfo_prints_current_process":
+            row.update(
+                tier="B",
+                disposition="unsupported",
+                targets=["native"],
+                evidence=["docs/PHASE_8_REPORT.md"],
+                tracking=f"MJ-COMPAT-{index:04d}",
+                reason=(
+                    "BSD/macOS SIGINFO process-inventory diagnostics are outside "
+                    "the Tier A execution contract."
+                ),
+            )
+        elif name in NATIVE_SIGNAL_TESTS:
+            test_anchor = anchor_dict(phase, category, name)
+            row.update(
+                disposition="verified-contract",
+                targets=["native", "wasm1"],
+                evidence=[
+                    "tests/upstream/just-1.57.0/phase-8-cases.jsonl",
+                    test_anchor["suite"],
+                    "tools/upstream/run_official_harness.py",
+                    "docs/PHASE_8_REPORT.md",
+                ],
+                tracking=f"MJ-CONTRACT-{index:04d}",
+                test_anchor=test_anchor,
+                contract_case=(
+                    f"MJ-CONTRACT::{test_anchor['suite']}::"
+                    f"{test_anchor['test_name']}"
+                ),
+            )
         elif phase == 8 and category in {"examples", "request"}:
             row.update(
                 tier="X",
@@ -969,26 +1097,27 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                     "has no user-observable MoonJust behavior."
                 ),
             )
-        elif phase == 8 and phase_8_difference_reason(name) is not None:
+        elif phase == 8 and name == "constants::tests::readme_table":
             row.update(
-                disposition="unsupported",
-                targets=["native", "wasm1"],
-                evidence=["docs/PROJECT_PLAN.md", "docs/PHASE_8_REPORT.md"],
-                tracking=f"MJ-COMPAT-{index:04d}",
-                reason=phase_8_difference_reason(name),
+                tier="X",
+                disposition="not-applicable",
+                evidence=["docs/adr/0002-compatibility-baseline.md"],
+                tracking="ADR-0002",
+                reason="Rust-private README table synchronization has no runtime compatibility surface.",
             )
         elif phase == 8:
             test_anchor = anchor_dict(phase, category, name)
             row.update(
-                disposition="covered-by",
+                disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
                     "tests/upstream/just-1.57.0/phase-8-cases.jsonl",
                     test_anchor["suite"],
                     "docs/PHASE_8_REPORT.md",
                 ],
-                tracking="MJ-PHASE-8-CORPUS",
+                tracking=f"MJ-CONTRACT-{index:04d}",
                 test_anchor=test_anchor,
+                contract_case=f"MJ-CONTRACT::{test_anchor['suite']}::{test_anchor['test_name']}",
             )
         elif phase == 10 and category == "config" and "completions" in name:
             row.update(
@@ -1025,29 +1154,72 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
         elif phase == 10:
             test_anchor = anchor_dict(phase, category, name)
             row.update(
-                disposition="covered-by",
+                disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
                     "tests/upstream/just-1.57.0/phase-10-cases.jsonl",
                     test_anchor["suite"],
                     "docs/PROJECT_PLAN.md",
                 ],
-                tracking="MJ-PHASE-10-CORPUS",
+                tracking=f"MJ-CONTRACT-{index:04d}",
                 test_anchor=test_anchor,
+                contract_case=f"MJ-CONTRACT::{test_anchor['suite']}::{test_anchor['test_name']}",
             )
         elif phase <= 7 or phase == 9:
             test_anchor = anchor_dict(phase, category, name)
             row.update(
-                disposition="covered-by",
+                disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
                     f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl",
                     test_anchor["suite"],
                     f"docs/PHASE_{phase}_REPORT.md",
                 ],
-                tracking=f"MJ-PHASE-{phase}-CORPUS",
+                tracking=f"MJ-CONTRACT-{index:04d}",
                 test_anchor=test_anchor,
+                contract_case=f"MJ-CONTRACT::{test_anchor['suite']}::{test_anchor['test_name']}",
             )
+        if row["disposition"] == "verified-contract":
+            row.pop("reason", None)
+        if name in EXPLICIT_CONTRACT_EVIDENCE:
+            suite, test_name = EXPLICIT_CONTRACT_EVIDENCE[name]
+            row.update(
+                disposition="verified-contract",
+                targets=["native", "wasm1"],
+                evidence=[
+                    f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl",
+                    suite,
+                    f"docs/PHASE_{phase}_REPORT.md",
+                ],
+                tracking=f"MJ-CONTRACT-{index:04d}",
+                test_anchor={"suite": suite, "test_name": test_name},
+                contract_case=f"MJ-CONTRACT::{suite}::{test_name}",
+            )
+            row.pop("reason", None)
+        if name in differential_evidence:
+            evidence_case = differential_evidence[name]
+            row.update(
+                disposition="verified-differential",
+                targets=["native", "wasm1"],
+                evidence=["tests/differential/cases.toml"],
+                tracking=evidence_case,
+                evidence_case=evidence_case,
+            )
+            row.pop("reason", None)
+            row.pop("test_anchor", None)
+        elif name in harness_evidence and row["tier"] == "A":
+            row.update(
+                disposition="verified-differential",
+                targets=["native", "wasm1"],
+                evidence=[
+                    "tests/upstream/just-1.57.0/harness-results.jsonl",
+                    "tools/upstream/run_official_harness.py",
+                ],
+                tracking="MJ-UPSTREAM-HARNESS-1.57.0",
+                evidence_case=f"MJ-UPSTREAM-HARNESS::{name}",
+            )
+            row.pop("reason", None)
+            row.pop("test_anchor", None)
         rows.append(row)
     return rows
 
@@ -1065,20 +1237,23 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
         phase_rows = [
             row
             for row in rows
-            if row["owner_phase"] == phase and row["disposition"] == "covered-by"
+            if row["owner_phase"] == phase
+            and row["disposition"] in {"verified-differential", "verified-contract"}
         ]
         encoded = "".join(
             json.dumps(
                 {
-                    "schema_version": 1,
+                    "schema_version": MAP_SCHEMA_VERSION,
                     "case_id": row["id"],
                     "upstream_name": row["upstream_name"],
                     "category": row["category"],
                     "owner_phase": phase,
                     "disposition": row["disposition"],
                     "targets": row["targets"],
-                    "suite": row["evidence"][1],
-                    "test_anchor": row["test_anchor"],
+                    "evidence_case": row.get("evidence_case"),
+                    "contract_case": row.get("contract_case"),
+                    "upstream_tests": [row["upstream_name"]],
+                    "test_anchor": row.get("test_anchor"),
                     "tracking": row["tracking"],
                 },
                 ensure_ascii=True,
@@ -1098,17 +1273,24 @@ def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
         expected = [
             row
             for row in rows
-            if row["owner_phase"] == phase and row["disposition"] == "covered-by"
+            if row["owner_phase"] == phase
+            and row["disposition"] in {"verified-differential", "verified-contract"}
         ]
         if len(cases) != len(expected):
             raise ValueError(f"Phase {phase} case manifest count changed")
         for case, row in zip(cases, expected):
             if case["case_id"] != row["id"] or case["upstream_name"] != row["upstream_name"]:
                 raise ValueError(f"Phase {phase} case manifest is not deterministic")
-            if case["disposition"] != "covered-by" or not case["suite"]:
+            if case["disposition"] not in {"verified-differential", "verified-contract"}:
                 raise ValueError(f"Phase {phase} case lacks executable evidence")
             if case.get("test_anchor") != row.get("test_anchor"):
                 raise ValueError(f"Phase {phase} case anchor differs from test map")
+            if case.get("evidence_case") != row.get("evidence_case"):
+                raise ValueError(f"Phase {phase} differential case differs from test map")
+            if case.get("contract_case") != row.get("contract_case"):
+                raise ValueError(f"Phase {phase} contract case differs from test map")
+            if case.get("upstream_tests") != [row["upstream_name"]]:
+                raise ValueError(f"Phase {phase} case lacks explicit upstream registration")
 
 
 def load_names(path: Path) -> list[str]:
@@ -1128,19 +1310,16 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
     if len(rows) != len(names):
         raise ValueError(f"expected {len(names)} map rows, found {len(rows)}")
     allowed = {
-        "ported",
-        "differential",
-        "covered-by",
+        "verified-differential",
+        "verified-contract",
         "not-applicable",
         "excluded-completion",
         "unsupported",
-        "blocked-platform",
         "unverified",
-        "planned",
     }
     for index, (row, name) in enumerate(zip(rows, names), start=1):
         expected_id = f"JUST-1.57.0-{index:04d}"
-        if row.get("schema_version") != 1 or row.get("id") != expected_id:
+        if row.get("schema_version") != MAP_SCHEMA_VERSION or row.get("id") != expected_id:
             raise ValueError(f"row {index} has an invalid schema or id")
         if row.get("upstream_name") != name:
             raise ValueError(f"row {expected_id} does not match the pinned test list")
@@ -1156,7 +1335,7 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} has no evidence list")
         if not isinstance(row.get("tracking"), str) or not row["tracking"]:
             raise ValueError(f"row {expected_id} has no tracking owner")
-        if row.get("owner_phase") in {3, 4, 5, 6, 7, 8, 9, 10} and row["disposition"] == "covered-by":
+        if row["disposition"] == "verified-contract":
             anchor = row.get("test_anchor")
             if not isinstance(anchor, dict) or set(anchor) != {"suite", "test_name"}:
                 raise ValueError(f"row {expected_id} has no executable test anchor")
@@ -1169,14 +1348,19 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
                     f"row {expected_id} points to a missing test declaration "
                     f"{anchor['suite']}::{anchor['test_name']}"
                 )
+            if not isinstance(row.get("contract_case"), str) or not row["contract_case"]:
+                raise ValueError(f"row {expected_id} has no contract case id")
+        if row["disposition"] == "verified-differential":
+            evidence_case = row.get("evidence_case")
+            if not isinstance(evidence_case, str) or not evidence_case:
+                raise ValueError(f"row {expected_id} has no differential case")
         if row["disposition"] in {
             "not-applicable",
             "excluded-completion",
             "unsupported",
+            "unverified",
         } and not row.get("reason"):
             raise ValueError(f"row {expected_id} requires a reason")
-        if row["disposition"] == "planned":
-            raise ValueError(f"row {expected_id} remains planned")
 
 
 def main() -> int:

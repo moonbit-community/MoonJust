@@ -1,0 +1,4 @@
+--fmt
+--check
+--indentation
+<TWO_SPACES>

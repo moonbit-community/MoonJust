@@ -1,0 +1,6 @@
+set positional-arguments
+
+default *values:
+  #!/bin/sh
+  echo $1
+  echo "$@"

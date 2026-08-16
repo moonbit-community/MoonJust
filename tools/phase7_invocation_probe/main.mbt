@@ -42,7 +42,9 @@ async fn main {
     "justfile",
     source_text,
   )
-  let compilation = try @semantic.compile_source(source) catch {
+  let compilation = try
+    @semantic.compile_source(source, allow_unstable=true)
+  catch {
     error => {
       fail(error.message())
       return

@@ -1,0 +1,4 @@
+set unstable
+zero() := 'zero'
+one(x) := x
+two(x, y) := x + y

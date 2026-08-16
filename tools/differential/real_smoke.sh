@@ -5,6 +5,7 @@ script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 oracle_root="$repo_root/_build/upstream/just-1.57.0"
 candidate="$repo_root/_build/native/debug/build/cmd/just/just.exe"
+candidate_wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
 metadata="$repo_root/_build/differential/oracle-metadata.txt"
 
 python3 - "$repo_root/tests/differential/cases.toml" <<'PY'
@@ -14,8 +15,10 @@ from pathlib import Path
 
 manifest = tomllib.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 cases = manifest.get("case", [])
-if len(cases) != 10:
-    raise SystemExit(f"differential manifest expected 10 cases, found {len(cases)}")
+if manifest.get("schema_version") != 2:
+    raise SystemExit("differential manifest must use schema version 2")
+if len(cases) != 182:
+    raise SystemExit(f"differential manifest expected 182 cases, found {len(cases)}")
 seen = set()
 for case in cases:
     case_id = case.get("id")
@@ -25,6 +28,10 @@ for case in cases:
     status = case.get("status")
     if status not in {"match", "expected-difference"}:
         raise SystemExit(f"case {case_id} is not explicitly classified")
+    if not isinstance(case.get("upstream_tests", []), list):
+        raise SystemExit(f"case {case_id} has invalid upstream_tests")
+    if status == "expected-difference" and case.get("allowed_difference", "none") == "none":
+        raise SystemExit(f"case {case_id} has an unbounded expected difference")
     if not isinstance(case.get("owner_phase"), int) or case["owner_phase"] < 6:
         raise SystemExit(f"case {case_id} has an invalid owner phase")
     case_dir = Path(sys.argv[1]).parent / "cases" / case["directory"]
@@ -42,8 +49,13 @@ PY
 mkdir -p "$(dirname -- "$metadata")"
 "$repo_root/tools/upstream/build_oracle.sh" | tee "$metadata"
 moon build --target native cmd/just
+moon build --target wasm cmd/just
 [ -x "$candidate" ] || {
   echo "real differential error: candidate binary is missing: $candidate" >&2
+  exit 1
+}
+[ -f "$candidate_wasm" ] || {
+  echo "real differential error: wasm candidate is missing: $candidate_wasm" >&2
   exit 1
 }
 
@@ -55,5 +67,7 @@ oracle="$oracle_root/target/release/just"
 
 "$script_dir/run.sh" \
   --upstream "$oracle" \
-  --candidate "$candidate" \
+  --candidate-native "$candidate" \
+  --candidate-wasm "$candidate_wasm" \
+  --wasm-policy "$repo_root/policies/execute.toml" \
   --artifacts "$repo_root/_build/differential/real"

@@ -1,0 +1,7 @@
+set lazy
+
+c := `echo x >> count; wc -l < count | tr -d ' '`
+f(value) := value + c
+
+foo:
+  @echo {{f('')}}{{f('')}}

@@ -28,8 +28,7 @@ status = "implemented"
 [[attribute]]
 name = "continue"
 tier = "A"
-status = "unsupported"
-reason = "Signal continuation and forwarding semantics are not implemented."
+status = "implemented"
 
 [[attribute]]
 name = "default"
@@ -54,8 +53,7 @@ status = "implemented"
 [[attribute]]
 name = "exit-message"
 tier = "A"
-status = "unsupported"
-reason = "Recipe failure exit-message emission is not implemented."
+status = "implemented"
 
 [[attribute]]
 name = "extension"
@@ -85,8 +83,7 @@ status = "implemented"
 [[attribute]]
 name = "metadata"
 tier = "A"
-status = "unsupported"
-reason = "Metadata is retained for inspection but has no execution consumer."
+status = "implemented"
 
 [[attribute]]
 name = "netbsd"
@@ -96,20 +93,17 @@ status = "implemented"
 [[attribute]]
 name = "no-cd"
 tier = "A"
-status = "unsupported"
-reason = "Recipe-level no-cd does not yet override the selected module working directory."
+status = "implemented"
 
 [[attribute]]
 name = "no-exit-message"
 tier = "A"
-status = "unsupported"
-reason = "Recipe failure exit-message suppression is not implemented."
+status = "implemented"
 
 [[attribute]]
 name = "no-quiet"
 tier = "A"
-status = "unsupported"
-reason = "Recipe-level override of a quiet setting is not implemented."
+status = "implemented"
 
 [[attribute]]
 name = "openbsd"
@@ -124,8 +118,7 @@ status = "implemented"
 [[attribute]]
 name = "positional-arguments"
 tier = "A"
-status = "unsupported"
-reason = "Positional recipe arguments are not exported through upstream shell variables."
+status = "implemented"
 
 [[attribute]]
 name = "private"

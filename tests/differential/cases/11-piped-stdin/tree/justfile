@@ -1,0 +1,2 @@
+foo:
+  read value; printf 'got:%s\n' "$value"

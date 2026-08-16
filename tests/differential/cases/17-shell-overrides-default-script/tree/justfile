@@ -1,0 +1,5 @@
+set default-script := true
+
+[shell]
+foo:
+  printf shell

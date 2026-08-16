@@ -1,0 +1,4 @@
+[no-cd]
+default:
+  #!/bin/sh
+  cat data.txt

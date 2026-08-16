@@ -15,20 +15,29 @@ fail() {
   exit 1
 }
 
+oracle_git() {
+  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX \
+    -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
+    -u GIT_COMMON_DIR -u GIT_NAMESPACE git -C "$checkout" "$@"
+}
+
 mkdir -p "$cache_root"
 
 if [ ! -d "$checkout/.git" ]; then
   temporary_clone="$cache_root/source.clone"
   rm -rf -- "$temporary_clone"
-  git clone --quiet --branch "$expected_tag" --depth 1 \
+  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX \
+    -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
+    -u GIT_COMMON_DIR -u GIT_NAMESPACE \
+    git clone --quiet --branch "$expected_tag" --depth 1 \
     https://github.com/casey/just.git "$temporary_clone"
   mv -- "$temporary_clone" "$checkout"
 fi
 
-[ "$(git -C "$checkout" rev-parse --is-inside-work-tree)" = true ] || \
+[ "$(oracle_git rev-parse --is-inside-work-tree)" = true ] || \
   fail "oracle checkout is not a git worktree"
 
-actual_commit=$(git -C "$checkout" rev-parse "refs/tags/$expected_tag^{commit}")
+actual_commit=$(oracle_git rev-parse "refs/tags/$expected_tag^{commit}")
 [ "$actual_commit" = "$expected_commit" ] || \
   fail "expected peeled tag commit $expected_commit, found $actual_commit"
 

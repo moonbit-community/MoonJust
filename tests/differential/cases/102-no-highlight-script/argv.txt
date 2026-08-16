@@ -1,0 +1,6 @@
+--color
+always
+--no-highlight
+--command-color
+red
+foo

@@ -18,8 +18,7 @@ status = "implemented"
 [[setting]]
 name = "default-list"
 tier = "A"
-status = "unsupported"
-reason = "The setting is parsed but does not select list mode for the default invocation."
+status = "implemented"
 
 [[setting]]
 name = "default-script"
@@ -29,8 +28,7 @@ status = "implemented"
 [[setting]]
 name = "dotenv-command"
 tier = "A"
-status = "unsupported"
-reason = "Command-produced dotenv loading is not implemented."
+status = "implemented"
 
 [[setting]]
 name = "dotenv-filename"
@@ -65,32 +63,27 @@ status = "implemented"
 [[setting]]
 name = "fallback"
 tier = "A"
-status = "unsupported"
-reason = "Optional module fallback semantics are not implemented."
+status = "implemented"
 
 [[setting]]
 name = "guards"
 tier = "A"
-status = "unsupported"
-reason = "Guard-line execution semantics are not implemented."
+status = "implemented"
 
 [[setting]]
 name = "ignore-comments"
 tier = "A"
-status = "unsupported"
-reason = "Recipe comment suppression and evaluation semantics are not implemented."
+status = "implemented"
 
 [[setting]]
 name = "indentation"
 tier = "A"
-status = "unsupported"
-reason = "The setting is retained for inspection but does not alter recipe indentation."
+status = "implemented"
 
 [[setting]]
 name = "lazy"
 tier = "A"
-status = "unsupported"
-reason = "MoonJust always uses deterministic lazy variable resolution and does not implement this compatibility toggle."
+status = "implemented"
 
 [[setting]]
 name = "lists"
@@ -110,20 +103,17 @@ status = "implemented"
 [[setting]]
 name = "no-exit-message"
 tier = "A"
-status = "unsupported"
-reason = "Recipe failure exit-message suppression is not implemented."
+status = "implemented"
 
 [[setting]]
 name = "positional-arguments"
 tier = "A"
-status = "unsupported"
-reason = "Positional recipe arguments are not exported through upstream shell variables."
+status = "implemented"
 
 [[setting]]
 name = "quiet"
 tier = "A"
-status = "unsupported"
-reason = "The setting is parsed but does not configure global execution output."
+status = "implemented"
 
 [[setting]]
 name = "script-interpreter"
@@ -159,8 +149,7 @@ status = "implemented"
 [[setting]]
 name = "working-directory"
 tier = "A"
-status = "unsupported"
-reason = "Static recipe cwd selection is implemented, but the setting does not yet change the cwd of effectful global backticks and shell functions."
+status = "implemented"
 
 [[conflict]]
 left = "dotenv-command"

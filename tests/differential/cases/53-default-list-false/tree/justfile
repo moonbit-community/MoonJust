@@ -1,0 +1,4 @@
+set default-list := false
+foo:
+  @echo foo
+bar:

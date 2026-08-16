@@ -1,0 +1,2 @@
+set unstable
+f(a, a) := a

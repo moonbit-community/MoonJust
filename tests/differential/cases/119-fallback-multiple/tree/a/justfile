@@ -1,0 +1,4 @@
+set fallback := true
+
+bar:
+  echo middle

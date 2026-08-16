@@ -1,0 +1,6 @@
+set no-cd
+
+file := `cat data.txt`
+
+@default:
+  echo {{file}}

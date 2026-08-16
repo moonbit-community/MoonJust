@@ -1,0 +1,7 @@
+set unstable
+outer := 'outer'
+identity(value,) := value
+capture() := outer
+shadow(outer) := outer
+bool(value) := value
+result := identity('parameter') + ':' + capture() + ':' + shadow('local') + ':' + bool('builtin-shadow')

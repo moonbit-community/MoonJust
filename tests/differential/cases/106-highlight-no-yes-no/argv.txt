@@ -1,0 +1,6 @@
+--color
+always
+--no-highlight
+--highlight
+--no-highlight
+a

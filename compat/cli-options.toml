@@ -13,16 +13,14 @@ env = "JUST_ALIAS_STYLE"
 [[option]]
 name = "--allow-missing"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_ALLOW_MISSING"
-reason = "Missing recipes and modules are rejected; --allow-missing execution semantics are not implemented."
 
 [[option]]
 name = "--ceiling"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_CEILING"
-reason = "Search ceiling control is not implemented."
 
 [[option]]
 name = "--check"
@@ -71,16 +69,14 @@ reason = "MoonJust does not perform Cygwin path conversion."
 [[option]]
 name = "--default-list"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_DEFAULT_LIST"
-reason = "Default-list invocation behavior is not implemented."
 
 [[option]]
 name = "--dotenv-command"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_DOTENV_COMMAND"
-reason = "Command-produced dotenv loading is not implemented."
 
 [[option]]
 name = "--dotenv-filename"
@@ -117,16 +113,14 @@ env = "JUST_EVALUATE_FORMAT"
 [[option]]
 name = "--explain"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_EXPLAIN"
-reason = "Recipe documentation is not emitted before execution."
 
 [[option]]
 name = "--global-justfile"
 short = "-g"
 tier = "A"
-status = "unsupported"
-reason = "Global justfile discovery is not implemented."
+status = "implemented"
 
 [[option]]
 name = "--group"
@@ -138,16 +132,14 @@ modes = ["--list", "--choose"]
 [[option]]
 name = "--highlight"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_HIGHLIGHT"
-reason = "Recipe source highlighting is not implemented."
 
 [[option]]
 name = "--indentation"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_INDENTATION"
-reason = "CLI indentation override is rejected."
 
 [[option]]
 name = "--jobs"
@@ -183,9 +175,8 @@ env = "JUST_LIST_PREFIX"
 [[option]]
 name = "--list-submodules"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_LIST_SUBMODULES"
-reason = "Module recipe listing is not implemented."
 
 [[option]]
 name = "--no-aliases"
@@ -203,9 +194,8 @@ env = "JUST_NO_CACHE"
 name = "--no-deps"
 aliases = ["--no-dependencies"]
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_NO_DEPS"
-reason = "Dependency suppression is not implemented."
 
 [[option]]
 name = "--no-dotenv"
@@ -216,16 +206,14 @@ env = "JUST_NO_DOTENV"
 [[option]]
 name = "--no-highlight"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_NO_HIGHLIGHT"
-reason = "Recipe source highlighting is not implemented."
 
 [[option]]
 name = "--one"
 tier = "A"
-status = "unsupported"
+status = "implemented"
 env = "JUST_ONE"
-reason = "Single-invocation enforcement is not implemented."
 
 [[option]]
 name = "--quiet"
@@ -253,8 +241,7 @@ status = "implemented"
 [[option]]
 name = "--shell-command"
 tier = "A"
-status = "unsupported"
-reason = "Arbitrary shell-command execution is not implemented."
+status = "implemented"
 
 [[option]]
 name = "--tempdir"
@@ -346,8 +333,7 @@ status = "implemented"
 name = "--command"
 short = "-c"
 tier = "A"
-status = "unsupported"
-reason = "The arbitrary command subcommand is rejected before execution."
+status = "implemented"
 
 [[command]]
 name = "--completions"

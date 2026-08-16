@@ -1,0 +1,5 @@
+set unstable
+x := 'bar'
+f() := x
+run:
+  @printf '%s\n' '{{f()}}'

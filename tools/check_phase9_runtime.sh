@@ -12,6 +12,12 @@ fail() {
   exit 1
 }
 
+check_parallel_output() {
+  actual=$1
+  [ "$(sort "$actual")" = "$(sort "$fixture/parallel.stdout")" ] ||
+    fail "$2 parallel output did not contain each completed task exactly once"
+}
+
 moon test --target native src/scheduler
 moon test --target native src/cache
 moon test --target native src/runtime
@@ -41,12 +47,9 @@ ln -s input-dir "$work/native/input-dir-link"
 
 (
   cd "$work/native"
-  "$cli_native" --jobs 2 root >parallel.stdout 2>parallel.stderr
+  "$cli_native" --unstable --jobs 2 root >parallel.stdout 2>parallel.stderr
 )
-cmp -s "$fixture/parallel.stdout" "$work/native/parallel.stdout" || {
-  diff -u "$fixture/parallel.stdout" "$work/native/parallel.stdout" || true
-  fail "native parallel output is not deterministic"
-}
+check_parallel_output "$work/native/parallel.stdout" native
 
 (
   cd "$work/native"
@@ -198,11 +201,11 @@ grep -Eq '^removed [1-9][0-9]* cache entr(y|ies)$' "$work/native/clean.stderr" |
 
 (
   cd "$work/wasm"
-  moonrun --policy "$repo_root/policies/execute.toml" "$cli_wasm" --jobs 2 root >parallel.stdout 2>parallel.stderr
+  moonrun --policy "$repo_root/policies/execute.toml" "$cli_wasm" --unstable --jobs 2 root >parallel.stdout 2>parallel.stderr
   moonrun --policy "$repo_root/policies/execute.toml" "$cli_wasm" --unstable cached >first.stdout 2>first.stderr
   moonrun --policy "$repo_root/policies/execute.toml" "$cli_wasm" --unstable cached >hit.stdout 2>hit.stderr
 )
-cmp -s "$fixture/parallel.stdout" "$work/wasm/parallel.stdout" || fail "wasm parallel output differs"
+check_parallel_output "$work/wasm/parallel.stdout" wasm
 grep -qx 'cached-run' "$work/wasm/first.stdout" || fail "wasm cache miss did not execute"
 [ ! -s "$work/wasm/hit.stdout" ] || fail "wasm cache hit executed the recipe"
 

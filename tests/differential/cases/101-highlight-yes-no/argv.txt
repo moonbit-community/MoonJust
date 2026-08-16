@@ -1,0 +1,6 @@
+--color
+always
+--highlight
+--no-highlight
+--verbose
+a

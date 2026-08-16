@@ -1,0 +1,2 @@
+export FOO := 'bar'
+x:

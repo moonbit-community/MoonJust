@@ -1,0 +1,2 @@
+default:
+  echo hello; echo error >&2

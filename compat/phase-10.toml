@@ -16,16 +16,18 @@ inventory = "all CLI flags, commands, settings, attributes, builtins and 2,417 u
 
 [compatibility]
 covered_registrations = 40
+unverified_registrations = 0
 unsupported_registrations = 4
 excluded_registrations = 8
-phase_8_covered_registrations = 209
-phase_8_unsupported_registrations = 520
-phase_8_not_applicable_registrations = 3
+phase_8_covered_registrations = 729
+phase_8_unverified_registrations = 0
+phase_8_unsupported_registrations = 1
+phase_8_not_applicable_registrations = 2
 planned_registrations = 0
 
 [target_matrix]
-native = "local pass: 300 tests and macOS aarch64 real platform gate"
-wasm1 = "local pass: 295 tests and explicit portable platform/terminal fallback"
+native = "local pass: 352 tests and macOS aarch64 real platform gate"
+wasm1 = "local pass: 348 tests and explicit portable platform/terminal fallback"
 linux = "pass: remediation PR CI and protected-main CI"
 macos = "pass: local macOS aarch64 gate, remediation PR CI and protected-main CI"
 windows = "pass: remediation PR CI and protected-main CI"

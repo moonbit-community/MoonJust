@@ -1,0 +1,3 @@
+set unstable
+run:
+  echo {{missing()}}

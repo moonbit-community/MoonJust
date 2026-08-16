@@ -1,0 +1,4 @@
+--command
+sh
+-c
+exit 42

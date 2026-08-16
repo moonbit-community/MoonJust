@@ -1,0 +1,3 @@
+set quiet
+default:
+  @echo hello

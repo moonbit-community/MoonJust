@@ -21,11 +21,13 @@ The command fails rather than updating the snapshot if the commit or expected
 compatibility PR; do not change the expected count to make CI green.
 
 `test_map.py` generates one deterministic JSONL row for every pinned
-registration. Phase 3-7 rows are `covered-by` and carry an executable
-`suite`/`test_name` anchor. The verifier reads the referenced MoonBit source and
-checks that the named test declaration exists. Phase 6 completion/maintenance
-rows remain explicitly excluded or not applicable; Phase 8-10 rows remain
-`planned`. All planned and excluded rows retain explicit tracking owners.
+registration using schema v2. Differential rows name a case executed against
+the official, native and wasm binaries. Contract rows carry a stable contract
+case ID plus an executable `suite`/`test_name` anchor, and each generated phase
+case explicitly lists its upstream registration. The verifier reads the
+referenced MoonBit source and checks that the named declaration exists.
+Completion and maintenance rows remain explicitly excluded or not applicable;
+Tier A contains no unsupported or unverified row.
 
 Regenerate and verify the map with:
 

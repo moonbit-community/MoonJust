@@ -1,0 +1,4 @@
+[exit-message]
+@default:
+  echo hello
+  exit 100

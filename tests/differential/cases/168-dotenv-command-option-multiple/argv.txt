@@ -1,0 +1,4 @@
+--dotenv-command
+echo FOO=bar
+--dotenv-command
+echo BAZ=qux

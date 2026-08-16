@@ -1,0 +1,4 @@
+set positional-arguments
+
+default value='fallback':
+  echo $1

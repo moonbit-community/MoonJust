@@ -1,0 +1,4 @@
+set ignore-comments
+
+some_recipe:
+  # {{ undefined }}

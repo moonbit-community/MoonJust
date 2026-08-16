@@ -1,0 +1,6 @@
+set working-directory := 'foo'
+
+file := shell('cat file.txt')
+
+@default:
+  echo {{file}}

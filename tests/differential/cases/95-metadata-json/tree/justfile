@@ -1,0 +1,6 @@
+[metadata('single')]
+single:
+
+[metadata('example')]
+[metadata('sample', 'argument')]
+multiple:

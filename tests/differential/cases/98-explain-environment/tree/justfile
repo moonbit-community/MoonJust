@@ -1,0 +1,3 @@
+# Environment-selected explanation
+default:
+  echo ready

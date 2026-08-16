@@ -10,6 +10,27 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 mkdir -p "$temporary_root/cases/01-match/tree" "$temporary_root/cases/02-diff/tree"
+cat >"$temporary_root/cases.toml" <<'EOF'
+schema_version = 2
+upstream = "self-test"
+
+[[case]]
+id = "MJ-COMPAT-SELF-MATCH"
+directory = "01-match"
+owner_phase = 0
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = []
+
+[[case]]
+id = "MJ-COMPAT-SELF-DIFF"
+directory = "02-diff"
+owner_phase = 0
+status = "expected-difference"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = []
+allowed_difference = "product-identity"
+EOF
 : >"$temporary_root/cases/01-match/argv.txt"
 : >"$temporary_root/cases/01-match/stdin"
 : >"$temporary_root/cases/01-match/env.list"
@@ -36,5 +57,6 @@ chmod +x "$temporary_root/upstream" "$temporary_root/candidate"
 "$script_dir/run.sh" \
   --upstream "$temporary_root/upstream" \
   --candidate "$temporary_root/candidate" \
+  --manifest "$temporary_root/cases.toml" \
   --cases "$temporary_root/cases" \
   --artifacts "$temporary_root/artifacts"

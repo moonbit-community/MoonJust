@@ -1,0 +1,5 @@
+set no-cd
+
+[working-directory('workspace')]
+default:
+  cat data.txt

@@ -1,4 +1,4 @@
-schema_version = 1
+schema_version = 2
 
 [upstream]
 repository = "https://github.com/casey/just"
@@ -15,7 +15,7 @@ registrations = 2417
 path = "tests/upstream/just-1.57.0/test-list.txt"
 sha256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
 mapping = "tests/upstream/just-1.57.0/test-map.jsonl"
-mapping_schema = 1
+mapping_schema = 2
 mapping_generator = "tools/upstream/test_map.py"
 
 [scope]
