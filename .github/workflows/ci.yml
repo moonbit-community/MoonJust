@@ -70,6 +70,9 @@ jobs:
       - name: Test real upstream differential smoke
         run: ./tools/differential/real_smoke.sh
 
+      - name: Verify pinned official integration harness
+        run: python3 ./tools/upstream/run_official_harness.py
+
       - name: Verify Phase 5 Rust builtin oracle
         run: python3 ./tools/upstream/phase5_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
 

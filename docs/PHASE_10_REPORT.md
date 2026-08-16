@@ -62,17 +62,18 @@ tests pass unchanged.
 
 ## Compatibility accounting
 
-Every one of the pinned 2,417 upstream registrations is explicitly classified:
-1,844 are `covered-by` executable family tests, 526 are `unsupported` with a
-reason, 35 completion rows are excluded, and 12 rows are not applicable. No
-row remains `planned`.
+Every one of the pinned 2,417 upstream registrations is explicitly classified
+under schema v2: 2,366 are verified by differential or executable contract
+evidence, five are Tier B chooser/submodule/SIGINFO differences, 35 completion
+rows are excluded, and eleven rows are not applicable. No Tier A row is
+unsupported or unverified.
 
-Phase 10 owns 52 registrations: 40 covered, four chooser/module differences,
+Phase 10 owns 52 registrations: 40 verified, four chooser/module differences,
 five excluded completion cases and three non-applicable maintenance/internal
-cases. The previously deferred Phase 8 inventory is also resolved
-conservatively: 209 covered, 520 unsupported and three not applicable. A family
-anchor is evidence for a behavior family, not a claim that MoonJust copied each
-Rust test one-for-one.
+cases. Phase 8 owns 732 registrations: 729 verified, one unsupported Tier B
+SIGINFO case and two not applicable. A
+contract anchor is executable evidence for a behavior contract, not a claim
+that MoonJust copied each Rust test one-for-one.
 
 The CLI inventory contains 50 options and 19 commands. All 39 upstream
 `JUST_*` argument bindings are also exact-name checked: implemented options use
@@ -89,7 +90,7 @@ part of `working-directory` remains explicitly unsupported.
 
 ## Gates
 
-Local evidence currently passes 300 Native and 295 wasm1 tests, strict
+Local evidence currently passes 352 Native and 348 wasm1 tests, strict
 all-backend checking, formatting, public compatibility verification, the
 macOS aarch64 real platform gate, and all five pinned upstream tangle tests.
 `tools/check_phase10_platform.sh` is also installed in the Ubuntu, macOS and

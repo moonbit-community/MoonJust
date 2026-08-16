@@ -7,10 +7,10 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> Phase 0-11 exits have passed, including the required second review,
-> protected-main CI and the non-publishing candidate-attestation workflow.
-> MoonJust `0.7.0-alpha.1` implements the Phase 11 release-engineering
-> contracts. No formal publication, tag or GitHub Release was performed.
+> MoonJust is compatible with the pinned `just 1.57.0` Tier A surface on
+> native and wasm/moonrun. Completion, browser execution and arbitrary WASI
+> remain outside scope. No publication, tag or GitHub Release is performed by
+> the compatibility gate.
 
 ## What is delivered
 
@@ -41,12 +41,14 @@ versioned, locked across processes and atomically published after output checks.
 - Upstream: `just 1.57.0`, commit
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
-- Validated upstream registrations: 1,844 executable family rows.
-- Registered compatibility differences: 526 unsupported rows with exact
-  reasons and tracking ownership in the machine map.
-- Explicitly excluded or not applicable: 35 shell-completion rows and 12
-  Rust-internal or product-maintenance rows.
-- Deferred or unclassified upstream registrations: zero.
+- Tier A registrations: 2,328 total; 1,758 verified by official/native/wasm
+  differential execution, 569 by executable contract cases, one explicitly
+  not applicable, and zero unsupported or unverified.
+- Full pinned inventory: 2,366 verified, five Tier B chooser/submodule/SIGINFO
+  differences, 35 excluded completion rows and eleven not-applicable
+  Rust-internal, testing-interface or product-maintenance rows.
+- Structured CLI differential corpus: 147 exact matches and 35 bounded
+  product-identity or diagnostic-layout differences, with zero failures.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 
