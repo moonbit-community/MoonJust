@@ -258,7 +258,7 @@ fn observable_process_command(
     return (program, command.arguments().to_owned(), false)
   }
   let arguments = [
-    "-c", "{ \"$@\" 2>&3 3>&-; status=$?; exit \"$status\"; } 3>&2 2>/dev/null",
+    "-c", "{ \"$@\" 0<&4 2>&3 3>&- 4<&- & child=$!; wait \"$child\"; status=$?; exit \"$status\"; } 3>&2 4<&0 2>/dev/null",
     "moonjust-signal-wrapper", program,
   ]
   for argument in command.arguments() {
