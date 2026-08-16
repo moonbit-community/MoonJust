@@ -36,15 +36,9 @@ pub fn Parameter::new_star(
   name : String,
   exported : Bool,
   span : @source.Span,
+  default_value? : Expression,
 ) -> Parameter {
-  {
-    name,
-    default_value: None,
-    variadic: true,
-    variadic_minimum: 0,
-    exported,
-    span,
-  }
+  { name, default_value, variadic: true, variadic_minimum: 0, exported, span }
 }
 
 ///|
@@ -82,6 +76,7 @@ pub(all) struct Dependency {
   name : String
   arguments : Array[Expression]
   starred : Bool
+  starred_arguments : Array[Int]
   span : @source.Span
 } derive(Eq, Debug)
 
@@ -91,8 +86,15 @@ pub fn Dependency::new(
   arguments : Array[Expression],
   starred : Bool,
   span : @source.Span,
+  starred_arguments? : ArrayView[Int] = [],
 ) -> Dependency {
-  { name, arguments, starred, span }
+  {
+    name,
+    arguments,
+    starred,
+    starred_arguments: starred_arguments.to_owned(),
+    span,
+  }
 }
 
 ///|
@@ -111,6 +113,11 @@ pub fn Dependency::starred(self : Dependency) -> Bool {
 }
 
 ///|
+pub fn Dependency::starred_arguments(self : Dependency) -> ArrayView[Int] {
+  self.starred_arguments[:]
+}
+
+///|
 pub fn Dependency::span(self : Dependency) -> @source.Span {
   self.span
 }
@@ -125,14 +132,18 @@ pub(all) enum RecipeFragment {
 pub(all) struct RecipeLine {
   fragments : Array[RecipeFragment]
   span : @source.Span
+  source_start_line : Int
+  source_end_line : Int
 } derive(Eq, Debug)
 
 ///|
 pub fn RecipeLine::new(
   fragments : Array[RecipeFragment],
   span : @source.Span,
+  source_start_line? : Int = 1,
+  source_end_line? : Int = source_start_line,
 ) -> RecipeLine {
-  { fragments, span }
+  { fragments, span, source_start_line, source_end_line }
 }
 
 ///|
@@ -143,6 +154,16 @@ pub fn RecipeLine::fragments(self : RecipeLine) -> ArrayView[RecipeFragment] {
 ///|
 pub fn RecipeLine::span(self : RecipeLine) -> @source.Span {
   self.span
+}
+
+///|
+pub fn RecipeLine::source_start_line(self : RecipeLine) -> Int {
+  self.source_start_line
+}
+
+///|
+pub fn RecipeLine::source_end_line(self : RecipeLine) -> Int {
+  self.source_end_line
 }
 
 ///|
@@ -213,6 +234,7 @@ pub(all) struct Assignment {
   value : Expression
   exported : Bool
   eager : Bool
+  attributes : Array[Attribute]
   span : @source.Span
 } derive(Eq, Debug)
 
@@ -223,8 +245,9 @@ pub fn Assignment::new(
   exported : Bool,
   eager : Bool,
   span : @source.Span,
+  attributes? : Array[Attribute] = [],
 ) -> Assignment {
-  { name, value, exported, eager, span }
+  { name, value, exported, eager, attributes, span }
 }
 
 ///|
@@ -248,7 +271,85 @@ pub fn Assignment::eager(self : Assignment) -> Bool {
 }
 
 ///|
+pub fn Assignment::attributes(self : Assignment) -> ArrayView[Attribute] {
+  self.attributes[:]
+}
+
+///|
 pub fn Assignment::span(self : Assignment) -> @source.Span {
+  self.span
+}
+
+///|
+pub(all) struct FunctionParameter {
+  name : String
+  span : @source.Span
+} derive(Eq, Debug)
+
+///|
+pub fn FunctionParameter::new(
+  name : String,
+  span : @source.Span,
+) -> FunctionParameter {
+  { name, span }
+}
+
+///|
+pub fn FunctionParameter::name(self : FunctionParameter) -> String {
+  self.name
+}
+
+///|
+pub fn FunctionParameter::span(self : FunctionParameter) -> @source.Span {
+  self.span
+}
+
+///|
+pub(all) struct FunctionDefinition {
+  name : String
+  parameters : Array[FunctionParameter]
+  body : Expression
+  attributes : Array[Attribute]
+  span : @source.Span
+} derive(Eq, Debug)
+
+///|
+pub fn FunctionDefinition::new(
+  name : String,
+  parameters : Array[FunctionParameter],
+  body : Expression,
+  attributes : Array[Attribute],
+  span : @source.Span,
+) -> FunctionDefinition {
+  { name, parameters, body, attributes, span }
+}
+
+///|
+pub fn FunctionDefinition::name(self : FunctionDefinition) -> String {
+  self.name
+}
+
+///|
+pub fn FunctionDefinition::parameters(
+  self : FunctionDefinition,
+) -> ArrayView[FunctionParameter] {
+  self.parameters[:]
+}
+
+///|
+pub fn FunctionDefinition::body(self : FunctionDefinition) -> Expression {
+  self.body
+}
+
+///|
+pub fn FunctionDefinition::attributes(
+  self : FunctionDefinition,
+) -> ArrayView[Attribute] {
+  self.attributes[:]
+}
+
+///|
+pub fn FunctionDefinition::span(self : FunctionDefinition) -> @source.Span {
   self.span
 }
 
@@ -256,12 +357,18 @@ pub fn Assignment::span(self : Assignment) -> @source.Span {
 pub(all) struct Alias {
   name : String
   target : String
+  attributes : Array[Attribute]
   span : @source.Span
 } derive(Eq, Debug)
 
 ///|
-pub fn Alias::new(name : String, target : String, span : @source.Span) -> Alias {
-  { name, target, span }
+pub fn Alias::new(
+  name : String,
+  target : String,
+  span : @source.Span,
+  attributes? : Array[Attribute] = [],
+) -> Alias {
+  { name, target, attributes, span }
 }
 
 ///|
@@ -272,6 +379,11 @@ pub fn Alias::name(self : Alias) -> String {
 ///|
 pub fn Alias::target(self : Alias) -> String {
   self.target
+}
+
+///|
+pub fn Alias::attributes(self : Alias) -> ArrayView[Attribute] {
+  self.attributes[:]
 }
 
 ///|
@@ -346,6 +458,7 @@ pub(all) struct Module {
   name : String
   path : StringLiteral?
   optional : Bool
+  attributes : Array[Attribute]
   span : @source.Span
 } derive(Eq, Debug)
 
@@ -355,8 +468,9 @@ pub fn Module::new(
   path : StringLiteral?,
   optional : Bool,
   span : @source.Span,
+  attributes? : Array[Attribute] = [],
 ) -> Module {
-  { name, path, optional, span }
+  { name, path, optional, attributes, span }
 }
 
 ///|
@@ -375,6 +489,11 @@ pub fn Module::optional(self : Module) -> Bool {
 }
 
 ///|
+pub fn Module::attributes(self : Module) -> ArrayView[Attribute] {
+  self.attributes[:]
+}
+
+///|
 pub fn Module::span(self : Module) -> @source.Span {
   self.span
 }
@@ -388,6 +507,7 @@ pub(all) struct Recipe {
   subsequent_dependencies : Array[Dependency]
   lines : Array[RecipeLine]
   attributes : Array[Attribute]
+  trailing_comment : String?
   span : @source.Span
 } derive(Eq, Debug)
 
@@ -401,6 +521,7 @@ pub fn Recipe::new(
   lines : Array[RecipeLine],
   attributes : Array[Attribute],
   span : @source.Span,
+  trailing_comment? : String,
 ) -> Recipe {
   {
     name,
@@ -410,6 +531,7 @@ pub fn Recipe::new(
     subsequent_dependencies,
     lines,
     attributes,
+    trailing_comment,
     span,
   }
 }
@@ -450,6 +572,11 @@ pub fn Recipe::attributes(self : Recipe) -> ArrayView[Attribute] {
 }
 
 ///|
+pub fn Recipe::trailing_comment(self : Recipe) -> String? {
+  self.trailing_comment
+}
+
+///|
 pub fn Recipe::span(self : Recipe) -> @source.Span {
   self.span
 }
@@ -457,6 +584,7 @@ pub fn Recipe::span(self : Recipe) -> @source.Span {
 ///|
 pub(all) enum Item {
   Assignment(Assignment)
+  Function(FunctionDefinition)
   Alias(Alias)
   Recipe(Recipe)
   Setting(Setting)
@@ -465,6 +593,7 @@ pub(all) enum Item {
   Module(Module)
   Unexport(name~ : String, span~ : @source.Span)
   Comment(text~ : String, span~ : @source.Span)
+  TrailingComment(text~ : String, span~ : @source.Span)
   Blank(span~ : @source.Span)
 } derive(Eq, Debug)
 
@@ -472,6 +601,7 @@ pub(all) enum Item {
 pub fn Item::span(self : Item) -> @source.Span {
   match self {
     Assignment(item) => item.span()
+    Function(item) => item.span()
     Alias(item) => item.span()
     Recipe(item) => item.span()
     Setting(item) => item.span()
@@ -480,6 +610,7 @@ pub fn Item::span(self : Item) -> @source.Span {
     Module(item) => item.span()
     Unexport(span~, ..) => span
     Comment(span~, ..) => span
+    TrailingComment(span~, ..) => span
     Blank(span~) => span
   }
 }
@@ -488,12 +619,13 @@ pub fn Item::span(self : Item) -> @source.Span {
 pub fn Item::name(self : Item) -> String? {
   match self {
     Assignment(item) => Some(item.name())
+    Function(item) => Some(item.name())
     Alias(item) => Some(item.name())
     Recipe(item) => Some(item.name())
     Setting(item) => Some(item.name())
     Attribute(item) => Some(item.name())
     Unexport(name~, ..) => Some(name)
-    Import(_) | Module(_) | Comment(_) | Blank(_) => None
+    Import(_) | Module(_) | Comment(_) | TrailingComment(_) | Blank(_) => None
   }
 }
 

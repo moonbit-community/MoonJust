@@ -55,8 +55,8 @@ test "cache key is canonical across unordered fields" {
   assert_eq(first.digest().length(), 64)
   let debug = first.debug_json()
   assert_true(debug.contains("\"executor\""))
-  assert_true(debug.contains("\"argument_count\""))
-  assert_true(debug.contains("\"environment_keys\""))
+  assert_true(debug.contains("\"arguments\""))
+  assert_true(debug.contains("\"environment\""))
   assert_true(debug.contains("\"working_directory\""))
 }
 
@@ -77,7 +77,7 @@ test "structural cache key debug output redacts executable values" {
 }
 
 ///|
-test "verbose cache key JSON redacts executable values" {
+test "verbose cache key JSON follows the upstream document" {
   let key = try! @cache.CacheKey::new(
     "build",
     "TOP_SECRET_BODY",
@@ -88,13 +88,13 @@ test "verbose cache key JSON redacts executable values" {
     extra="TOP_SECRET_EXTRA",
   )
   let debug = key.debug_json()
-  assert_true(debug.contains("\"body_bytes\""))
-  assert_true(debug.contains("\"argument_count\""))
-  assert_true(debug.contains("\"environment_keys\""))
+  assert_true(debug.contains("\"body\""))
+  assert_true(debug.contains("\"arguments\""))
+  assert_true(debug.contains("\"environment\""))
   assert_true(debug.contains("TOKEN"))
-  assert_true(debug.contains("\"extra_bytes\""))
-  assert_true(debug.contains("\"positional_count\""))
-  assert_false(debug.contains("TOP_SECRET"))
+  assert_true(debug.contains("\"extra\""))
+  assert_true(debug.contains("\"positional\""))
+  assert_true(debug.contains("TOP_SECRET"))
 }
 
 ///|
@@ -218,13 +218,13 @@ test "corrupt wrong-version and mismatched manifests never validate" {
     "target/app",
   ])
   try
-    @cache.validate_manifest(manifest.encode(), digest('b'), "build", [
+    @cache.validate_manifest(manifest.encode(), digest('a'), "other", [
       "target/app",
     ])
   catch {
-    KeyMismatch => ()
+    RecipeMismatch => ()
     error => fail("unexpected mismatch error: \{Repr(error)}")
   } noraise {
-    _ => fail("expected key mismatch")
+    _ => fail("expected recipe mismatch")
   }
 }

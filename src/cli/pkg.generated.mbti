@@ -21,6 +21,7 @@ pub(all) suberror CliContractError {
 
 pub(all) suberror CliParseError {
   Invalid(String)
+  Config(String)
   Unsupported(String)
 } derive(Eq, @debug.Debug)
 
@@ -74,6 +75,7 @@ pub fn CliArguments::shell_arguments(Self) -> Array[String]?
 pub fn CliArguments::value(Self, String) -> String?
 pub fn CliArguments::values(Self, String) -> ArrayView[String]
 pub fn CliArguments::variable_overrides(Self) -> ArrayView[(String, String)]
+pub fn CliArguments::with_positionals(Self, Array[String]) -> Self
 pub fn CliArguments::with_run_positionals(Self, Array[String]) -> Self
 
 pub(all) enum CommandKind {
@@ -93,6 +95,9 @@ pub(all) enum CommandKind {
   ChooseCommand
   EditCommand
   CleanCommand
+  CommandCommand
+  ChangelogCommand
+  ManCommand
 } derive(Eq, @debug.Debug)
 
 pub(all) enum FailureKind {

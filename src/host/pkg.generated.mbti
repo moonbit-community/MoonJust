@@ -51,6 +51,7 @@ pub struct CommandSpec {
 } derive(Eq)
 pub fn CommandSpec::add_environment(Self, String, String) -> Unit raise HostError
 pub fn CommandSpec::arguments(Self) -> ArrayView[String]
+pub fn CommandSpec::copy(Self) -> Self
 pub fn CommandSpec::cwd(Self) -> @path.PathValue?
 pub fn CommandSpec::environment(Self) -> ArrayView[(String, String)]
 pub fn CommandSpec::inherits_environment(Self) -> Bool
@@ -85,6 +86,7 @@ pub struct FakeHost {
   expected_commands : Array[CommandSpec]
   expected_outputs : Array[ProcessResult]
   process_calls : Array[CommandSpec]
+  output_events : Array[(OutputStream, Bytes)]
   mut terminal : TerminalInfo
   signals : Array[SignalKind]
   mut platform : PlatformInfo
@@ -103,6 +105,7 @@ pub fn FakeHost::held_cache_leases(Self) -> Int
 pub fn FakeHost::mark_available(Self, HostCapability) -> Unit
 pub fn FakeHost::mark_unavailable(Self, HostCapability) -> Unit
 pub fn FakeHost::new(@path.PathValue, PlatformInfo) -> Self
+pub fn FakeHost::output_events(Self) -> ArrayView[(OutputStream, Bytes)]
 pub fn FakeHost::pending_process_expectations(Self) -> Int
 pub fn FakeHost::process_calls(Self) -> ArrayView[CommandSpec]
 pub fn FakeHost::push_signal(Self, SignalKind) -> Unit
@@ -116,6 +119,7 @@ pub fn FakeHost::set_env(Self, String, String) -> Unit
 pub fn FakeHost::set_platform(Self, PlatformInfo) -> Unit
 pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
 pub fn FakeHost::set_terminal(Self, TerminalInfo) -> Unit
+pub impl HostAsyncOutput for FakeHost
 pub impl HostAsyncProcess for FakeHost
 pub impl HostAsyncScriptTemp for FakeHost
 pub impl HostAtomicFs for FakeHost
@@ -136,10 +140,13 @@ pub(all) struct FileMetadata {
   is_file : Bool
   is_directory : Bool
   size : Int64
+  is_executable : Bool
 } derive(Eq, @debug.Debug)
 pub fn FileMetadata::is_directory(Self) -> Bool
+pub fn FileMetadata::is_executable(Self) -> Bool
 pub fn FileMetadata::is_file(Self) -> Bool
 pub fn FileMetadata::new(Bool, Bool, Int64) -> Self
+pub fn FileMetadata::new_with_executable(Bool, Bool, Int64, Bool) -> Self
 pub fn FileMetadata::size(Self) -> Int64
 
 pub(all) enum HostCapability {
@@ -161,15 +168,28 @@ pub(all) enum OperatingSystem {
   Other(String)
 } derive(Eq, Hash, @debug.Debug)
 
+pub(all) enum OutputStream {
+  Stdout
+  Stderr
+} derive(Eq, @debug.Debug)
+
 pub struct PlatformInfo {
   operating_system : OperatingSystem
   architecture : String
   path_flavor : @path.PathFlavor
+  portable_runtime : Bool
+  pid : Int?
+  num_cpus : Int?
+  executable : String?
 } derive(Eq, @debug.Debug)
 pub fn PlatformInfo::architecture(Self) -> String
-pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor) -> Self
+pub fn PlatformInfo::executable(Self) -> String?
+pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor, portable_runtime? : Bool, pid? : Int, num_cpus? : Int, executable? : String) -> Self
+pub fn PlatformInfo::num_cpus(Self) -> Int?
 pub fn PlatformInfo::operating_system(Self) -> OperatingSystem
 pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
+pub fn PlatformInfo::pid(Self) -> Int?
+pub fn PlatformInfo::portable_runtime(Self) -> Bool
 
 #alias(ProcessOutput, deprecated)
 pub struct ProcessResult {
@@ -222,6 +242,10 @@ pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
 // Type aliases
 
 // Traits
+pub(open) trait HostAsyncOutput {
+  async fn write_output(Self, OutputStream, Bytes) -> Int raise HostError
+}
+
 pub(open) trait HostAsyncProcess {
   async fn run_process_async(Self, CommandSpec) -> ProcessResult raise HostError
 }

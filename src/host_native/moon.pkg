@@ -5,6 +5,7 @@ import {
   "moonbitlang/async",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
+  "moonbitlang/core/string",
   "moonbitlang/async/fs" @async_fs,
   "moonbitlang/async/os_error",
   "moonbitlang/x/fs",

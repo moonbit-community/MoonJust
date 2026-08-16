@@ -108,6 +108,12 @@ fn format_datetime(
       'j' => zero_pad(datetime.ordinal(), 3)
       'p' => if datetime.hour() < 12 { "AM" } else { "PM" }
       'z' => offset_text(offset_seconds, false)
+      'Z' =>
+        if offset_seconds == 0 {
+          "UTC"
+        } else {
+          offset_text(offset_seconds, false)
+        }
       's' => unix_seconds.to_string()
       _ =>
         raise Builtin(

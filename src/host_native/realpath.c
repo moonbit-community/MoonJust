@@ -113,6 +113,15 @@ moonjust_host_file_size(moonjust_native_path_t path) {
   return (int64_t)info.st_size;
 }
 
+MOONBIT_FFI_EXPORT int32_t
+moonjust_host_file_executable(moonjust_native_path_t path) {
+#ifdef _WIN32
+  return _waccess((const wchar_t *)path, 0) == 0;
+#else
+  return access((const char *)path, X_OK) == 0;
+#endif
+}
+
 MOONBIT_FFI_EXPORT moonbit_bytes_t
 moonjust_host_read_file_range(
   moonjust_native_path_t path,
@@ -152,6 +161,63 @@ moonjust_host_read_file_range(
   moonbit_bytes_t result = moonbit_make_bytes(count, 0);
   if (count > 0) {
     memcpy(result, buffer, count);
+  }
+  free(buffer);
+  return result;
+}
+
+MOONBIT_FFI_EXPORT moonbit_bytes_t
+moonjust_host_read_file_stream(moonjust_native_path_t path) {
+#ifdef _WIN32
+  FILE *file = _wfopen((const wchar_t *)path, L"rb");
+#else
+  FILE *file = fopen((const char *)path, "rb");
+#endif
+  if (file == NULL) {
+    return moonbit_make_bytes(1, 0);
+  }
+  size_t capacity = 4096;
+  size_t length = 0;
+  unsigned char *buffer = (unsigned char *)malloc(capacity);
+  if (buffer == NULL) {
+    fclose(file);
+    return moonbit_make_bytes(1, 0);
+  }
+  while (1) {
+    if (length == capacity) {
+      if (capacity > (size_t)INT32_MAX / 2) {
+        free(buffer);
+        fclose(file);
+        return moonbit_make_bytes(1, 0);
+      }
+      capacity *= 2;
+      unsigned char *grown = (unsigned char *)realloc(buffer, capacity);
+      if (grown == NULL) {
+        free(buffer);
+        fclose(file);
+        return moonbit_make_bytes(1, 0);
+      }
+      buffer = grown;
+    }
+    size_t count = fread(buffer + length, 1, capacity - length, file);
+    length += count;
+    if (count == 0) {
+      if (ferror(file)) {
+        free(buffer);
+        fclose(file);
+        return moonbit_make_bytes(1, 0);
+      }
+      break;
+    }
+  }
+  if (length > (size_t)INT32_MAX - 1 || fclose(file) != 0) {
+    free(buffer);
+    return moonbit_make_bytes(1, 0);
+  }
+  moonbit_bytes_t result = moonbit_make_bytes(length + 1, 0);
+  result[0] = 1;
+  if (length > 0) {
+    memcpy(result + 1, buffer, length);
   }
   free(buffer);
   return result;

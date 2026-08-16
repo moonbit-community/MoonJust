@@ -15,10 +15,42 @@ test "formatter is idempotent and canonicalizes recipe indentation" {
 }
 
 ///|
+test "formatter accepts custom indentation and rejects invalid values" {
+  let source = formatter_source("foo:\n    echo hi\n")
+  assert_eq(
+    @formatter.format_source_with_indentation(source, "  "),
+    "foo:\n  echo hi\n",
+  )
+  assert_eq(
+    @formatter.format_source_with_indentation(source, "\t"),
+    "foo:\n\techo hi\n",
+  )
+  for indentation in ["", "x", " \t"] {
+    try @formatter.format_source_with_indentation(source, indentation) catch {
+      InvalidInput(_) => ()
+      error => fail("unexpected indentation error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid indentation")
+    }
+  }
+}
+
+///|
 test "formatter preserves expression structure and attributes" {
   let source = formatter_source("[private]\nfoo x: echo\ncollect *items:\n")
   let rendered = @formatter.format_source(source)
   assert_eq(rendered, "[private]\nfoo x: echo\ncollect *items:\n")
+}
+
+///|
+test "formatter flattens associative concatenation" {
+  let source = formatter_source(
+    "bar := 'bar'\nhello := 'hello'\nrecipe:\n  echo {{ hello + ('bar' + bar) }}\n",
+  )
+  assert_eq(
+    @formatter.format_source(source),
+    "bar := 'bar'\nhello := 'hello'\nrecipe:\n    echo {{ hello + 'bar' + bar }}\n",
+  )
 }
 
 ///|

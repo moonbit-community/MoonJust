@@ -85,6 +85,32 @@ test "command-line overrides enter lazy evaluation before dependencies" {
 }
 
 ///|
+test "lazy environment evaluates only dependencies of a selected expression" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(522),
+    "justfile",
+    "unused := env_var('MISSING')\ndir := base + '/child'\nbase := 'root'\n",
+  )
+  let environment = LazyEnvironment::new(try! @semantic.compile_source(source))
+  assert_eq(
+    environment.evaluate_expression(expression("dir")),
+    String("root/child"),
+  )
+  assert_true(environment.state("unused") is Some(Unevaluated))
+}
+
+///|
+test "recipe variable references include dependencies and function bodies" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(523),
+    "justfile",
+    "x := 'x'\ny := 'y'\nunused := 'no'\nf(p) := p + x\nfoo: bar\n\nbar:\n  echo {{f(y)}}\n",
+  )
+  let compilation = try! @semantic.compile_source(source, allow_unstable=true)
+  assert_eq(recipe_variable_references(compilation, ["foo"]), ["x", "y"])
+}
+
+///|
 fn fake() -> @host.FakeHost raise @path.PathError {
   let cwd = @path.PathValue::new("/workspace", Unix)
   @host.FakeHost::new(cwd, @host.PlatformInfo::new(Linux, "x86_64", Unix))
@@ -266,6 +292,7 @@ test "effect context connects fs random clock process terminal and PATH facts" {
     pid=99,
     num_cpus=4,
     num_jobs=2,
+    lists=true,
     utc_offset_seconds=3600,
   )
   host.set_env("PATH", "/bin:/usr/bin")
@@ -292,7 +319,7 @@ test "effect context connects fs random clock process terminal and PATH facts" {
   )
   assert_eq(
     call_effect_with_context(host, "which", [String("tool")], context, span),
-    String("/usr/bin/tool"),
+    List([String("/usr/bin/tool")]),
   )
   assert_eq(
     call_effect_with_context(
@@ -503,7 +530,7 @@ test "quiet shell discards stderr and preserves typed failures" {
       quiet=true,
     )
   catch {
-    ProcessFailure(code=17, span=error_span) => assert_eq(error_span, span)
+    BacktickFailure(code=17, span=error_span) => assert_eq(error_span, span)
     error => fail("unexpected backtick failure: \{Repr(error)}")
   } noraise {
     _ => fail("expected backtick failure")
@@ -588,11 +615,11 @@ test "lazy assignments expose states and redact cycle diagnostics" {
   let conditional = @source.Source::from_text(
     @source.SourceId::new(69),
     "justfile",
-    "selected := if true { \"ok\" } else { bad }\n" +
+    "set lists\nselected := if true { \"ok\" } else { bad }\n" +
     "bad := error(\"unreachable\")\n",
   )
   let lazy_env = LazyEnvironment::new(
-    try! @semantic.compile_source(conditional),
+    try! @semantic.compile_source(conditional, allow_unstable=true),
   )
   assert_eq(lazy_env.resolve("selected"), String("ok"))
 
@@ -690,10 +717,57 @@ test "recipe and module scopes implement defaults variadics shadowing and export
   )
   let recipe = try! @semantic.compile_source(star).recipe("collect").unwrap()
   let scope = bind_recipe_parameters(recipe, [], parent)
-  assert_eq(scope.get("items"), Some(List([])))
+  assert_eq(scope.get("items"), Some(String("")))
+  let list_scope = bind_recipe_parameters(recipe, [], parent, lists=true)
+  assert_eq(list_scope.get("items"), Some(List([])))
+
+  let optional = @source.Source::from_text(
+    @source.SourceId::new(71),
+    "justfile",
+    "optional flag:\n",
+  )
+  let recipe = try! @semantic.compile_source(optional)
+    .recipe("optional")
+    .unwrap()
+  let scope = bind_recipe_parameters(
+    recipe,
+    [],
+    parent,
+    allow_empty=Set(["flag"]),
+  )
+  assert_eq(scope.get("flag"), Some(List([])))
 
   let module_env = Environment::module_scope(parent)
   assert_eq(module_env.get("public"), Some(String("visible")))
   assert_eq(module_env.get("private"), None)
   assert_true(module_env.is_exported("public"))
+}
+
+///|
+test "user functions shadow builtins capture outer values and use bounded recursion" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(801),
+    "justfile",
+    "set unstable\nouter := 'outer'\nbool(value) := value\nf(outer) := bool(outer)\nresult := f('inner')\n",
+  )
+  let compilation = try! @semantic.compile_source(source)
+  let environment = try! evaluate_compilation(compilation)
+  assert_eq(environment.get("result"), Some(String("inner")))
+  let recursive = @source.Source::from_text(
+    @source.SourceId::new(802),
+    "justfile",
+    "set unstable\nf() := f()\nresult := f()\n",
+  )
+  let compilation = try! @semantic.compile_source(recursive)
+  try
+    evaluate_compilation(
+      compilation,
+      limits=EvaluationLimits::new(8, 1000, 1000),
+    )
+  catch {
+    FunctionRecursionLimit(name="f", limit=8, ..) => ()
+    error => fail("unexpected function recursion error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected bounded function recursion")
+  }
 }

@@ -3,11 +3,18 @@
 /// parameters preserve one element per command-line occurrence.
 pub struct ArgumentValue {
   elements : Array[String]
+  list : Bool
 } derive(Eq, Debug)
 
 ///|
 pub fn ArgumentValue::elements(self : ArgumentValue) -> ArrayView[String] {
   self.elements[:]
+}
+
+///|
+/// Whether this argument is represented by just's list-valued option model.
+pub fn ArgumentValue::list(self : ArgumentValue) -> Bool {
+  self.list
 }
 
 ///|
@@ -28,13 +35,35 @@ pub fn Invocation::arguments(self : Invocation) -> ArrayView[ArgumentValue] {
 }
 
 ///|
+/// One invocation resolved against a concrete project module. The contained
+/// recipe name is local to that module; `module_path` carries its full scope.
+pub struct ProjectInvocation {
+  module_path : @modulepath.ModulePath
+  invocation : Invocation
+} derive(Eq, Debug)
+
+///|
+pub fn ProjectInvocation::module_path(
+  self : ProjectInvocation,
+) -> @modulepath.ModulePath {
+  self.module_path
+}
+
+///|
+pub fn ProjectInvocation::invocation(self : ProjectInvocation) -> Invocation {
+  self.invocation
+}
+
+///|
 priv struct ParameterSpec {
   name : String
+  span : @source.Span
   defaulted : Bool
   variadic : Bool
   variadic_minimum : Int
   mut long : String?
   mut short : Char?
+  mut long_defaulted : Bool
   mut flag : Bool
   mut value : @syntax.Expression?
   mut multiple : Bool
@@ -42,6 +71,14 @@ priv struct ParameterSpec {
   mut maximum : Int?
   mut pattern : @syntax.Expression?
   mut patterns : Array[String]
+  mut long_span : @source.Span?
+  mut short_span : @source.Span?
+  mut flag_span : @source.Span?
+  mut value_span : @source.Span?
+  mut multiple_span : @source.Span?
+  mut minimum_span : @source.Span?
+  mut maximum_span : @source.Span?
+  mut pattern_span : @source.Span?
 }
 
 ///|

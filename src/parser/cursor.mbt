@@ -4,8 +4,10 @@ priv struct Parser {
   tokens : Array[@lexer.Token]
   mut index : Int
   limits : ParserLimits
+  environment : Array[(String, String)]
   mut depth : Int
   mut nodes : Int
+  mut parsing_parameter_default : Bool
 }
 
 ///|
@@ -13,14 +15,17 @@ fn Parser::new(
   source : @source.Source,
   stream : @lexer.TokenStream,
   limits : ParserLimits,
+  environment? : ArrayView[(String, String)] = [],
 ) -> Parser {
   {
     source,
     tokens: stream.tokens().to_owned(),
     index: 0,
     limits,
+    environment: environment.to_owned(),
     depth: 0,
     nodes: 0,
+    parsing_parameter_default: false,
   }
 }
 

@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #ifdef _WIN32
+#include <windows.h>
 #include <io.h>
 #include <stdio.h>
 #elif defined(__unix__) || defined(__APPLE__)
@@ -42,6 +43,29 @@ MOONBIT_FFI_EXPORT int32_t moonjust_host_is_terminal(int32_t stream) {
   return _isatty(_fileno(file)) != 0;
 #elif defined(__unix__) || defined(__APPLE__)
   return isatty(stream) != 0;
+#else
+  return 0;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t moonjust_host_pid(void) {
+#ifdef _WIN32
+  return (int32_t)GetCurrentProcessId();
+#elif defined(__unix__) || defined(__APPLE__)
+  return (int32_t)getpid();
+#else
+  return 0;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t moonjust_host_num_cpus(void) {
+#ifdef _WIN32
+  SYSTEM_INFO info;
+  GetSystemInfo(&info);
+  return (int32_t)info.dwNumberOfProcessors;
+#elif defined(__unix__) || defined(__APPLE__)
+  long count = sysconf(_SC_NPROCESSORS_ONLN);
+  return count > 0 && count <= INT32_MAX ? (int32_t)count : 0;
 #else
   return 0;
 #endif

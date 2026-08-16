@@ -35,8 +35,8 @@ fn default_recipe(compilation : @semantic.Compilation) -> @syntax.Recipe? {
 }
 
 ///|
-fn short_usage(spec : RecipeSpec) -> String {
-  let values : Array[String] = ["just", spec.name]
+fn short_usage(spec : RecipeSpec, display_name? : String) -> String {
+  let values : Array[String] = ["just", display_name.unwrap_or(spec.name)]
   if spec.parameters.any(ParameterSpec::is_option) {
     values.push("[OPTIONS]")
   }
@@ -59,7 +59,7 @@ fn positional_bounds(spec : RecipeSpec) -> (Int, Int?) {
     if parameter.is_option() {
       continue
     }
-    if parameter.is_required() {
+    if parameter.is_required() && parameter.minimum is None {
       minimum += 1
     }
     if parameter.variadic {
@@ -163,6 +163,75 @@ fn value_elements(value : @value.Value) -> Array[String] {
 }
 
 ///|
+pub fn validate_recipe_argument_values(
+  compilation : @semantic.Compilation,
+  recipe_name : String,
+  arguments : ArrayView[@value.Value],
+  global : @evaluator.Environment,
+) -> Unit raise InvocationError {
+  guard compilation.recipe(recipe_name) is Some(recipe) else {
+    raise UnknownRecipe(recipe=recipe_name)
+  }
+  let spec = recipe_spec(compilation, recipe)
+  for parameter in spec.parameters {
+    match parameter.pattern {
+      Some(expression) => {
+        let value = @evaluator.evaluate(expression, environment=global) catch {
+          error => raise Evaluation(error)
+        }
+        parameter.patterns = value_elements(value)
+      }
+      None => ()
+    }
+  }
+  validate_patterns(spec)
+  let mut cursor = 0
+  for parameter in spec.parameters {
+    let elements : Array[String] = []
+    if parameter.variadic {
+      for argument in arguments[cursor:] {
+        elements.append(argument.elements())
+      }
+      cursor = arguments.length()
+    } else if arguments.get(cursor) is Some(argument) {
+      elements.append(argument.elements())
+      cursor += 1
+    }
+    match parameter.minimum {
+      Some(minimum) if elements.length() < minimum =>
+        raise ArgumentTooFewValues(
+          recipe=spec.name,
+          parameter=parameter.name,
+          found=elements.length(),
+          minimum~,
+        )
+      _ => ()
+    }
+    match parameter.maximum {
+      Some(maximum) if elements.length() > maximum =>
+        raise ArgumentTooManyValues(
+          recipe=spec.name,
+          parameter=parameter.name,
+          found=elements.length(),
+          maximum~,
+        )
+      _ => ()
+    }
+    for argument in elements {
+      if !parameter.patterns.is_empty() &&
+        !matches_any(parameter.patterns, argument) {
+        raise ArgumentPatternMismatch(
+          recipe=spec.name,
+          parameter=parameter.name,
+          argument~,
+          patterns=parameter.patterns.copy(),
+        )
+      }
+    }
+  }
+}
+
+///|
 fn bound_value(
   parameter : ParameterSpec,
   elements : ArrayView[String],
@@ -212,8 +281,14 @@ fn resolve_values_and_patterns(
     let binding = if groups[index].is_empty() {
       match recipe.parameters()[index].default_value() {
         Some(expression) =>
-          @evaluator.evaluate(expression, environment=scope) catch {
+          try @evaluator.evaluate(expression, environment=scope) catch {
+            EffectRequired(_) => bound_value(parameter, groups[index])
             error => raise Evaluation(error)
+          } noraise {
+            value => {
+              groups[index] = value_elements(value)
+              value
+            }
           }
         None => bound_value(parameter, groups[index])
       }
@@ -231,6 +306,8 @@ fn parse_one(
   global : @evaluator.Environment,
   input : ArrayView[String],
   start : Int,
+  resolve_expressions? : Bool = true,
+  display_name? : String,
 ) -> (Invocation, Int) raise InvocationError {
   let (recipe, consumed) = match input.get(start) {
     Some(requested) =>
@@ -359,48 +436,106 @@ fn parse_one(
       found=positional_accepted,
       minimum~,
       maximum~,
-      usage=short_usage(spec),
+      usage=short_usage(spec, display_name?),
     )
   }
-  resolve_values_and_patterns(recipe, spec, groups, global)
-  for index, parameter in spec.parameters {
-    let group = groups[index]
-    match parameter.minimum {
-      Some(minimum) if !group.is_empty() && group.length() < minimum =>
-        raise ArgumentTooFewValues(
-          recipe=spec.name,
-          parameter=parameter.name,
-          found=group.length(),
-          minimum~,
-        )
-      _ => ()
-    }
-    match parameter.maximum {
-      Some(maximum) if !group.is_empty() && group.length() > maximum =>
-        raise ArgumentTooManyValues(
-          recipe=spec.name,
-          parameter=parameter.name,
-          found=group.length(),
-          maximum~,
-        )
-      _ => ()
-    }
-    for argument in group {
-      if !parameter.patterns.is_empty() &&
-        !matches_any(parameter.patterns, argument) {
-        raise ArgumentPatternMismatch(
-          recipe=spec.name,
-          parameter=parameter.name,
-          argument~,
-          patterns=parameter.patterns.copy(),
-        )
+  if resolve_expressions {
+    resolve_values_and_patterns(recipe, spec, groups, global)
+  }
+  if resolve_expressions {
+    for index, parameter in spec.parameters {
+      let group = groups[index]
+      match parameter.minimum {
+        Some(minimum) if group.length() < minimum =>
+          raise ArgumentTooFewValues(
+            recipe=spec.name,
+            parameter=parameter.name,
+            found=group.length(),
+            minimum~,
+          )
+        _ => ()
+      }
+      match parameter.maximum {
+        Some(maximum) if !group.is_empty() && group.length() > maximum =>
+          raise ArgumentTooManyValues(
+            recipe=spec.name,
+            parameter=parameter.name,
+            found=group.length(),
+            maximum~,
+          )
+        _ => ()
+      }
+      for argument in group {
+        if !parameter.patterns.is_empty() &&
+          !matches_any(parameter.patterns, argument) {
+          raise ArgumentPatternMismatch(
+            recipe=spec.name,
+            parameter=parameter.name,
+            argument~,
+            patterns=parameter.patterns.copy(),
+          )
+        }
       }
     }
   }
-  (
-    { recipe: spec.name, arguments: groups.map(fn(elements) { { elements, } }) },
-    consumed + cursor,
-  )
+  let arguments : Array[ArgumentValue] = []
+  for index, elements in groups {
+    let parameter = spec.parameters[index]
+    arguments.push({
+      elements,
+      list: parameter.flag || parameter.multiple || parameter.variadic,
+    })
+  }
+  ({ recipe: spec.name, arguments }, consumed + cursor)
+}
+
+///|
+/// Resolve command-line recipe targets without evaluating parameter defaults,
+/// patterns, or value expressions. Execution uses this first pass to determine
+/// the assignment closure required by `set lazy`.
+pub fn parse_project_invocation_targets(
+  project : @semantic.ProjectCompilation,
+  arguments : ArrayView[String],
+  allow_missing? : Bool = false,
+) -> Array[(@modulepath.ModulePath, String)] raise InvocationError {
+  let result : Array[(@modulepath.ModulePath, String)] = []
+  let mut cursor = 0
+  while cursor < arguments.length() || result.is_empty() {
+    let resolved = try
+      Some(resolve_project_recipe(project, arguments, cursor))
+    catch {
+      UnknownRecipe(_) | OptionalModuleAbsent(_) if allow_missing => None
+      error => raise error
+    } noraise {
+      value => value
+    }
+    guard resolved is Some((module_path, recipe, path_consumed)) else {
+      cursor += 1
+      if cursor >= arguments.length() {
+        break
+      }
+      continue
+    }
+    let compilation = project.module_compilation(module_path).unwrap()
+    let synthetic : Array[String] = [recipe]
+    for value in arguments[cursor + path_consumed:] {
+      synthetic.push(value)
+    }
+    let (_, consumed) = parse_one(
+      compilation,
+      @evaluator.Environment::new(),
+      synthetic,
+      0,
+      resolve_expressions=false,
+      display_name=arguments[cursor:cursor + path_consumed].join("::"),
+    )
+    result.push((module_path, recipe))
+    cursor += path_consumed + consumed - 1
+    if cursor >= arguments.length() {
+      break
+    }
+  }
+  result
 }
 
 ///|
@@ -425,6 +560,269 @@ pub fn parse_invocations(
     )
     result.push(invocation)
     cursor += consumed
+  }
+  result
+}
+
+///|
+fn project_overrides(
+  path : @modulepath.ModulePath,
+  overrides : ArrayView[(String, String)],
+) -> Array[(String, String)] {
+  let result : Array[(String, String)] = []
+  let prefix = if path.is_root() { "" } else { path.as_string() + "::" }
+  for entry in overrides {
+    let (name, value) = entry
+    if path.is_root() {
+      if !name.contains("::") {
+        result.push((name, value))
+      }
+    } else if name.has_prefix(prefix) {
+      result.push((name.view(start_offset=prefix.length()).to_owned(), value))
+    }
+  }
+  result
+}
+
+///|
+fn require_project_default_recipe(
+  project : @semantic.ProjectCompilation,
+  path : @modulepath.ModulePath,
+) -> @syntax.Recipe raise InvocationError {
+  let compilation = project.module_compilation(path).unwrap()
+  guard project.default_recipe(path) is Some(name) else {
+    if compilation.recipe_names().is_empty() {
+      raise NoRecipes
+    }
+    raise NoDefaultRecipe
+  }
+  let recipe = compilation.recipe(name).unwrap()
+  let spec = recipe_spec(compilation, recipe)
+  let mut required = 0
+  for parameter in spec.parameters {
+    if parameter.is_required() {
+      required += 1
+    }
+  }
+  if required > 0 {
+    raise DefaultRecipeRequiresArguments(recipe=spec.name, minimum=required)
+  }
+  recipe
+}
+
+///|
+fn module_names(paths : ArrayView[@modulepath.ModulePath]) -> Array[String] {
+  let result = paths.map(fn(path) { path.as_string() })
+  result.sort()
+  result
+}
+
+///|
+fn ensure_project_recipe_available(
+  project : @semantic.ProjectCompilation,
+  address : @semantic.ProjectRecipe,
+  requested : String,
+) -> Unit raise InvocationError {
+  let parsed = try @modulepath.ModulePath::parse(requested) catch {
+    _ => return
+  } noraise {
+    value => value
+  }
+  let local_name = parsed.components().last().unwrap_or(requested)
+  let compilation = project.module_compilation(address.module_path()).unwrap()
+  if compilation.alias_target(local_name) is Some(_) &&
+    project.alias_disabled(address.module_path(), local_name) {
+    raise DisabledRecipe(
+      name=local_name,
+      modules=module_names(
+        project.alias_absent_modules(address.module_path(), local_name),
+      ),
+      is_alias=true,
+    )
+  }
+  if project.recipe_disabled(address.module_path(), address.recipe_name()) {
+    raise DisabledRecipe(
+      name=local_name,
+      modules=module_names(
+        project.recipe_absent_modules(
+          address.module_path(),
+          address.recipe_name(),
+        ),
+      ),
+      is_alias=false,
+    )
+  }
+}
+
+///|
+fn resolve_project_recipe(
+  project : @semantic.ProjectCompilation,
+  arguments : ArrayView[String],
+  start : Int,
+) -> (@modulepath.ModulePath, String, Int) raise InvocationError {
+  if start >= arguments.length() {
+    let recipe = require_project_default_recipe(
+      project,
+      @modulepath.ModulePath::root(),
+    )
+    return (@modulepath.ModulePath::root(), recipe.name(), 0)
+  }
+  let requested = arguments[start]
+  let root_compilation = project.root()
+  if root_compilation.alias_target(requested) is Some(_) &&
+    project.alias_disabled(@modulepath.ModulePath::root(), requested) {
+    raise DisabledRecipe(
+      name=requested,
+      modules=module_names(
+        project.alias_absent_modules(@modulepath.ModulePath::root(), requested),
+      ),
+      is_alias=true,
+    )
+  }
+  if project.recipe_disabled(@modulepath.ModulePath::root(), requested) {
+    raise DisabledRecipe(
+      name=requested,
+      modules=module_names(
+        project.recipe_absent_modules(@modulepath.ModulePath::root(), requested),
+      ),
+      is_alias=false,
+    )
+  }
+  if project.absent_module_for_reference(
+      @modulepath.ModulePath::root(),
+      requested,
+    )
+    is Some(absent) {
+    raise OptionalModuleAbsent(module_path=absent.as_string())
+  }
+  if requested.contains(":") {
+    if requested.has_suffix("::") && start + 1 < arguments.length() {
+      raise UnknownRecipe(recipe=requested)
+    }
+    match project.resolve_module(@modulepath.ModulePath::root(), requested) {
+      Some(path) => {
+        let recipe = require_project_default_recipe(project, path)
+        return (path, recipe.name(), 1)
+      }
+      None => ()
+    }
+    match project.resolve_recipe(@modulepath.ModulePath::root(), requested) {
+      Some(recipe) => {
+        ensure_project_recipe_available(project, recipe, requested)
+        return (recipe.module_path(), recipe.recipe_name(), 1)
+      }
+      None => raise UnknownRecipe(recipe=requested)
+    }
+  }
+  let mut current = @modulepath.ModulePath::root()
+  let mut cursor = start
+  while cursor < arguments.length() {
+    let component = arguments[cursor]
+    match project.resolve_module(current, component) {
+      Some(module_path) => {
+        current = module_path
+        cursor += 1
+      }
+      None => {
+        if project.absent_module_for_reference(current, component)
+          is Some(absent) {
+          raise OptionalModuleAbsent(module_path=absent.as_string())
+        }
+        match project.resolve_recipe(current, component) {
+          Some(recipe) => {
+            ensure_project_recipe_available(project, recipe, component)
+            return (
+              recipe.module_path(),
+              recipe.recipe_name(),
+              cursor - start + 1,
+            )
+          }
+          None =>
+            raise UnknownRecipe(recipe=arguments[start:cursor + 1].join(" "))
+        }
+      }
+    }
+  }
+  let recipe = require_project_default_recipe(project, current)
+  (current, recipe.name(), cursor - start)
+}
+
+///|
+/// Parse invocations across independently compiled project modules. Both
+/// `module::recipe` and the upstream space-separated `module recipe` form are
+/// accepted. Existing single-compilation parsing remains unchanged.
+pub fn parse_project_invocations(
+  project : @semantic.ProjectCompilation,
+  arguments : ArrayView[String],
+  overrides? : ArrayView[(String, String)] = [],
+  allow_missing? : Bool = false,
+) -> Array[ProjectInvocation] raise InvocationError {
+  let environments : Map[@modulepath.ModulePath, @evaluator.Environment] = Map([])
+  for path in project.module_paths() {
+    let compilation = project.module_compilation(path).unwrap()
+    environments[path] = @evaluator.evaluate_compilation(
+      compilation,
+      overrides=project_overrides(path, overrides),
+    ) catch {
+      error => raise Evaluation(error)
+    }
+  }
+  parse_project_invocations_in_environments(
+    project,
+    arguments,
+    environments,
+    allow_missing~,
+  )
+}
+
+///|
+/// Parse project invocations with the already materialized module scopes used
+/// by execution. This prevents effectful assignments from being evaluated a
+/// second time through the pure parser path.
+pub fn parse_project_invocations_in_environments(
+  project : @semantic.ProjectCompilation,
+  arguments : ArrayView[String],
+  environments : Map[@modulepath.ModulePath, @evaluator.Environment],
+  allow_missing? : Bool = false,
+  resolve_expressions? : Bool = true,
+) -> Array[ProjectInvocation] raise InvocationError {
+  let result : Array[ProjectInvocation] = []
+  let mut cursor = 0
+  while cursor < arguments.length() || result.is_empty() {
+    let resolved = try
+      Some(resolve_project_recipe(project, arguments, cursor))
+    catch {
+      UnknownRecipe(_) | OptionalModuleAbsent(_) if allow_missing => None
+      error => raise error
+    } noraise {
+      value => value
+    }
+    guard resolved is Some((module_path, recipe, path_consumed)) else {
+      cursor += 1
+      if cursor >= arguments.length() {
+        break
+      }
+      continue
+    }
+    let compilation = project.module_compilation(module_path).unwrap()
+    let global = environments.get(module_path).unwrap()
+    let synthetic : Array[String] = [recipe]
+    for value in arguments[cursor + path_consumed:] {
+      synthetic.push(value)
+    }
+    let (invocation, consumed) = parse_one(
+      compilation,
+      global,
+      synthetic,
+      0,
+      resolve_expressions~,
+      display_name=arguments[cursor:cursor + path_consumed].join("::"),
+    )
+    result.push({ module_path, invocation })
+    cursor += path_consumed + consumed - 1
+    if cursor >= arguments.length() {
+      break
+    }
   }
   result
 }

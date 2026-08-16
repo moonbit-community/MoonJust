@@ -99,6 +99,24 @@ test "quiet sigils and ignored failures retain child output" {
 }
 
 ///|
+test "interpolation cannot synthesize a recipe line sigil" {
+  let (compilation, recipe) = compile_recipe("build:\n  {{'@echo visible'}}\n")
+  let environment = try! @evaluator.evaluate_compilation(compilation)
+  let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
+  let host = fake_host()
+  host.deny(Process)
+  let report = try! execute_recipe_lines(
+    host,
+    recipe,
+    environment,
+    shell,
+    unix_path("/workspace"),
+    options=ExecutionOptions::new(dry_run=true),
+  )
+  assert_eq(report.stderr(), b"@echo visible\n")
+}
+
+///|
 test "dry run echoes quiet lines and never grants process effects" {
   let (compilation, recipe) = compile_recipe(
     "build:\n  @echo hidden\n  -false\n",
@@ -502,7 +520,7 @@ test "shebang script uses executable temporary path and always cleans it" {
   assert_eq(report.stdout(), b"ok\n")
   assert_eq(host.script_temp_creations().length(), 1)
   assert_eq(host.script_temp_creations()[0].0, path)
-  assert_eq(host.script_temp_creations()[0].1, b"#!/bin/sh\necho ok\n")
+  assert_eq(host.script_temp_creations()[0].1, b"#!/bin/sh\n\n\necho ok\n")
   assert_eq(host.executable_calls(), [path])
   assert_false(try! host.file_exists(path))
 }
@@ -537,7 +555,7 @@ test "configured interpreter keeps extension, normalizes CRLF, and cleans failur
   } noraise {
     _ => fail("expected script failure")
   }
-  assert_eq(host.script_temp_creations()[0].1, b"echo one\necho two\n")
+  assert_eq(host.script_temp_creations()[0].1, b"\n\necho one\necho two\n")
   assert_false(try! host.file_exists(path))
 }
 
@@ -575,7 +593,7 @@ test "PowerShell script selects ps1 and UTF-8 BOM" {
   )
   assert_eq(
     host.script_temp_creations()[0].1,
-    @utf8.encode("\u{feff}Write-Host caf\u{00e9}\n"),
+    @utf8.encode("\u{feff}\n\nWrite-Host caf\u{00e9}\n"),
   )
 }
 

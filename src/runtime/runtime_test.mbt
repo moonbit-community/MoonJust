@@ -56,6 +56,92 @@ async test "runtime executes steps in order and retains failure output" {
 }
 
 ///|
+async test "live runtime emits cross-stream events in execution order" {
+  let plan = runtime_async_plan("root:\n  first\n  second\n", 1)
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  for index, step in plan.tasks()[0].steps() {
+    guard step is Line(line) else { abort("expected planned line") }
+    let (command, _) = try! @executor.materialize_line_async(host, host, line)
+    let live = command.spec().copy()
+    live.set_inherit_stdin(true)
+    live.set_stdout(Inherit)
+    live.set_stderr(Inherit)
+    host.expect_process(
+      live,
+      if index == 0 {
+        @host.ProcessResult::new(0, b"first-out\n", b"first-err\n")
+      } else {
+        @host.ProcessResult::new(0, b"second-out\n", b"second-err\n")
+      },
+    )
+  }
+  let summary = try! execute_plan_live(host, host, host, host, plan)
+  assert_eq(summary.commands(), 2)
+  assert_eq(host.output_events(), [
+    (Stderr, b"first\n"),
+    (Stdout, b"first-out\n"),
+    (Stderr, b"first-err\n"),
+    (Stderr, b"second\n"),
+    (Stdout, b"second-out\n"),
+    (Stderr, b"second-err\n"),
+  ])
+  assert_eq(plan.commands(), [])
+}
+
+///|
+async test "continue signals are explicit per recipe and preserve subsequent execution" {
+  let plan = runtime_async_plan(
+    "[continue]\nroot: && cleanup\n  first\ncleanup:\n  cleanup\n", 1,
+  )
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  for task in plan.tasks() {
+    for step in task.steps() {
+      guard step is Line(line) else { abort("expected planned line") }
+      let (command, _) = try! @executor.materialize_line_async(host, host, line)
+      host.expect_process(
+        command.spec(),
+        if command.recipe() == "root" {
+          @host.ProcessResult::from_signal(Interrupt, b"", b"")
+        } else {
+          @host.ProcessResult::new(0, b"cleanup\n", b"")
+        },
+      )
+    }
+  }
+  let report = try! execute_plan(host, host, host, plan)
+  assert_eq(report.stdout(), b"cleanup\n")
+  assert_eq(report.commands(), 2)
+
+  let excluded = runtime_async_plan("[continue('SIGHUP')]\nroot:\n  first\n", 1)
+  let rejected = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  guard excluded.tasks()[0].steps()[0] is Line(line) else {
+    abort("expected planned line")
+  }
+  let (command, _) = try! @executor.materialize_line_async(
+    rejected, rejected, line,
+  )
+  rejected.expect_process(
+    command.spec(),
+    @host.ProcessResult::from_signal(Interrupt, b"", b""),
+  )
+  try execute_plan(rejected, rejected, rejected, excluded) catch {
+    Execution(error=CommandSignaled(signal=Interrupt, ..), ..) => ()
+    error => fail("unexpected excluded signal error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unlisted signal failure")
+  }
+}
+
+///|
 async test "runtime cleans a materialized script after success" {
   let compilation = runtime_compilation(
     "[script]\nbuild:\n  #!/bin/sh\n  echo ok\n",
@@ -161,6 +247,7 @@ async fn runtime_async_plan(
   jobs : Int,
   cache_enabled? : Bool = true,
   verbosity? : Int = 0,
+  explain? : Bool = false,
 ) -> @executor.ExecutionPlan {
   let compilation = runtime_compilation(text)
   let environment = try! @evaluator.evaluate_compilation(compilation)
@@ -169,7 +256,7 @@ async fn runtime_async_plan(
     runtime_path("/workspace"),
     @host.PlatformInfo::new(Linux, "test", Unix),
   )
-  let cache_directory = runtime_path("/workspace/.moonjust-cache/v1")
+  let cache_directory = runtime_path("/workspace/.justcache")
   try! @executor.plan_recipe_graph_async(
     host,
     host,
@@ -188,8 +275,28 @@ async fn runtime_async_plan(
       .with_jobs(jobs)
       .with_cache(cache_enabled)
       .with_unstable(true)
+      .with_explain(explain)
       .with_verbosity(verbosity),
     cache_directory~,
+  )
+}
+
+///|
+async test "explanations follow dependency task order" {
+  let plan = runtime_async_plan(
+    "# Root documentation\nroot: dependency\n  root\n\n" +
+    "# Dependency documentation\ndependency:\n  dependency\n",
+    1,
+    explain=true,
+  )
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  let report = try! execute_plan(ProbeProcess::new(), host, host, plan)
+  assert_eq(
+    report.stderr(),
+    b"#### Dependency documentation\ndependency\n#### Root documentation\nroot\n",
   )
 }
 
@@ -272,7 +379,7 @@ async test "parallel subsequent dependencies join before completion" {
 
 ///|
 async test "cache miss hit input invalidation and corruption recovery" {
-  let cache_directory = runtime_path("/workspace/.moonjust-cache/v1")
+  let cache_directory = runtime_path("/workspace/.justcache")
   let plan = runtime_async_plan(
     "[script]\n[cache(inputs=\"input\")]\nroot:\n  echo cached\n", 1,
   )
@@ -316,8 +423,8 @@ async test "cache miss hit input invalidation and corruption recovery" {
 }
 
 ///|
-async test "missing cache outputs fail without publishing a manifest" {
-  let cache_directory = runtime_path("/workspace/.moonjust-cache/v1")
+async test "missing cache outputs leave an empty miss entry" {
+  let cache_directory = runtime_path("/workspace/.justcache")
   let plan = runtime_async_plan(
     "[script]\n[cache(outputs=\"artifact\")]\nroot:\n  echo no-artifact\n", 1,
   )
@@ -326,19 +433,21 @@ async test "missing cache outputs fail without publishing a manifest" {
     @host.PlatformInfo::new(Linux, "test", Unix),
   )
   try execute_plan(ProbeProcess::new(), host, host, plan) catch {
-    Execution(error=Host(InvalidInput(message)), ..) =>
-      assert_true(message.contains("outputs are missing"))
+    Execution(error=CacheFailure(message~), ..) =>
+      assert_true(message.contains("failed to create cache output"))
     error => fail("unexpected missing output error: \{Repr(error)}")
   } noraise {
     _ => fail("expected missing cache output failure")
   }
-  assert_eq(host.cache_manifest_digests(cache_directory), [])
+  let digests = host.cache_manifest_digests(cache_directory)
+  assert_eq(digests.length(), 1)
+  assert_eq(host.cache_manifest(cache_directory, digests[0]), Some(b""))
   assert_eq(host.held_cache_leases(), 0)
 }
 
 ///|
 async test "no-cache bypasses lookup locks and publication" {
-  let cache_directory = runtime_path("/workspace/.moonjust-cache/v1")
+  let cache_directory = runtime_path("/workspace/.justcache")
   let plan = runtime_async_plan(
     "[script]\n[cache]\nroot:\n  echo uncached\n",
     1,
@@ -404,5 +513,5 @@ async test "verbose cache diagnostics report stable hits and key material" {
   assert_true(stderr.contains("===> cache key "))
   assert_true(stderr.contains("\"working_directory\": "))
   assert_true(stderr.has_suffix("===> cache hit, skipping invocation\n"))
-  assert_false(stderr.contains("TOP_SECRET_VERBOSE_CACHE"))
+  assert_true(stderr.contains("TOP_SECRET_VERBOSE_CACHE"))
 }

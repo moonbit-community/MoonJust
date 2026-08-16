@@ -77,6 +77,14 @@ fn Parser::parse_attribute_group(
 ) -> Array[@syntax.Attribute] raise ParserError {
   let result : Array[@syntax.Attribute] = []
   self.expect(BracketL) |> ignore
+  if self.peek_kind() == BracketR {
+    let found = self.peek()
+    raise UnexpectedToken(
+      expected="identifier",
+      found=found.kind(),
+      span=found.span(),
+    )
+  }
   while self.peek_kind() != BracketR {
     let (name, name_token) = self.expect_identifier()
     if !known_attribute(name) {
@@ -138,7 +146,8 @@ fn Parser::parse_attribute_group(
         }
         None => positional += 1
       }
-      let requires_literal = attribute_requires_literal(name) &&
+      let requires_literal = name != "arg" &&
+        attribute_requires_literal(name) &&
         (
           argument.key() is None ||
           argument.key() is Some("max" | "min") ||
@@ -150,16 +159,18 @@ fn Parser::parse_attribute_group(
       if requires_literal && !(argument.value() is Some(String(_))) {
         raise InvalidAttributeArgument(name~, span=argument.span())
       }
-      match argument.key() {
-        Some("flag" | "multiple") if argument.value() is Some(_) =>
-          raise InvalidAttributeArgument(name~, span=argument.span())
-        Some(key) if key != "flag" &&
-          key != "multiple" &&
-          key != "long" &&
-          key != "short" &&
-          argument.value() is None =>
-          raise InvalidAttributeArgument(name~, span=argument.span())
-        _ => ()
+      if name != "arg" {
+        match argument.key() {
+          Some("flag" | "multiple") if argument.value() is Some(_) =>
+            raise InvalidAttributeArgument(name~, span=argument.span())
+          Some(key) if key != "flag" &&
+            key != "multiple" &&
+            key != "long" &&
+            key != "short" &&
+            argument.value() is None =>
+            raise InvalidAttributeArgument(name~, span=argument.span())
+          _ => ()
+        }
       }
     }
     if arguments.length() > 32 ||

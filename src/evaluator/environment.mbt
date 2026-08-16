@@ -4,11 +4,17 @@ pub struct Environment {
   values : Map[String, @value.Value]
   ordered : Array[String]
   exported : Set[String]
+  mut functions : FunctionEnvironment
 } derive(Debug)
 
 ///|
 pub fn Environment::new() -> Environment {
-  { values: Map([]), ordered: [], exported: Set([]) }
+  {
+    values: Map([]),
+    ordered: [],
+    exported: Set([]),
+    functions: FunctionEnvironment::new(),
+  }
 }
 
 ///|
@@ -26,6 +32,7 @@ pub fn Environment::child(parent : Environment) -> Environment {
       result.mark_exported(name)
     }
   }
+  result.functions = parent.functions
   result
 }
 
@@ -70,6 +77,18 @@ pub fn Environment::contains(self : Environment, name : String) -> Bool {
 }
 
 ///|
+pub fn Environment::remove(self : Environment, name : String) -> Unit {
+  self.values.remove(name)
+  self.exported.remove(name)
+  for index, value in self.ordered {
+    if value == name {
+      ignore(self.ordered.remove(index))
+      break
+    }
+  }
+}
+
+///|
 pub fn Environment::names(self : Environment) -> ArrayView[String] {
   self.ordered[:]
 }
@@ -82,4 +101,17 @@ pub fn Environment::mark_exported(self : Environment, name : String) -> Unit {
 ///|
 pub fn Environment::is_exported(self : Environment, name : String) -> Bool {
   self.exported.contains(name)
+}
+
+///|
+pub fn Environment::set_functions(
+  self : Environment,
+  functions : FunctionEnvironment,
+) -> Unit {
+  self.functions = functions
+}
+
+///|
+pub fn Environment::functions(self : Environment) -> FunctionEnvironment {
+  self.functions
 }

@@ -4,6 +4,9 @@ fn[T : @host.HostFs] locate_interactive_justfile(
   arguments : @cli.CliArguments,
   context : ApplicationContext,
 ) -> @workdir.WorkingDirectoryModel raise ApplicationError {
+  if arguments.flag("global-justfile") {
+    return global_input_directories(context).1
+  }
   let working_directory = working_directory_argument(
     arguments,
     context.cwd().flavor(),
@@ -31,6 +34,7 @@ fn[T : @host.HostFs] locate_interactive_justfile(
     Search => {
       let options = @loader.SearchOptions::new(
         filename=arguments.value("justfile-name").unwrap_or("justfile"),
+        ceiling=ceiling_argument(arguments, context.cwd()),
       )
       let path = @loader.discover(host, context.cwd(), options~) catch {
         error => raise Load(error)
@@ -54,13 +58,23 @@ fn interactive_failure(
 ///|
 fn interactive_host_detail(error : @host.HostError) -> String {
   match error {
+    InvalidInput(detail) if detail.contains("Permission denied") =>
+      "Permission denied (os error 13)"
+    InvalidInput(detail) if detail.contains("No such file or directory") =>
+      "No such file or directory (os error 2)"
     InvalidInput(detail) => detail
     CapabilityDenied(capability) => "capability denied: \{Repr(capability)}"
     CapabilityUnavailable(capability) =>
       "capability unavailable: \{Repr(capability)}"
     NotFound(path) => "not found: " + path.as_string()
     AlreadyExists(path) => "already exists: " + path.as_string()
-    PermissionDenied(_, detail~) => detail
+    PermissionDenied(_, detail~) =>
+      if detail.contains("Permission denied") ||
+        detail.contains("permission denied") {
+        "Permission denied (os error 13)"
+      } else {
+        detail
+      }
     UnexpectedProcess(_) | ProcessMismatch(_) => "unexpected process invocation"
     RandomExhausted(_) => "host randomness unavailable"
   }
@@ -137,16 +151,20 @@ fn has_required_parameters(recipe : @syntax.Recipe) -> Bool {
 
 ///|
 fn chooser_candidates(
-  compilation : @semantic.Compilation,
+  project : @semantic.ProjectCompilation,
   arguments : @cli.CliArguments,
 ) -> Array[String] raise ApplicationError {
   let requested_groups = arguments.values("group")
   for group in requested_groups {
     let mut exists = false
-    for name in compilation.recipe_names() {
-      match compilation.recipe_attributes(name) {
-        Some(attributes) if attributes.groups().contains(group) => exists = true
-        _ => ()
+    for path in project.module_paths() {
+      let compilation = project.module_compilation(path).unwrap()
+      for name in compilation.recipe_names() {
+        match compilation.recipe_attributes(name) {
+          Some(attributes) if attributes.groups().contains(group) =>
+            exists = true
+          _ => ()
+        }
       }
     }
     if !exists {
@@ -154,21 +172,45 @@ fn chooser_candidates(
     }
   }
   let candidates : Array[String] = []
-  for name in compilation.recipe_names() {
-    guard compilation.recipe(name) is Some(recipe) else { continue }
-    guard compilation.recipe_attributes(name) is Some(attributes) else {
+  for path in project.module_paths() {
+    let mut visible = true
+    let mut current = Some(path)
+    while current is Some(module_path) {
+      if project
+        .module_declaration_attributes(module_path)
+        .any(fn(attribute) { attribute.name() == "private" }) {
+        visible = false
+        break
+      }
+      current = module_path.parent()
+    }
+    if !visible {
       continue
     }
-    if name.has_prefix("_") ||
-      attributes.private() ||
-      has_required_parameters(recipe) {
-      continue
+    let compilation = project.module_compilation(path).unwrap()
+    for name in compilation.recipe_names() {
+      guard compilation.recipe(name) is Some(recipe) else { continue }
+      guard compilation.recipe_attributes(name) is Some(attributes) else {
+        continue
+      }
+      if name.has_prefix("_") ||
+        attributes.private() ||
+        has_required_parameters(recipe) ||
+        project.recipe_disabled(path, name) {
+        continue
+      }
+      if !requested_groups.is_empty() &&
+        !requested_groups.any(fn(group) { attributes.groups().contains(group) }) {
+        continue
+      }
+      candidates.push(
+        if path.is_root() {
+          name
+        } else {
+          path.as_string() + "::" + name
+        },
+      )
     }
-    if !requested_groups.is_empty() &&
-      !requested_groups.any(fn(group) { attributes.groups().contains(group) }) {
-      continue
-    }
-    candidates.push(name)
   }
   candidates.sort_by(lexical_compare)
   candidates
@@ -231,10 +273,24 @@ pub async fn[
   if arguments.command() != ChooseCommand {
     raise UnsupportedCommand("chooser execution for non-choose command")
   }
-  let (loaded, directories) = load_input_with_directories(
-    filesystem, arguments, context,
+  let loading_environment = @host.HostEnv::env_entries(effects) catch {
+    error => raise Host(error)
+  }
+  let (graph, directories) = load_graph_input_with_directories(
+    filesystem,
+    arguments,
+    context,
+    environment=loading_environment,
   )
-  let compilation = compile_loaded(loaded)
+  let platform = @host.HostPlatform::platform_info(effects) catch {
+    error => raise Host(error)
+  }
+  let project = compile_loaded_graph(
+    graph,
+    allow_unstable=arguments.flag("unstable"),
+    platform=semantic_target_platform(platform),
+  )
+  let compilation = project.root()
   let overrides = variable_overrides(compilation, arguments)
   let cwd = directories.project_directory()
   let evaluation_context = @evaluator.EvaluationContext::new(
@@ -251,7 +307,7 @@ pub async fn[
   ) catch {
     error => raise Evaluation(error)
   }
-  let candidates = chooser_candidates(compilation, arguments)
+  let candidates = chooser_candidates(project, arguments)
   if candidates.is_empty() {
     raise Query("justfile contains no choosable recipes")
   }
@@ -285,7 +341,12 @@ pub async fn[
   spec.set_stdout(Capture)
   spec.set_stderr(Inherit)
   let result = @host.HostAsyncProcess::run_process_async(process, spec) catch {
-    error => raise interactive_invocation_failure("chooser", chooser, error)
+    error =>
+      raise interactive_invocation_failure(
+        "chooser",
+        shell.program() + " " + shell_arguments.join(" "),
+        error,
+      )
   }
   match result.termination() {
     Exited(0) => decode_chooser_selections(result.stdout())

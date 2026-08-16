@@ -26,6 +26,7 @@ pub struct WorkingDirectoryModel {
 pub fn WorkingDirectoryModel::evaluation_directory(Self, module_setting? : String?) -> @path.PathValue raise WorkingDirectoryError
 pub fn WorkingDirectoryModel::for_import(Self, @path.PathValue) -> Self
 pub fn WorkingDirectoryModel::for_module(Self, @path.PathValue) -> Self raise WorkingDirectoryError
+pub fn WorkingDirectoryModel::from_global_justfile(@path.PathValue, @path.PathValue, @path.PathValue) -> Self raise WorkingDirectoryError
 pub fn WorkingDirectoryModel::from_justfile(@path.PathValue, @path.PathValue, working_directory? : @path.PathValue?) -> Self raise WorkingDirectoryError
 pub fn WorkingDirectoryModel::from_stdin(@path.PathValue, working_directory? : @path.PathValue?) -> Self raise WorkingDirectoryError
 pub fn WorkingDirectoryModel::invocation_directory(Self) -> @path.PathValue

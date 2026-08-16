@@ -77,60 +77,26 @@ fn[T : @host.HostProcess] run_graph_recipe(
   guard compilation.recipe(name) is Some(recipe) else {
     raise UnknownRecipe(recipe=name)
   }
-  let scope = @evaluator.bind_recipe_parameters(recipe, arguments, global) catch {
+  let scope = @evaluator.bind_recipe_parameters(
+    recipe,
+    arguments,
+    global,
+    lists=compilation.settings().bool("lists"),
+  ) catch {
     error => raise Evaluation(error)
   }
   stack.push(key)
   let mut report = empty_report()
   for dependency in recipe.dependencies() {
     let values = dependency_arguments(dependency, scope)
-    if dependency.starred() && values.length() == 1 {
-      match values[0] {
-        List(elements) =>
-          for element in elements {
-            report = merge_reports(
-              report,
-              run_graph_recipe(
-                host,
-                compilation,
-                dependency.name(),
-                [element],
-                global,
-                shell,
-                cwd,
-                process_environment,
-                options,
-                ran,
-                stack,
-              ),
-            )
-          }
-        value =>
-          report = merge_reports(
-            report,
-            run_graph_recipe(
-              host,
-              compilation,
-              dependency.name(),
-              [value],
-              global,
-              shell,
-              cwd,
-              process_environment,
-              options,
-              ran,
-              stack,
-            ),
-          )
-      }
-    } else {
+    for mapped_values in expanded_dependency_argument_sets(dependency, values) {
       report = merge_reports(
         report,
         run_graph_recipe(
           host,
           compilation,
           dependency.name(),
-          values,
+          mapped_values,
           global,
           shell,
           cwd,
@@ -156,22 +122,25 @@ fn[T : @host.HostProcess] run_graph_recipe(
   )
   let subsequent_ran : Set[String] = Set([])
   for dependency in recipe.subsequent_dependencies() {
-    report = merge_reports(
-      report,
-      run_graph_recipe(
-        host,
-        compilation,
-        dependency.name(),
-        dependency_arguments(dependency, scope),
-        global,
-        shell,
-        cwd,
-        process_environment,
-        options,
-        subsequent_ran,
-        [],
-      ),
-    )
+    let values = dependency_arguments(dependency, scope)
+    for mapped_values in expanded_dependency_argument_sets(dependency, values) {
+      report = merge_reports(
+        report,
+        run_graph_recipe(
+          host,
+          compilation,
+          dependency.name(),
+          mapped_values,
+          global,
+          shell,
+          cwd,
+          process_environment,
+          options,
+          subsequent_ran,
+          [],
+        ),
+      )
+    }
   }
   ignore(stack.pop())
   ran.add(key)

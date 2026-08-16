@@ -75,6 +75,19 @@ fn Parser::parse_concatenation(
     return Binary(operator=Join, lhs=empty, rhs~, span~)
   }
   let lhs = self.parse_value()
+  if self.parsing_parameter_default && self.peek_kind() == Plus {
+    let parameter_boundary = self.peek_kind_at(1) == Some(Dollar) ||
+      (
+        self.peek_kind_at(1) == Some(Identifier) &&
+        (
+          self.peek_kind_at(2) == Some(Equals) ||
+          self.peek_kind_at(2) == Some(Colon)
+        )
+      )
+    if parameter_boundary {
+      return lhs
+    }
+  }
   let operator : @syntax.BinaryOperator? = match self.peek_kind() {
     Plus => Some(Concat)
     PlusPlus => Some(ListConcat)
@@ -223,17 +236,28 @@ fn Parser::parse_value(self : Parser) -> @syntax.Expression raise ParserError {
     }
     Backtick => {
       let literal = self.parse_plain_literal(Backtick)
+      if literal.cooked().has_prefix("#!") {
+        raise BacktickShebang(span=literal.span())
+      }
       self.node(literal.span())
       Backtick(literal)
     }
     BracketL => self.parse_list()
     ParenL => {
-      self.advance() |> ignore
+      let open = self.advance()
       let value = self.parse_expression_node()
-      self.expect(ParenR) |> ignore
-      value
+      let close = self.expect(ParenR)
+      let span = self.cover(open.span(), close.span())
+      self.node(span)
+      Parenthesized(expression=value, span~)
     }
     Identifier => {
+      if self.shell_expanded_string_ahead() {
+        let literal = self.parse_string_or_expanded_literal()
+        let span = literal.span()
+        self.node(span)
+        return String(literal)
+      }
       if self.lexeme(token) == "f" &&
         self.tokens.get(self.index + 1).map(t => t.kind())
         is Some(StringToken | FormatStringStart) {

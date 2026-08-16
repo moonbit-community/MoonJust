@@ -18,6 +18,7 @@ pub(all) struct FileMetadata {
   is_file : Bool
   is_directory : Bool
   size : Int64
+  is_executable : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -26,7 +27,18 @@ pub fn FileMetadata::new(
   is_directory : Bool,
   size : Int64,
 ) -> FileMetadata {
-  { is_file, is_directory, size }
+  { is_file, is_directory, size, is_executable: is_file }
+}
+
+///|
+/// Construct metadata with an explicit executable bit.
+pub fn FileMetadata::new_with_executable(
+  is_file : Bool,
+  is_directory : Bool,
+  size : Int64,
+  is_executable : Bool,
+) -> FileMetadata {
+  { is_file, is_directory, size, is_executable }
 }
 
 ///|
@@ -45,6 +57,11 @@ pub fn FileMetadata::size(self : FileMetadata) -> Int64 {
 }
 
 ///|
+pub fn FileMetadata::is_executable(self : FileMetadata) -> Bool {
+  self.is_executable
+}
+
+///|
 pub(all) enum OperatingSystem {
   Linux
   Macos
@@ -58,6 +75,10 @@ pub struct PlatformInfo {
   operating_system : OperatingSystem
   architecture : String
   path_flavor : @path.PathFlavor
+  portable_runtime : Bool
+  pid : Int?
+  num_cpus : Int?
+  executable : String?
 } derive(Eq, Debug)
 
 ///|
@@ -65,8 +86,20 @@ pub fn PlatformInfo::new(
   operating_system : OperatingSystem,
   architecture : String,
   path_flavor : @path.PathFlavor,
+  portable_runtime? : Bool = false,
+  pid? : Int,
+  num_cpus? : Int,
+  executable? : String,
 ) -> PlatformInfo {
-  { operating_system, architecture, path_flavor }
+  {
+    operating_system,
+    architecture,
+    path_flavor,
+    portable_runtime,
+    pid,
+    num_cpus,
+    executable,
+  }
 }
 
 ///|
@@ -82,6 +115,28 @@ pub fn PlatformInfo::architecture(self : PlatformInfo) -> String {
 ///|
 pub fn PlatformInfo::path_flavor(self : PlatformInfo) -> @path.PathFlavor {
   self.path_flavor
+}
+
+///|
+/// Whether filesystem facts come from a portable runtime which cannot expose
+/// canonical paths and executable mode bits synchronously.
+pub fn PlatformInfo::portable_runtime(self : PlatformInfo) -> Bool {
+  self.portable_runtime
+}
+
+///|
+pub fn PlatformInfo::pid(self : PlatformInfo) -> Int? {
+  self.pid
+}
+
+///|
+pub fn PlatformInfo::num_cpus(self : PlatformInfo) -> Int? {
+  self.num_cpus
+}
+
+///|
+pub fn PlatformInfo::executable(self : PlatformInfo) -> String? {
+  self.executable
 }
 
 ///|
@@ -157,6 +212,13 @@ pub(all) enum StdioBehavior {
   Inherit
   /// Connect the stream to the platform null device.
   Discard
+} derive(Eq, Debug)
+
+///|
+/// Parent stream selected for runtime-owned output such as command echoes.
+pub(all) enum OutputStream {
+  Stdout
+  Stderr
 } derive(Eq, Debug)
 
 ///|
@@ -310,6 +372,23 @@ pub fn CommandSpec::set_stderr(
   behavior : StdioBehavior,
 ) -> Unit {
   self.stderr = behavior
+}
+
+///|
+/// Copy a process request so runtime stdio policy can be applied without
+/// mutating the reusable execution plan.
+pub fn CommandSpec::copy(self : CommandSpec) -> CommandSpec {
+  {
+    program: self.program,
+    arguments: self.arguments.copy(),
+    cwd: self.cwd,
+    environment: self.environment.copy(),
+    inherit_environment: self.inherit_environment,
+    stdin: self.stdin,
+    inherit_stdin: self.inherit_stdin,
+    stdout: self.stdout,
+    stderr: self.stderr,
+  }
 }
 
 ///|

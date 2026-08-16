@@ -54,6 +54,8 @@ pub fn Expression::semantic_key(self : Expression) -> String {
       "]"
     List(elements~, ..) =>
       "list:[" + elements.map(Expression::semantic_key).join(",") + "]"
+    Parenthesized(expression~, ..) =>
+      "parenthesized:(" + expression.semantic_key() + ")"
     Unary(operator~, operand~, ..) =>
       "unary:" + unary_key(operator) + "(" + operand.semantic_key() + ")"
     Binary(operator~, lhs~, rhs~, ..) =>
@@ -148,8 +150,25 @@ pub fn Item::semantic_key(self : Item) -> String {
       ":" +
       value.eager().to_string() +
       ":" +
-      value.value().semantic_key()
-    Alias(value) => "alias:" + value.name() + "=" + value.target()
+      value.value().semantic_key() +
+      ":attrs[" +
+      value.attributes().map(attribute_key).join(",") +
+      "]"
+    Function(value) =>
+      "function:" +
+      value.name() +
+      "(" +
+      value.parameters().map(fn(parameter) { parameter.name() }).join(",") +
+      ")=" +
+      value.body().semantic_key()
+    Alias(value) =>
+      "alias:" +
+      value.name() +
+      "=" +
+      value.target() +
+      ":attrs[" +
+      value.attributes().map(attribute_key).join(",") +
+      "]"
     Setting(value) =>
       "setting:" +
       value.name() +
@@ -167,6 +186,7 @@ pub fn Item::semantic_key(self : Item) -> String {
     Attribute(value) => "attribute:" + attribute_key(value)
     Unexport(name~, ..) => "unexport:" + name
     Comment(text~, ..) => "comment:" + text
+    TrailingComment(_) => "trailing-comment"
     Blank(_) => "blank"
     Recipe(value) =>
       "recipe:" +

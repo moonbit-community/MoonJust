@@ -22,7 +22,13 @@ pub fn parse_recovering(@source.Source, limits? : ParserLimits) -> ParseReport r
 
 pub fn parse_tokens(@source.Source, @lexer.TokenStream, limits? : ParserLimits) -> @syntax.Ast raise ParserError
 
+pub fn parse_tokens_with_environment(@source.Source, @lexer.TokenStream, ArrayView[(String, String)], limits? : ParserLimits) -> @syntax.Ast raise ParserError
+
+pub fn parse_with_environment(@source.Source, ArrayView[(String, String)], limits? : ParserLimits) -> @syntax.Ast raise ParserError
+
 pub fn setting_names() -> ArrayView[String]
+
+pub fn unindent_string(String) -> String
 
 // Errors
 pub(all) suberror ParserConfigurationError {
@@ -34,12 +40,15 @@ pub(all) suberror ParserError {
   UnexpectedToken(expected~ : String, found~ : @lexer.TokenKind, span~ : @source.Span)
   InvalidEscapeSequence(character~ : String, span~ : @source.Span)
   InvalidUnicodeEscape(reason~ : String, span~ : @source.Span)
+  BacktickShebang(span~ : @source.Span)
+  ShellExpansion(variable~ : String, span~ : @source.Span)
   UnknownSetting(name~ : String, span~ : @source.Span)
   InvalidSettingValue(name~ : String, span~ : @source.Span)
   UnknownAttribute(name~ : String, span~ : @source.Span)
   InvalidAttributeArity(name~ : String, span~ : @source.Span)
   InvalidAttributeArgument(name~ : String, span~ : @source.Span)
   UnknownAttributeKey(attribute~ : String, key~ : String, span~ : @source.Span)
+  ExtraneousAttribute(span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
   ExtraneousInput(span~ : @source.Span)

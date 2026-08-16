@@ -102,12 +102,6 @@ pub fn EffectShell::arguments(self : EffectShell) -> ArrayView[String] {
 }
 
 ///|
-fn effect_shell_kind(program : String) -> String {
-  let normalized = program.replace(old="\\", new="/")
-  normalized.split("/").last().unwrap_or(normalized[:]).to_owned()
-}
-
-///|
 fn strip_one_line_ending(text : String) -> String {
   if text.has_suffix("\r\n") {
     text[:text.length() - 2].to_owned()
@@ -119,6 +113,21 @@ fn strip_one_line_ending(text : String) -> String {
 }
 
 ///|
+fn configure_effect_environment(
+  spec : @host.CommandSpec,
+  context : EvaluationContext,
+  span : @source.Span,
+) -> Unit raise EvaluationError {
+  guard context.process_environment is Some(entries) else { return }
+  spec.set_inherit_environment(false)
+  for entry in entries {
+    spec.add_environment(entry.0, entry.1) catch {
+      error => raise Host(error, span~)
+    }
+  }
+}
+
+///|
 pub fn[T : @host.HostProcess] call_shell_effect(
   host : T,
   arguments : Array[Value],
@@ -126,21 +135,14 @@ pub fn[T : @host.HostProcess] call_shell_effect(
   shell : EffectShell,
   span : @source.Span,
   quiet? : Bool = false,
+  shell_function? : Bool = true,
 ) -> Value raise EvaluationError {
   let name = validate_effect_arity("shell", arguments, span)
   let command = expect_string(name, arguments, 0, span)
   let shell_arguments = shell.arguments().to_owned()
   shell_arguments.push(command)
-  if arguments.length() > 1 {
-    match effect_shell_kind(shell.program()) {
-      "cmd"
-      | "cmd.exe"
-      | "powershell"
-      | "powershell.exe"
-      | "pwsh"
-      | "pwsh.exe" => ()
-      _ => shell_arguments.push(command)
-    }
+  if shell_function {
+    shell_arguments.push(command)
     for argument in arguments[1:] {
       shell_arguments.push(expect_string(name, [argument], 0, span))
     }
@@ -150,6 +152,7 @@ pub fn[T : @host.HostProcess] call_shell_effect(
   }
   let cwd = require_context_path("cwd", context.cwd, span)
   spec.set_cwd(cwd)
+  configure_effect_environment(spec, context, span)
   spec.set_inherit_stdin(true)
   spec.set_stdout(Capture)
   spec.set_stderr(if quiet { Discard } else { Inherit })
@@ -158,7 +161,12 @@ pub fn[T : @host.HostProcess] call_shell_effect(
   }
   match output.termination() {
     Exited(0) => ()
-    Exited(code) => raise ProcessFailure(code~, span~)
+    Exited(code) =>
+      if shell_function {
+        raise ProcessFailure(code~, span~)
+      } else {
+        raise BacktickFailure(code~, span~)
+      }
     Signaled(signal) => raise ProcessSignaled(signal~, span~)
   }
   let text = bytes_text(output.stdout().to_owned(), span)
@@ -175,21 +183,14 @@ pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
   shell : EffectShell,
   span : @source.Span,
   quiet? : Bool = false,
+  shell_function? : Bool = true,
 ) -> Value raise EvaluationError {
   let name = validate_effect_arity("shell", arguments, span)
   let command = expect_string(name, arguments, 0, span)
   let shell_arguments = shell.arguments().to_owned()
   shell_arguments.push(command)
-  if arguments.length() > 1 {
-    match effect_shell_kind(shell.program()) {
-      "cmd"
-      | "cmd.exe"
-      | "powershell"
-      | "powershell.exe"
-      | "pwsh"
-      | "pwsh.exe" => ()
-      _ => shell_arguments.push(command)
-    }
+  if shell_function {
+    shell_arguments.push(command)
     for argument in arguments[1:] {
       shell_arguments.push(expect_string(name, [argument], 0, span))
     }
@@ -198,15 +199,30 @@ pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
     error => raise Host(error, span~)
   }
   spec.set_cwd(require_context_path("cwd", context.cwd, span))
+  configure_effect_environment(spec, context, span)
   spec.set_inherit_stdin(true)
   spec.set_stdout(Capture)
   spec.set_stderr(if quiet { Discard } else { Inherit })
   let output = @host.HostAsyncProcess::run_process_async(host, spec) catch {
-    error => raise Host(error, span~)
+    error =>
+      if shell_function {
+        raise Host(error, span~)
+      } else {
+        raise effect_failure(
+          "backtick could not be run because just could not find the shell: " +
+          Repr(error).to_string(),
+          span,
+        )
+      }
   }
   match output.termination() {
     Exited(0) => ()
-    Exited(code) => raise ProcessFailure(code~, span~)
+    Exited(code) =>
+      if shell_function {
+        raise ProcessFailure(code~, span~)
+      } else {
+        raise BacktickFailure(code~, span~)
+      }
     Signaled(signal) => raise ProcessSignaled(signal~, span~)
   }
   String(strip_one_line_ending(bytes_text(output.stdout().to_owned(), span)))
@@ -311,7 +327,9 @@ fn[T : @host.HostRandom] choose_value(
   let count = @string.parse_int(count_text[:]) catch {
     _ =>
       raise effect_failure(
-        "failed to parse `" + count_text + "` as positive integer",
+        "failed to parse `" +
+        count_text +
+        "` as positive integer: invalid digit found in string",
         span,
       )
   }
@@ -471,7 +489,14 @@ fn[T : @host.HostTerminal] style_value(
   let mode = context.color_mode().unwrap_or("auto")
   let mut active = true
   let mut stream_selected = false
-  let codes : Array[String] = []
+  let properties : Array[String] = []
+  let mut foreground : String? = None
+  let mut background : String? = None
+  fn add_property(properties : Array[String], code : String) -> Unit {
+    if !properties.contains(code) {
+      properties.push(code)
+    }
+  }
   for style in styles {
     match style {
       "stdout" => {
@@ -482,12 +507,34 @@ fn[T : @host.HostTerminal] style_value(
         stream_selected = true
         active = active && terminal.stderr_is_terminal()
       }
-      "command" => codes.push("1")
-      "error" => codes.push("31;1")
-      "warning" => codes.push("33;1")
+      "command" => {
+        add_property(properties, "1")
+        match context.command_color() {
+          Some(color) => foreground = style_code(color)
+          None => ()
+        }
+      }
+      "error" => {
+        add_property(properties, "1")
+        foreground = Some("31")
+      }
+      "warning" => {
+        add_property(properties, "1")
+        foreground = Some("33")
+      }
       _ =>
         match style_code(style) {
-          Some(code) => codes.push(code)
+          Some(code) =>
+            if style.has_prefix("bg:") {
+              background = Some(code)
+            } else if [
+                "bold", "dim", "italic", "underline", "blink", "reverse", "hidden",
+                "strikethrough",
+              ].contains(style) {
+              add_property(properties, code)
+            } else {
+              foreground = Some(code)
+            }
           None => raise effect_failure("invalid style: `" + style + "`", span)
         }
     }
@@ -498,6 +545,15 @@ fn[T : @host.HostTerminal] style_value(
       "never" => false
       _ => active && terminal.color_supported()
     }
+  }
+  let codes = properties.copy()
+  match background {
+    Some(code) => codes.push(code)
+    None => ()
+  }
+  match foreground {
+    Some(code) => codes.push(code)
+    None => ()
   }
   if !active || codes.is_empty() {
     String(text)
@@ -524,7 +580,20 @@ fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
     let exists = @host.HostFs::file_exists(host, candidate) catch {
       error => raise Host(error, span~)
     }
-    return if exists { candidate.as_string() } else { "" }
+    if !exists {
+      return ""
+    }
+    let metadata = try @host.HostFs::metadata(host, candidate) catch {
+      NotFound(_) => return ""
+      error => raise Host(error, span~)
+    } noraise {
+      value => value
+    }
+    return if metadata.is_file() && metadata.is_executable() {
+      candidate.as_string()
+    } else {
+      ""
+    }
   }
   let path = @host.HostEnv::env_get(host, "PATH") catch {
     error => raise Host(error, span~)
@@ -556,7 +625,16 @@ fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
       let exists = @host.HostFs::file_exists(host, candidate) catch {
         error => raise Host(error, span~)
       }
-      if exists {
+      if !exists {
+        continue
+      }
+      let metadata = try @host.HostFs::metadata(host, candidate) catch {
+        NotFound(_) => continue
+        error => raise Host(error, span~)
+      } noraise {
+        value => value
+      }
+      if metadata.is_file() && metadata.is_executable() {
         return candidate.as_string()
       }
     }
@@ -618,7 +696,14 @@ pub fn[
       let raw = expect_string(name, arguments, 0, span)
       let path = resolve_context_path(context, raw, span)
       let canonical = @host.HostFs::canonicalize(host, path) catch {
-        error => raise Host(error, span~)
+        error =>
+          raise effect_failure(
+            "call to function `canonicalize` failed: I/O error canonicalizing `" +
+            raw +
+            "`: " +
+            Repr(error).to_string(),
+            span,
+          )
       }
       String(canonical.as_string())
     }
@@ -626,7 +711,14 @@ pub fn[
       let raw = expect_string(name, arguments, 0, span)
       let path = resolve_context_path(context, raw, span)
       let bytes = @host.HostFs::read_file(host, path) catch {
-        error => raise Host(error, span~)
+        error =>
+          raise effect_failure(
+            "call to function `read` failed: I/O error reading `" +
+            raw +
+            "`: " +
+            Repr(error).to_string(),
+            span,
+          )
       }
       String(bytes_text(bytes, span))
     }
@@ -651,10 +743,11 @@ pub fn[
     "path_exists" => {
       let raw = expect_string(name, arguments, 0, span)
       if raw == "" {
-        return Bool(false)
+        return context_boolean(context, false)
       }
       let path = resolve_context_path(context, raw, span)
-      Bool(
+      context_boolean(
+        context,
         @host.HostFs::file_exists(host, path) catch {
           error => raise Host(error, span~)
         },
@@ -712,8 +805,18 @@ pub fn[
     "shell" => raise EffectRequired(effect="process", span~)
     "style" => style_value(host, arguments, context, span)
     "which" => {
+      if !context.lists() {
+        raise effect_failure(
+          "the `which()` function requires `set lists`", span,
+        )
+      }
       let executable = expect_string(name, arguments, 0, span)
-      String(which_value(host, executable, context, span))
+      let path = which_value(host, executable, context, span)
+      if path.is_empty() {
+        List([])
+      } else {
+        List([String(path)])
+      }
     }
     "require" => {
       let executable = expect_string(name, arguments, 0, span)
@@ -805,5 +908,13 @@ pub fn[T : @host.HostProcess] evaluate_backtick_with_shell(
   span : @source.Span,
   quiet? : Bool = false,
 ) -> Value raise EvaluationError {
-  call_shell_effect(host, [String(command)], context, shell, span, quiet~)
+  call_shell_effect(
+    host,
+    [String(command)],
+    context,
+    shell,
+    span,
+    quiet~,
+    shell_function=false,
+  )
 }

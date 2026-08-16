@@ -24,11 +24,19 @@ extern "C" fn file_size_ffi(path : RangeNativePath) -> Int64 = "moonjust_host_fi
 
 ///|
 #borrow(path)
+extern "C" fn file_executable_ffi(path : RangeNativePath) -> Int = "moonjust_host_file_executable"
+
+///|
+#borrow(path)
 extern "C" fn read_file_range_ffi(
   path : RangeNativePath,
   offset : Int64,
   length : Int,
 ) -> Bytes = "moonjust_host_read_file_range"
+
+///|
+#borrow(path)
+extern "C" fn read_file_stream_ffi(path : RangeNativePath) -> Bytes = "moonjust_host_read_file_stream"
 
 ///|
 fn file_size_value(value : String) -> Int64? {
@@ -38,6 +46,11 @@ fn file_size_value(value : String) -> Int64? {
   } else {
     Some(size)
   }
+}
+
+///|
+fn file_executable_value(value : String) -> Bool {
+  file_executable_ffi(RangeNativePath::new(value)) != 0
 }
 
 ///|
@@ -51,5 +64,15 @@ fn read_file_range_value(
     None
   } else {
     Some(bytes)
+  }
+}
+
+///|
+fn read_file_stream_value(value : String) -> Bytes? {
+  let encoded = read_file_stream_ffi(RangeNativePath::new(value))
+  if encoded.is_empty() || encoded[0] != 1 {
+    None
+  } else {
+    Some(encoded[1:].to_owned())
   }
 }

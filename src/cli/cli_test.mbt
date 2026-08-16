@@ -170,6 +170,7 @@ test "phase 10 interactive commands retain global inputs and overrides" {
   )
   try @cli.parse_arguments(["--group", "ci", "build"], {}) catch {
     Invalid(message) => assert_true(message.contains("--list' or '--choose"))
+    Config(_) => fail("expected group relationship error")
     Unsupported(_) => fail("expected group relationship error")
   } noraise {
     _ => fail("expected group to require list or choose")
@@ -180,6 +181,7 @@ test "phase 10 interactive commands retain global inputs and overrides" {
 test "argparse composition enforces command relationships" {
   try @cli.parse_arguments(["--check"], {}) catch {
     Invalid(message) => assert_true(message.contains("required argument"))
+    Config(_) => fail("expected argparse relationship failure")
     Unsupported(_) => fail("expected argparse relationship failure")
   } noraise {
     _ => fail("expected check to require fmt")
@@ -231,12 +233,64 @@ test "phase 10 CLI validates command conflicts color aliases and verbosity" {
 }
 
 ///|
+test "jobs must be a positive integer during CLI parsing" {
+  for value in ["0", "-1", "many"] {
+    try @cli.parse_arguments(["--jobs", value], {}) catch {
+      Invalid(message) => assert_true(message.contains("--jobs <N>"))
+      error => fail("unexpected jobs error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected jobs validation error")
+    }
+  }
+}
+
+///|
 test "argparse composition rejects unknown options without side effects" {
   try @cli.parse_arguments(["--definitely-unknown"], {}) catch {
     Invalid(_) => fail("unknown options should be classified as unsupported")
+    Config(_) => fail("unknown options should be classified as unsupported")
     Unsupported(name) => assert_eq(name, "--definitely-unknown")
   } noraise {
     _ => fail("expected unknown option failure")
+  }
+}
+
+///|
+test "completion surface is excluded and hidden from help" {
+  let help = @cli.render_help()
+  assert_false(help.contains("--completions"))
+  assert_false(help.contains("--complete-aliases"))
+  for option in ["--completions", "--complete-aliases"] {
+    try @cli.parse_arguments([option], {}) catch {
+      Unsupported(actual) => assert_eq(actual, option)
+      error => fail("unexpected completion exclusion error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected completion option to be excluded")
+    }
+  }
+}
+
+///|
+test "invalid override path is classified as a configuration error" {
+  try @cli.parse_arguments(["--set", "0::foo", "bar"], {}) catch {
+    Config(message) =>
+      assert_eq(message, "error: invalid override path `0::foo`")
+    error => fail("unexpected override path error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected invalid override path")
+  }
+}
+
+///|
+test "invalid query module path is rejected before loading" {
+  for arguments in [["--show", "$hello"], ["--list", "$hello"]] {
+    try @cli.parse_arguments(arguments, {}) catch {
+      Config(message) =>
+        assert_eq(message, "error: invalid module path `$hello`")
+      error => fail("unexpected module path error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid module path")
+    }
   }
 }
 
@@ -266,14 +320,22 @@ test "recipe options may collide with global option names" {
 }
 
 ///|
-test "command modes continue accepting global options after their argument" {
+test "command modes retain following tokens as command arguments" {
   let parsed = @cli.parse_arguments(
     ["--evaluate", "value", "--justfile", "custom.just"],
     {},
   )
   assert_eq(parsed.command(), EvaluateCommand)
-  assert_eq(parsed.positional(), ["value"])
-  assert_eq(parsed.value("justfile"), Some("custom.just"))
+  assert_eq(parsed.positional(), ["value", "--justfile", "custom.just"])
+  assert_eq(parsed.value("justfile"), None)
+}
+
+///|
+test "query commands retain global options after their argument" {
+  let parsed = try! @cli.parse_arguments(["--show", "bar", "--quiet"], {})
+  assert_eq(parsed.command(), ShowCommand)
+  assert_true(parsed.flag("quiet"))
+  assert_eq(parsed.positional(), ["bar"])
 }
 
 ///|
@@ -290,6 +352,29 @@ test "working directory requires justfile and remains a global value" {
     error => fail("unexpected working-directory error: \{Repr(error)}")
   } noraise {
     _ => fail("expected working-directory to require justfile")
+  }
+}
+
+///|
+test "global justfile is supported and conflicts with explicit inputs" {
+  let parsed = try! @cli.parse_arguments(["--global-justfile", "build"], {})
+  assert_true(parsed.flag("global-justfile"))
+  assert_eq(parsed.positional(), ["build"])
+  let short = try! @cli.parse_arguments(["-g", "build"], {})
+  assert_true(short.flag("global-justfile"))
+  for
+    arguments in [
+      ["--global-justfile", "--justfile", "justfile"],
+      [
+        "--global-justfile", "--working-directory", ".", "--justfile", "justfile",
+      ],
+    ] {
+    try @cli.parse_arguments(arguments, {}) catch {
+      Invalid(message) => assert_false(message.is_empty())
+      error => fail("unexpected global input conflict: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected global input conflict")
+    }
   }
 }
 
@@ -311,20 +396,39 @@ test "query format choices are validated and ignored options are unsupported" {
       _ => fail("expected invalid query format")
     }
   }
-  for
-    arguments in [
-      ["--list", "--list-submodules"],
-      ["--default-list"],
-      ["--dotenv-command", "printf MODE=ci"],
-      ["--dump", "--indentation", "  "],
-    ] {
-    try @cli.parse_arguments(arguments, {}) catch {
-      Unsupported(_) => ()
-      error => fail("unexpected unsupported error: \{Repr(error)}")
-    } noraise {
-      _ => fail("expected unsupported option")
-    }
-  }
+  assert_eq(
+    (try! @cli.parse_arguments(
+      ["--dotenv-command", "printf MODE=ci", "build"],
+      {},
+    )).values("dotenv-command"),
+    ["printf MODE=ci"],
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["build"], {
+      "JUST_DOTENV_COMMAND": "printf MODE=env",
+    })).values("dotenv-command"),
+    ["printf MODE=env"],
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["--dump", "--indentation", "  "], {})).value(
+      "indentation",
+    ),
+    Some("  "),
+  )
+  assert_eq(
+    (try! @cli.parse_arguments(["--dump"], { "JUST_INDENTATION": "\t" })).value(
+      "indentation",
+    ),
+    Some("\t"),
+  )
+  assert_true(
+    (try! @cli.parse_arguments(["--list", "--list-submodules"], {})).flag(
+      "list-submodules",
+    ),
+  )
+  assert_true(
+    (try! @cli.parse_arguments(["--default-list"], {})).flag("default-list"),
+  )
 }
 
 ///|
@@ -468,22 +572,20 @@ test "supported JUST environment aliases parse with argv precedence" {
 }
 
 ///|
-test "unsupported JUST environment aliases fail only when enabled" {
+test "supported and unsupported JUST environment aliases are distinguished" {
   let disabled = try! parse_arguments(["build"], {
     "JUST_ALLOW_MISSING": "false",
   })
   assert_eq(disabled.positional(), ["build"])
-  for
-    environment in [
-      { "JUST_ALLOW_MISSING": "true" },
-      { "JUST_CEILING": "/workspace" },
-    ] {
-    try parse_arguments(["build"], environment) catch {
-      Unsupported(_) => ()
-      error => fail("unexpected environment alias error: \{Repr(error)}")
-    } noraise {
-      _ => fail("expected unsupported environment alias failure")
-    }
+  let allow_missing = try! parse_arguments(["build"], {
+    "JUST_ALLOW_MISSING": "true",
+  })
+  assert_true(allow_missing.flag("allow-missing"))
+  try parse_arguments(["build"], { "JUST_CYGPATH": "cygpath" }) catch {
+    Unsupported(_) => ()
+    error => fail("unexpected environment alias error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unsupported environment alias failure")
   }
   assert_true(
     (try! parse_arguments(["--help"], { "JUST_ALLOW_MISSING": "true" })).flag(
@@ -533,4 +635,32 @@ test "commands that do not accept variable overrides reject set explicitly" {
       _ => fail("expected command to reject --set")
     }
   }
+}
+
+///|
+test "highlight toggles use final argv value and override environment" {
+  let disabled = try! parse_arguments(
+    ["--highlight", "--no-highlight", "build"],
+    {},
+  )
+  assert_true(disabled.flag("no-highlight"))
+  assert_false(disabled.flag("highlight"))
+  let enabled = try! parse_arguments(
+    ["--no-highlight", "--highlight", "build"],
+    { "JUST_NO_HIGHLIGHT": "true" },
+  )
+  assert_true(enabled.flag("highlight"))
+  assert_false(enabled.flag("no-highlight"))
+  let environment = try! parse_arguments(["build"], { "JUST_HIGHLIGHT": "true" })
+  assert_true(environment.flag("highlight"))
+}
+
+///|
+test "leading assignment syntax becomes a run override" {
+  let parsed = @cli.parse_arguments(["mode=release", "build", "x=y"], {})
+  assert_eq(parsed.variable_overrides(), [("mode", "release")])
+  assert_eq(parsed.positional(), ["build", "x=y"])
+  let command = @cli.parse_arguments(["--command", "env", "MODE=ci"], {})
+  assert_eq(command.variable_overrides(), [])
+  assert_eq(command.positional(), ["env", "MODE=ci"])
 }

@@ -30,6 +30,7 @@ pub fn[T : @host.HostEnv] snapshot(T, name_mode? : EnvNameMode) -> EnvTable rais
 pub(all) suberror DotenvError {
   InvalidUtf8(path~ : @path.PathValue)
   Parse(line~ : Int, column~ : Int)
+  ParseFile(path~ : @path.PathValue, line~ : Int, column~ : Int)
   HostDenied(@host.HostCapability)
   HostUnavailable(@host.HostCapability)
   SourceAccess

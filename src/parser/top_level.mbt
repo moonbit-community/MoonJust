@@ -16,6 +16,59 @@ fn Parser::parse_namepath(
 }
 
 ///|
+fn Parser::unparenthesized_join_span(
+  self : Parser,
+  expression : @syntax.Expression,
+) -> @source.Span? {
+  match expression {
+    Binary(operator=Join, lhs~, rhs~, ..) => {
+      let start = if lhs.span().is_empty() {
+        Int::max(lhs.span().start_byte() - 1, 0)
+      } else {
+        lhs.span().end_byte()
+      }
+      for index in start..<rhs.span().start_byte() {
+        if self.source.bytes()[index] == b'/' {
+          return Some(
+            @source.Span::new(self.source.id(), index, index + 1) catch {
+              _ => expression.span()
+            },
+          )
+        }
+      }
+      Some(expression.span())
+    }
+    Binary(lhs~, rhs~, ..) =>
+      match self.unparenthesized_join_span(lhs) {
+        Some(span) => Some(span)
+        None => self.unparenthesized_join_span(rhs)
+      }
+    Unary(operand~, ..) => self.unparenthesized_join_span(operand)
+    _ => None
+  }
+}
+
+///|
+fn Parser::parse_parameter_default(
+  self : Parser,
+) -> @syntax.Expression raise ParserError {
+  self.parsing_parameter_default = true
+  defer {
+    self.parsing_parameter_default = false
+  }
+  let expression = self.parse_expression_node()
+  match self.unparenthesized_join_span(expression) {
+    Some(span) =>
+      raise UnexpectedToken(
+        expected="parameter, dependency, or ':'",
+        found=Slash,
+        span~,
+      )
+    None => expression
+  }
+}
+
+///|
 fn Parser::parse_parameter(
   self : Parser,
   variadic : Bool,
@@ -23,7 +76,7 @@ fn Parser::parse_parameter(
   let exported = self.accept(Dollar) is Some(_)
   let (name, name_token) = self.expect_identifier()
   let default_value = if self.accept(Equals) is Some(_) {
-    Some(self.parse_expression_node())
+    Some(self.parse_parameter_default())
   } else {
     None
   }
@@ -45,12 +98,20 @@ fn Parser::parse_dependency(
     self.expect(ParenL) |> ignore
     let (name, _) = self.parse_namepath()
     let arguments : Array[@syntax.Expression] = []
+    let starred_arguments : Array[Int] = []
     while self.peek_kind() != ParenR {
-      self.accept(Asterisk) |> ignore
-      arguments.push(self.parse_expression_node())
-      if self.accept(Comma) is None {
-        break
+      let starred = self.accept(Asterisk) is Some(_)
+      if starred {
+        starred_arguments.push(arguments.length())
       }
+      arguments.push(
+        if starred {
+          self.parse_value()
+        } else {
+          self.parse_expression_node()
+        },
+      )
+      self.accept(Comma) |> ignore
     }
     let close = self.expect(ParenR)
     return @syntax.Dependency::new(
@@ -58,16 +119,26 @@ fn Parser::parse_dependency(
       arguments,
       true,
       self.cover(start.span(), close.span()),
+      starred_arguments~,
     )
   }
   if self.accept(ParenL) is Some(_) {
     let (name, _) = self.parse_namepath()
     let arguments : Array[@syntax.Expression] = []
+    let starred_arguments : Array[Int] = []
     while self.peek_kind() != ParenR {
-      arguments.push(self.parse_expression_node())
-      if self.accept(Comma) is None {
-        break
+      let starred = self.accept(Asterisk) is Some(_)
+      if starred {
+        starred_arguments.push(arguments.length())
       }
+      arguments.push(
+        if starred {
+          self.parse_value()
+        } else {
+          self.parse_expression_node()
+        },
+      )
+      self.accept(Comma) |> ignore
     }
     let close = self.expect(ParenR)
     return @syntax.Dependency::new(
@@ -75,6 +146,7 @@ fn Parser::parse_dependency(
       arguments,
       false,
       self.cover(start.span(), close.span()),
+      starred_arguments~,
     )
   }
   let (name, span) = self.parse_namepath()
@@ -129,8 +201,16 @@ fn Parser::parse_recipe_body(
     } else {
       start_span.at_end()
     }
+    let span = self.cover(start_span, end_span)
+    let source_start_line = try! self.source.locate(span.start_byte()).line()
+    let source_end_line = try! self.source.locate(end_span.start_byte()).line()
     lines.push(
-      @syntax.RecipeLine::new(fragments, self.cover(start_span, end_span)),
+      @syntax.RecipeLine::new(
+        fragments,
+        span,
+        source_start_line~,
+        source_end_line~,
+      ),
     )
   }
   self.accept(Dedent) |> ignore
@@ -154,9 +234,23 @@ fn Parser::parse_recipe(
   } else if self.accept(Asterisk) is Some(_) {
     let exported = self.accept(Dollar) is Some(_)
     let (name, token) = self.expect_identifier()
-    parameters.push(@syntax.Parameter::new_star(name, exported, token.span()))
+    let default_value = if self.accept(Equals) is Some(_) {
+      Some(self.parse_parameter_default())
+    } else {
+      None
+    }
+    parameters.push(
+      @syntax.Parameter::new_star(name, exported, token.span(), default_value?),
+    )
   }
-  self.expect(Colon) |> ignore
+  if self.accept(Colon) is None {
+    let found = self.peek()
+    raise UnexpectedToken(
+      expected="'*', ':', '$', identifier, or '+'",
+      found=found.kind(),
+      span=found.span(),
+    )
+  }
   let dependencies : Array[@syntax.Dependency] = []
   while self.peek_kind() == Identifier ||
         self.peek_kind() == ParenL ||
@@ -178,6 +272,10 @@ fn Parser::parse_recipe(
       subsequent.push(self.parse_dependency())
     }
   }
+  let trailing_comment = match self.accept(Comment) {
+    Some(comment) => Some(self.lexeme(comment))
+    None => None
+  }
   self.consume_line_end()
   let lines = self.parse_recipe_body()
   let end_span = if lines.length() > 0 {
@@ -194,6 +292,7 @@ fn Parser::parse_recipe(
     lines,
     attributes,
     self.cover(start, end_span),
+    trailing_comment?,
   )
 }
 
@@ -277,6 +376,7 @@ fn Parser::parse_assignment(
   start : @source.Span,
   exported : Bool,
   eager : Bool,
+  attributes : Array[@syntax.Attribute],
 ) -> @syntax.Assignment raise ParserError {
   let (name, _) = self.expect_identifier()
   self.expect(ColonEquals) |> ignore
@@ -287,6 +387,35 @@ fn Parser::parse_assignment(
     exported,
     eager,
     self.cover(start, value.span()),
+    attributes~,
+  )
+}
+
+///|
+fn Parser::parse_function_definition(
+  self : Parser,
+  start : @source.Span,
+  attributes : Array[@syntax.Attribute],
+) -> @syntax.FunctionDefinition raise ParserError {
+  let (name, _) = self.expect_identifier()
+  self.expect(ParenL) |> ignore
+  let parameters : Array[@syntax.FunctionParameter] = []
+  while self.peek_kind() != ParenR {
+    let (parameter, token) = self.expect_identifier()
+    parameters.push(@syntax.FunctionParameter::new(parameter, token.span()))
+    if self.accept(Comma) is None {
+      break
+    }
+  }
+  self.expect(ParenR) |> ignore
+  self.expect(ColonEquals) |> ignore
+  let body = self.parse_expression_node()
+  @syntax.FunctionDefinition::new(
+    name,
+    parameters,
+    body,
+    attributes,
+    self.cover(start, body.span()),
   )
 }
 
@@ -294,6 +423,7 @@ fn Parser::parse_assignment(
 fn Parser::parse_alias(
   self : Parser,
   start : @source.Span,
+  attributes : Array[@syntax.Attribute],
 ) -> @syntax.Alias raise ParserError {
   self.expect_identifier() |> ignore
   let (name, _) = self.expect_identifier()
@@ -301,7 +431,7 @@ fn Parser::parse_alias(
     self.expect(Equals) |> ignore
   }
   let (target, target_span) = self.parse_namepath()
-  @syntax.Alias::new(name, target, self.cover(start, target_span))
+  @syntax.Alias::new(name, target, self.cover(start, target_span), attributes~)
 }
 
 ///|
@@ -311,7 +441,7 @@ fn Parser::parse_import(
 ) -> @syntax.Import raise ParserError {
   self.expect_identifier() |> ignore
   let optional = self.accept(QuestionMark) is Some(_)
-  let path = self.parse_plain_literal(StringToken)
+  let path = self.parse_string_or_expanded_literal()
   @syntax.Import::new(path, optional, self.cover(start, path.span()))
 }
 
@@ -319,19 +449,40 @@ fn Parser::parse_import(
 fn Parser::parse_module(
   self : Parser,
   start : @source.Span,
+  attributes : Array[@syntax.Attribute],
 ) -> @syntax.Module raise ParserError {
   self.expect_identifier() |> ignore
   let optional = self.accept(QuestionMark) is Some(_)
   let (name, name_token) = self.expect_identifier()
-  let path = if self.peek_kind() == StringToken {
-    Some(self.parse_plain_literal(StringToken))
+  let path = if self.peek_kind() == StringToken ||
+    self.shell_expanded_string_ahead() {
+    Some(self.parse_string_or_expanded_literal())
   } else {
     None
   }
   let end_span = path
     .map(fn(value) { value.span() })
     .unwrap_or(name_token.span())
-  @syntax.Module::new(name, path, optional, self.cover(start, end_span))
+  @syntax.Module::new(
+    name,
+    path,
+    optional,
+    self.cover(start, end_span),
+    attributes~,
+  )
+}
+
+///|
+fn Parser::module_declaration_ahead(self : Parser) -> Bool {
+  let mut offset = 1
+  while self.peek_kind_at(offset) is Some(kind) {
+    match kind {
+      Colon => return false
+      Eol | Eof | Comment => return true
+      _ => offset += 1
+    }
+  }
+  true
 }
 
 ///|
@@ -352,19 +503,28 @@ fn Parser::parse_item(
   match keyword {
     Some(Export) if self.peek_kind_at(2) == Some(ColonEquals) => {
       self.advance() |> ignore
-      Assignment(self.parse_assignment(start, true, false))
+      Assignment(self.parse_assignment(start, true, false, attributes))
     }
     Some(Eager) if self.peek_kind_at(2) == Some(ColonEquals) => {
       self.advance() |> ignore
-      Assignment(self.parse_assignment(start, false, true))
+      Assignment(self.parse_assignment(start, false, true, attributes))
     }
     _ if self.peek_kind_at(1) == Some(ColonEquals) =>
-      Assignment(self.parse_assignment(start, false, false))
-    Some(Alias) => Alias(self.parse_alias(start))
+      Assignment(self.parse_assignment(start, false, false, attributes))
+    _ if self.peek_kind_at(1) == Some(ParenL) =>
+      Function(self.parse_function_definition(start, attributes))
+    Some(Alias) if self.peek_kind_at(2) == Some(ColonEquals) =>
+      Alias(self.parse_alias(start, attributes))
     Some(Set) => Setting(self.parse_setting(start))
     Some(Import) => Import(self.parse_import(start))
-    Some(Mod) => Module(self.parse_module(start))
-    Some(Unexport) => {
+    Some(Mod) if self.module_declaration_ahead() =>
+      Module(self.parse_module(start, attributes))
+    Some(Unexport) if self.peek_kind_at(1) == Some(Identifier) &&
+      (
+        self.peek_kind_at(2) == Some(Eol) ||
+        self.peek_kind_at(2) == Some(Comment) ||
+        self.peek_kind_at(2) == Some(Eof)
+      ) => {
       self.advance() |> ignore
       let (name, name_token) = self.expect_identifier()
       Unexport(name~, span=self.cover(start, name_token.span()))
@@ -392,19 +552,61 @@ fn Parser::parse_ast(self : Parser) -> @syntax.Ast raise ParserError {
       None => ()
     }
     let attributes : Array[@syntax.Attribute] = []
+    let mut attribute_start : @source.Span? = None
     while self.peek_kind() == BracketL {
+      if attribute_start is None {
+        attribute_start = Some(self.peek().span())
+      }
       for attribute in self.parse_attribute_group() {
         attributes.push(attribute)
       }
+    }
+    if !attributes.is_empty() &&
+      (self.peek_kind() == Comment || self.peek_kind() == Eol) {
+      raise ExtraneousAttribute(span=attribute_start.unwrap())
+    }
+    if !attributes.is_empty() && self.peek_kind() == Eof {
+      let found = self.peek()
+      let mut end = found.span().start_byte()
+      while end > attribute_start.unwrap().start_byte() &&
+            [b' ', b'\t', b'\r', b'\n'].contains(self.source.bytes()[end - 1]) {
+        end -= 1
+      }
+      let span = if end > attribute_start.unwrap().start_byte() {
+        self.span(end - 1, end)
+      } else {
+        found.span()
+      }
+      raise UnexpectedToken(
+        expected="'@', '[', comment, end of line, or identifier",
+        found=found.kind(),
+        span~,
+      )
     }
     if self.peek_kind() == Eof {
       break
     }
     let item = self.parse_item(attributes)
+    match item {
+      Setting(_) | Import(_) | Unexport(_) =>
+        for attribute in attributes {
+          items.push(Attribute(attribute))
+        }
+      _ => ()
+    }
     items.push(item)
     match item {
       Recipe(_) => ()
-      _ => self.consume_line_end()
+      _ => {
+        match self.accept(Comment) {
+          Some(comment) =>
+            items.push(
+              TrailingComment(text=self.lexeme(comment), span=comment.span()),
+            )
+          None => ()
+        }
+        self.consume_line_end()
+      }
     }
   }
   @syntax.Ast::new(self.source.id(), items, self.source.full_span())
@@ -421,6 +623,18 @@ pub fn parse_tokens(
 }
 
 ///|
+/// Parse a token stream while resolving shell-expanded string literals from
+/// the caller-provided host environment.
+pub fn parse_tokens_with_environment(
+  source : @source.Source,
+  stream : @lexer.TokenStream,
+  environment : ArrayView[(String, String)],
+  limits? : ParserLimits = ParserLimits::default(),
+) -> @syntax.Ast raise ParserError {
+  Parser::new(source, stream, limits, environment~).parse_ast()
+}
+
+///|
 /// Lex and parse one complete justfile source.
 pub fn parse(
   source : @source.Source,
@@ -428,4 +642,15 @@ pub fn parse(
 ) -> @syntax.Ast raise ParserError {
   let stream = @lexer.lex(source) catch { error => raise LexerFailure(error) }
   parse_tokens(source, stream, limits~)
+}
+
+///|
+/// Lex and parse a justfile with the environment used by `x'…'` literals.
+pub fn parse_with_environment(
+  source : @source.Source,
+  environment : ArrayView[(String, String)],
+  limits? : ParserLimits = ParserLimits::default(),
+) -> @syntax.Ast raise ParserError {
+  let stream = @lexer.lex(source) catch { error => raise LexerFailure(error) }
+  parse_tokens_with_environment(source, stream, environment, limits~)
 }

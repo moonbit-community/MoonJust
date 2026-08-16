@@ -5,4 +5,5 @@ import {
   "moonbit-community/MoonJust/src/source",
   "moonbitlang/core/array",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
 }

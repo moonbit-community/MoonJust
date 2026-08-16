@@ -52,6 +52,15 @@ fn inferred_extension(program : String) -> String {
 }
 
 ///|
+fn recipe_has_explicit_script_interpreter(recipe : @syntax.Recipe) -> Bool {
+  recipe
+  .attributes()
+  .any(fn(attribute) {
+    attribute.name() == "script" && !attribute.arguments().is_empty()
+  })
+}
+
+///|
 fn needs_bom(program : String) -> Bool {
   inferred_extension(program) == ".ps1"
 }
@@ -69,12 +78,62 @@ fn evaluated_script(
 }
 
 ///|
-fn script_bytes(lines : ArrayView[String], bom : Bool) -> Bytes {
+fn positioned_script_lines(
+  recipe : @syntax.Recipe,
+  lines : ArrayView[String],
+  direct_shebang : Bool,
+) -> Array[String] {
+  if recipe.lines().is_empty() {
+    return lines.to_owned()
+  }
+  let result : Array[String] = []
+  let mut output_line = 1
+  let mut shebang_prefix = direct_shebang
+  for index, line in lines {
+    let source = recipe.lines()[index]
+    let normalize_shebang_line = shebang_prefix && line.has_prefix("#!")
+    if !normalize_shebang_line {
+      shebang_prefix = false
+    }
+    let start = if normalize_shebang_line {
+      index + 1
+    } else {
+      source.source_start_line()
+    }
+    let end = if normalize_shebang_line {
+      index + 1
+    } else {
+      source.source_end_line()
+    }
+    while output_line < start {
+      result.push("")
+      output_line += 1
+    }
+    result.push(line)
+    output_line += 1
+    while output_line <= end {
+      result.push("")
+      output_line += 1
+    }
+  }
+  while result.last() is Some("") {
+    ignore(result.pop())
+  }
+  result
+}
+
+///|
+fn script_bytes(
+  recipe : @syntax.Recipe,
+  lines : ArrayView[String],
+  bom : Bool,
+  direct_shebang : Bool,
+) -> Bytes {
   let output : Array[Byte] = []
   if bom {
     append_bytes(output, @utf8.encode("\u{feff}")[:])
   }
-  for line in lines {
+  for line in positioned_script_lines(recipe, lines, direct_shebang) {
     append_bytes(output, @utf8.encode(line)[:])
     output.push(b'\n')
   }
@@ -88,10 +147,13 @@ fn prepare_planned_script(
   cwd : @path.PathValue,
   configuration : ScriptConfiguration,
   process_environment : ArrayView[(String, String)],
+  positional : ArrayView[String],
   quiet : Bool,
+  continue_signals? : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript raise ExecutionError {
   let shebang = match lines.get(0) {
-    Some(line) if line.has_prefix("#!") =>
+    Some(line) if line.has_prefix("#!") &&
+      !recipe_has_explicit_script_interpreter(recipe) =>
       match parse_shebang(line) {
         Some(_) => Some(line)
         None => raise InvalidShebang(recipe=recipe.name(), shebang=line)
@@ -104,12 +166,14 @@ fn prepare_planned_script(
   }
   PlannedScript::new(
     recipe.name(),
-    script_bytes(lines, needs_bom(program)),
+    script_bytes(recipe, lines, needs_bom(program), shebang is Some(_)),
     shebang,
     cwd,
     process_environment.to_owned(),
     configuration,
+    positional,
     quiet,
+    continue_signals~,
   )
 }
 
@@ -120,7 +184,9 @@ pub fn plan_script_recipe(
   cwd : @path.PathValue,
   configuration : ScriptConfiguration,
   process_environment? : ArrayView[(String, String)] = [],
+  positional? : ArrayView[String] = [],
   quiet? : Bool = false,
+  continue_signals? : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript raise ExecutionError {
   prepare_planned_script(
     recipe,
@@ -128,7 +194,9 @@ pub fn plan_script_recipe(
     cwd,
     configuration,
     process_environment,
+    positional,
     quiet,
+    continue_signals~,
   )
 }
 
@@ -146,8 +214,10 @@ pub async fn[
   cwd : @path.PathValue,
   configuration : ScriptConfiguration,
   process_environment? : ArrayView[(String, String)] = [],
+  positional? : ArrayView[String] = [],
   quiet? : Bool = false,
   dry_run? : Bool = false,
+  continue_signals? : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript raise ExecutionError {
   let effect_shell = @evaluator.EffectShell::new(
     shell.program(),
@@ -161,7 +231,7 @@ pub async fn[
       let output = StringBuilder()
       for fragment in line.fragments() {
         match fragment {
-          Text(text~, ..) => output.write_string(text)
+          Text(text~, ..) => output.write_string(cooked_recipe_text(text))
           Interpolation(expression~, ..) => {
             let value = @evaluator.evaluate_with_async_effects(
               process,
@@ -182,7 +252,14 @@ pub async fn[
     }
   }
   prepare_planned_script(
-    recipe, lines, cwd, configuration, process_environment, quiet,
+    recipe,
+    lines,
+    cwd,
+    configuration,
+    process_environment,
+    positional,
+    quiet,
+    continue_signals~,
   )
 }
 
@@ -232,6 +309,7 @@ pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(
     parsed,
     configuration.platform(),
     planned.quiet,
+    positional=planned.positional,
   ) catch {
     error => {
       try @host.HostScriptTemp::remove_script_temp(host, path) catch {
@@ -285,6 +363,7 @@ pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(
     parsed,
     configuration.platform(),
     planned.quiet,
+    positional=planned.positional,
   ) catch {
     error => {
       try
@@ -319,6 +398,7 @@ fn script_command(
   shebang : ShebangCommand?,
   platform : @host.PlatformInfo,
   discard_output : Bool,
+  positional? : ArrayView[String] = [],
 ) -> @host.CommandSpec raise ExecutionError {
   let (program, arguments) = match shebang {
     Some(value) if platform.operating_system() == Windows => {
@@ -336,6 +416,9 @@ fn script_command(
       arguments.push(path.as_string())
       (interpreter.program(), arguments)
     }
+  }
+  for argument in positional {
+    arguments.push(argument)
   }
   let spec = @host.CommandSpec::new(program, arguments) catch {
     error => raise Host(error)
@@ -386,7 +469,8 @@ pub fn[T : @host.HostProcess + @host.HostScriptTemp + @host.HostExecutable] exec
     return ExecutionReport::new(b"", Bytes::from_array(dry_stderr), 0)
   }
   let shebang = match lines.get(0) {
-    Some(line) if line.has_prefix("#!") =>
+    Some(line) if line.has_prefix("#!") &&
+      !recipe_has_explicit_script_interpreter(recipe) =>
       match parse_shebang(line) {
         Some(value) => Some(value)
         None => raise InvalidShebang(recipe=recipe.name(), shebang=line)
@@ -400,7 +484,12 @@ pub fn[T : @host.HostProcess + @host.HostScriptTemp + @host.HostExecutable] exec
   let extension = configuration
     .extension()
     .unwrap_or(inferred_extension(program))
-  let contents = script_bytes(lines, needs_bom(program))
+  let contents = script_bytes(
+    recipe,
+    lines,
+    needs_bom(program),
+    shebang is Some(_),
+  )
   let path = @host.HostScriptTemp::create_script_temp(
     host,
     configuration.temporary_directory(),

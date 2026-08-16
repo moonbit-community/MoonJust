@@ -39,6 +39,9 @@ fn expression_text_with_parent(
   expression : @syntax.Expression,
   parent : Int,
 ) -> String {
+  if expression is Parenthesized(expression=inner, ..) {
+    return expression_text_with_parent(inner, parent)
+  }
   let own = expression_precedence(expression)
   let text = match expression {
     String(value) => value.raw()
@@ -48,6 +51,7 @@ fn expression_text_with_parent(
     Call(name~, arguments~, ..) =>
       name + "(" + arguments.map(expression_text).join(", ") + ")"
     List(elements~, ..) => "[" + elements.map(expression_text).join(", ") + "]"
+    Parenthesized(_) => abort("parenthesized expressions are handled above")
     Unary(operator=Not, operand~, ..) =>
       "!" + expression_text_with_parent(operand, own)
     Binary(operator~, lhs~, rhs~, ..) =>
@@ -55,7 +59,13 @@ fn expression_text_with_parent(
       " " +
       binary_text(operator) +
       " " +
-      expression_text_with_parent(rhs, own + 1)
+      expression_text_with_parent(
+        rhs,
+        match operator {
+          Concat | ListConcat | And | Or => own
+          Equal | NotEqual | RegexMatch | RegexNotMatch | Join => own + 1
+        },
+      )
     Conditional(condition~, then_branch~, else_branch~, ..) => {
       let base = "if " +
         expression_text(condition) +
@@ -63,6 +73,8 @@ fn expression_text_with_parent(
         expression_text(then_branch) +
         " }"
       match else_branch {
+        Some(Conditional(_) as otherwise) =>
+          base + " else " + expression_text(otherwise)
         Some(otherwise) => base + " else { " + expression_text(otherwise) + " }"
         None => base
       }
@@ -99,7 +111,11 @@ fn attribute_text(attribute : @syntax.Attribute) -> String {
     let values = arguments
       .map(fn(argument) {
         match argument.key() {
-          Some(key) => key + "=" + quote_attribute_argument(argument)
+          Some(key) =>
+            match argument.value() {
+              Some(_) => key + "=" + quote_attribute_argument(argument)
+              None => key
+            }
           None => quote_attribute_argument(argument)
         }
       })
@@ -131,7 +147,14 @@ fn parameters_text(parameters : ArrayView[@syntax.Parameter]) -> String {
     match parameter.default_value() {
       Some(value) => {
         builder.write_char('=')
-        builder.write_string(expression_text(value))
+        let text = expression_text(value)
+        builder.write_string(
+          match value {
+            Binary(_) | Parenthesized(expression=Binary(_), ..) =>
+              "(" + text + ")"
+            _ => text
+          },
+        )
       }
       None => ()
     }
@@ -141,7 +164,16 @@ fn parameters_text(parameters : ArrayView[@syntax.Parameter]) -> String {
 
 ///|
 fn dependency_text(dependency : @syntax.Dependency) -> String {
-  let arguments = dependency.arguments().map(expression_text).join(", ")
+  let arguments : Array[String] = []
+  for index, expression in dependency.arguments() {
+    let prefix = if dependency.starred_arguments().contains(index) {
+      "*"
+    } else {
+      ""
+    }
+    arguments.push(prefix + expression_text(expression))
+  }
+  let arguments = arguments.join(" ")
   if dependency.arguments().is_empty() {
     dependency.name()
   } else if dependency.starred() {
@@ -152,9 +184,14 @@ fn dependency_text(dependency : @syntax.Dependency) -> String {
 }
 
 ///|
-fn item_text(item : @syntax.Item) -> String {
+fn item_text(item : @syntax.Item, indentation : String) -> String {
   match item {
     Assignment(value) => {
+      let attributes = value
+        .attributes()
+        .map(attribute_text)
+        .map(fn(text) { text + "\n" })
+        .join("")
       let prefix = if value.exported() {
         "export "
       } else if value.eager() {
@@ -162,11 +199,42 @@ fn item_text(item : @syntax.Item) -> String {
       } else {
         ""
       }
-      prefix + value.name() + " := " + expression_text(value.value())
+      attributes +
+      prefix +
+      value.name() +
+      " := " +
+      (match value.value() {
+        Parenthesized(expression=inner, ..) =>
+          "(" + expression_text(inner) + ")"
+        expression => expression_text(expression)
+      })
     }
-    Alias(value) => "alias " + value.name() + " := " + value.target()
+    Function(value) => {
+      let attributes = value
+        .attributes()
+        .map(attribute_text)
+        .map(fn(text) { text + "\n" })
+        .join("")
+      attributes +
+      value.name() +
+      "(" +
+      value.parameters().map(fn(parameter) { parameter.name() }).join(", ") +
+      ") := " +
+      expression_text(value.body())
+    }
+    Alias(value) =>
+      value
+      .attributes()
+      .map(attribute_text)
+      .map(fn(text) { text + "\n" })
+      .join("") +
+      "alias " +
+      value.name() +
+      " := " +
+      value.target()
     Setting(value) =>
       match value.value() {
+        Some(Boolean(value=true, ..)) => "set " + value.name()
         Some(expression) =>
           "set " + value.name() + " := " + expression_text(expression)
         None => "set " + value.name()
@@ -178,6 +246,12 @@ fn item_text(item : @syntax.Item) -> String {
       value.path().raw()
     Module(value) => {
       let path = value.path().map(fn(path) { " " + path.raw() }).unwrap_or("")
+      let attributes = value
+        .attributes()
+        .map(attribute_text)
+        .map(fn(text) { text + "\n" })
+        .join("")
+      attributes +
       "mod" +
       (if value.optional() { "?" } else { "" }) +
       " " +
@@ -186,14 +260,15 @@ fn item_text(item : @syntax.Item) -> String {
     }
     Unexport(name~, ..) => "unexport " + name
     Comment(text~, ..) => text
+    TrailingComment(text~, ..) => text
     Blank(_) => ""
     Attribute(value) => attribute_text(value)
-    Recipe(value) => recipe_text(value)
+    Recipe(value) => recipe_text(value, indentation)
   }
 }
 
 ///|
-fn recipe_text(value : @syntax.Recipe) -> String {
+fn recipe_text(value : @syntax.Recipe, indentation : String) -> String {
   let builder = StringBuilder()
   for attribute in value.attributes() {
     builder.write_string(attribute_text(attribute))
@@ -222,9 +297,18 @@ fn recipe_text(value : @syntax.Recipe) -> String {
     builder.write_string(" && ")
     builder.write_string(subsequent)
   }
-  for line in value.lines() {
+  if value.lines().is_empty() && value.trailing_comment() is Some(comment) {
+    builder.write_char(' ')
+    builder.write_string(comment)
+  }
+  let mut line_count = value.lines().length()
+  while line_count > 0 && value.lines()[line_count - 1].fragments().is_empty() {
+    line_count -= 1
+  }
+  for index in 0..<line_count {
+    let line = value.lines()[index]
     builder.write_char('\n')
-    builder.write_string("    ")
+    builder.write_string(indentation)
     for fragment in line.fragments() {
       match fragment {
         Text(text~, ..) => builder.write_string(text)

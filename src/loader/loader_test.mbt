@@ -44,6 +44,18 @@ test "search accepts dotfile and case-insensitive justfile names" {
 }
 
 ///|
+test "search rejects multiple candidate justfiles in one directory" {
+  let host = fake()
+  host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"a:\n")
+  host.put_file(@path.PathValue::new("/workspace/.justfile", Unix), b"b:\n")
+  try discover(host, @path.PathValue::new("/workspace/project", Unix)) catch {
+    error => assert_true("\{Repr(error)}".contains("AmbiguousJustfile"))
+  } noraise {
+    _ => fail("expected ambiguous justfile error")
+  }
+}
+
+///|
 test "explicit missing and capability errors remain typed" {
   let host = fake()
   let missing = @path.PathValue::new("/workspace/nope", Unix)
@@ -79,6 +91,8 @@ test "optional imports are skipped and cycles are reported" {
   assert_true(graph.files()[1].import_span() is Some(_))
   assert_eq(graph.files()[0].relation(), RootSource)
   assert_eq(graph.files()[1].relation(), ImportedSource)
+  assert_true(graph.files()[0].module_path().is_root())
+  assert_true(graph.files()[1].module_path().is_root())
   assert_eq(
     graph.files()[1].module_directory(),
     @path.PathValue::new("/workspace", Unix),
@@ -132,13 +146,43 @@ test "relative imports follow source files while cwd follows module ownership" {
   )
   assert_eq(files[3].path(), module_file)
   assert_eq(files[3].relation(), ModuleSource)
+  assert_eq(files[3].module_path().as_string(), "release")
   assert_eq(
     files[3].module_directory(),
     @path.PathValue::new("/workspace/modules/release", Unix),
   )
   assert_eq(files[4].path(), module_import)
   assert_eq(files[4].relation(), ImportedSource)
+  assert_eq(files[4].module_path().as_string(), "release")
   assert_eq(files[4].module_directory(), files[3].module_directory())
+}
+
+///|
+test "graph identity includes module path and implicit modules are unambiguous" {
+  let host = fake()
+  let root = @path.PathValue::new("/workspace/justfile", Unix)
+  let shared = @path.PathValue::new("/workspace/shared.just", Unix)
+  host.put_file(root, b"mod alpha 'shared.just'\nmod beta 'shared.just'\n")
+  host.put_file(shared, b"task:\n")
+  let graph = try! load_graph(host, root, @source.SourceId::new(70))
+  assert_eq(graph.files().length(), 3)
+  assert_eq(graph.files()[1].canonical_path(), shared)
+  assert_eq(graph.files()[2].canonical_path(), shared)
+  assert_eq(graph.files()[1].module_path().as_string(), "alpha")
+  assert_eq(graph.files()[2].module_path().as_string(), "beta")
+
+  let implicit = @path.PathValue::new("/workspace/foo.just", Unix)
+  let nested = @path.PathValue::new("/workspace/foo/justfile", Unix)
+  host.put_file(root, b"mod foo\n")
+  host.put_file(implicit, b"one:\n")
+  host.put_file(nested, b"two:\n")
+  try load_graph(host, root, @source.SourceId::new(80)) catch {
+    AmbiguousModuleFile(module_name="foo", found~, ..) =>
+      assert_eq(found, [implicit, nested])
+    error => fail("unexpected implicit module error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected ambiguous implicit module")
+  }
 }
 
 ///|

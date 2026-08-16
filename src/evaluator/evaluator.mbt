@@ -13,7 +13,7 @@ pub(all) struct EvaluationLimits {
 
 ///|
 pub fn EvaluationLimits::default() -> EvaluationLimits {
-  { max_depth: 128, max_nodes: 100_000, max_output_bytes: 64 * 1024 * 1024 }
+  { max_depth: 256, max_nodes: 100_000, max_output_bytes: 64 * 1024 * 1024 }
 }
 
 ///|
@@ -31,6 +31,7 @@ priv struct Evaluator {
   limits : EvaluationLimits
   context : EvaluationContext?
   effect_handler : EffectHandler?
+  functions : FunctionEnvironment
   mut depth : Int
   mut nodes : Int
 }
@@ -77,6 +78,111 @@ fn type_error(
 }
 
 ///|
+fn apply_value_operator(
+  left : Value,
+  right : Value,
+  separator : String,
+  span : @source.Span,
+) -> Value raise EvaluationError {
+  let lhs = left.elements()
+  let rhs = right.elements()
+  let result : Array[Value] = []
+  if lhs.length() == 1 && !rhs.is_empty() {
+    for value in rhs {
+      result.push(String(lhs[0] + separator + value))
+    }
+  } else if !lhs.is_empty() && rhs.length() == 1 {
+    for value in lhs {
+      result.push(String(value + separator + rhs[0]))
+    }
+  } else if lhs.length() == rhs.length() {
+    for index, value in lhs {
+      result.push(String(value + separator + rhs[index]))
+    }
+  } else {
+    raise TypeMismatch(
+      expected="lists with equal lengths or one singleton operand",
+      actual="lists with lengths {lhs.length()} and {rhs.length()}",
+      span~,
+    )
+  }
+  match result {
+    [value] => value
+    values => List(values)
+  }
+}
+
+///|
+fn values_equal(left : Value, right : Value) -> Bool {
+  left.elements() == right.elements()
+}
+
+///|
+fn regex_values_match(
+  left : Value,
+  right : Value,
+  span : @source.Span,
+) -> Bool raise EvaluationError {
+  for value in left.elements() {
+    for pattern in right.elements() {
+      let matched = @builtin.call("regex_matches", [
+        String(value),
+        String(pattern),
+      ]) catch {
+        error => raise Builtin(error, span~)
+      }
+      if matched.truthy() {
+        return true
+      }
+    }
+  }
+  false
+}
+
+///|
+fn builtin_call_failure(
+  name : String,
+  error : @builtin.BuiltinError,
+  span : @source.Span,
+) -> Value raise EvaluationError {
+  match error {
+    Failure(message~) =>
+      raise Builtin(
+        Failure(message="call to function `" + name + "` failed: " + message),
+        span~,
+      )
+    _ => raise Builtin(error, span~)
+  }
+}
+
+///|
+fn evaluate_assert(
+  arguments : Array[Value],
+  context : EvaluationContext?,
+  span : @source.Span,
+) -> Value raise EvaluationError {
+  if arguments.length() < 1 || arguments.length() > 2 {
+    raise Builtin(
+      Arity(name="assert", expected="1 or 2", actual=arguments.length()),
+      span~,
+    )
+  }
+  let condition = arguments[0]
+  if condition.truthy() {
+    return match context {
+      Some(value) if value.lists() => condition
+      _ => String("")
+    }
+  }
+  let message = if arguments.length() == 2 {
+    arguments[1].to_string()
+  } else {
+    "condition was false"
+  }
+  raise Builtin(Failure(message="assert failed: " + message), span~)
+}
+
+///|
 fn Evaluator::eval_binary(
   self : Evaluator,
   operator : @syntax.BinaryOperator,
@@ -84,29 +190,35 @@ fn Evaluator::eval_binary(
   rhs : @syntax.Expression,
   span : @source.Span,
 ) -> Value raise EvaluationError {
+  if (operator == Or || operator == And) &&
+    self.context.map(fn(value) { !value.lists() }).unwrap_or(false) {
+    raise Builtin(
+      Failure(message="logical operators require `set lists`"),
+      span~,
+    )
+  }
+  if operator == ListConcat &&
+    self.context.map(fn(value) { !value.lists() }).unwrap_or(false) {
+    raise Builtin(
+      Failure(message="list concatenation operator `++` requires `set lists`"),
+      span~,
+    )
+  }
   if operator == Or {
     let left = self.eval(lhs)
-    return Bool(left.truthy() || self.eval(rhs).truthy())
+    return if left.truthy() { left } else { self.eval(rhs) }
   }
   if operator == And {
     let left = self.eval(lhs)
-    return Bool(left.truthy() && self.eval(rhs).truthy())
+    return if left.truthy() { self.eval(rhs) } else { List([]) }
   }
   let left = self.eval(lhs)
   let right = self.eval(rhs)
   match operator {
-    Equal => Bool(left == right)
-    NotEqual => Bool(left != right)
-    RegexMatch | RegexNotMatch => {
-      let matched = @builtin.call("regex_matches", [left, right]) catch {
-        error => raise Builtin(error, span~)
-      }
-      if operator == RegexNotMatch {
-        Bool(!matched.truthy())
-      } else {
-        matched
-      }
-    }
+    Equal => Bool(values_equal(left, right))
+    NotEqual => Bool(!values_equal(left, right))
+    RegexMatch => Bool(regex_values_match(left, right, span))
+    RegexNotMatch => Bool(!regex_values_match(left, right, span))
     ListConcat =>
       match (left, right) {
         (List(first), List(second)) => {
@@ -118,16 +230,48 @@ fn Evaluator::eval_binary(
         }
         _ => raise type_error("two lists", left, span)
       }
-    Concat => String(left.to_string() + right.to_string())
-    Join =>
-      @builtin.call("path_join", [
-        String(left.to_string()),
-        String(right.to_string()),
-      ]) catch {
-        error => raise Builtin(error, span~)
-      }
+    Concat => apply_value_operator(left, right, "", span)
+    Join => apply_value_operator(left, right, "/", span)
     Or | And => Bool(false)
   }
+}
+
+///|
+fn Evaluator::eval_defined_function(
+  self : Evaluator,
+  definition : @syntax.FunctionDefinition,
+  arguments : ArrayView[@syntax.Expression],
+  span : @source.Span,
+) -> Value raise EvaluationError {
+  let expected = definition.parameters().length()
+  if arguments.length() != expected {
+    raise FunctionArgumentCount(
+      name=definition.name(),
+      expected~,
+      actual=arguments.length(),
+      span~,
+    )
+  }
+  let values : Array[Value] = []
+  for argument in arguments {
+    values.push(self.eval(argument))
+  }
+  let scope = Environment::child(self.environment)
+  for index, parameter in definition.parameters() {
+    scope.set(parameter.name(), values[index])
+  }
+  let nested : Evaluator = {
+    environment: scope,
+    limits: self.limits,
+    context: self.context,
+    effect_handler: self.effect_handler,
+    functions: self.functions,
+    depth: self.depth,
+    nodes: self.nodes,
+  }
+  let value = nested.eval(definition.body())
+  self.nodes = nested.nodes
+  value
 }
 
 ///|
@@ -136,12 +280,20 @@ fn Evaluator::eval_inner(
   expression : @syntax.Expression,
 ) -> Value raise EvaluationError {
   let span = expression.span()
-  self.enter(span)
+  self.enter(span) catch {
+    RecursionLimitExceeded(limit~, ..) =>
+      match expression {
+        Call(name~, ..) if self.functions.get(name) is Some(_) =>
+          raise FunctionRecursionLimit(name~, limit~, span~)
+        _ => raise RecursionLimitExceeded(limit~, span~)
+      }
+    error => raise error
+  }
   let result : Value = match expression {
     String(literal) => String(literal.cooked())
     Backtick(literal) =>
       match self.effect_handler {
-        Some(handler) => handler("shell", [String(literal.cooked())], span)
+        Some(handler) => handler("backtick", [String(literal.cooked())], span)
         None => raise EffectRequired(effect="process", span~)
       }
     Boolean(value~, ..) => Bool(value)
@@ -151,41 +303,80 @@ fn Evaluator::eval_inner(
         None => raise UndefinedVariable(name~, span~)
       }
     Call(name~, arguments~, ..) =>
-      if @builtin.is_effectful(name) {
-        match self.context {
-          None => raise EffectRequired(effect=name, span~)
-          Some(context) => {
-            let values : Array[Value] = []
-            for argument in arguments {
-              values.push(self.eval(argument))
-            }
-            match context_builtin(name, values, context, span) {
-              Some(value) => value
-              None =>
-                match self.effect_handler {
-                  Some(handler) => handler(name, values, span)
-                  None => raise EffectRequired(effect=name, span~)
-                }
+      match self.functions.get(name) {
+        Some(definition) =>
+          self.eval_defined_function(definition, arguments, span)
+        None if name == "assert" => {
+          let values : Array[Value] = []
+          for argument in arguments {
+            values.push(self.eval(argument))
+          }
+          evaluate_assert(values, self.context, span)
+        }
+        None if @builtin.is_effectful(name) =>
+          match self.context {
+            None => raise EffectRequired(effect=name, span~)
+            Some(context) => {
+              let values : Array[Value] = []
+              for argument in arguments {
+                values.push(self.eval(argument))
+              }
+              match context_builtin(name, values, context, span) {
+                Some(value) => value
+                None =>
+                  match self.effect_handler {
+                    Some(handler) => handler(name, values, span)
+                    None => raise EffectRequired(effect=name, span~)
+                  }
+              }
             }
           }
-        }
-      } else {
-        let values : Array[Value] = []
-        for argument in arguments {
-          values.push(self.eval(argument))
-        }
-        @builtin.call(name, values) catch {
-          error => raise Builtin(error, span~)
+        None => {
+          let values : Array[Value] = []
+          for argument in arguments {
+            values.push(self.eval(argument))
+          }
+          match self.context {
+            Some(context) =>
+              match context_builtin(name, values, context, span) {
+                Some(value) => value
+                None =>
+                  @builtin.call(name, values) catch {
+                    error => builtin_call_failure(name, error, span)
+                  }
+              }
+            None =>
+              @builtin.call(name, values) catch {
+                error => builtin_call_failure(name, error, span)
+              }
+          }
         }
       }
     List(elements~, ..) => {
+      match self.context {
+        Some(context) if !context.lists() =>
+          raise Builtin(
+            Failure(message="list literals require `set lists`"),
+            span~,
+          )
+        _ => ()
+      }
       let values : Array[Value] = []
       for element in elements {
         values.push(self.eval(element))
       }
       List(values)
     }
-    Unary(operator=Not, operand~, ..) => Bool(!self.eval(operand).truthy())
+    Parenthesized(expression~, ..) => self.eval(expression)
+    Unary(operator=Not, operand~, ..) => {
+      if self.context.map(fn(value) { !value.lists() }).unwrap_or(false) {
+        raise Builtin(
+          Failure(message="negation operator requires `set lists`"),
+          span~,
+        )
+      }
+      Bool(!self.eval(operand).truthy())
+    }
     Binary(operator~, lhs~, rhs~, ..) =>
       self.eval_binary(operator, lhs, rhs, span)
     Conditional(condition~, then_branch~, else_branch~, ..) =>
@@ -194,7 +385,7 @@ fn Evaluator::eval_inner(
       } else {
         match else_branch {
           Some(value) => self.eval(value)
-          None => String("")
+          None => List([])
         }
       }
     Format(start~, parts~, ..) => {
@@ -204,7 +395,13 @@ fn Evaluator::eval_inner(
         builder.write_string(self.eval(part.expression()).to_string())
         builder.write_string(part.literal().cooked())
       }
-      String(builder.to_string())
+      let value = builder.to_string()
+      String(
+        match start.kind() {
+          TripleRaw | TripleCooked => @parser.unindent_string(value)
+          _ => value
+        },
+      )
     }
   }
   self.leave()
@@ -238,12 +435,15 @@ pub fn evaluate(
   expression : @syntax.Expression,
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
+  functions? : FunctionEnvironment,
 ) -> Value raise EvaluationError {
+  let functions = functions.unwrap_or(environment.functions())
   let evaluator : Evaluator = {
     environment,
     limits,
     context: None,
     effect_handler: None,
+    functions,
     depth: 0,
     nodes: 0,
   }
@@ -256,12 +456,15 @@ pub fn evaluate_with_context(
   context : EvaluationContext,
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
+  functions? : FunctionEnvironment,
 ) -> Value raise EvaluationError {
+  let functions = functions.unwrap_or(environment.functions())
   let evaluator : Evaluator = {
     environment,
     limits,
     context: Some(context),
     effect_handler: None,
+    functions,
     depth: 0,
     nodes: 0,
   }
@@ -282,14 +485,24 @@ pub fn[
   quiet? : Bool = false,
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
+  functions? : FunctionEnvironment,
 ) -> Value raise EvaluationError {
+  let functions = functions.unwrap_or(environment.functions())
   let handler : EffectHandler = fn(
     name,
     arguments,
     span,
   ) -> Value raise EvaluationError {
-    if name == "shell" {
-      call_shell_effect(host, arguments, context, shell, span, quiet~)
+    if name == "shell" || name == "backtick" {
+      call_shell_effect(
+        host,
+        arguments,
+        context,
+        shell,
+        span,
+        quiet~,
+        shell_function=name == "shell",
+      )
     } else {
       call_effect_with_context(host, name, arguments, context, span)
     }
@@ -299,6 +512,7 @@ pub fn[
     limits,
     context: Some(context),
     effect_handler: Some(handler),
+    functions,
     depth: 0,
     nodes: 0,
   }
