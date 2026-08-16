@@ -1,5 +1,5 @@
 import {
-  "moonbit-community/MoonJust" @moonjust,
+  "moonbit-community/MoonJust/api" @moonjust,
   "moonbit-community/MoonJust/src/application",
   "moonbit-community/MoonJust/src/cli",
   "moonbit-community/MoonJust/src/host",

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-04
+- Package location: superseded by [ADR-0018](0018-public-api-package-location.md)
 
 ## Context
 

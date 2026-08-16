@@ -1,13 +1,14 @@
 # Public API
 
 The executable API guide and compiled examples are in
-[`API.mbt.md`](../API.mbt.md). This file is retained as a stable documentation
-index for source packages and generated Mooncakes documentation.
+[`api/API.mbt.md`](../api/API.mbt.md). This file is retained as a stable
+documentation index for source packages and generated Mooncakes documentation.
 
-MoonJust's supported library surface is the root
-`moonbit-community/MoonJust` package. Its generated interface is committed as
-`pkg.generated.mbti`; target-specific adapters and executable composition are
-not part of the stable public API unless explicitly documented here.
+MoonJust's supported library surface is the
+`moonbit-community/MoonJust/api` package. Its generated interface is committed
+as `api/pkg.generated.mbti`; target-specific adapters and executable
+composition are not part of the stable public API unless explicitly documented
+here.
 
 `parse` preserves UTF-8 byte spans, `format_source` returns canonical source,
 and `compile_source` performs static validation without filesystem or process

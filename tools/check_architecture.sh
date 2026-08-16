@@ -10,6 +10,15 @@ fail() {
   exit 1
 }
 
+for file in "$repo_root"/*.mbt "$repo_root"/*.mbti "$repo_root/moon.pkg"; do
+  [ -e "$file" ] || continue
+  fail "MoonBit package file must live below the repository root: $(basename "$file")"
+done
+
+[ -f "$repo_root/api/moon.pkg" ] || fail "missing api/moon.pkg"
+[ -f "$repo_root/api/pkg.generated.mbti" ] || \
+  fail "missing api/pkg.generated.mbti"
+
 for package in $core_packages; do
   package_dir="$repo_root/src/$package"
   [ -f "$package_dir/moon.pkg" ] || fail "missing src/$package/moon.pkg"

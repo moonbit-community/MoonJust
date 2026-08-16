@@ -1,5 +1,5 @@
 ///|
-test "root facade exposes parse format compile and pure evaluate" {
+test "public api facade exposes parse format compile and pure evaluate" {
   let source = @source.Source::from_text(
     @source.SourceId::new(60),
     "justfile",

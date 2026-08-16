@@ -52,6 +52,11 @@ All notable changes to MoonJust will be documented here. The project follows
   upstream-compatible exit-status mapping.
 - Machine-checked architecture and compatibility manifests.
 
+### Changed
+
+- Moved the public library facade from `moonbit-community/MoonJust` to
+  `moonbit-community/MoonJust/api`; update imports to use the `/api` package.
+
 ### Fixed
 
 - Redacted script bodies, arguments, `extra`, and environment values from
