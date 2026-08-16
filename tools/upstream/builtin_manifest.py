@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the typed Phase 5 builtin evidence manifest."""
+"""Generate the typed builtin evidence manifest."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "tests/upstream/just-1.57.0/phase-5-builtins.jsonl"
+OUTPUT = ROOT / "tests/upstream/just-1.57.0/builtins.jsonl"
 
 NULLARY = {
     "arch", "cache_directory", "config_directory", "config_local_directory",
@@ -97,7 +97,7 @@ def rows() -> list[dict[str, object]]:
             "purity": "effect" if required else "pure",
             "capabilities": required,
             "targets": ["native", "wasm1"],
-            "evidence": [suite, "tests/upstream/just-1.57.0/phase-5-cases.jsonl"],
+            "evidence": [suite, "tests/upstream/just-1.57.0/evaluator-builtins-cases.jsonl"],
             "tracking": f"MJ-BUILTIN-{index:03d}",
         })
     return result

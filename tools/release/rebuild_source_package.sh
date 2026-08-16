@@ -69,12 +69,12 @@ wasm="$work/_build/wasm/release/build/cmd/just/just.wasm"
   release_fail "cold source-package version differs"
 moonrun --policy "$work/policies/deny.toml" "$wasm" -- --version | \
   grep -q "^moonjust $version " || release_fail "cold source-package wasm version differs"
-"$native" --list --justfile "$work/tests/fixtures/phase-6/justfile" | \
+"$native" --list --justfile "$work/tests/fixtures/query/justfile" | \
   grep -q '^Available recipes:$' || release_fail "cold Native query corpus differs"
-"$native" --justfile "$work/tests/fixtures/phase-8/line.justfile" build | \
+"$native" --justfile "$work/tests/fixtures/execution/line.justfile" build | \
   grep -q '^hello world$' || release_fail "cold Native execution corpus differs"
 (cd "$work" && moonrun --policy policies/inspect.toml "$wasm" -- \
-  --list --justfile tests/fixtures/phase-6/justfile) | \
+  --list --justfile tests/fixtures/query/justfile) | \
   grep -q '^Available recipes:$' || release_fail "cold wasm query corpus differs"
 
-echo "Phase 11 source package rebuilt from exact sources with caches disabled and corpus parity"
+echo "Release source package rebuilt from exact sources with caches disabled and corpus parity"

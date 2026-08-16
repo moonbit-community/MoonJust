@@ -14,7 +14,7 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 ## What is delivered
 
-The completed phases establish a usable and auditable foundation:
+The current release surface is usable and auditable:
 
 | Area | Current capability |
 | --- | --- |
@@ -53,8 +53,8 @@ versioned, locked across processes and atomically published after output checks.
   sandboxing are not supported claims.
 
 The complete decision record is in the
-[Phase 0-11 strict audit](docs/PHASE_0_11_AUDIT.md). Machine-readable scope and
-phase contracts live under [`compat/`](compat/); the pinned corpus provenance
+[release readiness audit](docs/reports/RELEASE_AUDIT.md). Machine-readable scope and
+area contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
 ## Quick start
@@ -100,9 +100,9 @@ moonrun --policy policies/inspect.toml \
 ```
 
 The gate checks architecture boundaries, pinned upstream metadata, the
-differential harness, all stable backends, Wasm policy, Phase 7 differentials,
-Phase 8-11 runtime/release gates, the pinned Markdown oracle, public
-interfaces, and the complete Native/wasm1 test matrix.
+differential harness, all stable backends, Wasm policies, execution-context
+differentials, executor and runtime behavior, release readiness, the pinned
+Markdown oracle, public interfaces, and the complete Native/wasm1 test matrix.
 
 ## Architecture
 
@@ -125,7 +125,7 @@ loader -> source -> lexer -> parser -> semantic model
               working directory + environment configuration
                                   |
                                   v
-              Phase 10 platform-aware executor boundary
+                    platform-aware executor boundary
 ```
 
 The core never reads process-global environment or filesystem state directly.
@@ -141,12 +141,12 @@ Wasm inspection adapter receives only the capabilities its policy allows.
 | `src/lexer`, `src/parser`, `src/syntax`, `src/formatter` | language front end and Markdown tangle |
 | `src/semantic`, `src/loader`, `src/evaluator`, `src/builtin` | compilation, graph loading, evaluation and typed builtins |
 | `src/host`, `src/host_native`, `src/host_wasm` | explicit host contracts and platform adapters |
-| `src/cli`, `src/application`, `src/invocation`, `src/workdir`, `src/environment` | CLI composition and Phase 6-7 models |
+| `src/cli`, `src/application`, `src/invocation`, `src/workdir`, `src/environment` | CLI, invocation, working-directory and environment models |
 | `cmd/just` | Native/wasm1 executable composition root |
-| `compat/` | machine-readable compatibility inventories and phase contracts |
+| `compat/` | machine-readable compatibility inventories and area contracts |
 | `tests/upstream/` | pinned upstream corpus, ownership map and provenance |
 | `tools/` | deterministic gates, oracle builders and differential probes |
-| `docs/` | plan, ADRs, phase reports and strict audit |
+| `docs/` | design plan, ADRs, historical delivery reports and release audit |
 
 ## Security boundary
 
@@ -190,12 +190,10 @@ definition of ready and required PR evidence.
 
 ## Documentation index
 
-- [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and future phases.
-- [Phase 0-11 strict audit](docs/PHASE_0_11_AUDIT.md): current completed cross-phase verdict, remediation and remote evidence.
-- [Phase 0-10 strict audit](docs/PHASE_0_10_AUDIT.md): historical Phase 10 exit evidence.
-- [Phase 11 report](docs/PHASE_11_REPORT.md): release-candidate engineering and complete exit evidence.
+- [Project plan](docs/PROJECT_PLAN.md): scope, architecture, compatibility tiers and historical delivery sequence.
+- [Release readiness audit](docs/reports/RELEASE_AUDIT.md): current consolidated verdict, remediation and remote evidence.
+- [Historical delivery reports](docs/reports/README.md): milestone-local records retained for traceability.
 - [Public API](docs/API.md) and [release policy](docs/RELEASE_POLICY.md): package surface, candidate integrity and maintainer-only publication boundary.
-- [Phase 0 report](docs/PHASE_0_REPORT.md) through [Phase 7 report](docs/PHASE_7_REPORT.md): phase-local delivery records.
 - [Architecture](docs/ARCHITECTURE.md): package boundaries and capability flow.
 - [ADR index](docs/adr/README.md): accepted design decisions.
 - [Security policy](SECURITY.md): threat model and disclosure boundary.

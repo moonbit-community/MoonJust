@@ -11,7 +11,7 @@ import zipfile
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"Phase 11 upgrade rehearsal error: {message}")
+    raise SystemExit(f"Release upgrade rehearsal error: {message}")
 
 
 def digest(path: pathlib.Path) -> str:
@@ -48,7 +48,7 @@ def smoke(executable: pathlib.Path, repo: pathlib.Path) -> tuple[str, str, str, 
             str(executable),
             "--list",
             "--justfile",
-            str(repo / "tests/fixtures/phase-6/justfile"),
+            str(repo / "tests/fixtures/query/justfile"),
         ],
         text=True,
         capture_output=True,
@@ -60,7 +60,7 @@ def smoke(executable: pathlib.Path, repo: pathlib.Path) -> tuple[str, str, str, 
         [
             str(executable),
             "--justfile",
-            str(repo / "tests/fixtures/phase-8/line.justfile"),
+            str(repo / "tests/fixtures/execution/line.justfile"),
             "build",
         ],
         text=True,
@@ -110,7 +110,7 @@ def main() -> None:
             fail("rollback query/execution corpus differs from previous release")
         if digest(installed) != previous_digest:
             fail("rollback did not restore the exact previous bytes")
-    print("Phase 11 upgrade rehearsal verified: previous, candidate, corpus and exact rollback")
+    print("Release upgrade rehearsal verified: previous, candidate, corpus and exact rollback")
 
 
 if __name__ == "__main__":

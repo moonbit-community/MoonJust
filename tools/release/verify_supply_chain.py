@@ -11,7 +11,7 @@ import uuid
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"Phase 11 supply-chain error: {message}")
+    raise SystemExit(f"Release supply-chain error: {message}")
 
 
 def digest(path: pathlib.Path) -> str:
@@ -315,7 +315,7 @@ def main() -> int:
     }
     if provenance != expected_provenance:
         fail("provenance contains unexpected or missing fields")
-    print("Phase 11 supply chain verified: artifact, SBOM, dependencies, commit, target, toolchain")
+    print("Release supply chain verified: artifact, SBOM, dependencies, commit, target, toolchain")
     return 0
 
 

@@ -7,7 +7,7 @@ import shutil
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"Phase 11 dependency copy error: {message}")
+    raise SystemExit(f"Release dependency copy error: {message}")
 
 
 def declared_dependencies(manifest: pathlib.Path) -> list[tuple[str, str]]:

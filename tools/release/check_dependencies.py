@@ -9,7 +9,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"Phase 11 dependency audit error: {message}")
+    raise SystemExit(f"Release dependency audit error: {message}")
 
 
 text = (ROOT / "moon.mod").read_text()
@@ -59,4 +59,4 @@ for name, version in declared:
     if version_value != version:
         fail(f"dependency source version differs for {name}@{version}")
 
-print(f"Phase 11 dependency audit verified: {len(declared)} exact registry dependencies and licenses")
+print(f"Release dependency audit verified: {len(declared)} exact registry dependencies and licenses")

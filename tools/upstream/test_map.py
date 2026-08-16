@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
-MAP_SCHEMA_VERSION = 2
+MAP_SCHEMA_VERSION = 3
 EXPECTED_COUNT = 2417
 EXPECTED_LIST_SHA256 = (
     "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
@@ -33,10 +33,10 @@ NATIVE_SIGNAL_TESTS = {
     "signals::interrupt_shebang",
 }
 
-PHASE_PREFIXES = {
-    2: {"lexer"},
-    3: {"format", "markdown", "parser", "tangle"},
-    4: {
+AREA_PREFIXES = {
+    "lexer": {"lexer"},
+    "parser-formatter": {"format", "markdown", "parser", "tangle"},
+    "semantic-loader": {
         "alias",
         "allow_duplicate_recipes",
         "allow_duplicate_variables",
@@ -66,7 +66,7 @@ PHASE_PREFIXES = {
         "undefined_variables",
         "variable_resolver",
     },
-    5: {
+    "evaluator-builtins": {
         "assertions",
         "backticks",
         "booleans",
@@ -98,7 +98,7 @@ PHASE_PREFIXES = {
         "value",
         "which_function",
     },
-    6: {
+    "query-cli": {
         "alias_style",
         "changelog",
         "dump",
@@ -114,7 +114,7 @@ PHASE_PREFIXES = {
         "usage",
         "version",
     },
-    7: {
+    "execution-context": {
         "allow_missing",
         "config",
         "dotenv",
@@ -132,7 +132,7 @@ PHASE_PREFIXES = {
         "tempdir",
         "working_directory",
     },
-    8: {
+    "executor": {
         "assignment",
         "byte_order_mark",
         "command",
@@ -171,12 +171,34 @@ PHASE_PREFIXES = {
         "unexport",
         "unstable",
     },
-    9: {"cache", "clean", "parallel"},
-    10: {"choose", "confirm", "count", "edit"},
+    "runtime-cache": {"cache", "clean", "parallel"},
+    "platform-compatibility": {"choose", "confirm", "count", "edit"},
+}
+
+AREA_CASE_MANIFESTS = {
+    "parser-formatter": "parser-formatter-cases.jsonl",
+    "semantic-loader": "semantic-loader-cases.jsonl",
+    "evaluator-builtins": "evaluator-builtins-cases.jsonl",
+    "query-cli": "query-cli-cases.jsonl",
+    "execution-context": "execution-context-cases.jsonl",
+    "executor": "executor-cases.jsonl",
+    "runtime-cache": "runtime-cache-cases.jsonl",
+    "platform-compatibility": "platform-compatibility-cases.jsonl",
+}
+
+AREA_REPORTS = {
+    "parser-formatter": "docs/reports/PHASE_3_REPORT.md",
+    "semantic-loader": "docs/reports/PHASE_4_REPORT.md",
+    "evaluator-builtins": "docs/reports/PHASE_5_REPORT.md",
+    "query-cli": "docs/reports/PHASE_6_REPORT.md",
+    "execution-context": "docs/reports/PHASE_7_REPORT.md",
+    "executor": "docs/reports/PHASE_8_REPORT.md",
+    "runtime-cache": "docs/reports/PHASE_9_REPORT.md",
+    "platform-compatibility": "docs/reports/PHASE_10_REPORT.md",
 }
 
 
-PHASE_9_STORAGE_DIFFERENCES = {
+RUNTIME_CACHE_DIFFERENCES = {
     "cache::clean_path_removes_empty_entries": (
         "MoonJust never publishes the upstream empty failed-run cache entry and "
         "therefore has no empty entry to remove."
@@ -196,7 +218,7 @@ EXPLICIT_CONTRACT_EVIDENCE = {
 }
 
 
-PHASE_10_INTERACTIVE_DIFFERENCES = {
+INTERACTIVE_DIFFERENCES = {
     "choose::chooser_selections_are_processed_separately": (
         "Chooser output that names a module recipe is rejected because module-path "
         "execution is not yet part of MoonJust's compilation model."
@@ -216,7 +238,7 @@ PHASE_10_INTERACTIVE_DIFFERENCES = {
 }
 
 
-PHASE_8_UNSUPPORTED_CATEGORIES = {
+EXECUTOR_UNSUPPORTED_CATEGORIES = {
     "allow_missing": "The --allow-missing execution mode is not implemented.",
     "command": "The upstream --command subcommand is not implemented.",
     "constants": "Unstable justfile constants are not implemented.",
@@ -239,7 +261,7 @@ PHASE_8_UNSUPPORTED_CATEGORIES = {
 }
 
 
-PHASE_8_UNSUPPORTED_MARKERS = (
+EXECUTOR_UNSUPPORTED_MARKERS = (
     "submodule",
     "module_alias",
     "module_path",
@@ -261,26 +283,26 @@ PHASE_8_UNSUPPORTED_MARKERS = (
 )
 
 
-PHASE_TEST_ANCHORS = {
-    3: {
+AREA_TEST_ANCHORS = {
+    "parser-formatter": {
         "parser": (
             "src/parser/top_level_test.mbt",
             "top-level parser builds assignments aliases settings recipes and imports",
         ),
         "format": (
             "src/formatter/formatter_test.mbt",
-            "phase 3 formatter corpus is idempotent across representative grammar",
+            "formatter corpus is idempotent across representative grammar",
         ),
         "markdown": (
             "src/formatter/markdown_test.mbt",
-            "phase 3 markdown corpus preserves CommonMark fence boundaries",
+            "markdown corpus preserves CommonMark fence boundaries",
         ),
         "tangle": (
             "src/formatter/markdown_test.mbt",
             "markdown tangle requires matching fence character and minimum length",
         ),
     },
-    4: {
+    "semantic-loader": {
         "semantic": (
             "src/semantic/semantic_test.mbt",
             "compilation exposes ordered symbols and typed settings",
@@ -306,7 +328,7 @@ PHASE_TEST_ANCHORS = {
             "optional imports are skipped and cycles are reported",
         ),
     },
-    5: {
+    "evaluator-builtins": {
         "pure": (
             "src/builtin/builtin_test.mbt",
             "pure builtins cover string, path, regex and semver contracts",
@@ -336,7 +358,7 @@ PHASE_TEST_ANCHORS = {
             "evaluation limits reject adversarial depth",
         ),
     },
-    6: {
+    "query-cli": {
         "init": (
             "src/application/application_test.mbt",
             "init creates the canonical template and refuses overwrite",
@@ -370,7 +392,7 @@ PHASE_TEST_ANCHORS = {
             "release metadata is explicit",
         ),
     },
-    7: {
+    "execution-context": {
         "dotenv": (
             "src/environment/environment_test.mbt",
             "dotenv file loading implements path filename precedence and ancestor search",
@@ -400,7 +422,7 @@ PHASE_TEST_ANCHORS = {
             "temporary directory CLI setting and host precedence is lexical",
         ),
     },
-    9: {
+    "runtime-cache": {
         "cache_key": (
             "src/cache/cache_test.mbt",
             "cache key invalidates on body extra inputs and outputs",
@@ -454,14 +476,14 @@ PHASE_TEST_ANCHORS = {
             "jobs must be a positive integer before execution planning",
         ),
     },
-    8: {
+    "executor": {
         "bom": (
             "src/lexer/lexer_test.mbt",
             "operators, comments, BOM, CRLF, and continued lines",
         ),
         "cli": (
             "src/cli/cli_test.mbt",
-            "phase 10 CLI validates command conflicts color aliases and verbosity",
+            "CLI validates command conflicts color aliases and verbosity",
         ),
         "dependency": (
             "src/executor/executor_test.mbt",
@@ -532,7 +554,7 @@ PHASE_TEST_ANCHORS = {
             "effect context connects fs random clock process terminal and PATH facts",
         ),
     },
-    10: {
+    "platform-compatibility": {
         "choose": (
             "src/application/application_test.mbt",
             "chooser filters candidates and preserves each selected invocation",
@@ -547,7 +569,7 @@ PHASE_TEST_ANCHORS = {
         ),
         "list": (
             "src/application/application_test.mbt",
-            "phase 10 list color highlights doc backticks on stdout",
+            "list color highlights doc backticks on stdout",
         ),
     },
 }
@@ -557,31 +579,31 @@ def repository_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def phase_for(category: str) -> int:
-    matches = [phase for phase, prefixes in PHASE_PREFIXES.items() if category in prefixes]
+def area_for(category: str) -> str:
+    matches = [area for area, prefixes in AREA_PREFIXES.items() if category in prefixes]
     if len(matches) != 1:
         raise ValueError(
-            f"category {category!r} must have exactly one owner phase, found {matches}"
+            f"category {category!r} must have exactly one owner area, found {matches}"
         )
     return matches[0]
 
 
-def case_owner_override(name: str) -> int | None:
-    """Route mixed Phase 6 categories to the phase that owns their prerequisites."""
+def case_owner_override(name: str) -> str | None:
+    """Route mixed query CLI categories to the area that owns their prerequisites."""
     category = name.split("::", 1)[0]
-    if category not in PHASE_PREFIXES[6]:
+    if category not in AREA_PREFIXES["query-cli"]:
         return None
     if name.startswith("completions::"):
         return None
-    phase_7_markers = (
+    execution_context_markers = (
         "search_directory",
         "invocation_directory",
         "working_directory",
         "submodule",
         "module",
     )
-    if any(marker in name for marker in phase_7_markers):
-        return 7
+    if any(marker in name for marker in execution_context_markers):
+        return "execution-context"
     if name in {
         "init::alternate_marker",
         "init::parent_dir",
@@ -598,9 +620,9 @@ def case_owner_override(name: str) -> int | None:
         "json::dotenv_command",
         "json::dotenv_filename_list",
     }:
-        return 7
+        return "execution-context"
     if name == "summary::summary_none":
-        return 8
+        return "executor"
     if name in {
         "list::backticks_highlighted",
         "list::doc_above_wide_signature",
@@ -610,12 +632,12 @@ def case_owner_override(name: str) -> int | None:
         "list::tests::or_ticked",
         "list::unclosed_backticks",
     }:
-        return 10
+        return "platform-compatibility"
     return None
 
 
-def phase_7_anchor_key(name: str) -> str | None:
-    """Return Phase 7 evidence only when the prerequisite model is complete."""
+def execution_context_anchor_key(name: str) -> str | None:
+    """Return execution context evidence only when the prerequisite model is complete."""
     category = name.split("::", 1)[0]
     if category == "dotenv":
         deferred = (
@@ -666,19 +688,19 @@ def phase_7_anchor_key(name: str) -> str | None:
     return None
 
 
-def deferred_phase_7_owner(name: str) -> int:
-    """Move Phase 7 rows whose observable prerequisite starts in a later phase."""
+def deferred_execution_context_owner(name: str) -> str:
+    """Move execution context rows whose observable prerequisite starts in a later area."""
     if "no_cache" in name:
-        return 9
+        return "runtime-cache"
     if any(marker in name for marker in ("completions", "changelog", "edit_arguments")):
-        return 10
-    return 8
+        return "platform-compatibility"
+    return "executor"
 
 
-def phase_8_difference_reason(name: str) -> str | None:
+def executor_difference_reason(name: str) -> str | None:
     category = name.split("::", 1)[0]
-    if category in PHASE_8_UNSUPPORTED_CATEGORIES:
-        return PHASE_8_UNSUPPORTED_CATEGORIES[category]
+    if category in EXECUTOR_UNSUPPORTED_CATEGORIES:
+        return EXECUTOR_UNSUPPORTED_CATEGORIES[category]
     if category in {"examples", "misc"}:
         return (
             "This heterogeneous upstream integration registration has no "
@@ -698,12 +720,12 @@ def phase_8_difference_reason(name: str) -> str | None:
         return "MoonJust preserves unknown timestamp directives instead of rejecting them."
     if category == "unstable":
         return "User-defined function unstable gating and per-module propagation are not implemented."
-    if any(marker in name for marker in PHASE_8_UNSUPPORTED_MARKERS):
+    if any(marker in name for marker in EXECUTOR_UNSUPPORTED_MARKERS):
         return "The required module, search, or optional CLI behavior is not implemented."
     return None
 
 
-def phase_8_anchor_key(category: str) -> str:
+def executor_anchor_key(category: str) -> str:
     if category == "byte_order_mark":
         return "bom"
     if category in {"executor", "script", "shebang"}:
@@ -740,32 +762,32 @@ def phase_8_anchor_key(category: str) -> str:
         return "signal"
     if category in {"groups", "no_aliases", "usage"}:
         return "query"
-    raise ValueError(f"Phase 8 category {category!r} lacks a conservative classification")
+    raise ValueError(f"executor category {category!r} lacks a conservative classification")
 
 
-def phase_10_anchor_key(name: str) -> str:
+def platform_anchor_key(name: str) -> str:
     category = name.split("::", 1)[0]
     if category == "config":
         return "edit"
     return category
 
 
-def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str, str]:
+def anchor_for(area: str, category: str, name: str | None = None) -> tuple[str, str]:
     """Return the executable family test that owns an upstream category."""
-    if phase == 3:
-        return PHASE_TEST_ANCHORS[3][category]
-    if phase == 4:
+    if area == "parser-formatter":
+        return AREA_TEST_ANCHORS["parser-formatter"][category]
+    if area == "semantic-loader":
         if category in {
             "ceiling",
             "search",
             "search_arguments",
             "search_error",
         }:
-            return PHASE_TEST_ANCHORS[4]["loader_search"]
+            return AREA_TEST_ANCHORS["semantic-loader"]["loader_search"]
         if category in {"fallback", "global"}:
-            return PHASE_TEST_ANCHORS[4]["loader_global"]
+            return AREA_TEST_ANCHORS["semantic-loader"]["loader_global"]
         if category in {"imports", "modulepath", "modules"}:
-            return PHASE_TEST_ANCHORS[4]["loader_graph"]
+            return AREA_TEST_ANCHORS["semantic-loader"]["loader_graph"]
         if category in {
             "settings",
             "minimum_version",
@@ -775,7 +797,7 @@ def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str,
             "attributes",
             "arg_attribute",
         }:
-            return PHASE_TEST_ANCHORS[4]["settings"]
+            return AREA_TEST_ANCHORS["semantic-loader"]["settings"]
         if category in {
             "alias",
             "allow_duplicate_recipes",
@@ -790,84 +812,84 @@ def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str,
             "undefined_variables",
             "variable_resolver",
         }:
-            return PHASE_TEST_ANCHORS[4]["validation"]
-        return PHASE_TEST_ANCHORS[4]["semantic"]
-    if phase == 5:
+            return AREA_TEST_ANCHORS["semantic-loader"]["validation"]
+        return AREA_TEST_ANCHORS["semantic-loader"]["semantic"]
+    if area == "evaluator-builtins":
         if category in {"datetime", "directories", "which_function"}:
-            return PHASE_TEST_ANCHORS[5]["effect"]
+            return AREA_TEST_ANCHORS["evaluator-builtins"]["effect"]
         if category in {"functions", "string", "quote", "regexes", "function"}:
-            return PHASE_TEST_ANCHORS[5]["pure"]
+            return AREA_TEST_ANCHORS["evaluator-builtins"]["pure"]
         if category in {"list_literals", "unindent"}:
-            return PHASE_TEST_ANCHORS[5]["builtin_collections"]
+            return AREA_TEST_ANCHORS["evaluator-builtins"]["builtin_collections"]
         if category == "lazy":
-            return PHASE_TEST_ANCHORS[5]["lazy"]
+            return AREA_TEST_ANCHORS["evaluator-builtins"]["lazy"]
         if category in {"scope", "shadowing_parameters", "function_definitions"}:
-            return PHASE_TEST_ANCHORS[5]["scope"]
+            return AREA_TEST_ANCHORS["evaluator-builtins"]["scope"]
         if category == "recursion_limit":
-            return PHASE_TEST_ANCHORS[5]["limits"]
-        return PHASE_TEST_ANCHORS[5]["evaluation"]
-    if phase == 6:
+            return AREA_TEST_ANCHORS["evaluator-builtins"]["limits"]
+        return AREA_TEST_ANCHORS["evaluator-builtins"]["evaluation"]
+    if area == "query-cli":
         if category in {"init", "subcommand"}:
-            return PHASE_TEST_ANCHORS[6]["init"]
+            return AREA_TEST_ANCHORS["query-cli"]["init"]
         if category == "alias_style":
-            return PHASE_TEST_ANCHORS[6]["alias_style"]
+            return AREA_TEST_ANCHORS["query-cli"]["alias_style"]
         if category == "groups":
-            return PHASE_TEST_ANCHORS[6]["groups"]
+            return AREA_TEST_ANCHORS["query-cli"]["groups"]
         if category in {"show", "usage"}:
-            return PHASE_TEST_ANCHORS[6]["show_usage"]
+            return AREA_TEST_ANCHORS["query-cli"]["show_usage"]
         if category == "summary":
-            return PHASE_TEST_ANCHORS[6]["summary"]
+            return AREA_TEST_ANCHORS["query-cli"]["summary"]
         if category in {"dump", "json"}:
-            return PHASE_TEST_ANCHORS[6]["inspect"]
+            return AREA_TEST_ANCHORS["query-cli"]["inspect"]
         if category == "version":
-            return PHASE_TEST_ANCHORS[6]["version"]
-        return PHASE_TEST_ANCHORS[6]["list"]
-    if phase == 7 and name is not None:
-        key = phase_7_anchor_key(name)
+            return AREA_TEST_ANCHORS["query-cli"]["version"]
+        return AREA_TEST_ANCHORS["query-cli"]["list"]
+    if area == "execution-context" and name is not None:
+        key = execution_context_anchor_key(name)
         if key is not None:
-            return PHASE_TEST_ANCHORS[7][key]
-    if phase == 9 and name is not None:
+            return AREA_TEST_ANCHORS["execution-context"][key]
+    if area == "runtime-cache" and name is not None:
         if category == "parallel":
             if name.endswith("zero_jobs_is_an_error"):
-                return PHASE_TEST_ANCHORS[9]["jobs"]
+                return AREA_TEST_ANCHORS["runtime-cache"]["jobs"]
             if name.endswith("parallel_dependencies_report_errors"):
-                return PHASE_TEST_ANCHORS[9]["parallel_failure"]
+                return AREA_TEST_ANCHORS["runtime-cache"]["parallel_failure"]
             if name.endswith("subsequent_dependencies_run_in_parallel"):
-                return PHASE_TEST_ANCHORS[9]["parallel_subsequent"]
-            return PHASE_TEST_ANCHORS[9]["parallel_runtime"]
+                return AREA_TEST_ANCHORS["runtime-cache"]["parallel_subsequent"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["parallel_runtime"]
         if category == "clean":
-            return PHASE_TEST_ANCHORS[9]["path_clean"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["path_clean"]
         if category == "config":
-            return PHASE_TEST_ANCHORS[9]["cache_bypass"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_bypass"]
         if "clean_" in name:
-            return PHASE_TEST_ANCHORS[9]["cache_clean"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_clean"]
         if name.endswith("cache_attribute_is_unstable"):
-            return PHASE_TEST_ANCHORS[9]["cache_gate"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_gate"]
         if any(marker in name for marker in ("requires_script", "variables_are_resolved", "expression_evaluated")):
-            return PHASE_TEST_ANCHORS[9]["cache_scope"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_scope"]
         if any(marker in name for marker in ("missing_output_after_run", "dry_run_skips_output")):
-            return PHASE_TEST_ANCHORS[9]["cache_outputs"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_outputs"]
         if "no_cache" in name:
-            return PHASE_TEST_ANCHORS[9]["cache_bypass"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_bypass"]
         if any(marker in name for marker in ("verbose_message", "prints_cache_key")):
-            return PHASE_TEST_ANCHORS[9]["cache_verbose"]
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_verbose"]
         if any(marker in name for marker in ("body_change", "environment_invalidates", "extension_invalidates", "extra_invalidates", "interpreter_invalidates", "positional_arguments", "working_directory_invalidates")):
-            return PHASE_TEST_ANCHORS[9]["cache_key"]
-        return PHASE_TEST_ANCHORS[9]["cache_runtime"]
-    if phase == 8:
-        return PHASE_TEST_ANCHORS[8][phase_8_anchor_key(category)]
-    if phase == 10 and name is not None:
-        key = phase_10_anchor_key(name)
+            return AREA_TEST_ANCHORS["runtime-cache"]["cache_key"]
+        return AREA_TEST_ANCHORS["runtime-cache"]["cache_runtime"]
+    if area == "executor":
+        return AREA_TEST_ANCHORS["executor"][executor_anchor_key(category)]
+    if area == "platform-compatibility" and name is not None:
+        key = platform_anchor_key(name)
         if key == "list":
             if name == "list::doc_above_wide_signature":
                 return (
                     "src/application/application_test.mbt",
-                    "phase 10 list places wide signature documentation above",
+                    "list places wide signature documentation above",
                 )
             if "::tests::" in name:
                 return (
                     "src/application/width_wbtest.mbt",
-                    "phase 10 human-readable lists use upstream conjunctions and ticks",
+                    "human-readable lists use upstream conjunctions and ticks",
                 )
         if key == "choose":
             if name in {"choose::cancelled_by_user", "choose::chooser_signal_exit_code_is_propagated"}:
@@ -878,23 +900,23 @@ def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str,
             if name == "choose::status_error":
                 return (
                     "src/application/application_test.mbt",
-                    "phase 10 chooser nonzero status is propagated",
+                    "chooser nonzero status is propagated",
                 )
             if name == "choose::invoke_error_function":
                 return (
                     "src/application/application_test.mbt",
-                    "phase 10 interactive invocation and exit failures retain context",
+                    "interactive invocation and exit failures retain context",
                 )
         if key == "edit":
             if name in {"edit::invoke_error", "edit::status_error"}:
                 return (
                     "src/application/application_test.mbt",
-                    "phase 10 interactive invocation and exit failures retain context",
+                    "interactive invocation and exit failures retain context",
                 )
             if name == "edit::editor_precedence":
                 return (
                     "src/application/application_test.mbt",
-                    "phase 10 editor falls back through EDITOR and vim",
+                    "editor falls back through EDITOR and vim",
                 )
         if key == "confirm" and any(
             marker in name
@@ -902,10 +924,10 @@ def anchor_for(phase: int, category: str, name: str | None = None) -> tuple[str,
         ):
             return (
                 "src/application/application_test.mbt",
-                "phase 10 confirm attributes format and reject excess prompt arguments",
+                "confirm attributes format and reject excess prompt arguments",
             )
-        return PHASE_TEST_ANCHORS[10][key]
-    raise ValueError(f"phase {phase} has no executable anchor mapping")
+        return AREA_TEST_ANCHORS["platform-compatibility"][key]
+    raise ValueError(f"area {area} has no executable anchor mapping")
 
 
 def anchor_exists(repo: Path, anchor: dict[str, str]) -> bool:
@@ -919,8 +941,8 @@ def anchor_exists(repo: Path, anchor: dict[str, str]) -> bool:
     return declaration.search(suite.read_text(encoding="utf-8")) is not None
 
 
-def anchor_dict(phase: int, category: str, name: str | None = None) -> dict[str, str]:
-    suite, test_name = anchor_for(phase, category, name)
+def anchor_dict(area: str, category: str, name: str | None = None) -> dict[str, str]:
+    suite, test_name = anchor_for(area, category, name)
     return {"suite": suite, "test_name": test_name}
 
 
@@ -956,32 +978,32 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
         category = name.split("::", 1)[0]
         override = case_owner_override(name)
         if override is not None:
-            phase = override
+            area = override
         elif category == "misc":
-            phase = 8
+            area = "executor"
         elif category == "completions":
-            phase = 6
+            area = "query-cli"
         else:
-            phase = phase_for(category)
+            area = area_for(category)
 
-        if phase == 7 and phase_7_anchor_key(name) is None:
-            phase = deferred_phase_7_owner(name)
+        if area == "execution-context" and execution_context_anchor_key(name) is None:
+            area = deferred_execution_context_owner(name)
 
         row: dict[str, object] = {
             "schema_version": MAP_SCHEMA_VERSION,
             "id": f"JUST-1.57.0-{index:04d}",
             "upstream_name": name,
             "category": category,
-            "owner_phase": phase,
+            "owner_area": area,
             "tier": (
                 "B"
-                if phase == 10 and category in {"choose", "confirm", "edit", "list"}
+                if area == "platform-compatibility" and category in {"choose", "confirm", "edit", "list"}
                 else "X" if category == "completions" else "A"
             ),
             "targets": [],
             "disposition": "unverified",
             "evidence": ["docs/PROJECT_PLAN.md"],
-            "tracking": f"PROJECT_PLAN_PHASE_{phase}",
+            "tracking": f"PROJECT_PLAN_AREA_{area.upper().replace('-', '_')}",
             "reason": "No executable compatibility evidence is registered.",
         }
 
@@ -992,19 +1014,19 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="ADR-0002",
                 reason="Shell completion generation is excluded from the compatibility scope.",
             )
-        elif phase == 2 and name == "lexer::tests::presume_error":
+        elif area == "lexer" and name == "lexer::tests::presume_error":
             row.update(
                 disposition="not-applicable",
-                evidence=["compat/phase-2.toml"],
+                evidence=["compat/lexer.toml"],
                 tracking=f"MJ-CONTRACT-{index:04d}",
                 reason="Rust-private helper assertion with no user-observable behavior.",
             )
-        elif phase == 2:
+        elif area == "lexer":
             row.update(
                 disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
-                    "compat/phase-2.toml",
+                    "compat/lexer.toml",
                     "src/lexer/upstream_lexer_test.mbt",
                     "src/lexer/hardening_test.mbt",
                 ],
@@ -1034,16 +1056,16 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="MJ-UPSTREAM-HARNESS-1.57.0",
                 evidence_case=f"MJ-UPSTREAM-HARNESS::{name}",
             )
-        elif phase == 9 and name in PHASE_9_STORAGE_DIFFERENCES:
+        elif area == "runtime-cache" and name in RUNTIME_CACHE_DIFFERENCES:
             row.update(
                 disposition="unsupported",
                 targets=["native", "wasm1"],
                 evidence=[
                     "docs/adr/0008-cache-format-locking-and-hashing.md",
-                    "docs/PHASE_9_REPORT.md",
+                    "docs/reports/PHASE_9_REPORT.md",
                 ],
                 tracking="PROJECT_PLAN_PR-105",
-                reason=PHASE_9_STORAGE_DIFFERENCES[name],
+                reason=RUNTIME_CACHE_DIFFERENCES[name],
             )
         elif name == "signals::forwarding":
             row.update(
@@ -1061,7 +1083,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tier="B",
                 disposition="unsupported",
                 targets=["native"],
-                evidence=["docs/PHASE_8_REPORT.md"],
+                evidence=["docs/reports/PHASE_8_REPORT.md"],
                 tracking=f"MJ-COMPAT-{index:04d}",
                 reason=(
                     "BSD/macOS SIGINFO process-inventory diagnostics are outside "
@@ -1069,15 +1091,15 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 ),
             )
         elif name in NATIVE_SIGNAL_TESTS:
-            test_anchor = anchor_dict(phase, category, name)
+            test_anchor = anchor_dict(area, category, name)
             row.update(
                 disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
-                    "tests/upstream/just-1.57.0/phase-8-cases.jsonl",
+                    "tests/upstream/just-1.57.0/executor-cases.jsonl",
                     test_anchor["suite"],
                     "tools/upstream/run_official_harness.py",
-                    "docs/PHASE_8_REPORT.md",
+                    "docs/reports/PHASE_8_REPORT.md",
                 ],
                 tracking=f"MJ-CONTRACT-{index:04d}",
                 test_anchor=test_anchor,
@@ -1086,7 +1108,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                     f"{test_anchor['test_name']}"
                 ),
             )
-        elif phase == 8 and category in {"examples", "request"}:
+        elif area == "executor" and category in {"examples", "request"}:
             row.update(
                 tier="X",
                 disposition="not-applicable",
@@ -1097,7 +1119,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                     "has no user-observable MoonJust behavior."
                 ),
             )
-        elif phase == 8 and name == "constants::tests::readme_table":
+        elif area == "executor" and name == "constants::tests::readme_table":
             row.update(
                 tier="X",
                 disposition="not-applicable",
@@ -1105,21 +1127,21 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="ADR-0002",
                 reason="Rust-private README table synchronization has no runtime compatibility surface.",
             )
-        elif phase == 8:
-            test_anchor = anchor_dict(phase, category, name)
+        elif area == "executor":
+            test_anchor = anchor_dict(area, category, name)
             row.update(
                 disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
-                    "tests/upstream/just-1.57.0/phase-8-cases.jsonl",
+                    "tests/upstream/just-1.57.0/executor-cases.jsonl",
                     test_anchor["suite"],
-                    "docs/PHASE_8_REPORT.md",
+                    "docs/reports/PHASE_8_REPORT.md",
                 ],
                 tracking=f"MJ-CONTRACT-{index:04d}",
                 test_anchor=test_anchor,
                 contract_case=f"MJ-CONTRACT::{test_anchor['suite']}::{test_anchor['test_name']}",
             )
-        elif phase == 10 and category == "config" and "completions" in name:
+        elif area == "platform-compatibility" and category == "config" and "completions" in name:
             row.update(
                 tier="X",
                 disposition="excluded-completion",
@@ -1127,7 +1149,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="ADR-0002",
                 reason="Shell completion generation is excluded from the compatibility scope.",
             )
-        elif phase == 10 and category == "config" and "changelog" in name:
+        elif area == "platform-compatibility" and category == "config" and "changelog" in name:
             row.update(
                 tier="X",
                 disposition="not-applicable",
@@ -1135,7 +1157,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="ADR-0001",
                 reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
             )
-        elif phase == 10 and category == "count":
+        elif area == "platform-compatibility" and category == "count":
             row.update(
                 tier="X",
                 disposition="not-applicable",
@@ -1143,21 +1165,21 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking=f"MJ-COMPAT-{index:04d}",
                 reason="Rust-private count display helper has no user-observable compatibility surface.",
             )
-        elif phase == 10 and name in PHASE_10_INTERACTIVE_DIFFERENCES:
+        elif area == "platform-compatibility" and name in INTERACTIVE_DIFFERENCES:
             row.update(
                 disposition="unsupported",
                 targets=["native", "wasm1"],
                 evidence=["docs/PROJECT_PLAN.md"],
                 tracking=f"MJ-COMPAT-{index:04d}",
-                reason=PHASE_10_INTERACTIVE_DIFFERENCES[name],
+                reason=INTERACTIVE_DIFFERENCES[name],
             )
-        elif phase == 10:
-            test_anchor = anchor_dict(phase, category, name)
+        elif area == "platform-compatibility":
+            test_anchor = anchor_dict(area, category, name)
             row.update(
                 disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
-                    "tests/upstream/just-1.57.0/phase-10-cases.jsonl",
+                    "tests/upstream/just-1.57.0/platform-compatibility-cases.jsonl",
                     test_anchor["suite"],
                     "docs/PROJECT_PLAN.md",
                 ],
@@ -1165,15 +1187,22 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 test_anchor=test_anchor,
                 contract_case=f"MJ-CONTRACT::{test_anchor['suite']}::{test_anchor['test_name']}",
             )
-        elif phase <= 7 or phase == 9:
-            test_anchor = anchor_dict(phase, category, name)
+        elif area in {
+            "parser-formatter",
+            "semantic-loader",
+            "evaluator-builtins",
+            "query-cli",
+            "execution-context",
+            "runtime-cache",
+        }:
+            test_anchor = anchor_dict(area, category, name)
             row.update(
                 disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
-                    f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl",
+                    f"tests/upstream/just-1.57.0/{AREA_CASE_MANIFESTS[area]}",
                     test_anchor["suite"],
-                    f"docs/PHASE_{phase}_REPORT.md",
+                    AREA_REPORTS[area],
                 ],
                 tracking=f"MJ-CONTRACT-{index:04d}",
                 test_anchor=test_anchor,
@@ -1187,9 +1216,9 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 disposition="verified-contract",
                 targets=["native", "wasm1"],
                 evidence=[
-                    f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl",
+                    f"tests/upstream/just-1.57.0/{AREA_CASE_MANIFESTS[area]}",
                     suite,
-                    f"docs/PHASE_{phase}_REPORT.md",
+                    AREA_REPORTS[area],
                 ],
                 tracking=f"MJ-CONTRACT-{index:04d}",
                 test_anchor={"suite": suite, "test_name": test_name},
@@ -1232,12 +1261,12 @@ def encoded_rows(rows: list[dict[str, object]]) -> str:
 
 
 def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6, 7, 8, 9, 10):
-        path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
-        phase_rows = [
+    for area, filename in AREA_CASE_MANIFESTS.items():
+        path = root / "tests/upstream/just-1.57.0" / filename
+        area_rows = [
             row
             for row in rows
-            if row["owner_phase"] == phase
+            if row["owner_area"] == area
             and row["disposition"] in {"verified-differential", "verified-contract"}
         ]
         encoded = "".join(
@@ -1247,7 +1276,7 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
                     "case_id": row["id"],
                     "upstream_name": row["upstream_name"],
                     "category": row["category"],
-                    "owner_phase": phase,
+                    "owner_area": area,
                     "disposition": row["disposition"],
                     "targets": row["targets"],
                     "evidence_case": row.get("evidence_case"),
@@ -1261,36 +1290,36 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
                 sort_keys=True,
             )
             + "\n"
-            for row in phase_rows
+            for row in area_rows
         )
         path.write_text(encoded, encoding="utf-8")
 
 
 def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
-    for phase in (3, 4, 5, 6, 7, 8, 9, 10):
-        path = root / f"tests/upstream/just-1.57.0/phase-{phase}-cases.jsonl"
+    for area, filename in AREA_CASE_MANIFESTS.items():
+        path = root / "tests/upstream/just-1.57.0" / filename
         cases = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
         expected = [
             row
             for row in rows
-            if row["owner_phase"] == phase
+            if row["owner_area"] == area
             and row["disposition"] in {"verified-differential", "verified-contract"}
         ]
         if len(cases) != len(expected):
-            raise ValueError(f"Phase {phase} case manifest count changed")
+            raise ValueError(f"{area} case manifest count changed")
         for case, row in zip(cases, expected):
             if case["case_id"] != row["id"] or case["upstream_name"] != row["upstream_name"]:
-                raise ValueError(f"Phase {phase} case manifest is not deterministic")
+                raise ValueError(f"{area} case manifest is not deterministic")
             if case["disposition"] not in {"verified-differential", "verified-contract"}:
-                raise ValueError(f"Phase {phase} case lacks executable evidence")
+                raise ValueError(f"{area} case lacks executable evidence")
             if case.get("test_anchor") != row.get("test_anchor"):
-                raise ValueError(f"Phase {phase} case anchor differs from test map")
+                raise ValueError(f"{area} case anchor differs from test map")
             if case.get("evidence_case") != row.get("evidence_case"):
-                raise ValueError(f"Phase {phase} differential case differs from test map")
+                raise ValueError(f"{area} differential case differs from test map")
             if case.get("contract_case") != row.get("contract_case"):
-                raise ValueError(f"Phase {phase} contract case differs from test map")
+                raise ValueError(f"{area} contract case differs from test map")
             if case.get("upstream_tests") != [row["upstream_name"]]:
-                raise ValueError(f"Phase {phase} case lacks explicit upstream registration")
+                raise ValueError(f"{area} case lacks explicit upstream registration")
 
 
 def load_names(path: Path) -> list[str]:
@@ -1325,8 +1354,8 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} does not match the pinned test list")
         if row.get("disposition") not in allowed:
             raise ValueError(f"row {expected_id} has an invalid disposition")
-        if not isinstance(row.get("owner_phase"), int):
-            raise ValueError(f"row {expected_id} has no owner phase")
+        if row.get("owner_area") not in AREA_PREFIXES:
+            raise ValueError(f"row {expected_id} has no owner area")
         if row.get("tier") not in {"A", "B", "W", "X"}:
             raise ValueError(f"row {expected_id} has no valid compatibility tier")
         if not isinstance(row.get("targets"), list):

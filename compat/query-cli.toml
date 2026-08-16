@@ -1,0 +1,37 @@
+schema_version = 2
+area = "query-cli"
+upstream = "just 1.57.0"
+status = "implemented"
+plan_exit = "passed"
+report = "docs/reports/PHASE_6_REPORT.md"
+audit = "docs/reports/PHASE_6_REPORT.md"
+
+[contracts]
+arguments = "69-option/command inventory with requires, conflicts, aliases, validated formats, and stable unsupported errors"
+files = "check, format, stdin output, and no-overwrite init through explicit HostFs"
+queries = "list, show, summary, usage, variables, and groups without process capability"
+serialization = "evaluate, dump, and schema-versioned stable JSON"
+wasm = "read-only HostFs, deny-by-default moonrun policy, exact stdout/stderr, and no process adapter"
+
+[target_matrix]
+native = "pass: 134 tests"
+wasm1 = "pass: 133 tests"
+wasm_policy = "pass: list succeeds; format write and effectful evaluate fail without mutation"
+native_platforms = "pass: Ubuntu/macOS/Windows on main run 31163576694"
+
+[evidence]
+native_tests = 134
+wasm_tests = 133
+cli_inventory = "compat/cli-options.toml"
+implemented_options = 14
+implemented_commands = 11
+json_schema_version = 1
+matching_baseline_differentials = 5
+wasm_policy = "policies/inspect.toml"
+wasm_e2e = "tools/check_inspect_policy.sh"
+query_oracle = "tools/check_query_compat.sh"
+upstream_corpus = "tests/upstream/just-1.57.0/query-cli.toml"
+upstream_covered_registrations = 86
+upstream_unverified_registrations = 0
+upstream_excluded_registrations = 35
+provenance = "tests/upstream/NOTICE.md"

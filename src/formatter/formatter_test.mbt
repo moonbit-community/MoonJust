@@ -54,7 +54,7 @@ test "formatter flattens associative concatenation" {
 }
 
 ///|
-test "phase 3 formatter corpus is idempotent across representative grammar" {
+test "formatter corpus is idempotent across representative grammar" {
   let cases = [
     "x := if true { \"a\" + \"b\" } else { \"c\" }\n", "[doc(\"build\")]\nbuild:\n    echo {{ \"ok\" }}\n",
     "set allow-duplicate-recipes\nimport? \"common.just\"\n", "f := f'hello {{name}}!'\n",

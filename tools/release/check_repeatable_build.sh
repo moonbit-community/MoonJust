@@ -4,7 +4,7 @@ set -eu
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 . "$script_dir/release_lib.sh"
 repo_root=$(release_repo_root)
-target="$repo_root/_build/phase-11-repeatable"
+target="$repo_root/_build/release-repeatable"
 export SOURCE_DATE_EPOCH=0
 export ZERO_AR_DATE=1
 first=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-repeatable-first.XXXXXX")
@@ -22,7 +22,7 @@ trap cleanup EXIT HUP INT TERM
 
 reset_target() {
   case "$target" in
-    "$repo_root"/_build/phase-11-repeatable) rm -rf -- "$target" ;;
+    "$repo_root"/_build/release-repeatable) rm -rf -- "$target" ;;
     *) release_fail "refusing to reset unexpected repeatability target" ;;
   esac
 }
@@ -52,4 +52,4 @@ cmp -s "$first/wasm" "$second/wasm" || \
 rm -rf -- "$second"
 second=
 reset_target
-echo "Phase 11 repeatability verified: two cache-disabled clean Native/wasm builds are byte-identical"
+echo "Release repeatability verified: two cache-disabled clean Native/wasm builds are byte-identical"

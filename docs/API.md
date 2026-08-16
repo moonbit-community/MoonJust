@@ -7,7 +7,7 @@ index for source packages and generated Mooncakes documentation.
 MoonJust's supported library surface is the root
 `moonbit-community/MoonJust` package. Its generated interface is committed as
 `pkg.generated.mbti`; target-specific adapters and executable composition are
-not stable API promises before the Phase 12 beta freeze.
+not part of the stable public API unless explicitly documented here.
 
 `parse` preserves UTF-8 byte spans, `format_source` returns canonical source,
 and `compile_source` performs static validation without filesystem or process

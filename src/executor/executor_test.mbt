@@ -174,7 +174,7 @@ async test "script dry run preserves backticks without process or temp effects" 
 ///|
 async test "script attributes preserve inferred interpreter extension" {
   let compilation = try! @semantic.compile(
-    try! @parser.parse(source("[script]\nbuild:\n  Write-Output phase10\n")),
+    try! @parser.parse(source("[script]\nbuild:\n  Write-Output platform\n")),
   )
   let environment = try! @evaluator.evaluate_compilation(compilation)
   let interpreter = try! @environment.ShellConfiguration::new(

@@ -1,0 +1,32 @@
+schema_version = 2
+area = "query-cli"
+upstream_commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
+license = "CC0-1.0"
+covered_registrations = 86
+unverified_registrations = 0
+excluded_registrations = 35
+
+[cli]
+inventory_options = 50
+inventory_commands = 19
+implemented_options = 14
+implemented_commands = 11
+stable_unsupported_or_excluded = 44
+sources = ["src/arguments.rs", "src/subcommand.rs", "src/justfile.rs"]
+
+[differential]
+baseline_cases = 96
+matching_query_cases = ["MJ-COMPAT-0004", "MJ-COMPAT-0005", "MJ-COMPAT-0006", "MJ-COMPAT-0008", "MJ-COMPAT-0095"]
+intentional_product_identity_cases = ["MJ-COMPAT-0001"]
+
+[serialization]
+json_schema_version = 1
+formats = ["just", "json", "shell"]
+sources = ["src/justfile.rs", "src/expression.rs", "src/settings.rs"]
+
+[wasm]
+policy = "policies/inspect.toml"
+e2e = "tools/check_inspect_policy.sh"
+oracle = "tools/check_query_compat.sh"
+fs_write = false
+process_spawn = false

@@ -7,7 +7,7 @@ if command -v moonx >/dev/null 2>&1; then
 fi
 
 moon_path=$(command -v moon) || {
-  echo "Phase 11 CI setup failed: moon is not installed" >&2
+  echo "Release CI setup failed: moon is not installed" >&2
   exit 1
 }
 moon_dir=$(dirname -- "$moon_path")

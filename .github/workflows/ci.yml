@@ -73,44 +73,44 @@ jobs:
       - name: Verify pinned official integration harness
         run: python3 ./tools/upstream/run_official_harness.py
 
-      - name: Verify Phase 5 Rust builtin oracle
-        run: python3 ./tools/upstream/phase5_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
+      - name: Verify Evaluator builtin oracle
+        run: python3 ./tools/upstream/evaluator_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
 
       - name: Check all stable backends
         run: moon check --target all --warn-list +73
 
       - name: Verify Wasm inspect policy
-        run: ./tools/check_phase6_inspect.sh
+        run: ./tools/check_inspect_policy.sh
 
-      - name: Verify Phase 7 HostFs policies
-        run: ./tools/check_phase7_hostfs.sh
+      - name: Verify HostFs policies
+        run: ./tools/check_hostfs_policy.sh
 
-      - name: Verify Phase 7 dotenvy differential
-        run: ./tools/check_phase7_dotenv.sh
+      - name: Verify Dotenv differential
+        run: ./tools/check_dotenv_compat.sh
 
-      - name: Verify Phase 7 invocation differential
-        run: ./tools/check_phase7_invocation.sh
+      - name: Verify Invocation differential
+        run: ./tools/check_invocation_compat.sh
 
-      - name: Verify Phase 7 working-directory differential
-        run: ./tools/check_phase7_workdir.sh
+      - name: Verify Working-directory differential
+        run: ./tools/check_workdir_compat.sh
 
-      - name: Verify Phase 7 environment composition differential
-        run: ./tools/check_phase7_environment.sh
+      - name: Verify Environment composition differential
+        run: ./tools/check_environment_compat.sh
 
-      - name: Verify Phase 8 executor
-        run: ./tools/check_phase8_executor.sh
+      - name: Verify Executor
+        run: ./tools/check_executor.sh
 
-      - name: Verify Phase 9 scheduler and cache runtime
-        run: ./tools/check_phase9_runtime.sh
+      - name: Verify Scheduler and cache runtime
+        run: ./tools/check_runtime.sh
 
-      - name: Verify Phase 10 compatibility convergence
-        run: ./tools/check_phase10.sh
+      - name: Verify Compatibility convergence
+        run: ./tools/check_compatibility.sh
 
-      - name: Verify Phase 11 release engineering
-        run: ./tools/check_phase11.sh
+      - name: Verify Release engineering
+        run: ./tools/check_release.sh
 
-      - name: Verify Phase 6 query oracle
-        run: ./tools/check_phase6_oracle.sh
+      - name: Verify Query compatibility
+        run: ./tools/check_query_compat.sh
 
       - name: Verify public interfaces
         run: |
@@ -161,11 +161,11 @@ jobs:
       - name: Smoke-test Native CLI
         run: moon run --target native cmd/just -- --version
 
-      - name: Verify Phase 10 native platform behavior
+      - name: Verify Native platform behavior
         shell: bash
-        run: ./tools/check_phase10_platform.sh
+        run: ./tools/check_platform.sh
 
-      - name: Build and verify Phase 11 release artifact
+      - name: Build and verify Release artifact
         shell: bash
         env:
           MOONJUST_BUILDER_ID: https://github.com/moonbit-community/MoonJust/.github/workflows/ci.yml
@@ -182,7 +182,7 @@ jobs:
           python3 ./tools/release/verify_bundle.py \
             --repo . --archive "$archive" --platform "$platform"
 
-      - name: Upload Phase 11 release artifact
+      - name: Upload Release artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-${{ runner.os }}-${{ runner.arch }}

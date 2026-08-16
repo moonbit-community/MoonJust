@@ -1,0 +1,34 @@
+schema_version = 2
+area = "execution-context"
+upstream = "just 1.57.0"
+status = "implemented"
+plan_exit = "passed"
+report = "docs/reports/PHASE_7_REPORT.md"
+audit = "docs/reports/PHASE_7_REPORT.md"
+
+[contracts]
+filesystem = "Native and policy-aware wasm1 atomic replace, no-overwrite, canonicalization, permissions, and cleanup"
+dotenv = "redacted dotenvy-compatible parser, ordered discovery, ambient precedence, required mode, and command sources"
+invocation = "positional, variadic, recipe option, count, pattern, expression, usage, and stable error model"
+working_directory = "explicit invocation, project, import, module, evaluation, and recipe working directories"
+environment = "CLI variable overrides, shell selection, tempdir, platform rules, and child environment precedence"
+executor_boundary = "invocations and process configuration are validated without granting process execution"
+
+[target_matrix]
+native = "pass: 211 tests"
+wasm1 = "pass: 208 tests"
+native_platforms = "pass: Ubuntu/macOS/Windows on audited main run 31244990807"
+wasm_policy = "pass: writable transaction policy is isolated from the read-only inspect policy"
+
+[evidence]
+native_tests = 211
+wasm_tests = 208
+hostfs_gate = "tools/check_hostfs_policy.sh"
+dotenv_gate = "tools/check_dotenv_compat.sh"
+invocation_gate = "tools/check_invocation_compat.sh"
+working_directory_gate = "tools/check_workdir_compat.sh"
+environment_gate = "tools/check_environment_compat.sh"
+upstream_corpus = "tests/upstream/just-1.57.0/execution-context.toml"
+upstream_covered_registrations = 188
+upstream_unverified_registrations = 0
+provenance = "tests/upstream/NOTICE.md"

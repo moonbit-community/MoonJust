@@ -57,7 +57,7 @@ else
     --source "$previous_stage" --output "$previous_out/moonjust-0.7.0-alpha-$platform.tar.gz"
 fi
 previous=$(find "$previous_out" -maxdepth 1 -type f -name "*$extension" | head -1)
-[ -n "$previous" ] || release_fail "previous Phase 10 archive is missing"
+[ -n "$previous" ] || release_fail "previous release archive is missing"
 
 python3 "$script_dir/rehearse_upgrade.py" \
   --repo "$repo_root" \

@@ -47,7 +47,7 @@ def run_moonx(
         thread.join(timeout=5)
     if (result.returncode == 0) != expect_success:
         raise SystemExit(
-            "Phase 11 MoonX staging error:\n"
+            "Release MoonX staging error:\n"
             f"status={result.returncode}\nstdout={result.stdout}\nstderr={result.stderr}"
         )
     return result
@@ -65,22 +65,22 @@ def main() -> None:
 
     success = run_moonx(registry, args.coordinate, policy, True)
     if not success.stdout.startswith("moonjust "):
-        raise SystemExit("Phase 11 MoonX staging error: version output differs")
+        raise SystemExit("Release MoonX staging error: version output differs")
 
     with tempfile.TemporaryDirectory(prefix="moonjust-bad-registry-") as raw:
         bad_registry = pathlib.Path(raw)
         shutil.copytree(registry / "assets", bad_registry / "assets")
         sidecars = list((bad_registry / "assets").rglob("*.sha256"))
         if len(sidecars) != 1:
-            raise SystemExit("Phase 11 MoonX staging error: expected one checksum sidecar")
+            raise SystemExit("Release MoonX staging error: expected one checksum sidecar")
         sidecars[0].write_text("0" * 64 + "  just.wasm\n")
         failure = run_moonx(bad_registry, args.coordinate, policy, False)
         if "checksum mismatch" not in failure.stderr:
             raise SystemExit(
-                "Phase 11 MoonX staging error: corrupt checksum did not report mismatch"
+                "Release MoonX staging error: corrupt checksum did not report mismatch"
             )
 
-    print("Phase 11 MoonX staging verified: cold download, checksum, execution, corruption rejection")
+    print("Release MoonX staging verified: cold download, checksum, execution, corruption rejection")
 
 
 if __name__ == "__main__":

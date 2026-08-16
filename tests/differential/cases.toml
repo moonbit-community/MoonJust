@@ -1,10 +1,10 @@
-schema_version = 2
+schema_version = 3
 upstream = "just 1.57.0"
 
 [[case]]
 id = "MJ-COMPAT-0001"
 directory = "01-version"
-owner_phase = 6
+owner_area = "query-cli"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -14,7 +14,7 @@ reason = "ADR 0001 requires MoonJust product identity in version output."
 [[case]]
 id = "MJ-COMPAT-0002"
 directory = "02-help"
-owner_phase = 6
+owner_area = "query-cli"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -24,62 +24,62 @@ reason = "ADR 0001 requires independent MoonJust identification; argparse presen
 [[case]]
 id = "MJ-COMPAT-0003"
 directory = "03-missing-justfile"
-owner_phase = 7
+owner_area = "execution-context"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 allowed_difference = "diagnostic-style"
-reason = "Search and working-directory behavior is covered by Phase 7; this expected difference is limited to MoonJust's stable typed diagnostic code and product-specific error wording."
+reason = "Search and working-directory behavior is covered by the execution-context contract; this expected difference is limited to MoonJust's stable typed diagnostic code and product-specific error wording."
 
 [[case]]
 id = "MJ-COMPAT-0004"
 directory = "04-list"
-owner_phase = 6
+owner_area = "query-cli"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
-reason = "Phase 6 list query is byte-compatible with the pinned oracle."
+reason = "The list query is byte-compatible with the pinned oracle."
 
 [[case]]
 id = "MJ-COMPAT-0005"
 directory = "05-evaluate"
-owner_phase = 6
+owner_area = "query-cli"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["evaluate::evaluate"]
-reason = "Phase 6 evaluate query is byte-compatible with the pinned oracle."
+reason = "The evaluate query is byte-compatible with the pinned oracle."
 
 [[case]]
 id = "MJ-COMPAT-0006"
 directory = "06-summary"
-owner_phase = 6
+owner_area = "query-cli"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["summary::summary"]
-reason = "Phase 6 summary query is byte-compatible with the pinned oracle."
+reason = "The summary query is byte-compatible with the pinned oracle."
 
 [[case]]
 id = "MJ-COMPAT-0007"
 directory = "07-dry-run"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
-reason = "Phase 8 executor now matches the pinned dry-run process composition."
+reason = "The executor matches the pinned dry-run process composition."
 
 [[case]]
 id = "MJ-COMPAT-0008"
 directory = "08-explicit-justfile"
-owner_phase = 6
+owner_area = "query-cli"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
-reason = "Phase 6 explicit-file query is byte-compatible with the pinned oracle."
+reason = "The explicit-file query is byte-compatible with the pinned oracle."
 
 [[case]]
 id = "MJ-COMPAT-0009"
 directory = "09-exit-status"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["misc::status_passthrough"]
@@ -88,16 +88,16 @@ reason = "Recipe process exit propagation and diagnostics match the pinned oracl
 [[case]]
 id = "MJ-COMPAT-0010"
 directory = "10-side-effect"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
-reason = "Phase 8 executor now matches the pinned side-effect behavior."
+reason = "The executor matches the pinned side-effect behavior."
 
 [[case]]
 id = "MJ-COMPAT-0011"
 directory = "11-piped-stdin"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -106,7 +106,7 @@ reason = "Live recipe processes inherit piped stdin on native and wasm."
 [[case]]
 id = "MJ-COMPAT-0012"
 directory = "12-merged-stream-order"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = []
@@ -115,7 +115,7 @@ reason = "Command echo and child stdout/stderr preserve observable merged-stream
 [[case]]
 id = "MJ-COMPAT-0013"
 directory = "13-script-default"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["script::no_arguments", "script::no_arguments_with_default_script_interpreter"]
@@ -124,7 +124,7 @@ reason = "The default script interpreter is sh -eu and normal script bodies are 
 [[case]]
 id = "MJ-COMPAT-0014"
 directory = "14-script-explicit"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["script::runs_with_command", "script::with_arguments"]
@@ -133,7 +133,7 @@ reason = "Explicit script attribute interpreter and arguments take precedence."
 [[case]]
 id = "MJ-COMPAT-0015"
 directory = "15-script-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["script::default_script_uses_script_interpreter", "script::no_arguments_with_non_default_script_interpreter"]
@@ -142,7 +142,7 @@ reason = "Module script-interpreter is used when the script attribute has no int
 [[case]]
 id = "MJ-COMPAT-0016"
 directory = "16-script-shebang"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["script::allowed_with_shebang"]
@@ -151,7 +151,7 @@ reason = "Valid shebang recipes execute directly and clean their temporary scrip
 [[case]]
 id = "MJ-COMPAT-0017"
 directory = "17-shell-overrides-default-script"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["script::shell_attribute_overrides_default_script"]
@@ -160,7 +160,7 @@ reason = "The shell attribute forces line execution even when default-script is 
 [[case]]
 id = "MJ-COMPAT-0018"
 directory = "18-live-prefix"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "live", "tree"]
 upstream_tests = []
@@ -172,7 +172,7 @@ reason = "The first recipe output is observable while a later command is still r
 [[case]]
 id = "MJ-COMPAT-0019"
 directory = "19-large-live-output"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -181,7 +181,7 @@ reason = "Live recipe output larger than the capture ceiling is not truncated or
 [[case]]
 id = "MJ-COMPAT-0020"
 directory = "20-module-path-run"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::module_recipes_can_be_run_with_path_syntax"]
@@ -190,7 +190,7 @@ reason = "A colon-separated module recipe resolves in its own compilation and wo
 [[case]]
 id = "MJ-COMPAT-0021"
 directory = "21-module-subcommand-run"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::module_recipes_can_be_run_as_subcommands"]
@@ -199,7 +199,7 @@ reason = "A space-separated module subcommand resolves to the same module recipe
 [[case]]
 id = "MJ-COMPAT-0022"
 directory = "22-module-summary"
-owner_phase = 6
+owner_area = "query-cli"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["summary::depth_first_pre_order", "summary::submodule_recipes"]
@@ -208,7 +208,7 @@ reason = "Summary traverses root and nested module scopes using qualified recipe
 [[case]]
 id = "MJ-COMPAT-0023"
 directory = "23-list-submodules"
-owner_phase = 6
+owner_area = "query-cli"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["list::list_displays_recipes_in_submodules", "list::list_nested_submodule"]
@@ -217,7 +217,7 @@ reason = "List recursively renders submodule recipes with upstream indentation."
 [[case]]
 id = "MJ-COMPAT-0024"
 directory = "24-function-scope"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::uses_parameter", "function_definitions::uses_outer_variable", "function_definitions::parameter_shadows_variable", "function_definitions::shadow_builtin", "function_definitions::trailing_comma"]
@@ -226,7 +226,7 @@ reason = "User functions bind parameters in child scope, capture module assignme
 [[case]]
 id = "MJ-COMPAT-0025"
 directory = "25-function-dump"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::format_no_args", "function_definitions::format_one_arg", "function_definitions::format_two_args"]
@@ -235,7 +235,7 @@ reason = "Dump formatting is stable for zero, one, and multiple function paramet
 [[case]]
 id = "MJ-COMPAT-0026"
 directory = "26-function-override"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::may_reference_overrides"]
@@ -244,7 +244,7 @@ reason = "Function bodies observe command-line assignment overrides."
 [[case]]
 id = "MJ-COMPAT-0027"
 directory = "27-function-assignment-once"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::assignments_are_not_reevaluated", "function_definitions::may_reference_non_const_assignment"]
@@ -253,7 +253,7 @@ reason = "Effectful assignments are materialized once and reused through functio
 [[case]]
 id = "MJ-COMPAT-0028"
 directory = "28-function-context"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::inherits_is_dependency", "function_definitions::inherits_recipe_name"]
@@ -262,7 +262,7 @@ reason = "Function calls inherit the current recipe and dependency context."
 [[case]]
 id = "MJ-COMPAT-0029"
 directory = "29-function-unstable"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::unstable"]
@@ -272,7 +272,7 @@ reason = "User functions require the unstable gate; only stable-code diagnostic 
 [[case]]
 id = "MJ-COMPAT-0030"
 directory = "30-function-duplicate-parameter"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::duplicate_parameter"]
@@ -282,7 +282,7 @@ reason = "Duplicate function parameters fail statically with matching status and
 [[case]]
 id = "MJ-COMPAT-0031"
 directory = "31-function-redefinition"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::redefinition"]
@@ -292,7 +292,7 @@ reason = "Function redefinition fails statically with matching status and side e
 [[case]]
 id = "MJ-COMPAT-0032"
 directory = "32-function-arity"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::wrong_argument_count"]
@@ -302,7 +302,7 @@ reason = "User function argument counts are validated before evaluation."
 [[case]]
 id = "MJ-COMPAT-0033"
 directory = "33-function-undefined-body-variable"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_variable_in_body"]
@@ -312,7 +312,7 @@ reason = "Undefined variables in function bodies fail semantic validation."
 [[case]]
 id = "MJ-COMPAT-0034"
 directory = "34-function-undefined-assignment"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_assignment"]
@@ -322,7 +322,7 @@ reason = "Undefined function calls in assignments fail semantic validation."
 [[case]]
 id = "MJ-COMPAT-0035"
 directory = "35-function-undefined-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_setting"]
@@ -332,7 +332,7 @@ reason = "Undefined function calls in settings fail semantic validation."
 [[case]]
 id = "MJ-COMPAT-0036"
 directory = "36-function-undefined-default"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_recipe_parameter_default"]
@@ -342,7 +342,7 @@ reason = "Undefined function calls in recipe parameter defaults fail semantic va
 [[case]]
 id = "MJ-COMPAT-0037"
 directory = "37-function-undefined-dependency"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_dependency_argument"]
@@ -352,7 +352,7 @@ reason = "Undefined function calls in dependency arguments fail semantic validat
 [[case]]
 id = "MJ-COMPAT-0038"
 directory = "38-function-undefined-confirm"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_confirm_attribute"]
@@ -362,7 +362,7 @@ reason = "Undefined function calls in confirm attributes fail semantic validatio
 [[case]]
 id = "MJ-COMPAT-0039"
 directory = "39-function-undefined-interpolation"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_interpolation"]
@@ -372,7 +372,7 @@ reason = "Undefined function calls in recipe interpolation fail semantic validat
 [[case]]
 id = "MJ-COMPAT-0040"
 directory = "40-function-dotenv"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::has_access_to_env_file"]
@@ -381,7 +381,7 @@ reason = "User functions inherit the dotenv-composed evaluation environment."
 [[case]]
 id = "MJ-COMPAT-0041"
 directory = "41-no-deps-normal"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_dependencies::skip_normal_dependency"]
@@ -390,7 +390,7 @@ reason = "--no-deps suppresses normal dependencies while retaining the requested
 [[case]]
 id = "MJ-COMPAT-0042"
 directory = "42-no-deps-prior"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_dependencies::skip_prior_dependency"]
@@ -399,7 +399,7 @@ reason = "--no-deps suppresses subsequent dependencies."
 [[case]]
 id = "MJ-COMPAT-0043"
 directory = "43-no-deps-multi"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_dependencies::skip_dependency_multi"]
@@ -408,7 +408,7 @@ reason = "--no-deps still executes multiple explicitly requested recipes in orde
 [[case]]
 id = "MJ-COMPAT-0044"
 directory = "44-allow-missing-recipe"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["allow_missing::allow_missing_recipes_in_run_invocation"]
@@ -417,7 +417,7 @@ reason = "--allow-missing ignores an absent run recipe."
 [[case]]
 id = "MJ-COMPAT-0045"
 directory = "45-allow-missing-module"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["allow_missing::allow_missing_modules_in_run_invocation"]
@@ -426,7 +426,7 @@ reason = "--allow-missing ignores an absent module invocation."
 [[case]]
 id = "MJ-COMPAT-0046"
 directory = "46-allow-missing-compile-error"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["allow_missing::allow_missing_does_not_apply_to_compilation_errors"]
@@ -436,7 +436,7 @@ reason = "--allow-missing does not suppress semantic dependency errors."
 [[case]]
 id = "MJ-COMPAT-0047"
 directory = "47-allow-missing-show"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["allow_missing::allow_missing_does_not_apply_to_other_subcommands"]
@@ -445,7 +445,7 @@ reason = "--allow-missing does not alter the byte-compatible query command failu
 [[case]]
 id = "MJ-COMPAT-0048"
 directory = "48-allow-missing-optional-module"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["allow_missing::allow_missing_ignores_absent_optional_module"]
@@ -454,7 +454,7 @@ reason = "--allow-missing composes with absent optional modules."
 [[case]]
 id = "MJ-COMPAT-0049"
 directory = "49-one"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["run::one_flag_only_allows_one_invocation"]
@@ -463,7 +463,7 @@ reason = "--one rejects multiple command-line recipe invocations before executio
 [[case]]
 id = "MJ-COMPAT-0050"
 directory = "50-default-list-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["default::default_list_lists_recipes", "default::default_list_allows_default_recipe_with_arguments"]
@@ -472,7 +472,7 @@ reason = "The module default-list setting lists recipes instead of requiring a d
 [[case]]
 id = "MJ-COMPAT-0051"
 directory = "51-default-list-flag"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["default::default_list_flag_lists_recipes"]
@@ -481,7 +481,7 @@ reason = "--default-list lists recipes when no invocation is supplied."
 [[case]]
 id = "MJ-COMPAT-0052"
 directory = "52-default-list-explicit"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["default::default_list_does_not_override_explicit_recipe", "default::default_list_flag_does_not_override_explicit_recipe"]
@@ -490,7 +490,7 @@ reason = "Default-list behavior does not replace an explicit recipe invocation."
 [[case]]
 id = "MJ-COMPAT-0053"
 directory = "53-default-list-false"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["default::default_list_false_runs_default_recipe"]
@@ -499,7 +499,7 @@ reason = "An explicit false default-list setting runs the normal default recipe.
 [[case]]
 id = "MJ-COMPAT-0054"
 directory = "54-evaluate-module"
-owner_phase = 6
+owner_area = "query-cli"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["evaluate::evaluate_variable_in_submodule"]
@@ -508,7 +508,7 @@ reason = "--evaluate resolves a colon-qualified variable in its module scope."
 [[case]]
 id = "MJ-COMPAT-0055"
 directory = "55-command-long"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::long"]
@@ -517,7 +517,7 @@ reason = "--command executes a direct child with live standard streams."
 [[case]]
 id = "MJ-COMPAT-0056"
 directory = "56-command-short"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::short"]
@@ -526,7 +526,7 @@ reason = "-c is byte-compatible with the long command form."
 [[case]]
 id = "MJ-COMPAT-0057"
 directory = "57-command-dotenv"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::env_is_loaded"]
@@ -535,7 +535,7 @@ reason = "Command mode receives the composed dotenv environment."
 [[case]]
 id = "MJ-COMPAT-0058"
 directory = "58-command-exports"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::exports_are_available"]
@@ -544,7 +544,7 @@ reason = "Command mode receives exported justfile assignments."
 [[case]]
 id = "MJ-COMPAT-0059"
 directory = "59-command-set"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::set_overrides_work"]
@@ -553,7 +553,7 @@ reason = "Command mode applies variable overrides before exporting values."
 [[case]]
 id = "MJ-COMPAT-0060"
 directory = "60-shell-command"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::run_in_shell"]
@@ -562,7 +562,7 @@ reason = "--shell-command executes the command text with the selected recipe she
 [[case]]
 id = "MJ-COMPAT-0061"
 directory = "61-command-exit"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::exit_status"]
@@ -571,7 +571,7 @@ reason = "A failed command propagates status and diagnostics exactly."
 [[case]]
 id = "MJ-COMPAT-0062"
 directory = "62-command-exit-code"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::command_exit_code_is_propagated"]
@@ -580,7 +580,7 @@ reason = "An arbitrary nonzero command status and diagnostics match exactly."
 [[case]]
 id = "MJ-COMPAT-0063"
 directory = "63-command-lazy"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::dont_evaluate_unnecessary_variables"]
@@ -589,7 +589,7 @@ reason = "Command mode resolves only exported assignments and leaves unrelated b
 [[case]]
 id = "MJ-COMPAT-0064"
 directory = "64-command-cwd"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::working_directory_is_correct"]
@@ -599,7 +599,7 @@ reason = "Command mode runs from the discovered justfile directory."
 [[case]]
 id = "MJ-COMPAT-0065"
 directory = "65-command-not-found"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::command_not_found"]
@@ -608,7 +608,7 @@ reason = "Command invocation failure matches status, diagnostics, and side effec
 [[case]]
 id = "MJ-COMPAT-0066"
 directory = "66-command-no-binary"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::no_binary"]
@@ -618,7 +618,7 @@ reason = "A missing command argument is rejected at the CLI boundary."
 [[case]]
 id = "MJ-COMPAT-0067"
 directory = "67-quiet-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::quiet_setting"]
@@ -627,7 +627,7 @@ reason = "The module quiet setting suppresses command echo without discarding ch
 [[case]]
 id = "MJ-COMPAT-0068"
 directory = "68-no-quiet-attribute"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::quiet_setting_with_no_quiet_attribute"]
@@ -636,7 +636,7 @@ reason = "The no-quiet attribute restores command echo suppressed by the module 
 [[case]]
 id = "MJ-COMPAT-0069"
 directory = "69-quiet-recipe-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::quiet_setting_with_quiet_recipe"]
@@ -645,7 +645,7 @@ reason = "A quiet recipe under set quiet still preserves child stdout."
 [[case]]
 id = "MJ-COMPAT-0070"
 directory = "70-quiet-line-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::quiet_setting_with_quiet_line"]
@@ -654,7 +654,7 @@ reason = "A quiet line under set quiet still preserves child stdout."
 [[case]]
 id = "MJ-COMPAT-0071"
 directory = "71-no-quiet-quiet-recipe"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::quiet_setting_with_no_quiet_attribute_and_quiet_recipe"]
@@ -663,7 +663,7 @@ reason = "A quiet recipe marker remains stronger than no-quiet while child outpu
 [[case]]
 id = "MJ-COMPAT-0072"
 directory = "72-no-quiet-quiet-line"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::quiet_setting_with_no_quiet_attribute_and_quiet_line"]
@@ -672,7 +672,7 @@ reason = "A quiet line marker remains stronger than no-quiet while child output 
 [[case]]
 id = "MJ-COMPAT-0073"
 directory = "73-cli-quiet-streams"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::no_stdout", "quiet::stderr", "quiet::command_echoing"]
@@ -681,7 +681,7 @@ reason = "One command exercises CLI quiet suppression of echo, child stdout, and
 [[case]]
 id = "MJ-COMPAT-0074"
 directory = "74-cli-quiet-failure"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["quiet::error_messages"]
@@ -690,7 +690,7 @@ reason = "CLI quiet suppresses failure diagnostics while preserving the child ex
 [[case]]
 id = "MJ-COMPAT-0075"
 directory = "75-no-exit-attribute"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_exit_message::recipe_exit_message_suppressed"]
@@ -699,7 +699,7 @@ reason = "The no-exit-message attribute suppresses an ordinary recipe failure me
 [[case]]
 id = "MJ-COMPAT-0076"
 directory = "76-no-exit-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_exit_message::recipe_exit_message_setting_suppressed"]
@@ -708,7 +708,7 @@ reason = "The module no-exit-message setting suppresses ordinary recipe failure 
 [[case]]
 id = "MJ-COMPAT-0077"
 directory = "77-exit-message-override"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_exit_message::exit_message_override_no_exit_setting"]
@@ -717,7 +717,7 @@ reason = "The exit-message attribute overrides module suppression exactly."
 [[case]]
 id = "MJ-COMPAT-0078"
 directory = "78-no-exit-script"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_exit_message::shebang_exit_message_suppressed"]
@@ -726,7 +726,7 @@ reason = "The no-exit-message attribute also suppresses a failing shebang script
 [[case]]
 id = "MJ-COMPAT-0079"
 directory = "79-exit-message-conflict"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_exit_message::exit_message_and_no_exit_message_compile_forbidden"]
@@ -736,7 +736,7 @@ reason = "Mutually exclusive exit-message attributes are rejected with stable Mo
 [[case]]
 id = "MJ-COMPAT-0080"
 directory = "80-exit-message-quiet-recipe"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_exit_message::exit_message"]
@@ -745,7 +745,7 @@ reason = "The exit-message attribute forces the official diagnostic for a quiet 
 [[case]]
 id = "MJ-COMPAT-0081"
 directory = "81-positional-shell-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::shell"]
@@ -754,7 +754,7 @@ reason = "The positional-arguments setting supplies recipe name as shell $0 and 
 [[case]]
 id = "MJ-COMPAT-0082"
 directory = "82-positional-shell-attribute"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::shell_with_attribute"]
@@ -763,7 +763,7 @@ reason = "The positional-arguments recipe attribute has the same ordinary-line b
 [[case]]
 id = "MJ-COMPAT-0083"
 directory = "83-positional-variadic-shell"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::variadic_shell", "positional_arguments::variadic_arguments_are_separate"]
@@ -772,7 +772,7 @@ reason = "One invocation asserts variadic values remain separate in $1, $2, and 
 [[case]]
 id = "MJ-COMPAT-0084"
 directory = "84-positional-shebang-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::shebang"]
@@ -781,7 +781,7 @@ reason = "The positional-arguments setting appends values after a shebang script
 [[case]]
 id = "MJ-COMPAT-0085"
 directory = "85-positional-shebang-attribute"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::shebang_with_attribute"]
@@ -790,7 +790,7 @@ reason = "The positional-arguments attribute appends values after a shebang scri
 [[case]]
 id = "MJ-COMPAT-0086"
 directory = "86-positional-variadic-shebang"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::variadic_shebang"]
@@ -799,7 +799,7 @@ reason = "Variadic values remain separate when appended to a shebang script."
 [[case]]
 id = "MJ-COMPAT-0087"
 directory = "87-positional-default"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::default_arguments"]
@@ -808,7 +808,7 @@ reason = "Evaluated recipe defaults participate in positional shell arguments."
 [[case]]
 id = "MJ-COMPAT-0088"
 directory = "88-positional-empty-variadic"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["positional_arguments::empty_variadic_is_undefined"]
@@ -817,7 +817,7 @@ reason = "An empty variadic binding does not synthesize shell $1."
 [[case]]
 id = "MJ-COMPAT-0089"
 directory = "89-no-cd-shell"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_cd::shell"]
@@ -827,7 +827,7 @@ reason = "The no-cd recipe attribute runs an ordinary recipe in the invocation d
 [[case]]
 id = "MJ-COMPAT-0090"
 directory = "90-no-cd-shebang"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_cd::shebang"]
@@ -837,7 +837,7 @@ reason = "The no-cd recipe attribute runs a shebang recipe in the invocation dir
 [[case]]
 id = "MJ-COMPAT-0091"
 directory = "91-no-cd-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_cd::setting_applies_to_recipes"]
@@ -847,7 +847,7 @@ reason = "The module no-cd setting selects the invocation directory for recipes.
 [[case]]
 id = "MJ-COMPAT-0092"
 directory = "92-no-cd-working-directory-override"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_cd::working_directory_attribute_overrides_setting"]
@@ -856,7 +856,7 @@ reason = "A recipe working-directory attribute overrides the module no-cd settin
 [[case]]
 id = "MJ-COMPAT-0093"
 directory = "93-no-cd-evaluator-path"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_cd::evaluator_paths_ignore_setting"]
@@ -866,7 +866,7 @@ reason = "The module no-cd setting does not move global expression evaluation in
 [[case]]
 id = "MJ-COMPAT-0094"
 directory = "94-metadata-execution"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["attributes::multiple_metadata_attributes", "attributes::multiple_metadata_attributes_with_multiple_args"]
@@ -875,7 +875,7 @@ reason = "Repeated metadata attributes do not alter recipe execution or exit dia
 [[case]]
 id = "MJ-COMPAT-0095"
 directory = "95-metadata-json"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["json::single_metadata_attribute", "json::multiple_metadata_attributes", "json::multiple_metadata_attributes_with_multiple_arguments"]
@@ -884,7 +884,7 @@ reason = "JSON inspection preserves metadata attribute boundaries, ordering, and
 [[case]]
 id = "MJ-COMPAT-0096"
 directory = "96-metadata-missing-argument"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["attributes::expected_metadata_attribute_argument"]
@@ -894,7 +894,7 @@ reason = "A metadata attribute without arguments is rejected; MoonJust retains i
 [[case]]
 id = "MJ-COMPAT-0097"
 directory = "97-explain"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["explain::explain_recipe"]
@@ -903,7 +903,7 @@ reason = "Explain writes the recipe documentation to stderr immediately before t
 [[case]]
 id = "MJ-COMPAT-0098"
 directory = "98-explain-environment"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -912,7 +912,7 @@ reason = "JUST_EXPLAIN enables the same execution behavior as the CLI flag."
 [[case]]
 id = "MJ-COMPAT-0099"
 directory = "99-explain-dependency-order"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = []
@@ -921,7 +921,7 @@ reason = "Dependency and parent documentation are emitted at each task boundary 
 [[case]]
 id = "MJ-COMPAT-0100"
 directory = "100-highlight-run-colors"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["misc::run_colors", "config::tests::highlight_yes"]
@@ -930,7 +930,7 @@ reason = "Forced color highlights command echo and the verbose recipe banner wit
 [[case]]
 id = "MJ-COMPAT-0101"
 directory = "101-highlight-yes-no"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["misc::no_highlight", "config::tests::highlight_yes_no"]
@@ -939,7 +939,7 @@ reason = "A trailing no-highlight disables command styling while preserving the 
 [[case]]
 id = "MJ-COMPAT-0102"
 directory = "102-no-highlight-script"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["misc::no_highlight_is_respected_for_script_echoing"]
@@ -948,7 +948,7 @@ reason = "Script echoing respects no-highlight even when a command color is sele
 [[case]]
 id = "MJ-COMPAT-0103"
 directory = "103-highlight-default"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_default"]
@@ -957,7 +957,7 @@ reason = "Highlighting is enabled by default whenever color output is active."
 [[case]]
 id = "MJ-COMPAT-0104"
 directory = "104-highlight-no"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_no"]
@@ -966,7 +966,7 @@ reason = "A single no-highlight option disables command styling."
 [[case]]
 id = "MJ-COMPAT-0105"
 directory = "105-highlight-no-yes"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_no_yes"]
@@ -975,7 +975,7 @@ reason = "A trailing highlight option overrides an earlier no-highlight option."
 [[case]]
 id = "MJ-COMPAT-0106"
 directory = "106-highlight-no-yes-no"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_no_yes_no"]
@@ -984,7 +984,7 @@ reason = "Repeated highlight toggles use the final option."
 [[case]]
 id = "MJ-COMPAT-0107"
 directory = "107-no-highlight-environment"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -993,7 +993,7 @@ reason = "JUST_NO_HIGHLIGHT disables command styling without disabling color glo
 [[case]]
 id = "MJ-COMPAT-0108"
 directory = "108-highlight-environment"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -1002,7 +1002,7 @@ reason = "JUST_HIGHLIGHT enables command styling under forced color."
 [[case]]
 id = "MJ-COMPAT-0109"
 directory = "109-ceiling-run"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["ceiling::justfile_run_search_stops_at_ceiling_dir"]
@@ -1013,7 +1013,7 @@ reason = "Search stops at the requested ceiling; MoonJust retains its typed miss
 [[case]]
 id = "MJ-COMPAT-0110"
 directory = "110-ceiling-environment"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["ceiling::ceiling_can_be_passed_as_environment_variable"]
@@ -1024,7 +1024,7 @@ reason = "JUST_CEILING has the same search boundary behavior as the CLI option."
 [[case]]
 id = "MJ-COMPAT-0111"
 directory = "111-ceiling-init"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["ceiling::justfile_init_search_stops_at_ceiling_dir"]
@@ -1034,7 +1034,7 @@ reason = "Init creates the canonical justfile in the invocation directory below 
 [[case]]
 id = "MJ-COMPAT-0112"
 directory = "112-global-macos"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["global::macos"]
@@ -1043,7 +1043,7 @@ reason = "macOS global discovery loads the justfile under Library/Application Su
 [[case]]
 id = "MJ-COMPAT-0113"
 directory = "113-global-home"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["global::unix"]
@@ -1052,7 +1052,7 @@ reason = "Unix global discovery falls back to a justfile in HOME."
 [[case]]
 id = "MJ-COMPAT-0114"
 directory = "114-global-case-insensitive"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["global::case_insensitive"]
@@ -1061,7 +1061,7 @@ reason = "Global filename matching is ASCII case-insensitive."
 [[case]]
 id = "MJ-COMPAT-0115"
 directory = "115-global-path-prefix"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["global::forbid_search_path_prefix"]
@@ -1070,7 +1070,7 @@ reason = "Path-prefixed invocations are rejected before global justfile executio
 [[case]]
 id = "MJ-COMPAT-0116"
 directory = "116-global-priority"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
@@ -1079,7 +1079,7 @@ reason = "The platform configuration justfile takes precedence over HOME fallbac
 [[case]]
 id = "MJ-COMPAT-0117"
 directory = "117-fallback-subdir"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["fallback::fallback_from_subdir_bugfix"]
@@ -1088,7 +1088,7 @@ reason = "A path-prefixed recipe searches its subdirectory and falls back to its
 [[case]]
 id = "MJ-COMPAT-0118"
 directory = "118-fallback-parent"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["fallback::runs_recipe_in_parent_if_not_found_in_current", "fallback::setting_accepts_value"]
@@ -1098,7 +1098,7 @@ reason = "Boolean and valueless fallback settings run a missing recipe from the 
 [[case]]
 id = "MJ-COMPAT-0119"
 directory = "119-fallback-multiple"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["fallback::multiple_levels_of_fallback_work"]
@@ -1108,7 +1108,7 @@ reason = "Fallback continues through multiple parent justfiles until the recipe 
 [[case]]
 id = "MJ-COMPAT-0120"
 directory = "120-fallback-disabled"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["fallback::requires_setting", "fallback::prints_correct_error_message_when_recipe_not_found"]
@@ -1118,7 +1118,7 @@ reason = "Without the fallback setting the current justfile remains authoritativ
 [[case]]
 id = "MJ-COMPAT-0121"
 directory = "121-fallback-explicit"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["fallback::doesnt_work_with_justfile", "fallback::doesnt_work_with_justfile_and_working_directory"]
@@ -1128,7 +1128,7 @@ reason = "Explicit justfile selection disables parent fallback."
 [[case]]
 id = "MJ-COMPAT-0122"
 directory = "122-fallback-module"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["fallback::works_with_modules"]
@@ -1138,7 +1138,7 @@ reason = "Module recipe lookup can fall back from a subdirectory justfile to the
 [[case]]
 id = "MJ-COMPAT-0123"
 directory = "123-guard-halt"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["guards::guard_lines_halt_execution"]
@@ -1147,7 +1147,7 @@ reason = "A guard command exiting one stops the current recipe successfully with
 [[case]]
 id = "MJ-COMPAT-0124"
 directory = "124-guard-success"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["guards::guard_lines_have_no_effect_if_successful"]
@@ -1156,7 +1156,7 @@ reason = "A successful guard permits the remaining recipe lines to run."
 [[case]]
 id = "MJ-COMPAT-0125"
 directory = "125-guard-reserved-code"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["guards::exit_codes_above_one_are_reserved"]
@@ -1165,7 +1165,7 @@ reason = "Reserved guard exit codes match the official category, code, and diagn
 [[case]]
 id = "MJ-COMPAT-0126"
 directory = "126-guard-infallible-conflict"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["guards::guard_sigil_may_not_be_used_with_infallible_sigil"]
@@ -1175,7 +1175,7 @@ reason = "Guard and infallible sigils are rejected during semantic analysis with
 [[case]]
 id = "MJ-COMPAT-0127"
 directory = "127-guard-disabled"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["guards::guard_lines_are_ignored_without_setting"]
@@ -1184,7 +1184,7 @@ reason = "Without the guards setting, a leading question mark remains ordinary s
 [[case]]
 id = "MJ-COMPAT-0128"
 directory = "128-ignore-comments"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["ignore_comments::ignore_comments_in_recipe"]
@@ -1193,7 +1193,7 @@ reason = "The ignore-comments setting suppresses ordinary recipe comment lines."
 [[case]]
 id = "MJ-COMPAT-0129"
 directory = "129-comments-default"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["ignore_comments::dont_ignore_comments_in_recipe_by_default"]
@@ -1202,7 +1202,7 @@ reason = "Recipe comments remain shell commands by default, preserving their ech
 [[case]]
 id = "MJ-COMPAT-0130"
 directory = "130-ignore-comments-shell"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["ignore_comments::ignore_recipe_comments_with_shell_setting"]
@@ -1211,7 +1211,7 @@ reason = "Ignoring comments is independent of the selected shell executable."
 [[case]]
 id = "MJ-COMPAT-0131"
 directory = "131-ignore-comments-evaluation"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["ignore_comments::dont_evaluate_comments", "ignore_comments::dont_analyze_comments"]
@@ -1220,7 +1220,7 @@ reason = "Ignored comments do not evaluate or semantically analyze interpolation
 [[case]]
 id = "MJ-COMPAT-0132"
 directory = "132-guard-continuation"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["guards::sigils_are_ignored_on_continuation_lines"]
@@ -1229,7 +1229,7 @@ reason = "Sigils on physical continuation lines remain ordinary shell text."
 [[case]]
 id = "MJ-COMPAT-0133"
 directory = "133-guard-after-comment"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["guards::sigils_are_recognized_after_ignored_comments"]
@@ -1239,7 +1239,7 @@ reason = "An ignored comment does not turn the following physical line into a co
 [[case]]
 id = "MJ-COMPAT-0134"
 directory = "134-ignore-comment-continuation"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["ignore_comments::continuations_with_echo_comments_false"]
@@ -1248,7 +1248,7 @@ reason = "An ignored comment line cannot consume the following command through a
 [[case]]
 id = "MJ-COMPAT-0135"
 directory = "135-comment-continuation-default"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["ignore_comments::continuations_with_echo_comments_true"]
@@ -1257,7 +1257,7 @@ reason = "When comment ignoring is disabled, a comment continuation consumes the
 [[case]]
 id = "MJ-COMPAT-0136"
 directory = "136-comment-continuation-evaluation"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["ignore_comments::ignore_comments_evaluates_comments_on_continuation_lines"]
@@ -1267,7 +1267,7 @@ reason = "A comment on a continuation line is evaluated and reports the same und
 [[case]]
 id = "MJ-COMPAT-0137"
 directory = "137-line-continuation"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["misc::line_continuation_no_space"]
@@ -1276,7 +1276,7 @@ reason = "Backslash-continued recipe lines concatenate without inserting whitesp
 [[case]]
 id = "MJ-COMPAT-0138"
 directory = "138-line-continuation-space"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["misc::line_continuation_with_space"]
@@ -1285,7 +1285,7 @@ reason = "Indentation beyond the recipe prefix remains part of a continued shell
 [[case]]
 id = "MJ-COMPAT-0139"
 directory = "139-line-continuation-quoted"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["misc::line_continuation_with_quoted_space"]
@@ -1294,7 +1294,7 @@ reason = "Quoted continuation text preserves internal spaces while removing phys
 [[case]]
 id = "MJ-COMPAT-0140"
 directory = "140-indentation-spaces-check"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_two_spaces"]
@@ -1303,7 +1303,7 @@ reason = "Format check accepts an already formatted two-space recipe body."
 [[case]]
 id = "MJ-COMPAT-0141"
 directory = "141-indentation-tab-check"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_tab"]
@@ -1312,7 +1312,7 @@ reason = "Format check accepts an already formatted tab-indented recipe body."
 [[case]]
 id = "MJ-COMPAT-0142"
 directory = "142-indentation-dump"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::dump_indentation_two_spaces"]
@@ -1321,7 +1321,7 @@ reason = "Dump applies the explicit recipe indentation override."
 [[case]]
 id = "MJ-COMPAT-0143"
 directory = "143-indentation-env"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_env"]
@@ -1330,7 +1330,7 @@ reason = "JUST_INDENTATION supplies the dump indentation when no CLI override is
 [[case]]
 id = "MJ-COMPAT-0144"
 directory = "144-indentation-setting-dump"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_setting_dump"]
@@ -1339,7 +1339,7 @@ reason = "A plain string indentation setting controls dump output."
 [[case]]
 id = "MJ-COMPAT-0145"
 directory = "145-indentation-override"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_flag_overrides_setting_dump"]
@@ -1348,7 +1348,7 @@ reason = "The CLI indentation override takes precedence over the justfile settin
 [[case]]
 id = "MJ-COMPAT-0146"
 directory = "146-indentation-invalid"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_setting_invalid_values"]
@@ -1358,7 +1358,7 @@ reason = "Non-whitespace indentation is rejected with the same setting category 
 [[case]]
 id = "MJ-COMPAT-0147"
 directory = "147-indentation-expression"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_setting_must_be_string_literal"]
@@ -1368,7 +1368,7 @@ reason = "The indentation setting requires a plain string literal rather than an
 [[case]]
 id = "MJ-COMPAT-0148"
 directory = "148-indentation-setting-format"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_setting_format"]
@@ -1377,7 +1377,7 @@ reason = "Format writes the canonical file using the active indentation setting.
 [[case]]
 id = "MJ-COMPAT-0149"
 directory = "149-indentation-dump-tab"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::dump_indentation_tab"]
@@ -1386,7 +1386,7 @@ reason = "Dump applies an explicit tab indentation override."
 [[case]]
 id = "MJ-COMPAT-0150"
 directory = "150-working-directory-backtick"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_backticks"]
@@ -1395,7 +1395,7 @@ reason = "The module working-directory setting applies while evaluating global b
 [[case]]
 id = "MJ-COMPAT-0151"
 directory = "151-working-directory-shell"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_shell_function"]
@@ -1404,7 +1404,7 @@ reason = "The module working-directory setting applies while evaluating global s
 [[case]]
 id = "MJ-COMPAT-0152"
 directory = "152-working-directory-module-backtick"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_backticks_in_submodules"]
@@ -1413,7 +1413,7 @@ reason = "Submodule backticks resolve the setting relative to the submodule dire
 [[case]]
 id = "MJ-COMPAT-0153"
 directory = "153-working-directory-module-shell"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_shell_function_in_submodules"]
@@ -1422,7 +1422,7 @@ reason = "Submodule shell functions resolve the setting relative to the submodul
 [[case]]
 id = "MJ-COMPAT-0154"
 directory = "154-lazy-unused"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["lazy::unused_assignment_not_evaluated"]
@@ -1431,7 +1431,7 @@ reason = "Lazy execution skips an unused effectful assignment."
 [[case]]
 id = "MJ-COMPAT-0155"
 directory = "155-lazy-default-eager"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::unused_assignments_are_evaluated_without_lazy"]
@@ -1441,7 +1441,7 @@ reason = "Without the lazy setting, an unused failing backtick is still evaluate
 [[case]]
 id = "MJ-COMPAT-0156"
 directory = "156-lazy-used-transitive"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::used_assignment_evaluated", "lazy::transitively_used_assignment_evaluated", "lazy::assignment_in_body_interpolation_evaluated"]
@@ -1451,7 +1451,7 @@ reason = "Recipe interpolation evaluates the full transitive assignment closure.
 [[case]]
 id = "MJ-COMPAT-0157"
 directory = "157-lazy-dependencies"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["lazy::assignment_used_in_dependency_argument_evaluated", "lazy::assignment_used_in_dependency_evaluated", "lazy::assignment_used_in_transitive_dependency_evaluated"]
@@ -1460,7 +1460,7 @@ reason = "Dependency arguments and transitive dependency bodies share one lazy a
 [[case]]
 id = "MJ-COMPAT-0158"
 directory = "158-lazy-parameter-default"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::assignment_used_in_parameter_default_evaluated"]
@@ -1470,7 +1470,7 @@ reason = "A selected recipe parameter default participates in the lazy assignmen
 [[case]]
 id = "MJ-COMPAT-0159"
 directory = "159-lazy-function-once"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["lazy::assignment_used_in_function_body_is_only_evaluated_once"]
@@ -1479,7 +1479,7 @@ reason = "Repeated user-function calls share one evaluation of a referenced lazy
 [[case]]
 id = "MJ-COMPAT-0160"
 directory = "160-lazy-export"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["lazy::exported_assignment_is_evaluated", "lazy::unconditionally_evaluated_assignment_dependencies_are_evaluated"]
@@ -1488,7 +1488,7 @@ reason = "Explicitly exported assignments and their dependencies are evaluated u
 [[case]]
 id = "MJ-COMPAT-0161"
 directory = "161-lazy-set-export"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["lazy::assignment_with_set_export_is_evaluated"]
@@ -1497,7 +1497,7 @@ reason = "The export setting makes all assignments unconditional under lazy eval
 [[case]]
 id = "MJ-COMPAT-0162"
 directory = "162-lazy-eager"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::eager_assignments_are_evaluated"]
@@ -1507,7 +1507,7 @@ reason = "An eager assignment is evaluated even when no selected recipe referenc
 [[case]]
 id = "MJ-COMPAT-0163"
 directory = "163-lazy-eager-dump"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::eager_assignment_dump"]
@@ -1516,7 +1516,7 @@ reason = "Dump preserves the eager assignment modifier."
 [[case]]
 id = "MJ-COMPAT-0164"
 directory = "164-lazy-union-override"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["lazy::multiple_invocations_evaluate_union", "lazy::overridden_assignment_dependencies_are_not_evaluated"]
@@ -1525,7 +1525,7 @@ reason = "Multiple invocations use the union of references while an override cut
 [[case]]
 id = "MJ-COMPAT-0165"
 directory = "165-lazy-submodule"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["lazy::submodule_lazy_is_respected"]
@@ -1534,7 +1534,7 @@ reason = "Lazy assignment selection is applied independently in a selected submo
 [[case]]
 id = "MJ-COMPAT-0166"
 directory = "166-dotenv-command-setting"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_setting"]
@@ -1543,7 +1543,7 @@ reason = "The dotenv-command setting loads captured stdout into the recipe envir
 [[case]]
 id = "MJ-COMPAT-0167"
 directory = "167-dotenv-command-option"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_option"]
@@ -1552,7 +1552,7 @@ reason = "The CLI dotenv-command option overrides the root module source."
 [[case]]
 id = "MJ-COMPAT-0168"
 directory = "168-dotenv-command-option-multiple"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_option_multiple"]
@@ -1561,7 +1561,7 @@ reason = "Repeated CLI dotenv commands run in order and merge their output."
 [[case]]
 id = "MJ-COMPAT-0169"
 directory = "169-dotenv-command-list"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_list_runs_each_and_merges", "dotenv::command_list_last_wins"]
@@ -1570,7 +1570,7 @@ reason = "A list setting runs every command and later values replace earlier com
 [[case]]
 id = "MJ-COMPAT-0170"
 directory = "170-dotenv-command-ambient"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_does_not_override_environment"]
@@ -1579,7 +1579,7 @@ reason = "Ambient environment entries win unless dotenv-override is enabled."
 [[case]]
 id = "MJ-COMPAT-0171"
 directory = "171-dotenv-command-override"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_with_override", "dotenv::command_composes_with_dotenv_override_setting"]
@@ -1588,7 +1588,7 @@ reason = "The dotenv-override setting allows command output to replace ambient v
 [[case]]
 id = "MJ-COMPAT-0172"
 directory = "172-dotenv-command-failure"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["dotenv::command_failure"]
@@ -1597,7 +1597,7 @@ reason = "A failed dotenv command aborts planning with the same status and diagn
 [[case]]
 id = "MJ-COMPAT-0173"
 directory = "173-dotenv-command-dry-run"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_is_not_executed_in_dry_run"]
@@ -1606,7 +1606,7 @@ reason = "Dry-run skips dotenv commands and still prints the planned recipe comm
 [[case]]
 id = "MJ-COMPAT-0174"
 directory = "174-dotenv-command-exit-code"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["dotenv::dotenv_command_exit_code_is_propagated"]
@@ -1615,7 +1615,7 @@ reason = "The dotenv command exit code and diagnostic match the official CLI bou
 [[case]]
 id = "MJ-COMPAT-0175"
 directory = "175-dotenv-command-modules"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["dotenv::command_only_runs_in_root_module"]
@@ -1624,7 +1624,7 @@ reason = "CLI dotenv commands apply only to root while submodules use their own 
 [[case]]
 id = "MJ-COMPAT-0176"
 directory = "176-dotenv-command-path-conflict"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["dotenv::command_conflicts_with_dotenv_path_setting"]
@@ -1634,7 +1634,7 @@ reason = "dotenv-command and dotenv-path settings are rejected as incompatible."
 [[case]]
 id = "MJ-COMPAT-0177"
 directory = "177-dotenv-command-required-conflict"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["dotenv::command_conflicts_with_dotenv_required_setting"]
@@ -1644,7 +1644,7 @@ reason = "dotenv-command and dotenv-required settings are rejected as incompatib
 [[case]]
 id = "MJ-COMPAT-0178"
 directory = "178-dotenv-command-filename-option-conflict"
-owner_phase = 7
+owner_area = "execution-context"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_filename"]
@@ -1654,7 +1654,7 @@ reason = "The CLI rejects dotenv-command combined with dotenv-filename before lo
 [[case]]
 id = "MJ-COMPAT-0179"
 directory = "179-dotenv-command-path-option-conflict"
-owner_phase = 7
+owner_area = "execution-context"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_path"]
@@ -1664,7 +1664,7 @@ reason = "The CLI rejects dotenv-command combined with dotenv-path before loadin
 [[case]]
 id = "MJ-COMPAT-0180"
 directory = "180-dotenv-command-no-dotenv-conflict"
-owner_phase = 7
+owner_area = "execution-context"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_no_dotenv"]
@@ -1674,7 +1674,7 @@ reason = "The CLI rejects dotenv-command combined with no-dotenv before loading 
 [[case]]
 id = "MJ-COMPAT-0181"
 directory = "181-dotenv-command-json"
-owner_phase = 8
+owner_area = "executor"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["json::dotenv_command"]
@@ -1683,7 +1683,7 @@ reason = "JSON dump exposes the normalized dotenv-command setting without execut
 [[case]]
 id = "MJ-COMPAT-0182"
 directory = "182-dotenv-command-undefined-variable"
-owner_phase = 8
+owner_area = "executor"
 status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["settings::undefined_variable_in_dotenv_command"]

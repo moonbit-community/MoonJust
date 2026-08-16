@@ -1,5 +1,5 @@
 ///|
-/// Names of pure builtins supported by the Phase 5 evaluator.
+/// Names of pure builtins supported by the evaluator.
 type Value = @value.Value
 
 ///|
@@ -245,7 +245,7 @@ pub fn registry() -> ArrayView[BuiltinSpec] {
       aliases: builtin_aliases(name),
       capabilities,
       targets: [Native, Wasm1],
-      evidence: "tests/upstream/just-1.57.0/phase-5-builtins.jsonl#" + name,
+      evidence: "tests/upstream/just-1.57.0/builtins.jsonl#" + name,
     }
   })
 }

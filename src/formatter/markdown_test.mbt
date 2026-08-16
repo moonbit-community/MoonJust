@@ -59,7 +59,7 @@ test "markdown tangle requires matching fence character and minimum length" {
 }
 
 ///|
-test "phase 3 markdown corpus preserves CommonMark fence boundaries" {
+test "markdown corpus preserves CommonMark fence boundaries" {
   let text = "before\n```text\njust-not-selected: \n```\n" +
     "~~~just\nselected: \n    echo ok\n~~~\n" +
     "<!--\n```just\ncommented: \n```\n-->\n"
@@ -75,7 +75,7 @@ test "phase 3 markdown corpus preserves CommonMark fence boundaries" {
 }
 
 ///|
-test "phase 3 markdown hardening rejects line and byte budgets" {
+test "markdown hardening rejects line and byte budgets" {
   let source = @source.Source::from_text(
     @source.SourceId::new(611),
     "large.md",
@@ -109,7 +109,7 @@ fn visible_tangled_lines(text : String, id : Int) -> Array[String] {
 }
 
 ///|
-test "phase 10 markdown matches pinned upstream info string corpus" {
+test "markdown matches pinned upstream info string corpus" {
   assert_eq(
     visible_tangled_lines(
       "```just foo\none:\n```\n``` just\ntwo:\n```\n" +
@@ -121,7 +121,7 @@ test "phase 10 markdown matches pinned upstream info string corpus" {
 }
 
 ///|
-test "phase 10 markdown matches pinned upstream fence corpus" {
+test "markdown matches pinned upstream fence corpus" {
   assert_eq(
     visible_tangled_lines(
       "~~~just\ntilde:\n~~~\n``just\nignored\n" +
@@ -138,7 +138,7 @@ test "phase 10 markdown matches pinned upstream fence corpus" {
 }
 
 ///|
-test "phase 10 markdown rejects CommonMark nested and invisible blocks" {
+test "markdown rejects CommonMark nested and invisible blocks" {
   let text = "~~~~\n```just\nouter-fence:\n```\n~~~~\n" +
     "<!--\n```just\ncomment:\n```\n-->\n" +
     "> ```just\n> quote:\n> ```\n" +
