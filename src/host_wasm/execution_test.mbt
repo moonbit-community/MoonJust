@@ -79,3 +79,40 @@ async test "wasm execution cache store uses the shared manifest contract" {
     _ => ()
   }
 }
+
+///|
+async test "wasm execution filesystem commits policy-checked atomic writes" {
+  let directory = try! @path.PathValue::new(
+    "_build/wasm-atomic-write-test",
+    Unix,
+  )
+  try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
+  @async_fs.mkdir(directory.as_string(), recursive=true)
+  let target = try! directory.join(try! @path.PathValue::new("justfile", Unix))
+  let host = ExecutionFs::new()
+  @host.HostAtomicFs::write_file_atomic(host, target, b"first", false)
+  assert_eq(@host.HostFs::read_file(host, target), b"first")
+  try
+    @host.HostAtomicFs::write_file_atomic(host, target, b"lost", false)
+  catch {
+    AlreadyExists(path) => assert_eq(path, target)
+    error => fail("unexpected atomic write error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected no-overwrite transaction to reject existing target")
+  }
+  assert_eq(@host.HostFs::read_file(host, target), b"first")
+  for name in @host.HostFs::read_dir(host, directory) {
+    assert_false(name.has_prefix(".moonjust.tmp."))
+  }
+  @host.HostAtomicFs::write_file_atomic(host, target, b"second", true)
+  assert_eq(@host.HostFs::read_file(host, target), b"second")
+  try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
+}

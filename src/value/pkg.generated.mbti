@@ -21,6 +21,8 @@ pub(all) enum Value {
 pub fn Value::as_bool(Self) -> Bool?
 pub fn Value::as_list(Self) -> ArrayView[Self]?
 pub fn Value::as_string(Self) -> String?
+pub fn Value::display(Self) -> String
+pub fn Value::elements(Self) -> Array[String]
 pub fn Value::join(Self, String) -> String raise ValueError
 pub fn Value::kind(Self) -> String
 pub fn Value::to_string(Self) -> String

@@ -4,8 +4,10 @@ package "moonbit-community/MoonJust/src/loader"
 import {
   "moonbit-community/MoonJust/src/diagnostic",
   "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/modulepath",
   "moonbit-community/MoonJust/src/parser",
   "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/src/semantic",
   "moonbit-community/MoonJust/src/source",
   "moonbit-community/MoonJust/src/syntax",
   "moonbitlang/core/debug",
@@ -16,29 +18,37 @@ pub fn[T : @host.HostFs] discover(T, @path.PathValue, options? : SearchOptions) 
 
 pub fn is_markdown_path(@path.PathValue) -> Bool
 
-pub fn[T : @host.HostFs] load(T, @path.PathValue, @source.SourceId) -> LoadedSource raise LoaderError
+pub fn[T : @host.HostFs] load(T, @path.PathValue, @source.SourceId, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
 
-pub fn load_bytes(Bytes, @source.SourceId, String) -> LoadedSource raise LoaderError
+pub fn load_bytes(Bytes, @source.SourceId, String, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
 
 pub fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(T, @source.SourceId, options? : SearchOptions) -> LoadedSource raise LoaderError
 
-pub fn[T : @host.HostFs] load_graph(T, @path.PathValue, @source.SourceId, limits? : GraphLimits) -> LoadedGraph raise LoaderError
+pub fn[T : @host.HostFs] load_graph(T, @path.PathValue, @source.SourceId, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
 
-pub fn load_markdown(Bytes, @source.SourceId, display_name? : String) -> LoadedSource raise LoaderError
+pub fn load_markdown(Bytes, @source.SourceId, display_name? : String, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
 
-pub fn load_stdin(Bytes, @source.SourceId, display_name? : String) -> LoadedSource raise LoaderError
+pub fn load_stdin(Bytes, @source.SourceId, display_name? : String, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
+
+pub fn[T : @host.HostFs] load_stdin_graph(T, Bytes, @source.SourceId, @path.PathValue, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
 
 // Errors
 pub(all) suberror LoaderError {
   InvalidLimit
   NoJustfileFound(start~ : @path.PathValue, filename~ : String)
+  AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
+  ImportFileMissing(span~ : @source.Span)
   Host(@host.HostError)
   InvalidSource(@source.SourceError)
   Parse(@parser.ParserError)
+  ParseSource(@parser.ParserError, source_name~ : String, source_bytes~ : Bytes)
   ImportCycle(path~ : @path.PathValue, chain~ : Array[@path.PathValue], span~ : @source.Span?)
+  ModuleFileMissing(module_name~ : String, span~ : @source.Span)
+  AmbiguousModuleFile(module_name~ : String, found~ : Array[@path.PathValue], span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn LoaderError::code(Self) -> String
+pub fn LoaderError::diagnostic_source(Self) -> @source.Source?
 pub fn LoaderError::message(Self) -> String
 pub fn LoaderError::span(Self) -> @source.Span?
 pub fn LoaderError::to_diagnostic(Self, @source.Span) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
@@ -63,12 +73,14 @@ pub(all) struct LoadedSource {
   parent : @path.PathValue?
   import_span : @source.Span?
   relation : SourceRelation
+  module_path : @modulepath.ModulePath
   module_directory : @path.PathValue
 } derive(@debug.Debug)
 pub fn LoadedSource::ast(Self) -> @syntax.Ast
 pub fn LoadedSource::canonical_path(Self) -> @path.PathValue
 pub fn LoadedSource::import_span(Self) -> @source.Span?
 pub fn LoadedSource::module_directory(Self) -> @path.PathValue
+pub fn LoadedSource::module_path(Self) -> @modulepath.ModulePath
 pub fn LoadedSource::parent(Self) -> @path.PathValue?
 pub fn LoadedSource::path(Self) -> @path.PathValue
 pub fn LoadedSource::relation(Self) -> SourceRelation

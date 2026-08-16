@@ -3,17 +3,20 @@ package "moonbit-community/MoonJust/src/host_process"
 
 import {
   "moonbit-community/MoonJust/src/host",
+  "moonbitlang/async",
 }
 
 // Values
+pub fn configure_signal_forwarding() -> Unit
 
 // Errors
 
 // Types and methods
 pub struct ProcessAdapter {
-  marker : Unit
+  output_mutex : @async.Mutex
 }
 pub fn ProcessAdapter::new() -> Self
+pub impl @host.HostAsyncOutput for ProcessAdapter
 pub impl @host.HostAsyncProcess for ProcessAdapter
 
 // Type aliases

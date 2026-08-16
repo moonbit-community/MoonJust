@@ -22,8 +22,12 @@ pub impl @host.HostFs for NativeFs with fn read_file(
   _self : NativeFs,
   path : @path.PathValue,
 ) -> Bytes raise @host.HostError {
-  @fs.read_file_to_bytes(path.as_string()) catch {
-    error => raise io_error(error)
+  match read_file_stream_value(path.as_string()) {
+    Some(bytes) => bytes
+    None =>
+      @fs.read_file_to_bytes(path.as_string()) catch {
+        error => raise io_error(error)
+      }
   }
 }
 
@@ -67,6 +71,9 @@ pub impl @host.HostFs for NativeFs with fn read_dir(
   _self : NativeFs,
   path : @path.PathValue,
 ) -> Array[String] raise @host.HostError {
+  if !@fs.path_exists(path.as_string()) {
+    raise NotFound(path)
+  }
   @fs.read_dir(path.as_string()) catch {
     error => raise io_error(error)
   }
@@ -85,9 +92,18 @@ pub impl @host.HostFs for NativeFs with fn metadata(
       Some(size) => size
       None => raise CapabilityUnavailable(FsRead)
     }
-    @host.FileMetadata::new(true, false, size)
+    @host.FileMetadata::new_with_executable(
+      true,
+      false,
+      size,
+      file_executable_value(value),
+    )
   } else if is_directory {
     @host.FileMetadata::new(false, true, 0L)
+  } else if @fs.path_exists(value) {
+    // FIFOs and other readable special files have neither regular-file nor
+    // directory metadata, but callers must still be allowed to stream them.
+    @host.FileMetadata::new_with_executable(false, false, 0L, false)
   } else {
     raise NotFound(path)
   }
@@ -226,9 +242,15 @@ pub impl @host.HostEnv for NativeFs with fn current_dir(_self : NativeFs) -> @pa
 ///|
 pub impl @host.HostRandom for NativeFs with fn random_bytes(
   _self : NativeFs,
-  _count : Int,
+  count : Int,
 ) -> Bytes raise @host.HostError {
-  raise CapabilityUnavailable(Random)
+  if count < 0 {
+    raise InvalidInput("random byte count must not be negative")
+  }
+  guard @env.rand(count) is Some(bytes) else {
+    raise CapabilityUnavailable(Random)
+  }
+  bytes
 }
 
 ///|
@@ -243,5 +265,9 @@ pub impl @host.HostPlatform for NativeFs with fn platform_info(_self : NativeFs)
     detected_operating_system(),
     detected_architecture(),
     flavor,
+    portable_runtime=detected_portable_runtime(),
+    pid?=detected_pid(),
+    num_cpus?=detected_num_cpus(),
+    executable?=detected_executable(),
   )
 }

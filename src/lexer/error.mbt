@@ -94,6 +94,21 @@ fn delimiter_text(delimiter : DelimiterKind) -> String {
 }
 
 ///|
+fn visible_whitespace(whitespace : String) -> String {
+  let builder = StringBuilder()
+  for character in whitespace {
+    builder.write_string(
+      match character {
+        '\t' => "␉"
+        ' ' => "␠"
+        other => other.to_string()
+      },
+    )
+  }
+  builder.to_string()
+}
+
+///|
 /// Return a stable, color-free summary matching upstream terminology.
 pub fn LexerError::message(self : LexerError) -> String {
   match self {
@@ -114,9 +129,15 @@ pub fn LexerError::message(self : LexerError) -> String {
     UnterminatedBacktick(_) => "unterminated backtick"
     UnterminatedInterpolation(_) => "unterminated interpolation"
     MixedLeadingWhitespace(whitespace~, ..) =>
-      "found a mix of tabs and spaces in leading whitespace: `\{whitespace}`"
+      "found a mix of tabs and spaces in leading whitespace: `" +
+      visible_whitespace(whitespace) +
+      "`\nleading whitespace may consist of tabs or spaces, but not both"
     InconsistentLeadingWhitespace(expected~, found~, ..) =>
-      "inconsistent leading whitespace: expected `\{expected}` but found `\{found}`"
+      "recipe line has inconsistent leading whitespace, started with `" +
+      visible_whitespace(expected) +
+      "` but found line with `" +
+      visible_whitespace(found) +
+      "`"
     SourceLimitExceeded(length~, limit~, ..) =>
       "source length \{length} exceeds lexer limit \{limit}"
     TokenLimitExceeded(limit~, ..) => "token count exceeds lexer limit \{limit}"

@@ -17,6 +17,7 @@ pub struct FakeHost {
   expected_commands : Array[CommandSpec]
   expected_outputs : Array[ProcessResult]
   process_calls : Array[CommandSpec]
+  output_events : Array[(OutputStream, Bytes)]
   mut terminal : TerminalInfo
   signals : Array[SignalKind]
   mut platform : PlatformInfo
@@ -47,6 +48,7 @@ pub fn FakeHost::new(
     expected_commands: [],
     expected_outputs: [],
     process_calls: [],
+    output_events: [],
     terminal: TerminalInfo::new(false, false, false, false),
     signals: [],
     platform,
@@ -215,6 +217,13 @@ pub fn FakeHost::expect_process(
 ///|
 pub fn FakeHost::process_calls(self : FakeHost) -> ArrayView[CommandSpec] {
   self.process_calls[:]
+}
+
+///|
+pub fn FakeHost::output_events(
+  self : FakeHost,
+) -> ArrayView[(OutputStream, Bytes)] {
+  self.output_events[:]
 }
 
 ///|
@@ -670,7 +679,40 @@ pub impl HostAsyncProcess for FakeHost with fn run_process_async(
   self : FakeHost,
   command : CommandSpec,
 ) -> ProcessResult raise HostError {
+  self.require(Process)
+  if command.program() == "/bin/test" && command.arguments().length() == 2 {
+    let path = @path.PathValue::new(command.arguments()[1], self.cwd.flavor()) catch {
+      _ => raise InvalidInput("invalid fake test path")
+    }
+    let exists = self.files.contains(path)
+    let success = match command.arguments()[0] {
+      "-d" => !exists && !self.read_dir(path).is_empty()
+      "-x" => exists
+      _ => false
+    }
+    return ProcessResult::new(if success { 0 } else { 1 }, b"", b"")
+  }
+  if command.program() == "/bin/cat" && command.arguments().length() == 1 {
+    let path = @path.PathValue::new(command.arguments()[0], self.cwd.flavor()) catch {
+      _ => raise InvalidInput("invalid fake cat path")
+    }
+    return match self.files.get(path) {
+      Some(contents) => ProcessResult::new(0, contents, b"")
+      None => ProcessResult::new(1, b"", b"")
+    }
+  }
   HostProcess::run_process(self, command)
+}
+
+///|
+pub impl HostAsyncOutput for FakeHost with fn write_output(
+  self : FakeHost,
+  stream : OutputStream,
+  bytes : Bytes,
+) -> Int raise HostError {
+  let length = bytes.length()
+  self.output_events.push((stream, bytes))
+  length
 }
 
 ///|

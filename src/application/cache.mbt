@@ -15,7 +15,7 @@ pub async fn[T : @host.HostFs + @host.HostCacheStore] execute_clean_command(
     Some(arguments.positional().join("::"))
   }
   let (_, directories) = load_input_with_directories(host, arguments, context)
-  let directory = cache_directory(directories.project_directory())
+  let directory = cache_directory(directories.module_directory())
   let existed = @host.HostFs::file_exists(host, directory) catch {
     error => raise Host(error)
   }

@@ -109,9 +109,13 @@ fn create_native_script_temp(
     extension.contains("\\") {
     raise InvalidInput("invalid temporary script name")
   }
-  for _ in 0..<128 {
+  for attempt in 0..<128 {
     let filename = @path.PathValue::new(
-      stem + "." + random_suffix() + extension,
+      if attempt == 0 {
+        stem + extension
+      } else {
+        stem + "." + random_suffix() + extension
+      },
       directory.flavor(),
     ) catch {
       _ => raise InvalidInput("invalid temporary script name")

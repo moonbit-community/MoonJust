@@ -208,6 +208,12 @@ pub(open) trait HostAsyncProcess {
 }
 
 ///|
+/// Ordered runtime output which is not produced by a child process.
+pub(open) trait HostAsyncOutput {
+  async fn write_output(Self, OutputStream, Bytes) -> Int raise HostError
+}
+
+///|
 /// Wall-clock time represented as Unix milliseconds.
 pub(open) trait HostClock {
   fn now_millis(Self) -> Int64 raise HostError

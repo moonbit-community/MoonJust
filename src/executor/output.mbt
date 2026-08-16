@@ -27,8 +27,39 @@ fn paint_command(text : String, color : CommandColor?) -> String {
 }
 
 ///|
+/// Return whether a command timestamp format only contains supported
+/// strftime directives.
+pub fn valid_timestamp_format(format : String) -> Bool {
+  let values = format.to_array()
+  let mut index = 0
+  while index < values.length() {
+    if values[index] != '%' {
+      index += 1
+      continue
+    }
+    index += 1
+    if index >= values.length() {
+      return false
+    }
+    if values[index] >= '1' && values[index] <= '9' {
+      index += 1
+      if index >= values.length() || values[index] != 'f' {
+        return false
+      }
+    } else {
+      match values[index] {
+        '%' | 'Y' | 'm' | 'd' | 'H' | 'M' | 'S' | 'f' | 's' => ()
+        _ => return false
+      }
+    }
+    index += 1
+  }
+  true
+}
+
+///|
 /// Format a UTC command timestamp without exposing host-specific time types.
-/// Unsupported directives are retained literally so diagnostics stay stable.
+/// Callers validate the format before this pure formatting boundary.
 pub fn format_timestamp(millis : Int64, format : String) -> String {
   let mut seconds = millis / 1000L
   let mut remainder = (millis % 1000L).to_int()
@@ -52,7 +83,21 @@ pub fn format_timestamp(millis : Int64, format : String) -> String {
       index += 1
       continue
     }
-    let directive = values[index + 1]
+    let mut directive_index = index + 1
+    let precision = if values[directive_index] >= '1' &&
+      values[directive_index] <= '9' {
+      let value = values[directive_index].to_int() - '0'.to_int()
+      directive_index += 1
+      Some(value)
+    } else {
+      None
+    }
+    if directive_index >= values.length() {
+      output.write_char('%')
+      index += 1
+      continue
+    }
+    let directive = values[directive_index]
     match directive {
       '%' => output.write_char('%')
       'Y' => output.write_string(datetime.year().to_string().pad_start(4, '0'))
@@ -63,15 +108,22 @@ pub fn format_timestamp(millis : Int64, format : String) -> String {
         output.write_string(datetime.minute().to_string().pad_start(2, '0'))
       'S' =>
         output.write_string(datetime.second().to_string().pad_start(2, '0'))
-      'f' =>
-        output.write_string(datetime.nanosecond().to_string().pad_start(9, '0'))
+      'f' => {
+        let fraction = datetime.nanosecond().to_string().pad_start(9, '0')
+        output.write_string(
+          match precision {
+            Some(length) => fraction[:length].to_owned()
+            None => fraction
+          },
+        )
+      }
       's' => output.write_string(seconds.to_string())
       _ => {
         output.write_char('%')
         output.write_char(directive)
       }
     }
-    index += 2
+    index = directive_index + 1
   }
   output.to_string()
 }

@@ -2,10 +2,22 @@
 /// Failures raised while compiling recipe argument metadata or grouping argv.
 pub(all) suberror InvocationError {
   NoRecipes
+  NoDefaultRecipe
   DefaultRecipeRequiresArguments(recipe~ : String, minimum~ : Int)
   UnknownRecipe(recipe~ : String)
+  DisabledRecipe(name~ : String, modules~ : Array[String], is_alias~ : Bool)
+  OptionalModuleAbsent(module_path~ : String)
   Evaluation(@evaluator.EvaluationError)
-  InvalidArgumentAttribute(recipe~ : String, detail~ : String)
+  InvalidArgumentAttribute(
+    recipe~ : String,
+    detail~ : String,
+    span~ : @source.Span?
+  )
+  DuplicateDefinitionOption(
+    recipe~ : String,
+    option~ : String,
+    span~ : @source.Span
+  )
   InvalidOption(argument~ : String)
   UnknownOption(recipe~ : String, option~ : String)
   FlagWithValue(recipe~ : String, option~ : String)
@@ -44,10 +56,14 @@ pub(all) suberror InvocationError {
 pub fn InvocationError::code(self : InvocationError) -> String {
   match self {
     NoRecipes => "MJ-INV-0001"
+    NoDefaultRecipe => "MJ-INV-0019"
     DefaultRecipeRequiresArguments(_) => "MJ-INV-0002"
     UnknownRecipe(_) => "MJ-INV-0003"
+    DisabledRecipe(_) => "MJ-INV-0017"
+    OptionalModuleAbsent(_) => "MJ-INV-0018"
     Evaluation(_) => "MJ-INV-0016"
     InvalidArgumentAttribute(_) => "MJ-INV-0004"
+    DuplicateDefinitionOption(_) => "MJ-INV-0004"
     InvalidOption(_) => "MJ-INV-0005"
     UnknownOption(_) => "MJ-INV-0006"
     FlagWithValue(_) => "MJ-INV-0007"
@@ -71,6 +87,7 @@ fn counted(count : Int, singular : String) -> String {
 pub fn InvocationError::message(self : InvocationError) -> String {
   match self {
     NoRecipes => "justfile contains no recipes"
+    NoDefaultRecipe => "justfile contains no default recipe"
     DefaultRecipeRequiresArguments(recipe~, minimum~) =>
       "recipe `" +
       recipe +
@@ -78,9 +95,23 @@ pub fn InvocationError::message(self : InvocationError) -> String {
       counted(minimum, "argument")
     UnknownRecipe(recipe~) =>
       "justfile does not contain recipe `" + recipe + "`"
+    DisabledRecipe(name~, modules~, is_alias~) => {
+      let subject = if is_alias { "alias" } else { "recipe" }
+      let module_text = if modules.length() == 1 {
+        "module `" + modules[0] + "`"
+      } else {
+        "modules " +
+        modules.map(fn(module_path) { "`" + module_path + "`" }).join(" and ")
+      }
+      subject + " `" + name + "` depends on absent " + module_text
+    }
+    OptionalModuleAbsent(module_path~) =>
+      "optional module `" + module_path + "` is absent"
     Evaluation(error) => error.message()
-    InvalidArgumentAttribute(recipe~, detail~) =>
+    InvalidArgumentAttribute(recipe~, detail~, ..) =>
       "recipe `" + recipe + "` has invalid argument attribute: " + detail
+    DuplicateDefinitionOption(recipe~, option~, ..) =>
+      "recipe `" + recipe + "` defines option `" + option + "` multiple times"
     InvalidOption(argument~) =>
       "argument `" + argument + "` is not a valid option"
     UnknownOption(recipe~, option~) =>
@@ -150,5 +181,34 @@ pub fn InvocationError::message(self : InvocationError) -> String {
       parameter +
       "` does not match pattern " +
       patterns.map(fn(pattern) { "`" + pattern + "`" }).join(" or ")
+  }
+}
+
+///|
+pub fn InvocationError::span(self : InvocationError) -> @source.Span? {
+  match self {
+    InvalidArgumentAttribute(span~, ..) => span
+    DuplicateDefinitionOption(span~, ..) => Some(span)
+    Evaluation(error) => Some(error.span())
+    _ => None
+  }
+}
+
+///|
+pub fn InvocationError::to_diagnostic(
+  self : InvocationError,
+) -> @diagnostic.Diagnostic? raise @diagnostic.DiagnosticError {
+  match self.span() {
+    Some(span) =>
+      Some(
+        @diagnostic.Diagnostic::new(
+          self.code(),
+          Error,
+          self.message(),
+          span,
+          "invocation error",
+        ),
+      )
+    None => None
   }
 }

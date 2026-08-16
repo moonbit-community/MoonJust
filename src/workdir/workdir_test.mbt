@@ -164,3 +164,16 @@ test "justfile root is rejected even with a working-directory override" {
     _ => fail("expected parentless justfile failure")
   }
 }
+
+///|
+test "global justfile keeps configuration source separate from project cwd" {
+  let model = WorkingDirectoryModel::from_global_justfile(
+    unix("/workspace/repo/sub"),
+    unix("/home/test/.config/just/justfile"),
+    unix("/workspace/repo"),
+  )
+  assert_eq(model.invocation_directory(), unix("/workspace/repo/sub"))
+  assert_eq(model.project_directory(), unix("/workspace/repo"))
+  assert_eq(model.module_directory(), unix("/workspace/repo"))
+  assert_eq(model.justfile(), Some(unix("/home/test/.config/just/justfile")))
+}

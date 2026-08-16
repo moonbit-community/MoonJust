@@ -1146,13 +1146,17 @@ pub fn call(
       String(capitalize(string_argument(name, one(name, arguments))))
     "encode_uri_component" =>
       String(encode_uri_component(string_argument(name, one(name, arguments))))
-    "file_stem" =>
-      String(
-        path_value(name, one(name, arguments))
-        .without_extension()
-        .file_name()
-        .unwrap_or(""),
-      )
+    "file_stem" => {
+      let raw = string_argument(name, one(name, arguments))
+      let result = path_value(name, String(raw)).without_extension().file_name()
+      match result {
+        Some(value) => String(value)
+        None =>
+          raise Failure(
+            message="could not extract file stem from `" + raw + "`",
+          )
+      }
+    }
     "join_list" => {
       let collection = arguments[0]
       let separator = if arguments.length() == 2 {
@@ -1160,20 +1164,7 @@ pub fn call(
       } else {
         " "
       }
-      match collection {
-        List(_) =>
-          String(
-            collection.join(separator) catch {
-              _ =>
-                raise Type(
-                  name~,
-                  expected="list of strings",
-                  actual="invalid list",
-                )
-            },
-          )
-        _ => raise Type(name~, expected="list", actual=collection.kind())
-      }
+      String(collection.elements().join(separator))
     }
     "kebabcase" =>
       String(
@@ -1213,16 +1204,24 @@ pub fn call(
     }
     "len" => {
       let value = one(name, arguments)
-      match value {
-        String(text) => String(text.length().to_string())
-        List(values) => String(values.length().to_string())
-        Bool(_) =>
-          raise Type(name~, expected="string or list", actual=value.kind())
-      }
+      String(value.elements().length().to_string())
     }
     "parent_directory" => {
-      let path = path_value(name, one(name, arguments))
-      String(path.parent().map(fn(value) { value.as_string() }).unwrap_or("."))
+      let raw = string_argument(name, one(name, arguments))
+      if raw.is_empty() {
+        raise Failure(
+          message="could not extract parent directory from `" + raw + "`",
+        )
+      }
+      let path = path_value(name, String(raw))
+      match path.parent() {
+        Some(value) => String(value.as_string())
+        None if !raw.contains("/") && !raw.contains("\\") => String(".")
+        None =>
+          raise Failure(
+            message="could not extract parent directory from `" + raw + "`",
+          )
+      }
     }
     "split" => {
       let value = arguments[0]
@@ -1251,7 +1250,7 @@ pub fn call(
       }
       List(result)
     }
-    "show" => String(one(name, arguments).to_string())
+    "show" => String(one(name, arguments).display())
     "style" => {
       if arguments.is_empty() {
         raise Arity(name~, expected="at least 1", actual=0)
@@ -1299,36 +1298,21 @@ pub fn call(
       String(result)
     }
     "join" => {
-      if requested == "path_join" {
-        if arguments.length() < 1 {
-          raise Arity(name=requested, expected="at least 1", actual=0)
-        }
-        let mut path = path_value(requested, arguments[0])
-        for value in arguments[1:] {
-          let child = path_value(requested, value)
-          path = path.join(child) catch {
-            _ => raise InvalidPath(value=path.as_string())
-          }
-        }
-        return String(path.as_string())
+      if arguments.length() < 2 {
+        raise Arity(
+          name=requested,
+          expected="at least 2",
+          actual=arguments.length(),
+        )
       }
-      let (collection, separator) = two(name, arguments)
-      let separator = string_argument(name, separator)
-      match collection {
-        List(_) =>
-          String(
-            collection.join(separator) catch {
-              _ =>
-                raise Type(
-                  name~,
-                  expected="list of strings",
-                  actual="invalid list",
-                )
-            },
-          )
-        String(value) => String(value)
-        Bool(_) => raise Type(name~, expected="list", actual=collection.kind())
+      let mut path = path_value(requested, arguments[0])
+      for value in arguments[1:] {
+        let child = path_value(requested, value)
+        path = path.join(child) catch {
+          _ => raise InvalidPath(value=path.as_string())
+        }
       }
+      String(path.as_string())
     }
     "replace" => {
       if arguments.length() != 3 {
@@ -1340,7 +1324,17 @@ pub fn call(
       let value = string_argument(name, value)
       let old = string_argument(name, old)
       let replacement = string_argument(name, replacement)
-      String(value.replace(old~, new=replacement))
+      if old.is_empty() {
+        let builder = StringBuilder()
+        builder.write_string(replacement)
+        for character in value {
+          builder.write_char(character)
+          builder.write_string(replacement)
+        }
+        String(builder.to_string())
+      } else {
+        String(value.split(old).join(replacement))
+      }
     }
     "trim" =>
       String(string_argument(name, one(name, arguments)).trim().to_owned())
@@ -1349,14 +1343,33 @@ pub fn call(
     "lowercase" =>
       String(lower_ascii(string_argument(name, one(name, arguments))))
     "quote" => String(quote(string_argument(name, one(name, arguments))))
-    "file_name" =>
-      String(path_value(name, one(name, arguments)).file_name().unwrap_or(""))
-    "extension" =>
-      String(path_value(name, one(name, arguments)).extension().unwrap_or(""))
-    "without_extension" =>
-      String(
-        path_value(name, one(name, arguments)).without_extension().as_string(),
-      )
+    "file_name" => {
+      let raw = string_argument(name, one(name, arguments))
+      match path_value(name, String(raw)).file_name() {
+        Some(value) => String(value)
+        None =>
+          raise Failure(
+            message="could not extract file name from `" + raw + "`",
+          )
+      }
+    }
+    "extension" => {
+      let raw = string_argument(name, one(name, arguments))
+      match path_value(name, String(raw)).extension() {
+        Some(value) => String(value)
+        None =>
+          raise Failure(
+            message="could not extract extension from `" + raw + "`",
+          )
+      }
+    }
+    "without_extension" => {
+      let raw = string_argument(name, one(name, arguments))
+      if raw.is_empty() {
+        raise Failure(message="could not extract parent from `" + raw + "`")
+      }
+      String(path_value(name, String(raw)).without_extension().as_string())
+    }
     "replace_regex" => {
       if arguments.length() != 2 && arguments.length() != 3 {
         raise Arity(name~, expected="2 or 3", actual=arguments.length())

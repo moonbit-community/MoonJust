@@ -14,6 +14,7 @@ pub(all) struct StringLiteral {
   cooked : String
   kind : StringKind
   span : @source.Span
+  shell_expanded : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -22,8 +23,9 @@ pub fn StringLiteral::new(
   cooked : String,
   kind : StringKind,
   span : @source.Span,
+  shell_expanded? : Bool = false,
 ) -> StringLiteral {
-  { raw, cooked, kind, span }
+  { raw, cooked, kind, span, shell_expanded }
 }
 
 ///|
@@ -44,6 +46,11 @@ pub fn StringLiteral::kind(self : StringLiteral) -> StringKind {
 ///|
 pub fn StringLiteral::span(self : StringLiteral) -> @source.Span {
   self.span
+}
+
+///|
+pub fn StringLiteral::shell_expanded(self : StringLiteral) -> Bool {
+  self.shell_expanded
 }
 
 ///|
@@ -98,6 +105,7 @@ pub(all) enum Expression {
   Variable(name~ : String, span~ : @source.Span)
   Call(name~ : String, arguments~ : Array[Expression], span~ : @source.Span)
   List(elements~ : Array[Expression], span~ : @source.Span)
+  Parenthesized(expression~ : Expression, span~ : @source.Span)
   Unary(operator~ : UnaryOperator, operand~ : Expression, span~ : @source.Span)
   Binary(
     operator~ : BinaryOperator,
@@ -127,6 +135,7 @@ pub fn Expression::span(self : Expression) -> @source.Span {
     Variable(span~, ..) => span
     Call(span~, ..) => span
     List(span~, ..) => span
+    Parenthesized(span~, ..) => span
     Unary(span~, ..) => span
     Binary(span~, ..) => span
     Conditional(span~, ..) => span
@@ -143,6 +152,7 @@ pub fn Expression::kind(self : Expression) -> String {
     Variable(_) => "variable"
     Call(_) => "call"
     List(_) => "list"
+    Parenthesized(_) => "parenthesized"
     Unary(_) => "unary"
     Binary(_) => "binary"
     Conditional(_) => "conditional"

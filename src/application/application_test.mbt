@@ -9,6 +9,66 @@ fn fake_context() -> (@host.FakeHost, @application.ApplicationContext) raise {
 }
 
 ///|
+test "application semantic diagnostics retain source positions" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"set tempdir := missing\ndefault:\n",
+  )
+  let arguments = try! @cli.parse_arguments([], {})
+  try @application.execute_query_command(host, arguments, context) catch {
+    error => {
+      let rendered = @application.render_application_error(
+        host, arguments, context, error,
+      )
+      assert_true(rendered.contains("error[MJ-SEM-0004]"))
+      assert_true(rendered.contains("justfile:1:16"))
+      assert_true(rendered.contains("set tempdir := missing"))
+    }
+  } noraise {
+    _ => fail("expected undefined setting variable")
+  }
+}
+
+///|
+async test "dotenv entries are inherited by planning backticks" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"set dotenv-load\nX := `echo $DOTENV_KEY`\necho:\n  echo {{X}}\n",
+  )
+  host.put_file(
+    @path.PathValue::new("/workspace/.env", Unix),
+    b"DOTENV_KEY=dotenv-value\n",
+  )
+  let expected = try! @host.CommandSpec::new("sh", ["-cu", "echo $DOTENV_KEY"])
+  expected.set_cwd(@path.PathValue::new("/workspace", Unix))
+  expected.set_inherit_environment(false)
+  try! expected.add_environment("DOTENV_KEY", "dotenv-value")
+  expected.set_inherit_stdin(true)
+  expected.set_stdout(Capture)
+  expected.set_stderr(Inherit)
+  host.expect_process(
+    expected,
+    @host.ProcessResult::new(0, b"dotenv-value\n", b""),
+  )
+  try
+    @application.plan_run_command_async(
+      host,
+      host,
+      host,
+      try! @cli.parse_arguments(["echo"], {}),
+      context,
+    )
+  catch {
+    error => fail("unexpected dotenv planning error: \{Repr(error)}")
+  } noraise {
+    _ => ()
+  }
+  assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
 test "format check never mutates and reports changed source" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
@@ -44,6 +104,30 @@ test "format writes only after a successful parse" {
     _ => fail("expected malformed source failure")
   }
   assert_eq(host.read_file(file), b"x := \"unterminated\n")
+}
+
+///|
+async test "async file commands preserve init and format transactions" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  let initialized = @application.execute_file_command_async(
+    host,
+    @cli.parse_arguments(["--init"], {}),
+    context,
+  )
+  assert_eq(initialized.exit_code(), 0)
+  assert_eq(
+    host.read_file(file),
+    b"# https://just.systems\n\ndefault:\n    echo 'Hello, world!'\n",
+  )
+  host.put_file(file, b"x:=\"y\"\n")
+  let formatted = @application.execute_file_command_async(
+    host,
+    @cli.parse_arguments(["--fmt"], {}),
+    context,
+  )
+  assert_eq(formatted.exit_code(), 0)
+  assert_eq(host.read_file(file), b"x := \"y\"\n")
 }
 
 ///|
@@ -164,6 +248,59 @@ async test "phase 10 string settings select dotenv and temporary directories" {
 }
 
 ///|
+async test "platform attributes select non-recipe definitions in project planning" {
+  let cwd = @path.PathValue::new("/workspace", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Macos, "aarch64", Unix),
+  )
+  let context = @application.ApplicationContext::new(cwd)
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"[unix]\nx := 'unix'\n\n[windows]\nx := 'windows'\n\nfoo:\n  @echo {{ x }}\n",
+  )
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["foo"], {}),
+    context,
+  )
+  assert_eq(plan.tasks().length(), 1)
+}
+
+///|
+async test "async dotenv commands populate recipe environments" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"set dotenv-command := 'emit'\n[script]\nbuild:\n  echo ok\n",
+  )
+  let expected = try! @host.CommandSpec::new("sh", ["-cu", "emit"])
+  expected.set_cwd(@path.PathValue::new("/workspace", Unix))
+  expected.set_inherit_stdin(true)
+  expected.set_stdout(Capture)
+  expected.set_stderr(Inherit)
+  host.expect_process(
+    expected,
+    @host.ProcessResult::new(0, b"MODE=async\n", b""),
+  )
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["build"], {}),
+    context,
+  )
+  match plan.tasks()[0].steps()[0] {
+    Script(script, _) =>
+      assert_true(script.environment().contains(("MODE", "async")))
+    _ => fail("expected dotenv command script task")
+  }
+  assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
 async test "phase 10 module working-directory selects recipe cwd" {
   let (host, context) = fake_context()
   host.put_file(
@@ -181,6 +318,120 @@ async test "phase 10 module working-directory selects recipe cwd" {
     Script(script, _) =>
       assert_eq(script.cwd(), @path.PathValue::new("/workspace/build", Unix))
     _ => fail("expected working-directory line task")
+  }
+}
+
+///|
+async test "recipe no-cd selects the original invocation directory" {
+  let cwd = @path.PathValue::new("/workspace/child", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"[no-cd]\n[script]\ndefault:\n  echo ok\n",
+  )
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments([], {}),
+    @application.ApplicationContext::new(cwd),
+  )
+  match plan.tasks()[0].steps()[0] {
+    Script(script, _) => assert_eq(script.cwd(), cwd)
+    _ => fail("expected no-cd script task")
+  }
+}
+
+///|
+async test "recipe working-directory overrides module no-cd" {
+  let (host, context) = fake_context()
+  host.put_file(
+    @path.PathValue::new("/workspace/justfile", Unix),
+    b"set no-cd\n[working-directory('build')]\n[script]\nrun:\n  echo ok\n",
+  )
+  let plan = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(["run"], {}),
+    context,
+  )
+  match plan.tasks()[0].steps()[0] {
+    Script(script, _) =>
+      assert_eq(script.cwd(), @path.PathValue::new("/workspace/build", Unix))
+    _ => fail("expected working-directory script task")
+  }
+}
+
+///|
+test "global context follows Linux XDG lookup and project root" {
+  let cwd = @path.PathValue::new("/workspace/repo/sub", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  host.set_env("HOME", "/home/test")
+  host.set_env("XDG_CONFIG_HOME", "/config")
+  host.put_file(
+    @path.PathValue::new("/config/just/JUSTFILE", Unix),
+    b"@default:\n  pwd\n",
+  )
+  host.put_file(
+    @path.PathValue::new("/home/test/.config/just/justfile", Unix),
+    b"wrong:\n",
+  )
+  host.put_file(@path.PathValue::new("/workspace/repo/.git", Unix), b"")
+  let context = @application.resolve_global_context(
+    host,
+    host,
+    @cli.parse_arguments(["--global-justfile"], {}),
+    @application.ApplicationContext::new(cwd),
+  )
+  assert_eq(
+    context.global_justfile(),
+    Some(@path.PathValue::new("/config/just/JUSTFILE", Unix)),
+  )
+  assert_eq(
+    context.global_project_directory(),
+    Some(@path.PathValue::new("/workspace/repo", Unix)),
+  )
+}
+
+///|
+async test "global recipes use the invocation project instead of config cwd" {
+  let cwd = @path.PathValue::new("/workspace/project", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Macos, "aarch64", Unix),
+  )
+  host.set_env("HOME", "/home/test")
+  host.put_file(
+    @path.PathValue::new(
+      "/home/test/Library/Application Support/just/JustFile",
+      Unix,
+    ),
+    b"[script]\n@default:\n  pwd\n",
+  )
+  host.put_file(
+    @path.PathValue::new("/home/test/.config/just/justfile", Unix),
+    b"wrong:\n",
+  )
+  let arguments = @cli.parse_arguments(["--global-justfile"], {})
+  let context = @application.resolve_global_context(
+    host,
+    host,
+    arguments,
+    @application.ApplicationContext::new(cwd),
+  )
+  let plan = @application.plan_run_command_async(
+    host, host, host, arguments, context,
+  )
+  match plan.tasks()[0].steps()[0] {
+    Script(script, _) => assert_eq(script.cwd(), cwd)
+    _ => fail("expected global script task")
   }
 }
 
@@ -263,6 +514,28 @@ test "format surfaces write denial and accepts upstream dry-run semantics" {
 }
 
 ///|
+test "format and dump honor indentation overrides and settings" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(file, b"foo:\n    echo hi\n")
+  ignore(
+    @application.execute_file_command(
+      host,
+      @cli.parse_arguments(["--fmt", "--indentation", "  "], {}),
+      context,
+    ),
+  )
+  assert_eq(host.read_file(file), b"foo:\n  echo hi\n")
+  host.put_file(file, b"set indentation := '\t'\n\nfoo:\n    echo hi\n")
+  let dumped = @application.execute_inspect_command(
+    host,
+    @cli.parse_arguments(["--dump"], {}),
+    context,
+  )
+  assert_eq(dumped.stdout(), b"set indentation := '\t'\n\nfoo:\n\techo hi\n")
+}
+
+///|
 test "list renders docs aliases groups and hides private recipes" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
@@ -277,6 +550,24 @@ test "list renders docs aliases groups and hides private recipes" {
   assert_true(text.contains("[ci]\n"))
   assert_true(text.contains("build target # build docs [alias: b]"))
   assert_false(text.contains("secret"))
+}
+
+///|
+test "list evaluates doc expressions, joins lists, and renders multiline docs" {
+  let (host, context) = fake_context()
+  let file = @path.PathValue::new("/workspace/justfile", Unix)
+  host.put_file(
+    file, b"set lists\nprefix := 'hello '\n[doc(prefix + 'world')]\nexpression:\n\n[doc(['hello', 'world'])]\nlisted:\n\n[doc('multiline\ncomment')]\nmultiline:\n\n# hidden\n[doc]\nsuppressed:\n",
+  )
+  let response = @application.execute_query_command(
+    host,
+    try! @cli.parse_arguments(["--unstable", "--list", "--unsorted"], {}),
+    context,
+  )
+  assert_eq(
+    response.stdout(),
+    b"Available recipes:\n    expression # hello world\n    listed     # hello world\n    # multiline\n    # comment\n    multiline\n    suppressed\n",
+  )
 }
 
 ///|
@@ -402,6 +693,24 @@ test "show and usage resolve aliases without executing recipes" {
   assert_true(
     (try! @utf8.decode(shown.stdout())).contains("build target +rest:"),
   )
+  host.put_file(
+    file, b"# hidden\n[doc('replacement')]\nbuild:\n\n# visible\n[private]\nother:\n",
+  )
+  let documented = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--show", "build"], {}),
+    context,
+  )
+  assert_eq(documented.stdout(), b"[doc('replacement')]\nbuild:\n")
+  let private = @application.execute_query_command(
+    host,
+    @cli.parse_arguments(["--show", "other"], {}),
+    context,
+  )
+  assert_eq(private.stdout(), b"# visible\n[private]\nother:\n")
+  host.put_file(
+    file, b"build target +rest:\n  echo {{target}}\n\nalias b := build\n",
+  )
   let usage = @application.execute_query_command(
     host,
     @cli.parse_arguments(["--usage", "b"], {}),
@@ -449,7 +758,7 @@ test "list and usage collapse option parameters and render option metadata" {
   )
   let listed = @application.execute_query_command(
     host,
-    @cli.parse_arguments(["--list"], {}),
+    @cli.parse_arguments(["--unstable", "--list"], {}),
     context,
   )
   assert_eq(
@@ -458,7 +767,7 @@ test "list and usage collapse option parameters and render option metadata" {
   )
   let usage = @application.execute_query_command(
     host,
-    @cli.parse_arguments(["--usage", "run"], {}),
+    @cli.parse_arguments(["--unstable", "--usage", "run"], {}),
     context,
   )
   assert_eq(
@@ -566,17 +875,13 @@ test "CLI variable overrides reach evaluate and invocation validation" {
     _ => fail("expected unknown override failure")
   }
   try
-    @application.execute_command(
-      host,
-      @cli.parse_arguments(
-        ["--set", "bad::", "secret-value", "build", "--target"],
-        {},
-      ),
-      context,
+    @cli.parse_arguments(
+      ["--set", "bad::", "secret-value", "build", "--target"],
+      {},
     )
   catch {
-    @application.Environment(InvalidOverridePath(path~)) =>
-      assert_eq(path, "bad::")
+    Config(message) =>
+      assert_eq(message, "error: invalid override path `bad::`")
     error => fail("unexpected invalid override path error: \{Repr(error)}")
   } noraise {
     _ => fail("expected invalid override path failure")
@@ -790,16 +1095,12 @@ test "dump and JSON inspect are deterministic and schema-pinned" {
 
 ///|
 test "jobs must be a positive integer before execution planning" {
-  let (host, context) = fake_context()
-  let file = @path.PathValue::new("/workspace/justfile", Unix)
-  host.put_file(file, b"build:\n")
   for value in ["0", "-1", "many"] {
-    let arguments = try! @cli.parse_arguments(["--jobs", value, "build"], {})
-    try @application.plan_run_command(host, host, arguments, context) catch {
-      Query(message) => assert_true(message.contains("positive integer"))
-      error => fail("unexpected jobs error: \{Repr(error)}")
+    try @cli.parse_arguments(["--jobs", value, "build"], {}) catch {
+      Invalid(message) => assert_true(message.contains("--jobs <N>"))
+      error => fail("unexpected jobs parse error: \{Repr(error)}")
     } noraise {
-      _ => fail("expected invalid jobs rejection")
+      _ => fail("expected invalid jobs parse rejection")
     }
   }
 }
@@ -809,7 +1110,7 @@ async test "clean removes recognized manifests and reports upstream count" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(file, b"build:\n")
-  let directory = @path.PathValue::new("/workspace/.moonjust-cache/v1", Unix)
+  let directory = @path.PathValue::new("/workspace/.justcache", Unix)
   host.put_file(directory, b"")
   let digest = "a".repeat(64)
   host.seed_cache_manifest(directory, digest, b"manifest")
@@ -840,7 +1141,7 @@ async test "clean removes recognized manifests and reports upstream count" {
 async test "clean filters recipe and module prefixes" {
   let (host, context) = fake_context()
   host.put_file(@path.PathValue::new("/workspace/justfile", Unix), b"build:\n")
-  let directory = @path.PathValue::new("/workspace/.moonjust-cache/v1", Unix)
+  let directory = @path.PathValue::new("/workspace/.justcache", Unix)
   host.put_file(directory, b"")
   for
     entry in [
@@ -882,7 +1183,7 @@ async test "cache attributes require the explicit unstable gate" {
       context,
     )
   catch {
-    Executor(Host(InvalidInput(message))) =>
+    Executor(InvalidAttributeValue(message~, ..)) =>
       assert_true(message.contains("--unstable"))
     error => fail("unexpected cache gate error: \{Repr(error)}")
   } noraise {
@@ -934,8 +1235,7 @@ async test "cache expressions resolve in recipe scope and require scripts" {
       context,
     )
   catch {
-    Executor(Host(InvalidInput(message))) =>
-      assert_true(message.contains("script recipe"))
+    Semantic(ScriptAttributeOnShellRecipe(attribute="cache", ..)) => ()
     error => fail("unexpected cache script error: \{Repr(error)}")
   } noraise {
     _ => fail("expected cache script requirement")
@@ -986,7 +1286,7 @@ test "phase 10 confirm attributes format and reject excess prompt arguments" {
       context,
     )
   catch {
-    Load(Parse(error)) =>
+    Load(Parse(error) | ParseSource(error, ..)) =>
       assert_eq(error.message(), "invalid arguments for attribute `confirm`")
     error => fail("unexpected confirm arity error: \{Repr(error)}")
   } noraise {
@@ -1233,7 +1533,10 @@ async test "chooser cancellation succeeds and signals preserve exit status" {
   catch {
     error => {
       assert_eq(error.exit_code(), 143)
-      assert_true(error.message().contains("signal 15"))
+      assert_eq(
+        error.message(),
+        "error: chooser `signal` failed: signal: 15 (SIGTERM)",
+      )
     }
   } noraise {
     _ => fail("expected chooser signal failure")
@@ -1292,6 +1595,7 @@ async test "command color follows forced auto never and explicit color modes" {
     context,
   )
   assert_eq(forced.options().command_color(), Some(Bold))
+  assert_true(forced.options().color_enabled())
   assert_eq(
     @executor.render_command_echo(
       "echo ok",
@@ -1326,4 +1630,17 @@ async test "command color follows forced auto never and explicit color modes" {
     context,
   )
   assert_eq(disabled.options().command_color(), None)
+  assert_false(disabled.options().color_enabled())
+  let no_highlight = try! @application.plan_run_command_async(
+    host,
+    host,
+    host,
+    try! @cli.parse_arguments(
+      ["--color", "always", "--no-highlight", "build"],
+      {},
+    ),
+    context,
+  )
+  assert_eq(no_highlight.options().command_color(), None)
+  assert_true(no_highlight.options().color_enabled())
 }

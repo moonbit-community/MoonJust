@@ -4,6 +4,7 @@
 pub(all) suberror DotenvError {
   InvalidUtf8(path~ : @path.PathValue)
   Parse(line~ : Int, column~ : Int)
+  ParseFile(path~ : @path.PathValue, line~ : Int, column~ : Int)
   HostDenied(@host.HostCapability)
   HostUnavailable(@host.HostCapability)
   SourceAccess
@@ -21,6 +22,10 @@ pub fn DotenvError::message(self : DotenvError) -> String {
       "failed to load environment file from `\{path.as_string()}`: input is not valid UTF-8"
     Parse(line~, column~) =>
       "failed to parse environment entry at line \{line}, column \{column}"
+    ParseFile(path~, line~, column~) =>
+      "failed to load environment file from `" +
+      path.as_string() +
+      "`: failed to parse environment entry at line \{line}, column \{column}"
     HostDenied(_) => "environment source access denied"
     HostUnavailable(_) => "environment source access unavailable"
     SourceAccess => "failed to access environment source"

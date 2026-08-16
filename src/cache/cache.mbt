@@ -313,11 +313,22 @@ pub fn CacheKey::digest(self : CacheKey) -> String {
 }
 
 ///|
-/// Render structural key metadata for `-vv` diagnostics without exposing
-/// script text, arguments, evaluated extras, or environment values.
+/// Render the cache-key document emitted by just 1.57.0 for `-vv`.
 pub fn CacheKey::debug_json(self : CacheKey) -> String {
-  let count_json = fn(value : Int) {
-    Json::number(value.to_double(), repr=value.to_string())
+  let body : Array[Json] = []
+  let body_lines : Array[String] = []
+  for line in self.body.split("\n") {
+    body_lines.push(line.to_owned())
+  }
+  while body_lines.last() is Some("") {
+    ignore(body_lines.pop())
+  }
+  for line in body_lines {
+    body.push(Json::string(line))
+  }
+  let environment : Map[String, Json] = Map([])
+  for entry in self.environment {
+    environment[entry.0] = Json::string(entry.1)
   }
   let input_json : Json = if self.inputs.is_empty() {
     Json::null()
@@ -330,18 +341,18 @@ pub fn CacheKey::debug_json(self : CacheKey) -> String {
   }
   Json::object(
     Map([
-      ("body_bytes", count_json(@utf8.encode(self.body).length())),
-      (
-        "environment_keys",
-        Json::array(self.environment.map(fn(entry) { Json::string(entry.0) })),
-      ),
+      ("body", Json::array(body)),
+      ("environment", Json::object(environment)),
       (
         "executor",
         Json::object(
           Map([
             ("type", Json::string("command")),
             ("command", Json::string(self.interpreter)),
-            ("argument_count", count_json(self.interpreter_arguments.length())),
+            (
+              "arguments",
+              Json::array(self.interpreter_arguments.map(Json::string)),
+            ),
           ]),
         ),
       ),
@@ -354,16 +365,22 @@ pub fn CacheKey::debug_json(self : CacheKey) -> String {
         },
       ),
       (
-        "extra_bytes",
+        "extra",
         if self.extra.is_empty() {
           Json::null()
         } else {
-          count_json(@utf8.encode(self.extra).length())
+          Json::string(self.extra)
         },
       ),
       ("inputs", input_json),
-      ("outputs", Json::array(self.outputs.map(Json::string))),
-      ("positional_count", count_json(self.positional.length())),
+      (
+        "positional",
+        if self.positional.is_empty() {
+          Json::null()
+        } else {
+          Json::array(self.positional.map(Json::string))
+        },
+      ),
       ("recipe", Json::string(self.recipe)),
       ("working_directory", Json::string(self.working_directory)),
     ]),
@@ -439,18 +456,7 @@ pub fn CacheManifest::outputs(self : CacheManifest) -> ArrayView[String] {
 
 ///|
 pub fn CacheManifest::encode(self : CacheManifest) -> String {
-  Json::object(
-    Map([
-      ("algorithm", Json::string(self.algorithm)),
-      ("key", Json::string(self.key)),
-      ("outputs", Json::array(self.outputs.map(Json::string))),
-      ("recipe", Json::string(self.recipe)),
-      (
-        "version",
-        Json::number(self.version.to_double(), repr=self.version.to_string()),
-      ),
-    ]),
-  ).stringify()
+  Json::object(Map([("recipe", Json::string(self.recipe))])).stringify()
 }
 
 ///|
@@ -475,6 +481,16 @@ pub fn decode_manifest(text : String) -> CacheManifest raise CacheError {
   }
   guard value is Object(fields) else {
     raise MalformedManifest("manifest root must be an object")
+  }
+  if fields.length() == 1 {
+    let recipe = manifest_string(fields, "recipe")
+    return {
+      version: FORMAT_VERSION,
+      algorithm: KEY_ALGORITHM,
+      key: "",
+      recipe,
+      outputs: [],
+    }
   }
   if fields.length() != 5 {
     raise MalformedManifest("manifest fields do not match schema")
@@ -518,14 +534,15 @@ pub fn validate_manifest(
 ) -> CacheManifest raise CacheError {
   validate_digest(expected_key)
   let manifest = decode_manifest(text)
-  if manifest.key != expected_key {
+  if !manifest.key.is_empty() && manifest.key != expected_key {
     raise KeyMismatch
   }
   if manifest.recipe != expected_recipe {
     raise RecipeMismatch
   }
-  if manifest.outputs != normalize_outputs(expected_outputs) {
+  if !manifest.outputs.is_empty() &&
+    manifest.outputs != normalize_outputs(expected_outputs) {
     raise OutputMismatch
   }
-  manifest
+  CacheManifest::new(expected_key, expected_recipe, expected_outputs)
 }

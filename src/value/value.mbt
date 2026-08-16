@@ -10,7 +10,10 @@ pub(all) enum Value {
 pub fn Value::as_string(self : Value) -> String? {
   match self {
     String(value) => Some(value)
-    List(_) | Bool(_) => None
+    List([String(value)]) => Some(value)
+    List([Bool(true)]) => Some("true")
+    List(_) | Bool(false) => None
+    Bool(true) => Some("true")
   }
 }
 
@@ -34,53 +37,67 @@ pub fn Value::as_bool(self : Value) -> Bool? {
 pub fn Value::truthy(self : Value) -> Bool {
   match self {
     Bool(value) => value
-    String(value) => !value.is_empty()
-    List(value) => value.length() > 0
+    String(_) => true
+    List(_) => !self.elements().is_empty()
   }
 }
 
 ///|
-/// Render a value with just-compatible list quoting and stable ordering.
-pub fn Value::to_string(self : Value) -> String {
+/// Return the upstream-compatible string elements represented by this value.
+pub fn Value::elements(self : Value) -> Array[String] {
   match self {
-    String(value) => value
-    Bool(true) => "true"
-    Bool(false) => "false"
+    String(value) => [value]
+    Bool(true) => ["true"]
+    Bool(false) => []
     List(values) => {
-      let builder = StringBuilder()
-      builder.write_char('[')
-      for index, value in values {
-        if index > 0 {
-          builder.write_string(", ")
-        }
-        builder.write_char('"')
-        builder.write_string(
-          value
-          .to_string()
-          .replace(old="\\", new="\\\\")
-          .replace(old="\"", new="\\\""),
-        )
-        builder.write_char('"')
+      let result : Array[String] = []
+      for value in values {
+        result.append(value.elements())
       }
-      builder.write_char(']')
-      builder.to_string()
+      result
     }
+  }
+}
+
+///|
+/// Join a value for interpolation, environment variables, and recipe argv.
+pub fn Value::to_string(self : Value) -> String {
+  self.elements().join(" ")
+}
+
+///|
+fn quote_element(value : String) -> String {
+  let builder = StringBuilder()
+  builder.write_char('"')
+  for character in value {
+    match character {
+      '\\' => builder.write_string("\\\\")
+      '"' => builder.write_string("\\\"")
+      '\t' => builder.write_string("\\t")
+      '\r' => builder.write_string("\\r")
+      '\n' => builder.write_string("\\n")
+      _ => builder.write_char(character)
+    }
+  }
+  builder.write_char('"')
+  builder.to_string()
+}
+
+///|
+/// Render the source-like representation returned by just's `show()` builtin.
+pub fn Value::display(self : Value) -> String {
+  let elements = self.elements()
+  match elements {
+    [] => "[]"
+    [value] => quote_element(value)
+    values => "[" + values.map(quote_element).join(", ") + "]"
   }
 }
 
 ///|
 pub fn Value::join(self : Value, separator : String) -> String raise ValueError {
   match self {
-    List(values) => {
-      let result : Array[String] = []
-      for value in values {
-        match value.as_string() {
-          Some(text) => result.push(text)
-          None => raise TypeMismatch(expected="string", actual=value.kind())
-        }
-      }
-      result.join(separator)
-    }
+    List(_) => self.elements().join(separator)
     _ => raise TypeMismatch(expected="list", actual=self.kind())
   }
 }

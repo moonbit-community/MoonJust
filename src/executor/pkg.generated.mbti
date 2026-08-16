@@ -2,11 +2,15 @@
 package "moonbit-community/MoonJust/src/executor"
 
 import {
+  "moonbit-community/MoonJust/src/diagnostic",
   "moonbit-community/MoonJust/src/environment",
   "moonbit-community/MoonJust/src/evaluator",
   "moonbit-community/MoonJust/src/host",
+  "moonbit-community/MoonJust/src/invocation",
+  "moonbit-community/MoonJust/src/modulepath",
   "moonbit-community/MoonJust/src/path",
   "moonbit-community/MoonJust/src/semantic",
+  "moonbit-community/MoonJust/src/source",
   "moonbit-community/MoonJust/src/syntax",
   "moonbit-community/MoonJust/src/value",
   "moonbitlang/core/debug",
@@ -16,6 +20,8 @@ import {
 pub fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScript) -> Unit raise ExecutionError
 
 pub async fn[T : @host.HostAsyncScriptTemp] cleanup_materialized_script_async(T, MaterializedScript) -> Unit raise ExecutionError
+
+pub fn combine_execution_plans(ArrayView[ExecutionPlan]) -> ExecutionPlan
 
 pub fn confirmation_answer_is_yes(String) -> Bool
 
@@ -35,13 +41,15 @@ pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(T, Pl
 
 pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(T, PlannedScript) -> MaterializedScript raise ExecutionError
 
+pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_project_recipe_graph_async(P, H, @semantic.ProjectCompilation, ArrayView[ProjectRecipeRequest], ArrayView[ProjectModuleRuntime], options? : ExecutionOptions, cache_directory? : @path.PathValue) -> ExecutionPlan raise ExecutionError
+
 pub fn plan_recipe_graph(@semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @environment.ShellConfiguration, @path.PathValue, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions) -> ExecutionPlan raise ExecutionError
 
 pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_recipe_graph_async(P, H, @semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions, cache_directory? : @path.PathValue) -> ExecutionPlan raise ExecutionError
 
-pub fn plan_script_recipe(@syntax.Recipe, @evaluator.Environment, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], quiet? : Bool) -> PlannedScript raise ExecutionError
+pub fn plan_script_recipe(@syntax.Recipe, @evaluator.Environment, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], positional? : ArrayView[String], quiet? : Bool, continue_signals? : ArrayView[@host.SignalKind]) -> PlannedScript raise ExecutionError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_script_recipe_async(P, H, @syntax.Recipe, @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], quiet? : Bool, dry_run? : Bool) -> PlannedScript raise ExecutionError
+pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_script_recipe_async(P, H, @syntax.Recipe, @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], positional? : ArrayView[String], quiet? : Bool, dry_run? : Bool, continue_signals? : ArrayView[@host.SignalKind]) -> PlannedScript raise ExecutionError
 
 pub fn render_command_echo(String, timestamp? : String?, color? : CommandColor?) -> Bytes
 
@@ -49,21 +57,29 @@ pub fn render_elapsed_message(String, Int64) -> Bytes
 
 pub fn render_failure_message(ExecutionError, Bool) -> Bytes
 
+pub fn valid_timestamp_format(String) -> Bool
+
 // Errors
 pub(all) suberror ExecutionError {
   Evaluation(@evaluator.EvaluationError)
+  Invocation(@invocation.InvocationError)
   Host(@host.HostError)
+  ShellNotFound(recipe~ : String, shell~ : String, detail~ : String)
   InvalidShebang(recipe~ : String, shebang~ : String)
   UnknownRecipe(recipe~ : String)
   DependencyCycle(stack~ : Array[String])
   CommandFailed(recipe~ : String, line~ : Int, exit_code~ : Int)
   CommandSignaled(recipe~ : String, line~ : Int, signal~ : @host.SignalKind)
+  GuardCode(recipe~ : String, line~ : Int, code~ : Int)
+  InvalidAttributeValue(message~ : String, span~ : @source.Span)
+  CacheFailure(message~ : String)
 } derive(@debug.Debug)
 pub fn ExecutionError::command_failed(String, Int, Int) -> Self
 pub fn ExecutionError::command_signaled(String, Int, @host.SignalKind) -> Self
 pub fn ExecutionError::exit_code(Self) -> Int
 pub fn ExecutionError::host(@host.HostError) -> Self
 pub fn ExecutionError::message(Self) -> String
+pub fn ExecutionError::to_diagnostic(Self) -> @diagnostic.Diagnostic? raise @diagnostic.DiagnosticError
 
 // Types and methods
 pub struct CacheDirective {
@@ -117,6 +133,7 @@ pub fn ConfirmationRequest::recipe(Self) -> String
 pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
+  echo_quiet : Bool
   verbose : Bool
   verbosity : Int
   time : Bool
@@ -125,13 +142,22 @@ pub struct ExecutionOptions {
   jobs : Int
   cache_enabled : Bool
   unstable : Bool
+  no_dependencies : Bool
+  explain : Bool
+  color_enabled : Bool
+  guards : Bool
 } derive(Eq, @debug.Debug)
 pub fn ExecutionOptions::cache_enabled(Self) -> Bool
+pub fn ExecutionOptions::color_enabled(Self) -> Bool
 pub fn ExecutionOptions::command_color(Self) -> CommandColor?
 pub fn ExecutionOptions::dry_run(Self) -> Bool
+pub fn ExecutionOptions::echo_quiet(Self) -> Bool
+pub fn ExecutionOptions::explain(Self) -> Bool
 pub fn ExecutionOptions::from_values(Bool, Bool, Bool, Bool, String?, CommandColor?) -> Self
+pub fn ExecutionOptions::guards(Self) -> Bool
 pub fn ExecutionOptions::jobs(Self) -> Int
 pub fn ExecutionOptions::new(dry_run? : Bool, quiet? : Bool, verbose? : Bool, time? : Bool, timestamp? : String, command_color? : CommandColor) -> Self
+pub fn ExecutionOptions::no_dependencies(Self) -> Bool
 pub fn ExecutionOptions::quiet(Self) -> Bool
 pub fn ExecutionOptions::time(Self) -> Bool
 pub fn ExecutionOptions::timestamp(Self) -> String?
@@ -139,7 +165,13 @@ pub fn ExecutionOptions::unstable(Self) -> Bool
 pub fn ExecutionOptions::verbose(Self) -> Bool
 pub fn ExecutionOptions::verbosity(Self) -> Int
 pub fn ExecutionOptions::with_cache(Self, Bool) -> Self
+pub fn ExecutionOptions::with_color_enabled(Self, Bool) -> Self
+pub fn ExecutionOptions::with_echo_quiet(Self, Bool) -> Self
+pub fn ExecutionOptions::with_explain(Self, Bool) -> Self
+pub fn ExecutionOptions::with_guards(Self, Bool) -> Self
 pub fn ExecutionOptions::with_jobs(Self, Int) -> Self
+pub fn ExecutionOptions::with_no_dependencies(Self, Bool) -> Self
+pub fn ExecutionOptions::with_quiet(Self, Bool) -> Self
 pub fn ExecutionOptions::with_unstable(Self, Bool) -> Self
 pub fn ExecutionOptions::with_verbosity(Self, Int) -> Self
 
@@ -159,6 +191,7 @@ pub fn ExecutionPlan::options(Self) -> ExecutionOptions
 pub fn ExecutionPlan::stderr(Self) -> BytesView
 pub fn ExecutionPlan::steps(Self) -> ArrayView[PlannedStep]
 pub fn ExecutionPlan::tasks(Self) -> ArrayView[ExecutionTask]
+pub fn ExecutionPlan::with_stderr_prefix(Self, BytesView) -> Self
 pub impl @debug.Debug for ExecutionPlan
 
 pub struct ExecutionReport {
@@ -179,11 +212,15 @@ pub struct ExecutionTask {
   steps : Array[PlannedStep]
   dependencies : Array[Int]
   cache : CacheDirective?
+  print_exit_message : Bool
+  preamble : Bytes
 }
 pub fn ExecutionTask::cache(Self) -> CacheDirective?
 pub fn ExecutionTask::dependencies(Self) -> ArrayView[Int]
 pub fn ExecutionTask::id(Self) -> Int
 pub fn ExecutionTask::order(Self) -> Int
+pub fn ExecutionTask::preamble(Self) -> BytesView
+pub fn ExecutionTask::print_exit_message(Self) -> Bool
 pub fn ExecutionTask::recipe(Self) -> String
 pub fn ExecutionTask::steps(Self) -> ArrayView[PlannedStep]
 pub impl @debug.Debug for ExecutionTask
@@ -201,9 +238,13 @@ pub struct PlannedCommand {
   line : Int
   ignore_error : Bool
   echo : Bytes
+  is_guard : Bool
+  continue_signals : Array[@host.SignalKind]
 } derive(Eq)
+pub fn PlannedCommand::continue_signals(Self) -> ArrayView[@host.SignalKind]
 pub fn PlannedCommand::echo(Self) -> BytesView
 pub fn PlannedCommand::ignore_error(Self) -> Bool
+pub fn PlannedCommand::is_guard(Self) -> Bool
 pub fn PlannedCommand::line(Self) -> Int
 pub fn PlannedCommand::recipe(Self) -> String
 pub fn PlannedCommand::spec(Self) -> @host.CommandSpec
@@ -218,10 +259,14 @@ pub struct PlannedLine {
   process_environment : Array[(String, String)]
   options : ExecutionOptions
   recipe : String
+  positional : Array[String]
   recipe_quiet : Bool
   line : Int
+  continue_signals : Array[@host.SignalKind]
 }
+pub fn PlannedLine::continue_signals(Self) -> ArrayView[@host.SignalKind]
 pub fn PlannedLine::line(Self) -> Int
+pub fn PlannedLine::positional(Self) -> ArrayView[String]
 pub fn PlannedLine::recipe(Self) -> String
 pub impl @debug.Debug for PlannedLine
 
@@ -232,12 +277,16 @@ pub struct PlannedScript {
   cwd : @path.PathValue
   environment : Array[(String, String)]
   configuration : ScriptConfiguration
+  positional : Array[String]
   quiet : Bool
+  continue_signals : Array[@host.SignalKind]
 } derive(Eq)
 pub fn PlannedScript::configuration(Self) -> ScriptConfiguration
 pub fn PlannedScript::contents(Self) -> BytesView
+pub fn PlannedScript::continue_signals(Self) -> ArrayView[@host.SignalKind]
 pub fn PlannedScript::cwd(Self) -> @path.PathValue
 pub fn PlannedScript::environment(Self) -> ArrayView[(String, String)]
+pub fn PlannedScript::positional(Self) -> ArrayView[String]
 pub fn PlannedScript::quiet(Self) -> Bool
 pub fn PlannedScript::recipe(Self) -> String
 pub impl @debug.Debug for PlannedScript
@@ -247,6 +296,34 @@ pub(all) enum PlannedStep {
   Script(PlannedScript, Bytes)
   Line(PlannedLine)
 } derive(@debug.Debug)
+
+pub struct ProjectModuleRuntime {
+  module_path : @modulepath.ModulePath
+  global : @evaluator.Environment
+  context : @evaluator.EvaluationContext
+  shell : @environment.ShellConfiguration
+  cwd : @path.PathValue
+  process_environment : Array[(String, String)]
+  configuration : ScriptConfiguration
+} derive(@debug.Debug)
+pub fn ProjectModuleRuntime::configuration(Self) -> ScriptConfiguration
+pub fn ProjectModuleRuntime::context(Self) -> @evaluator.EvaluationContext
+pub fn ProjectModuleRuntime::cwd(Self) -> @path.PathValue
+pub fn ProjectModuleRuntime::global(Self) -> @evaluator.Environment
+pub fn ProjectModuleRuntime::module_path(Self) -> @modulepath.ModulePath
+pub fn ProjectModuleRuntime::new(@modulepath.ModulePath, @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ArrayView[(String, String)], ScriptConfiguration) -> Self
+pub fn ProjectModuleRuntime::process_environment(Self) -> ArrayView[(String, String)]
+pub fn ProjectModuleRuntime::shell(Self) -> @environment.ShellConfiguration
+
+pub struct ProjectRecipeRequest {
+  module_path : @modulepath.ModulePath
+  recipe : String
+  arguments : Array[@value.Value]
+} derive(Eq, @debug.Debug)
+pub fn ProjectRecipeRequest::arguments(Self) -> ArrayView[@value.Value]
+pub fn ProjectRecipeRequest::module_path(Self) -> @modulepath.ModulePath
+pub fn ProjectRecipeRequest::new(@modulepath.ModulePath, String, arguments? : Array[@value.Value]) -> Self
+pub fn ProjectRecipeRequest::recipe(Self) -> String
 
 pub struct RecipeRequest {
   recipe : String

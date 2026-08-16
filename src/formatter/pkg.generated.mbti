@@ -12,6 +12,8 @@ import {
 // Values
 pub fn check(@source.Source) -> CheckResult raise FormatterError
 
+pub fn check_with_indentation(@source.Source, String) -> CheckResult raise FormatterError
+
 pub fn diff(@source.Source) -> String raise FormatterError
 
 pub fn format(@syntax.Ast) -> String
@@ -19,6 +21,10 @@ pub fn format(@syntax.Ast) -> String
 pub fn format_expression(@syntax.Expression) -> String
 
 pub fn format_source(@source.Source) -> String raise FormatterError
+
+pub fn format_source_with_indentation(@source.Source, String) -> String raise FormatterError
+
+pub fn format_with_indentation(@syntax.Ast, String) -> String raise FormatterError
 
 pub fn is_formatted(@source.Source) -> Bool raise FormatterError
 

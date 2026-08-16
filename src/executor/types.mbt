@@ -3,6 +3,7 @@
 pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
+  echo_quiet : Bool
   verbose : Bool
   verbosity : Int
   time : Bool
@@ -11,6 +12,10 @@ pub struct ExecutionOptions {
   jobs : Int
   cache_enabled : Bool
   unstable : Bool
+  no_dependencies : Bool
+  explain : Bool
+  color_enabled : Bool
+  guards : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -25,6 +30,7 @@ pub fn ExecutionOptions::new(
   {
     dry_run,
     quiet,
+    echo_quiet: false,
     verbose,
     verbosity: if verbose {
       1
@@ -37,6 +43,10 @@ pub fn ExecutionOptions::new(
     jobs: 1,
     cache_enabled: true,
     unstable: false,
+    no_dependencies: false,
+    explain: false,
+    color_enabled: command_color is Some(_),
+    guards: false,
   }
 }
 
@@ -52,6 +62,7 @@ pub fn ExecutionOptions::from_values(
   {
     dry_run,
     quiet,
+    echo_quiet: false,
     verbose,
     verbosity: if verbose {
       1
@@ -64,6 +75,10 @@ pub fn ExecutionOptions::from_values(
     jobs: 1,
     cache_enabled: true,
     unstable: false,
+    no_dependencies: false,
+    explain: false,
+    color_enabled: command_color is Some(_),
+    guards: false,
   }
 }
 
@@ -94,6 +109,55 @@ pub fn ExecutionOptions::with_unstable(
 }
 
 ///|
+/// Return a copy which omits both normal and subsequent recipe dependencies.
+pub fn ExecutionOptions::with_no_dependencies(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, no_dependencies: enabled }
+}
+
+///|
+pub fn ExecutionOptions::with_explain(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, explain: enabled }
+}
+
+///|
+pub fn ExecutionOptions::with_color_enabled(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, color_enabled: enabled }
+}
+
+///|
+pub fn ExecutionOptions::with_guards(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, guards: enabled }
+}
+
+///|
+pub fn ExecutionOptions::with_quiet(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, quiet: enabled }
+}
+
+///|
+pub fn ExecutionOptions::with_echo_quiet(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, echo_quiet: enabled }
+}
+
+///|
 pub fn ExecutionOptions::with_verbosity(
   self : ExecutionOptions,
   verbosity : Int,
@@ -109,6 +173,11 @@ pub fn ExecutionOptions::dry_run(self : ExecutionOptions) -> Bool {
 ///|
 pub fn ExecutionOptions::quiet(self : ExecutionOptions) -> Bool {
   self.quiet
+}
+
+///|
+pub fn ExecutionOptions::echo_quiet(self : ExecutionOptions) -> Bool {
+  self.echo_quiet
 }
 
 ///|
@@ -151,6 +220,26 @@ pub fn ExecutionOptions::cache_enabled(self : ExecutionOptions) -> Bool {
 ///|
 pub fn ExecutionOptions::unstable(self : ExecutionOptions) -> Bool {
   self.unstable
+}
+
+///|
+pub fn ExecutionOptions::no_dependencies(self : ExecutionOptions) -> Bool {
+  self.no_dependencies
+}
+
+///|
+pub fn ExecutionOptions::explain(self : ExecutionOptions) -> Bool {
+  self.explain
+}
+
+///|
+pub fn ExecutionOptions::color_enabled(self : ExecutionOptions) -> Bool {
+  self.color_enabled
+}
+
+///|
+pub fn ExecutionOptions::guards(self : ExecutionOptions) -> Bool {
+  self.guards
 }
 
 ///|
@@ -236,6 +325,8 @@ pub struct PlannedCommand {
   line : Int
   ignore_error : Bool
   echo : Bytes
+  is_guard : Bool
+  continue_signals : Array[@host.SignalKind]
 } derive(Eq)
 
 ///|
@@ -245,8 +336,18 @@ fn PlannedCommand::new(
   line : Int,
   ignore_error : Bool,
   echo? : Bytes = b"",
+  is_guard? : Bool = false,
+  continue_signals? : ArrayView[@host.SignalKind] = [],
 ) -> PlannedCommand {
-  { spec, recipe, line, ignore_error, echo }
+  {
+    spec,
+    recipe,
+    line,
+    ignore_error,
+    echo,
+    is_guard,
+    continue_signals: continue_signals.to_owned(),
+  }
 }
 
 ///|
@@ -267,6 +368,18 @@ pub fn PlannedCommand::line(self : PlannedCommand) -> Int {
 ///|
 pub fn PlannedCommand::ignore_error(self : PlannedCommand) -> Bool {
   self.ignore_error
+}
+
+///|
+pub fn PlannedCommand::is_guard(self : PlannedCommand) -> Bool {
+  self.is_guard
+}
+
+///|
+pub fn PlannedCommand::continue_signals(
+  self : PlannedCommand,
+) -> ArrayView[@host.SignalKind] {
+  self.continue_signals[:]
 }
 
 ///|
@@ -297,8 +410,10 @@ pub struct PlannedLine {
   process_environment : Array[(String, String)]
   options : ExecutionOptions
   recipe : String
+  positional : Array[String]
   recipe_quiet : Bool
   line : Int
+  continue_signals : Array[@host.SignalKind]
 }
 
 ///|
@@ -311,8 +426,10 @@ fn PlannedLine::new(
   process_environment : Array[(String, String)],
   options : ExecutionOptions,
   recipe : String,
+  positional? : ArrayView[String] = [],
   recipe_quiet : Bool,
   line : Int,
+  continue_signals? : ArrayView[@host.SignalKind] = [],
 ) -> PlannedLine {
   {
     source,
@@ -323,8 +440,10 @@ fn PlannedLine::new(
     process_environment,
     options,
     recipe,
+    positional: positional.to_owned(),
     recipe_quiet,
     line,
+    continue_signals: continue_signals.to_owned(),
   }
 }
 
@@ -346,8 +465,20 @@ pub fn PlannedLine::recipe(self : PlannedLine) -> String {
 }
 
 ///|
+pub fn PlannedLine::positional(self : PlannedLine) -> ArrayView[String] {
+  self.positional[:]
+}
+
+///|
 pub fn PlannedLine::line(self : PlannedLine) -> Int {
   self.line
+}
+
+///|
+pub fn PlannedLine::continue_signals(
+  self : PlannedLine,
+) -> ArrayView[@host.SignalKind] {
+  self.continue_signals[:]
 }
 
 ///|
@@ -360,7 +491,9 @@ pub struct PlannedScript {
   cwd : @path.PathValue
   environment : Array[(String, String)]
   configuration : ScriptConfiguration
+  positional : Array[String]
   quiet : Bool
+  continue_signals : Array[@host.SignalKind]
 } derive(Eq)
 
 ///|
@@ -371,9 +504,21 @@ fn PlannedScript::new(
   cwd : @path.PathValue,
   environment : Array[(String, String)],
   configuration : ScriptConfiguration,
+  positional : ArrayView[String],
   quiet : Bool,
+  continue_signals? : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript {
-  { recipe, contents, shebang, cwd, environment, configuration, quiet }
+  {
+    recipe,
+    contents,
+    shebang,
+    cwd,
+    environment,
+    configuration,
+    positional: positional.to_owned(),
+    quiet,
+    continue_signals: continue_signals.to_owned(),
+  }
 }
 
 ///|
@@ -406,8 +551,20 @@ pub fn PlannedScript::configuration(
 }
 
 ///|
+pub fn PlannedScript::positional(self : PlannedScript) -> ArrayView[String] {
+  self.positional[:]
+}
+
+///|
 pub fn PlannedScript::quiet(self : PlannedScript) -> Bool {
   self.quiet
+}
+
+///|
+pub fn PlannedScript::continue_signals(
+  self : PlannedScript,
+) -> ArrayView[@host.SignalKind] {
+  self.continue_signals[:]
 }
 
 ///|
@@ -419,6 +576,7 @@ pub impl Debug for PlannedScript with fn to_repr(self) {
     "cwd": Repr(self.cwd),
     "environment_keys": Repr(self.environment.map(fn(entry) { entry.0 })),
     "configuration": Repr(self.configuration),
+    "positional_count": Repr(self.positional.length()),
     "quiet": Repr(self.quiet),
   })
 }
@@ -641,6 +799,8 @@ pub struct ExecutionTask {
   steps : Array[PlannedStep]
   dependencies : Array[Int]
   cache : CacheDirective?
+  print_exit_message : Bool
+  preamble : Bytes
 }
 
 ///|
@@ -652,6 +812,8 @@ pub impl Debug for ExecutionTask with fn to_repr(self) {
     "step_count": Repr(self.steps.length()),
     "dependencies": Repr(self.dependencies),
     "cache_enabled": Repr(self.cache is Some(_)),
+    "print_exit_message": Repr(self.print_exit_message),
+    "preamble_bytes": Repr(self.preamble.length()),
   })
 }
 
@@ -663,8 +825,19 @@ fn ExecutionTask::new(
   steps : Array[PlannedStep],
   dependencies : ArrayView[Int],
   cache? : CacheDirective,
+  print_exit_message? : Bool = true,
+  preamble? : Bytes = b"",
 ) -> ExecutionTask {
-  { id, order, recipe, steps, dependencies: dependencies.to_owned(), cache }
+  {
+    id,
+    order,
+    recipe,
+    steps,
+    dependencies: dependencies.to_owned(),
+    cache,
+    print_exit_message,
+    preamble,
+  }
 }
 
 ///|
@@ -698,6 +871,16 @@ pub fn ExecutionTask::cache(self : ExecutionTask) -> CacheDirective? {
 }
 
 ///|
+pub fn ExecutionTask::print_exit_message(self : ExecutionTask) -> Bool {
+  self.print_exit_message
+}
+
+///|
+pub fn ExecutionTask::preamble(self : ExecutionTask) -> BytesView {
+  self.preamble[:]
+}
+
+///|
 fn ExecutionPlan::new(
   steps : Array[PlannedStep],
   commands : Array[PlannedCommand],
@@ -728,6 +911,29 @@ pub fn ExecutionPlan::stderr(self : ExecutionPlan) -> BytesView {
 }
 
 ///|
+pub fn ExecutionPlan::with_stderr_prefix(
+  self : ExecutionPlan,
+  prefix : BytesView,
+) -> ExecutionPlan {
+  let stderr : Array[Byte] = []
+  for byte in prefix {
+    stderr.push(byte)
+  }
+  for byte in self.stderr {
+    stderr.push(byte)
+  }
+  {
+    steps: self.steps,
+    commands: self.commands,
+    stderr: Bytes::from_array(stderr),
+    options: self.options,
+    tasks: self.tasks,
+    cache_directory: self.cache_directory,
+    confirmations: self.confirmations,
+  }
+}
+
+///|
 pub fn ExecutionPlan::options(self : ExecutionPlan) -> ExecutionOptions {
   self.options
 }
@@ -747,6 +953,79 @@ pub fn ExecutionPlan::confirmations(
   self : ExecutionPlan,
 ) -> ArrayView[ConfirmationRequest] {
   self.confirmations[:]
+}
+
+///|
+/// Combine independently planned module graphs into one runtime plan. Task ids
+/// are rebased and each later graph is fenced behind the previous graph so CLI
+/// invocation order remains stable even when `--jobs` permits parallel work
+/// within a recipe graph.
+pub fn combine_execution_plans(
+  plans : ArrayView[ExecutionPlan],
+) -> ExecutionPlan {
+  if plans.is_empty() {
+    return ExecutionPlan::new([], [], b"", ExecutionOptions::new())
+  }
+  let steps : Array[PlannedStep] = []
+  let commands : Array[PlannedCommand] = []
+  let stderr : Array[Byte] = []
+  let tasks : Array[ExecutionTask] = []
+  let confirmations : Array[ConfirmationRequest] = []
+  let mut cache_directory : @path.PathValue? = None
+  let mut previous_terminal : Int? = None
+  for plan in plans {
+    for step in plan.steps() {
+      steps.push(step)
+    }
+    for command in plan.commands() {
+      commands.push(command)
+    }
+    for byte in plan.stderr() {
+      stderr.push(byte)
+    }
+    for confirmation in plan.confirmations() {
+      confirmations.push(confirmation)
+    }
+    if cache_directory is None {
+      cache_directory = plan.cache_directory()
+    }
+    let offset = tasks.length()
+    for task in plan.tasks() {
+      let dependencies = task
+        .dependencies()
+        .map(fn(dependency) { dependency + offset })
+      if dependencies.is_empty() {
+        match previous_terminal {
+          Some(terminal) => dependencies.push(terminal)
+          None => ()
+        }
+      }
+      tasks.push(
+        ExecutionTask::new(
+          task.id() + offset,
+          tasks.length(),
+          task.recipe(),
+          task.steps().to_owned(),
+          dependencies,
+          cache?=task.cache(),
+          print_exit_message=task.print_exit_message(),
+          preamble=task.preamble().to_owned(),
+        ),
+      )
+    }
+    if !plan.tasks().is_empty() {
+      previous_terminal = Some(tasks.length() - 1)
+    }
+  }
+  ExecutionPlan::new(
+    steps,
+    commands,
+    Bytes::from_array(stderr),
+    plans[0].options(),
+    tasks~,
+    cache_directory?,
+    confirmations~,
+  )
 }
 
 ///|
@@ -809,4 +1088,122 @@ pub fn RecipeRequest::arguments(
   self : RecipeRequest,
 ) -> ArrayView[@value.Value] {
   self.arguments[:]
+}
+
+///|
+/// One requested recipe in an independently compiled project module.
+pub struct ProjectRecipeRequest {
+  module_path : @modulepath.ModulePath
+  recipe : String
+  arguments : Array[@value.Value]
+} derive(Eq, Debug)
+
+///|
+pub fn ProjectRecipeRequest::new(
+  module_path : @modulepath.ModulePath,
+  recipe : String,
+  arguments? : Array[@value.Value] = [],
+) -> ProjectRecipeRequest {
+  { module_path, recipe, arguments: arguments.copy() }
+}
+
+///|
+pub fn ProjectRecipeRequest::module_path(
+  self : ProjectRecipeRequest,
+) -> @modulepath.ModulePath {
+  self.module_path
+}
+
+///|
+pub fn ProjectRecipeRequest::recipe(self : ProjectRecipeRequest) -> String {
+  self.recipe
+}
+
+///|
+pub fn ProjectRecipeRequest::arguments(
+  self : ProjectRecipeRequest,
+) -> ArrayView[@value.Value] {
+  self.arguments[:]
+}
+
+///|
+/// Runtime values owned by one project module during execution planning.
+pub struct ProjectModuleRuntime {
+  module_path : @modulepath.ModulePath
+  global : @evaluator.Environment
+  context : @evaluator.EvaluationContext
+  shell : @environment.ShellConfiguration
+  cwd : @path.PathValue
+  process_environment : Array[(String, String)]
+  configuration : ScriptConfiguration
+} derive(Debug)
+
+///|
+pub fn ProjectModuleRuntime::new(
+  module_path : @modulepath.ModulePath,
+  global : @evaluator.Environment,
+  context : @evaluator.EvaluationContext,
+  shell : @environment.ShellConfiguration,
+  cwd : @path.PathValue,
+  process_environment : ArrayView[(String, String)],
+  configuration : ScriptConfiguration,
+) -> ProjectModuleRuntime {
+  {
+    module_path,
+    global,
+    context,
+    shell,
+    cwd,
+    process_environment: process_environment.to_owned(),
+    configuration,
+  }
+}
+
+///|
+pub fn ProjectModuleRuntime::module_path(
+  self : ProjectModuleRuntime,
+) -> @modulepath.ModulePath {
+  self.module_path
+}
+
+///|
+pub fn ProjectModuleRuntime::global(
+  self : ProjectModuleRuntime,
+) -> @evaluator.Environment {
+  self.global
+}
+
+///|
+pub fn ProjectModuleRuntime::context(
+  self : ProjectModuleRuntime,
+) -> @evaluator.EvaluationContext {
+  self.context
+}
+
+///|
+pub fn ProjectModuleRuntime::shell(
+  self : ProjectModuleRuntime,
+) -> @environment.ShellConfiguration {
+  self.shell
+}
+
+///|
+pub fn ProjectModuleRuntime::cwd(
+  self : ProjectModuleRuntime,
+) -> @path.PathValue {
+  self.cwd
+}
+
+///|
+pub fn ProjectModuleRuntime::process_environment(
+  self : ProjectModuleRuntime,
+) -> ArrayView[(String, String)] {
+  self.process_environment[:]
+}
+
+///|
+pub fn ProjectModuleRuntime::configuration(
+  self : ProjectModuleRuntime,
+) -> ScriptConfiguration {
+  self.configuration
 }

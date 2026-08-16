@@ -37,20 +37,9 @@ pub fn DotenvOptions::new(
 fn command_in_directory(
   command : @host.CommandSpec,
   working_directory : @path.PathValue,
-) -> @host.CommandSpec raise DotenvError {
-  let copy = @host.CommandSpec::new(
-    command.program(),
-    command.arguments().to_owned(),
-  ) catch {
-    error => raise redacted_host_error(error)
-  }
+) -> @host.CommandSpec {
+  let copy = command.copy()
   copy.set_cwd(working_directory)
-  for entry in command.environment() {
-    copy.add_environment(entry.0, entry.1) catch {
-      error => raise redacted_host_error(error)
-    }
-  }
-  copy.set_stdin(command.stdin().to_owned())
   copy
 }
 
@@ -90,7 +79,12 @@ fn[T : @host.HostFs] load_file(
     error => raise redacted_host_error(error)
   }
   let text = @utf8.decode(bytes) catch { _ => raise InvalidUtf8(path~) }
-  Some(parse_dotenv(text, ambient~))
+  Some(
+    parse_dotenv(text, ambient~) catch {
+      Parse(line~, column~) => raise ParseFile(path~, line~, column~)
+      error => raise error
+    },
+  )
 }
 
 ///|

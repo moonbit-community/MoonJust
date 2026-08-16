@@ -13,6 +13,7 @@ import {
   "moonbitlang/async/stdio",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
+  "moonbitlang/core/json",
 }
 
 pkgtype(kind: "executable")

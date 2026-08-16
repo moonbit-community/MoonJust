@@ -9,6 +9,7 @@ pub(all) struct EvaluationContext {
   source : @source.SourceId?
   justfile : @path.PathValue?
   source_file : @path.PathValue?
+  source_files : Array[(@source.SourceId, @path.PathValue)]
   module_file : @path.PathValue?
   module_path : String?
   executable : @path.PathValue?
@@ -26,8 +27,12 @@ pub(all) struct EvaluationContext {
   num_cpus : Int?
   num_jobs : Int?
   is_dependency : Bool
+  lists : Bool
   utc_offset_seconds : Int?
   color_mode : String?
+  command_color : String?
+  environment : Array[(String, String)]?
+  process_environment : Array[(String, String)]?
 } derive(Eq, Debug)
 
 ///|
@@ -38,6 +43,7 @@ pub fn EvaluationContext::new(
   source? : @source.SourceId,
   justfile? : @path.PathValue,
   source_file? : @path.PathValue,
+  source_files? : ArrayView[(@source.SourceId, @path.PathValue)] = [],
   module_file? : @path.PathValue,
   module_path? : String,
   executable? : @path.PathValue,
@@ -55,8 +61,12 @@ pub fn EvaluationContext::new(
   num_cpus? : Int,
   num_jobs? : Int,
   is_dependency? : Bool = false,
+  lists? : Bool = false,
   utc_offset_seconds? : Int,
   color_mode? : String,
+  command_color? : String,
+  environment? : Array[(String, String)],
+  process_environment? : Array[(String, String)],
 ) -> EvaluationContext {
   {
     cwd,
@@ -65,6 +75,7 @@ pub fn EvaluationContext::new(
     source,
     justfile,
     source_file,
+    source_files: source_files.to_owned(),
     module_file,
     module_path,
     executable,
@@ -82,14 +93,44 @@ pub fn EvaluationContext::new(
     num_cpus,
     num_jobs,
     is_dependency,
+    lists,
     utc_offset_seconds,
     color_mode,
+    command_color,
+    environment,
+    process_environment,
   }
+}
+
+///|
+/// Derive a recipe context without discarding project- and module-level facts.
+pub fn EvaluationContext::for_recipe(
+  self : EvaluationContext,
+  cwd : @path.PathValue,
+  recipe : String,
+  is_dependency : Bool,
+) -> EvaluationContext {
+  { ..self, cwd: Some(cwd), recipe: Some(recipe), is_dependency }
+}
+
+///|
+/// Derive a context whose effectful expression evaluation inherits the given
+/// process environment.
+pub fn EvaluationContext::with_process_environment(
+  self : EvaluationContext,
+  environment : ArrayView[(String, String)],
+) -> EvaluationContext {
+  { ..self, process_environment: Some(environment.to_owned()) }
 }
 
 ///|
 pub fn EvaluationContext::color_mode(self : EvaluationContext) -> String? {
   self.color_mode
+}
+
+///|
+pub fn EvaluationContext::command_color(self : EvaluationContext) -> String? {
+  self.command_color
 }
 
 ///|
@@ -124,6 +165,21 @@ pub fn EvaluationContext::source_file(
   self : EvaluationContext,
 ) -> @path.PathValue? {
   self.source_file
+}
+
+///|
+pub fn EvaluationContext::for_source(
+  self : EvaluationContext,
+  source : @source.SourceId,
+) -> EvaluationContext {
+  let mut source_file = self.source_file
+  for entry in self.source_files {
+    if entry.0 == source {
+      source_file = Some(entry.1)
+      break
+    }
+  }
+  { ..self, source: Some(source), source_file }
 }
 
 ///|
@@ -236,6 +292,11 @@ pub fn EvaluationContext::is_dependency(self : EvaluationContext) -> Bool {
 }
 
 ///|
+pub fn EvaluationContext::lists(self : EvaluationContext) -> Bool {
+  self.lists
+}
+
+///|
 pub fn EvaluationContext::utc_offset_seconds(self : EvaluationContext) -> Int? {
   self.utc_offset_seconds
 }
@@ -249,6 +310,23 @@ fn require_context_path(
   match value {
     Some(path) => path
     None => raise MissingContext(fact~, span~)
+  }
+}
+
+///|
+fn require_function_path(
+  name : String,
+  value : @path.PathValue?,
+  missing : String,
+  span : @source.Span,
+) -> @path.PathValue raise EvaluationError {
+  match value {
+    Some(path) => path
+    None =>
+      raise Builtin(
+        Failure(message="call to function `" + name + "` failed: " + missing),
+        span~,
+      )
   }
 }
 
@@ -310,6 +388,58 @@ fn context_parent(
 }
 
 ///|
+fn split_ascii_whitespace(value : String) -> Array[String] {
+  let words : Array[String] = []
+  let mut current = StringBuilder()
+  for character in value {
+    if character.is_ascii_whitespace() {
+      if !current.is_empty() {
+        words.push(current.to_string())
+        current = StringBuilder()
+      }
+    } else {
+      current.write_char(character)
+    }
+  }
+  if !current.is_empty() {
+    words.push(current.to_string())
+  }
+  words
+}
+
+///|
+fn context_boolean(
+  context : EvaluationContext,
+  condition : Bool,
+) -> @value.Value {
+  if context.lists {
+    if condition {
+      String("true")
+    } else {
+      List([])
+    }
+  } else {
+    String(condition.to_string())
+  }
+}
+
+///|
+fn map_context_paths(
+  value : @value.Value,
+  context : EvaluationContext,
+  span : @source.Span,
+) -> @value.Value raise EvaluationError {
+  let result : Array[@value.Value] = []
+  for raw in value.elements() {
+    result.push(String(resolve_context_path(context, raw, span).as_string()))
+  }
+  match result {
+    [single] => single
+    values => List(values)
+  }
+}
+
+///|
 fn context_builtin(
   requested : String,
   arguments : Array[@value.Value],
@@ -318,10 +448,141 @@ fn context_builtin(
 ) -> @value.Value? raise EvaluationError {
   let name = @builtin.canonical_name(requested)
   let value : @value.Value = match name {
-    "absolute_path" => {
-      let raw = expect_string(name, arguments, 0, span)
-      String(resolve_context_path(context, raw, span).as_string())
+    "bool" => {
+      if !context.lists {
+        raise Builtin(
+          Failure(message="the `bool()` function requires `set lists`"),
+          span~,
+        )
+      }
+      let elements = arguments[0].elements()
+      let condition = match elements {
+        [] => false
+        [""] | ["0"] | ["false"] => false
+        ["1"] | ["true"] => true
+        [value] =>
+          raise Builtin(
+            Failure(message="`\{value}` is not a valid boolean string"),
+            span~,
+          )
+        _ =>
+          raise Builtin(
+            Failure(
+              message="multi-element lists cannot be converted into booleans",
+            ),
+            span~,
+          )
+      }
+      if condition {
+        String("true")
+      } else {
+        List([])
+      }
     }
+    "append" | "prepend" => {
+      if arguments.length() != 2 {
+        return None
+      }
+      let affix = expect_string(name, arguments, 0, span)
+      let elements = if context.lists {
+        arguments[1].elements()
+      } else {
+        split_ascii_whitespace(arguments[1].to_string())
+      }
+      let mapped : Array[@value.Value] = []
+      for element in elements {
+        mapped.push(
+          String(
+            if name == "append" {
+              element + affix
+            } else {
+              affix + element
+            },
+          ),
+        )
+      }
+      if context.lists {
+        List(mapped)
+      } else {
+        String(mapped.map(fn(value) { value.to_string() }).join(" "))
+      }
+    }
+    "show" => {
+      if !context.lists {
+        raise Builtin(
+          Failure(message="the `show()` function requires `set lists`"),
+          span~,
+        )
+      }
+      String(arguments[0].display())
+    }
+    "join_list" | "split" => {
+      if !context.lists {
+        raise Builtin(
+          Failure(message="the `\{name}()` function requires `set lists`"),
+          span~,
+        )
+      }
+      return None
+    }
+    "quote" => {
+      if !context.lists {
+        let value = @builtin.call("quote", [String(arguments[0].to_string())]) catch {
+          error => raise Builtin(error, span~)
+        }
+        return Some(value)
+      }
+      let quoted : Array[@value.Value] = []
+      for element in arguments[0].elements() {
+        let value = @builtin.call("quote", [String(element)]) catch {
+          error => raise Builtin(error, span~)
+        }
+        quoted.push(value)
+      }
+      match quoted {
+        [single] => single
+        values => List(values)
+      }
+    }
+    "semver_matches" => {
+      let result = @builtin.call(name, arguments) catch {
+        error => raise Builtin(error, span~)
+      }
+      context_boolean(context, result.truthy())
+    }
+    "env" | "env_var" | "env_var_or_default" => {
+      guard context.environment is Some(entries) else { return None }
+      let keys = arguments[0].elements()
+      for key in keys {
+        for entry in entries {
+          if entry.0 == key {
+            return Some(String(entry.1))
+          }
+        }
+      }
+      if (name == "env" || name == "env_var_or_default") &&
+        arguments.length() > 1 {
+        return Some(arguments[1])
+      }
+      let description = if keys.is_empty() {
+        "empty environment variable list with no default"
+      } else if keys.length() == 1 {
+        "environment variable `" + keys[0] + "` not present"
+      } else {
+        "environment variables " +
+        keys.map(fn(key) { "`" + key + "`" }).join(" and ") +
+        " not present"
+      }
+      raise Builtin(Failure(message=description), span~)
+    }
+    "absolute_path" =>
+      if context.lists {
+        map_context_paths(arguments[0], context, span)
+      } else {
+        String(
+          resolve_context_path(context, arguments[0].to_string(), span).as_string(),
+        )
+      }
     "cache_directory" =>
       String(
         require_context_path(name, context.cache_directory, span).as_string(),
@@ -348,7 +609,12 @@ fn context_builtin(
       )
     "runtime_directory" =>
       String(
-        require_context_path(name, context.runtime_directory, span).as_string(),
+        require_function_path(
+          name,
+          context.runtime_directory,
+          "runtime directory not found",
+          span,
+        ).as_string(),
       )
     "invocation_directory" =>
       String(
@@ -360,7 +626,12 @@ fn context_builtin(
       )
     "executable_directory" =>
       String(
-        require_context_path(name, context.executable_directory, span).as_string(),
+        require_function_path(
+          name,
+          context.executable_directory,
+          "executable directory not found",
+          span,
+        ).as_string(),
       )
     "justfile_directory" =>
       String(context_parent("justfile", context.justfile, span).as_string())
@@ -387,13 +658,31 @@ fn context_builtin(
     "num_cpus" =>
       String(require_context_int(name, context.num_cpus, span).to_string())
     "num_jobs" =>
-      match context.num_jobs {
-        Some(value) => String(value.to_string())
-        None => String("")
+      if !context.lists {
+        raise Builtin(
+          Failure(message="the `num_jobs()` function requires `set lists`"),
+          span~,
+        )
+      } else {
+        match context.num_jobs {
+          Some(value) => String(value.to_string())
+          None => List([])
+        }
       }
-    "is_dependency" =>
-      String(if context.is_dependency { "true" } else { "false" })
-    "recipe_name" => String(require_context_string(name, context.recipe, span))
+    "is_dependency" => context_boolean(context, context.is_dependency)
+    "recipe_name" =>
+      String(
+        match context.recipe {
+          Some(recipe) => recipe
+          None =>
+            raise Builtin(
+              Failure(
+                message="call to function `recipe_name` failed: `recipe_name()` can only be used within a recipe",
+              ),
+              span~,
+            )
+        },
+      )
     "just_version" => String("1.57.0")
     _ => return None
   }

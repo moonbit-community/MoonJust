@@ -13,5 +13,5 @@ pub fn compatible_just_version() -> String {
 ///|
 /// Render the version line used by the command-line entry point.
 pub fn version_line() -> String {
-  "moonjust \{version()} (compatible with just \{compatible_just_version()})"
+  "moonjust \{version()} (compatible with just \{compatible_just_version()} Tier A)"
 }

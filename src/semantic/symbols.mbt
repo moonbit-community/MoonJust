@@ -2,6 +2,7 @@
 /// The kind of a named definition in a compiled justfile.
 pub(all) enum SymbolKind {
   Variable
+  Function
   Recipe
   Alias
 } derive(Eq, Debug)

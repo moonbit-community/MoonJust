@@ -70,6 +70,24 @@ pub fn WorkingDirectoryModel::from_stdin(
 }
 
 ///|
+/// A global justfile is loaded from user configuration, but its root recipes
+/// execute in the invocation project instead of the configuration directory.
+pub fn WorkingDirectoryModel::from_global_justfile(
+  invocation : @path.PathValue,
+  justfile : @path.PathValue,
+  project : @path.PathValue,
+) -> WorkingDirectoryModel raise WorkingDirectoryError {
+  let resolved_justfile = resolve_from(invocation, justfile)
+  let resolved_project = resolve_from(invocation, project)
+  {
+    invocation,
+    project: resolved_project,
+    module_base: resolved_project,
+    justfile: Some(resolved_justfile),
+  }
+}
+
+///|
 pub fn WorkingDirectoryModel::invocation_directory(
   self : WorkingDirectoryModel,
 ) -> @path.PathValue {

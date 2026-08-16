@@ -48,6 +48,29 @@ test "parser validates cooked and Unicode escapes" {
 }
 
 ///|
+test "triple strings remove common indentation and preserve CRLF blank lines" {
+  guard @parser.parse_expression(
+      expression_source("\"\"\"\n  foo\\\n  bar\n\"\"\""),
+    )
+    is String(cooked) else {
+    fail("expected cooked triple string")
+  }
+  assert_eq(cooked.cooked(), "foobar\n")
+  guard @parser.parse_expression(
+      expression_source("'''\r\n  foo\r\n\r\n  bar\r\n'''"),
+    )
+    is String(raw) else {
+    fail("expected raw triple string")
+  }
+  assert_eq(raw.cooked(), "foo\r\n\r\nbar\r\n")
+  guard @parser.parse_expression(expression_source("\"a\\\r\nb\""))
+    is String(continued) else {
+    fail("expected CRLF continuation")
+  }
+  assert_eq(continued.cooked(), "ab")
+}
+
+///|
 test "format strings retain literal and expression parts" {
   let source = expression_source("f'hello {{name}}!'")
   guard @parser.parse_expression(source) is Format(start~, parts~, span~) else {

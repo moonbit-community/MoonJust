@@ -19,6 +19,73 @@ fn failure(message : String, exit_code : Int) -> @cli.ApplicationResponse {
 }
 
 ///|
+const MOONJUST_CHANGELOG : String =
+  #|Changelog
+  #|=========
+  #|
+  #|MoonJust maintains its own release history independently of upstream just.
+  #|This build targets compatibility with just 1.57.0.
+
+///|
+const JUST_MAN_HEADER : String =
+  #|.TH just 1
+  #|.SH NAME
+  #|just \- a command runner for project-specific tasks
+  #|.SH SYNOPSIS
+  #|.B just
+  #|[options] [recipe [arguments...]]
+
+///|
+fn request_response(
+  argv : ArrayView[String],
+  environment : Map[String, String],
+) -> @cli.ApplicationResponse? {
+  if argv.length() != 2 || argv[0] != "--request" {
+    return None
+  }
+  let request = @json.parse(argv[1][:]) catch {
+    _ => return Some(failure("error: invalid request", 2))
+  }
+  guard request is Object(fields) &&
+    fields.get("environment-variable") is Some(String(name)) else {
+    return Some(failure("error: invalid request", 2))
+  }
+  let response = match environment.get(name) {
+    None => "{\"environment-variable\":null}"
+    Some(value) => {
+      let numbers : Array[String] = []
+      for byte in @utf8.encode(value) {
+        numbers.push(byte.to_int().to_string())
+      }
+      "{\"environment-variable\":{\"Unix\":[" + numbers.join(",") + "]}}"
+    }
+  }
+  Some(@cli.ApplicationResponse::success(stdout=@utf8.encode(response)))
+}
+
+///|
+fn[F : @host.HostFs] application_failure(
+  host : F,
+  arguments : @cli.CliArguments,
+  context : @application.ApplicationContext,
+  error : @application.ApplicationError,
+) -> @cli.ApplicationResponse {
+  let response = failure(
+    @application.render_application_error(host, arguments, context, error),
+    error.exit_code(),
+  )
+  if arguments.flag("quiet") {
+    @cli.ApplicationResponse::new(
+      response.stdout().to_owned(),
+      b"",
+      response.exit_code(),
+    )
+  } else {
+    response
+  }
+}
+
+///|
 async fn confirm_execution(
   plan : @executor.ExecutionPlan,
 ) -> @cli.ApplicationResponse? {
@@ -48,7 +115,7 @@ async fn confirm_execution(
 async fn[
   F : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-  P : @host.HostAsyncProcess,
+  P : @host.HostAsyncProcess + @host.HostAsyncOutput,
 ] execute_run(
   host : F,
   environment_host : E,
@@ -61,7 +128,7 @@ async fn[
       host, environment_host, process, arguments, context,
     )
   catch {
-    error => return failure(error.message(), error.exit_code())
+    error => return application_failure(host, arguments, context, error)
   } noraise {
     value => value
   }
@@ -71,31 +138,33 @@ async fn[
       None => ()
     }
   }
-  let report = try
-    @runtime.execute_plan(process, host, environment_host, plan)
+  let summary = try
+    @runtime.execute_plan_live(process, process, host, environment_host, plan)
   catch {
-    error => {
-      let stderr : Array[Byte] = []
-      for byte in error.stderr() {
-        stderr.push(byte)
+    error =>
+      return if arguments.flag("quiet") || !error.show_message() {
+        @cli.ApplicationResponse::new(b"", b"", error.exit_code())
+      } else {
+        let message = match error.error() {
+          Evaluation(evaluation) =>
+            @application.render_application_error(
+              host,
+              arguments,
+              context,
+              Evaluation(evaluation),
+            )
+          _ => error.message()
+        }
+        failure(message, error.exit_code())
       }
-      for byte in @utf8.encode(error.message().trim_end().to_owned() + "\n") {
-        stderr.push(byte)
-      }
-      return @cli.ApplicationResponse::new(
-        error.stdout().to_owned(),
-        Bytes::from_array(stderr),
-        error.exit_code(),
-      )
-    }
   } noraise {
     value => value
   }
-  @cli.ApplicationResponse::new(
-    report.stdout().to_owned(),
-    report.stderr().to_owned(),
-    0,
-  )
+  if summary.commands() >= 0 {
+    @cli.ApplicationResponse::success()
+  } else {
+    failure("error: invalid live execution summary", 1)
+  }
 }
 
 ///|
@@ -114,7 +183,7 @@ fn append_response(
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostTemp + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  F : @host.HostFs + @host.HostTemp + @host.HostAsyncScriptTemp + @host.HostCacheStore + @host.HostAtomicFs,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] run_cli(
   host : F,
@@ -131,8 +200,13 @@ async fn[
   } noraise {
     value => value
   }
+  match request_response(argv, environment) {
+    Some(response) => return response
+    None => ()
+  }
   let arguments = try @cli.parse_arguments(argv, environment) catch {
     Invalid(message) => return failure(message, 2)
+    Config(message) => return failure(message, 1)
     Unsupported(name) =>
       return failure("error: option '\{name}' is not supported yet", 2)
   } noraise {
@@ -148,6 +222,16 @@ async fn[
       stdout=@utf8.encode(@moonjust.version_line() + "\n"),
     )
   }
+  if arguments.command() == ChangelogCommand {
+    return @cli.ApplicationResponse::success(
+      stdout=@utf8.encode(MOONJUST_CHANGELOG + "\n"),
+    )
+  }
+  if arguments.command() == ManCommand {
+    return @cli.ApplicationResponse::success(
+      stdout=@utf8.encode(JUST_MAN_HEADER + "\n"),
+    )
+  }
   let cwd = try @host.HostEnv::current_dir(environment_host) catch {
     error =>
       return failure("error: invalid current directory: \{Repr(error)}", 1)
@@ -155,8 +239,35 @@ async fn[
     value => value
   }
   let context = @application.ApplicationContext::new(cwd, stdin~)
+  let context = try
+    @application.resolve_global_context(
+      host, environment_host, arguments, context,
+    )
+  catch {
+    error =>
+      return if arguments.flag("quiet") {
+        @cli.ApplicationResponse::new(b"", b"", error.exit_code())
+      } else {
+        failure(error.message(), error.exit_code())
+      }
+  } noraise {
+    value => value
+  }
   let process = @host_process.ProcessAdapter::new()
   if arguments.command() == RunCommand {
+    let default_list = try
+      @application.execute_default_list_command(
+        host, environment_host, arguments, context,
+      )
+    catch {
+      error => return application_failure(host, arguments, context, error)
+    } noraise {
+      value => value
+    }
+    match default_list {
+      Some(response) => return response
+      None => ()
+    }
     execute_run(host, environment_host, process, arguments, context)
   } else if arguments.command() == ChooseCommand {
     let selections = try
@@ -164,7 +275,7 @@ async fn[
         host, environment_host, process, arguments, context,
       )
     catch {
-      error => return failure(error.message(), error.exit_code())
+      error => return application_failure(host, arguments, context, error)
     } noraise {
       value => value
     }
@@ -198,13 +309,43 @@ async fn[
         host, environment_host, process, arguments, context,
       )
     catch {
-      error => failure(error.message(), error.exit_code())
+      error => application_failure(host, arguments, context, error)
     } noraise {
       response => response
     }
   } else if arguments.command() == CleanCommand {
     try @application.execute_clean_command(host, arguments, context) catch {
-      error => failure(error.message(), error.exit_code())
+      error => application_failure(host, arguments, context, error)
+    } noraise {
+      response => response
+    }
+  } else if arguments.command() == CheckCommand ||
+    arguments.command() == FormatCommand ||
+    arguments.command() == InitCommand {
+    try
+      @application.execute_file_command_async(host, arguments, context)
+    catch {
+      error => application_failure(host, arguments, context, error)
+    } noraise {
+      response => response
+    }
+  } else if arguments.command() == EvaluateCommand {
+    try
+      @application.execute_evaluate_command_async(
+        host, environment_host, process, arguments, context,
+      )
+    catch {
+      error => application_failure(host, arguments, context, error)
+    } noraise {
+      response => response
+    }
+  } else if arguments.command() == CommandCommand {
+    try
+      @application.execute_command_command_async(
+        host, environment_host, process, arguments, context,
+      )
+    catch {
+      error => application_failure(host, arguments, context, error)
     } noraise {
       response => response
     }
@@ -214,7 +355,7 @@ async fn[
         host, environment_host, arguments, context,
       )
     catch {
-      error => failure(error.message(), error.exit_code())
+      error => application_failure(host, arguments, context, error)
     } noraise {
       response => response
     }
@@ -234,6 +375,7 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 
 ///|
 async fn main {
+  @host_process.configure_signal_forwarding()
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
   let environment_host = runtime_environment_host()

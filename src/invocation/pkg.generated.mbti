@@ -2,21 +2,40 @@
 package "moonbit-community/MoonJust/src/invocation"
 
 import {
+  "moonbit-community/MoonJust/src/diagnostic",
   "moonbit-community/MoonJust/src/evaluator",
+  "moonbit-community/MoonJust/src/modulepath",
   "moonbit-community/MoonJust/src/semantic",
+  "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/src/syntax",
+  "moonbit-community/MoonJust/src/value",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn parse_invocations(@semantic.Compilation, ArrayView[String], overrides? : ArrayView[(String, String)]) -> Array[Invocation] raise InvocationError
 
+pub fn parse_project_invocation_targets(@semantic.ProjectCompilation, ArrayView[String], allow_missing? : Bool) -> Array[(@modulepath.ModulePath, String)] raise InvocationError
+
+pub fn parse_project_invocations(@semantic.ProjectCompilation, ArrayView[String], overrides? : ArrayView[(String, String)], allow_missing? : Bool) -> Array[ProjectInvocation] raise InvocationError
+
+pub fn parse_project_invocations_in_environments(@semantic.ProjectCompilation, ArrayView[String], Map[@modulepath.ModulePath, @evaluator.Environment], allow_missing? : Bool, resolve_expressions? : Bool) -> Array[ProjectInvocation] raise InvocationError
+
+pub fn recipe_argument_value_expression(@semantic.Compilation, String, String) -> @syntax.Expression? raise InvocationError
+
+pub fn validate_recipe_argument_values(@semantic.Compilation, String, ArrayView[@value.Value], @evaluator.Environment) -> Unit raise InvocationError
+
 // Errors
 pub(all) suberror InvocationError {
   NoRecipes
+  NoDefaultRecipe
   DefaultRecipeRequiresArguments(recipe~ : String, minimum~ : Int)
   UnknownRecipe(recipe~ : String)
+  DisabledRecipe(name~ : String, modules~ : Array[String], is_alias~ : Bool)
+  OptionalModuleAbsent(module_path~ : String)
   Evaluation(@evaluator.EvaluationError)
-  InvalidArgumentAttribute(recipe~ : String, detail~ : String)
+  InvalidArgumentAttribute(recipe~ : String, detail~ : String, span~ : @source.Span?)
+  DuplicateDefinitionOption(recipe~ : String, option~ : String, span~ : @source.Span)
   InvalidOption(argument~ : String)
   UnknownOption(recipe~ : String, option~ : String)
   FlagWithValue(recipe~ : String, option~ : String)
@@ -31,12 +50,16 @@ pub(all) suberror InvocationError {
 } derive(Eq, @debug.Debug)
 pub fn InvocationError::code(Self) -> String
 pub fn InvocationError::message(Self) -> String
+pub fn InvocationError::span(Self) -> @source.Span?
+pub fn InvocationError::to_diagnostic(Self) -> @diagnostic.Diagnostic? raise @diagnostic.DiagnosticError
 
 // Types and methods
 pub struct ArgumentValue {
   elements : Array[String]
+  list : Bool
 } derive(Eq, @debug.Debug)
 pub fn ArgumentValue::elements(Self) -> ArrayView[String]
+pub fn ArgumentValue::list(Self) -> Bool
 
 pub struct Invocation {
   recipe : String
@@ -44,6 +67,13 @@ pub struct Invocation {
 } derive(Eq, @debug.Debug)
 pub fn Invocation::arguments(Self) -> ArrayView[ArgumentValue]
 pub fn Invocation::recipe(Self) -> String
+
+pub struct ProjectInvocation {
+  module_path : @modulepath.ModulePath
+  invocation : Invocation
+} derive(Eq, @debug.Debug)
+pub fn ProjectInvocation::invocation(Self) -> Invocation
+pub fn ProjectInvocation::module_path(Self) -> @modulepath.ModulePath
 
 // Type aliases
 

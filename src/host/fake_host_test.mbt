@@ -193,6 +193,36 @@ test "inherited stdin clears buffered input" {
 }
 
 ///|
+async test "command copies isolate live stdio and fake output records stream order" {
+  let host = fake()
+  let command = try! @host.CommandSpec::new("tool", ["original"])
+  command.set_stdin(b"buffered")
+  command.set_stdout(Capture)
+  command.set_stderr(Discard)
+  let copy = command.copy()
+  copy.set_inherit_stdin(true)
+  copy.set_stdout(Inherit)
+  try! copy.add_environment("MODE", "live")
+  assert_false(command.inherits_stdin())
+  assert_eq(command.stdin(), b"buffered")
+  assert_eq(command.stdout(), Capture)
+  assert_eq(command.environment(), [])
+  assert_true(copy.inherits_stdin())
+  assert_eq(copy.stdin(), b"")
+  assert_eq(copy.stdout(), Inherit)
+  assert_eq(copy.environment(), [("MODE", "live")])
+  assert_eq(
+    try! @host.HostAsyncOutput::write_output(host, Stderr, b"echo\n"),
+    5,
+  )
+  assert_eq(
+    try! @host.HostAsyncOutput::write_output(host, Stdout, b"body\n"),
+    5,
+  )
+  assert_eq(host.output_events(), [(Stderr, b"echo\n"), (Stdout, b"body\n")])
+}
+
+///|
 test "process mismatches report expected and actual requests" {
   let host = fake()
   let expected = @host.CommandSpec::new("just", ["build"])

@@ -109,6 +109,20 @@ test "semantic validation checks minimum version, dependency arity, and recipe v
   } noraise {
     _ => fail("expected plus-variadic arity error")
   }
+  let plus_many = try! @parser.parse(
+    source("set lists\nbuild +args:\nrun: (build 'one' 'two')\n"),
+  )
+  try compile(plus_many, allow_unstable=true) catch {
+    InvalidDependencyArguments(name="build", expected="at most 1", actual=2, ..) =>
+      ()
+    error => fail("unexpected variadic dependency arity error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected variadic dependency arity error")
+  }
+  let scalar_plus_many = try! @parser.parse(
+    source("build +args:\nrun: (build 'one' 'two')\n"),
+  )
+  ignore(try! compile(scalar_plus_many))
   let star = try! @parser.parse(source("build *args:\nrun: build\n"))
   ignore(try! compile(star))
   let undefined = try! @parser.parse(source("build:\n  echo {{missing}}\n"))
@@ -118,6 +132,18 @@ test "semantic validation checks minimum version, dependency arity, and recipe v
   } noraise {
     _ => fail("expected recipe variable error")
   }
+}
+
+///|
+test "option defaults do not constrain positional order and flags are optional dependencies" {
+  let ordered = try! @parser.parse(
+    source("[arg('bar', long)]\nfoo bar='baz' qux:\n"),
+  )
+  ignore(try! compile(ordered, allow_unstable=true))
+  let flag_dependency = try! @parser.parse(
+    source("set lists\n[arg('bar', long, flag)]\nfoo bar:\n\nbaz: foo\n"),
+  )
+  ignore(try! compile(flag_dependency, allow_unstable=true))
 }
 
 ///|
@@ -158,4 +184,142 @@ test "dotenv command rejects enabled file loading settings" {
       _ => fail("expected dotenv setting conflict")
     }
   }
+}
+
+///|
+test "ignore-comments skips semantic analysis of ordinary recipe comments" {
+  let ignored = try! @parser.parse(
+    source("set ignore-comments\nfoo:\n  # {{ undefined }}\n"),
+  )
+  ignore(try! compile(ignored))
+  let analyzed = try! @parser.parse(source("foo:\n  # {{ undefined }}\n"))
+  try compile(analyzed) catch {
+    UndefinedVariable(name~, ..) => assert_eq(name, "undefined")
+    error => fail("unexpected comment analysis error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected undefined variable in non-ignored comment")
+  }
+}
+
+///|
+test "guard sigils are analyzed only at logical line boundaries" {
+  let continuation = try! @parser.parse(
+    source("set guards\nfoo:\n  echo a \\\n  -?bar\n"),
+  )
+  ignore(try! compile(continuation))
+  let after_comment = try! @parser.parse(
+    source("set guards\nset ignore-comments\nfoo:\n  # comment \\\n  -?bar\n"),
+  )
+  try compile(after_comment) catch {
+    GuardAndInfallibleSigil(_) => ()
+    error => fail("unexpected guard sigil error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected guard and infallible sigil conflict")
+  }
+}
+
+///|
+test "user functions validate instability definitions parameters calls and scope" {
+  let unstable = try! @parser.parse(source("f() := 'value'\n"))
+  try compile(unstable) catch {
+    UserFunctionsUnstable(_) => ()
+    error => fail("unexpected unstable function error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unstable function error")
+  }
+  let valid = try! compile(
+    try! @parser.parse(
+      source("outer := 'x'\nf(value,) := value + outer\nresult := f('y')\n"),
+    ),
+    allow_unstable=true,
+  )
+  assert_eq(valid.function_names(), ["f"])
+  assert_eq(valid.function("f").unwrap().parameters().length(), 1)
+  for
+    text in [
+      "f(a, a) := a\n", "f() := 'a'\nf() := 'b'\n", "f(x) := x\nresult := f('a', 'b')\n",
+      "result := missing()\n",
+    ] {
+    try compile(try! @parser.parse(source(text)), allow_unstable=true) catch {
+      DuplicateFunctionParameter(_)
+      | DuplicateFunction(_)
+      | FunctionArgumentCount(_)
+      | UndefinedFunction(_) => ()
+      error => fail("unexpected function validation error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected function validation error")
+    }
+  }
+}
+
+///|
+test "recipe documentation preserves comments and doc suppression" {
+  let compiled = try! compile(
+    try! @parser.parse(
+      source(
+        "# First line\n# Second line\ndocumented:\n\n" +
+        "# Hidden comment\n[doc]\nsuppressed:\n\n" +
+        "# Replaced comment\n[doc('attribute') ]\nreplaced:\n",
+      ),
+    ),
+  )
+  assert_eq(compiled.recipe_doc("documented"), Some("First line Second line"))
+  assert_eq(compiled.recipe_doc("suppressed"), None)
+  assert_eq(compiled.recipe_doc("replaced"), Some("attribute"))
+}
+
+///|
+test "continue signals and script-only extension are validated statically" {
+  let invalid_signal = try! @parser.parse(
+    source("[continue('SIGTERM')]\nfoo:\n"),
+  )
+  try compile(invalid_signal) catch {
+    InvalidContinueSignal(signal="SIGTERM", ..) => ()
+    error => fail("unexpected continue signal error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected invalid continue signal error")
+  }
+  let shell_extension = try! @parser.parse(
+    source("[extension('.txt')]\nfoo:\n"),
+  )
+  try compile(shell_extension) catch {
+    ScriptAttributeOnShellRecipe(recipe="foo", attribute="extension", ..) => ()
+    error => fail("unexpected extension error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected shell extension error")
+  }
+  ignore(
+    try! compile(
+      try! @parser.parse(source("[extension('.txt')]\nfoo:\n  #!/bin/sh\n")),
+    ),
+  )
+}
+
+///|
+test "platform attributes select non-recipe definitions before duplicate checks" {
+  let ast = try! @parser.parse(
+    source(
+      "[unix]\nx := 'unix'\n\n[windows]\nx := 'windows'\n\n" +
+      "[unix]\nf() := 'unix'\n\n[windows]\nf() := 'windows'\n\n" +
+      "foo:\n  @echo {{ x }} {{ f() }}\n",
+    ),
+  )
+  let compiled = try! compile(
+    ast,
+    platform=TargetPlatform::new(Macos, true),
+    allow_unstable=true,
+  )
+  assert_eq(compiled.variable_names(), ["x"])
+  assert_eq(compiled.function_names(), ["f"])
+  let copied_items : Array[@syntax.Item] = []
+  for item in ast.items() {
+    copied_items.push(item)
+  }
+  let copied = try! compile(
+    @syntax.Ast::new(ast.source_id(), copied_items, ast.span()),
+    platform=TargetPlatform::new(Macos, true),
+    allow_unstable=true,
+  )
+  assert_eq(copied.variable_names(), ["x"])
+  assert_eq(copied.function_names(), ["f"])
 }

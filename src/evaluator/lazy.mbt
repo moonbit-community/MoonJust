@@ -22,8 +22,10 @@ pub fn LazyEnvironment::new(
   environment? : Environment = Environment::new(),
   limits? : EvaluationLimits = EvaluationLimits::default(),
 ) -> LazyEnvironment {
+  environment.set_functions(FunctionEnvironment::from_compilation(compilation))
   let states : Map[String, LazyState] = Map([])
   for name in compilation.variable_names() {
+    environment.remove(name)
     states[name] = Unevaluated
   }
   { compilation, environment, states, stack: [], limits }
@@ -92,7 +94,14 @@ fn LazyEnvironment::cycle(
     }
   }
   cycle.push(name)
-  VariableCycle(name~, stack=cycle, span~)
+  let name_span = @source.Span::new(
+    span.source_id(),
+    span.start_byte(),
+    span.start_byte() + name.length(),
+  ) catch {
+    _ => span
+  }
+  VariableCycle(name~, stack=cycle, span=name_span)
 }
 
 ///|
@@ -100,13 +109,20 @@ fn LazyEnvironment::resolve_body(
   self : LazyEnvironment,
   assignment : @syntax.Assignment,
 ) -> @value.Value raise EvaluationError {
+  self.evaluate_expression(assignment.value())
+}
+
+///|
+/// Evaluate one expression while resolving only the assignments it actually
+/// references. This is used by const-like settings that must be known before
+/// effectful global assignments are evaluated.
+pub fn LazyEnvironment::evaluate_expression(
+  self : LazyEnvironment,
+  expression : @syntax.Expression,
+) -> @value.Value raise EvaluationError {
   for ;; {
     try
-      evaluate(
-        assignment.value(),
-        environment=self.environment,
-        limits=self.limits,
-      )
+      evaluate(expression, environment=self.environment, limits=self.limits)
     catch {
       UndefinedVariable(name~, span~) =>
         match self.compilation.variable(name) {
@@ -163,7 +179,7 @@ pub fn LazyEnvironment::resolve(
       ignore(self.stack.pop())
       self.states[name] = Evaluated(value)
       self.environment.set(name, value)
-      if assignment.exported() {
+      if assignment.exported() || self.compilation.settings().bool("export") {
         self.environment.mark_exported(name)
       }
       value

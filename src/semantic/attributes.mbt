@@ -2,13 +2,15 @@
 /// Compiled recipe metadata, with platform selection separated from execution.
 pub struct RecipeAttributes {
   names : Array[String]
-  platform : TargetOs?
+  platforms : Array[TargetOs]
   private : Bool
   doc : String?
+  doc_expression : @syntax.Expression?
   groups : Array[String]
   working_directory : @syntax.Expression?
   shell : Array[@syntax.Expression]
   script : Bool
+  script_interpreter : Array[@syntax.Expression]
   confirm : Bool
   confirm_prompt : @syntax.Expression?
   default_value : @syntax.Expression?
@@ -33,7 +35,14 @@ pub fn RecipeAttributes::names(self : RecipeAttributes) -> ArrayView[String] {
 
 ///|
 pub fn RecipeAttributes::platform(self : RecipeAttributes) -> TargetOs? {
-  self.platform
+  self.platforms.get(0)
+}
+
+///|
+pub fn RecipeAttributes::platforms(
+  self : RecipeAttributes,
+) -> ArrayView[TargetOs] {
+  self.platforms[:]
 }
 
 ///|
@@ -44,6 +53,13 @@ pub fn RecipeAttributes::private(self : RecipeAttributes) -> Bool {
 ///|
 pub fn RecipeAttributes::doc(self : RecipeAttributes) -> String? {
   self.doc
+}
+
+///|
+pub fn RecipeAttributes::doc_expression(
+  self : RecipeAttributes,
+) -> @syntax.Expression? {
+  self.doc_expression
 }
 
 ///|
@@ -73,6 +89,13 @@ pub fn RecipeAttributes::shell(
 ///|
 pub fn RecipeAttributes::script(self : RecipeAttributes) -> Bool {
   self.script
+}
+
+///|
+pub fn RecipeAttributes::script_interpreter(
+  self : RecipeAttributes,
+) -> ArrayView[@syntax.Expression] {
+  self.script_interpreter[:]
 }
 
 ///|
@@ -193,15 +216,19 @@ fn attribute_lexical_compare(left : String, right : String) -> Int {
 ///|
 fn compile_attributes(
   attributes : ArrayView[@syntax.Attribute],
+  recipe_name? : String,
+  recipe_span? : @source.Span,
 ) -> RecipeAttributes raise SemanticError {
   let names : Array[String] = []
-  let mut platform : TargetOs? = None
+  let platforms : Array[TargetOs] = []
   let mut private = false
   let mut doc : String? = None
+  let mut doc_expression : @syntax.Expression? = None
   let groups : Array[String] = []
   let mut working_directory : @syntax.Expression? = None
   let shell : Array[@syntax.Expression] = []
   let mut script = false
+  let script_interpreter : Array[@syntax.Expression] = []
   let mut confirm = false
   let mut confirm_prompt : @syntax.Expression? = None
   let mut default_value : @syntax.Expression? = None
@@ -230,14 +257,14 @@ fn compile_attributes(
     names.push(name)
     match platform_for(name) {
       Some(value) => {
-        if platform is Some(_) {
+        if platforms.contains(value) {
           raise AttributeConflict(
-            first="platform",
+            first=name,
             second=name,
             span=attribute.span(),
           )
         }
-        platform = Some(value)
+        platforms.push(value)
       }
       None =>
         match name {
@@ -258,7 +285,15 @@ fn compile_attributes(
           "continue" =>
             for argument in attribute.arguments() {
               match argument.value() {
-                Some(String(value)) => continue_signals.push(value.cooked())
+                Some(String(value)) => {
+                  let signal = value.cooked()
+                  if signal != "SIGHUP" &&
+                    signal != "SIGINT" &&
+                    signal != "SIGQUIT" {
+                    raise InvalidContinueSignal(signal~, span=argument.span())
+                  }
+                  continue_signals.push(signal)
+                }
                 _ =>
                   raise AttributeConflict(
                     first="continue",
@@ -275,14 +310,10 @@ fn compile_attributes(
           "doc" =>
             if attribute.arguments().length() > 0 {
               let argument = attribute.arguments()[0]
+              doc_expression = argument.value()
               match argument.value() {
                 Some(String(value)) => doc = Some(value.cooked())
-                _ =>
-                  raise AttributeConflict(
-                    first="doc",
-                    second="non-string",
-                    span=attribute.span(),
-                  )
+                _ => ()
               }
             }
           "group" =>
@@ -383,42 +414,71 @@ fn compile_attributes(
                   )
               }
             }
-          "script" => script = true
+          "script" => {
+            script = true
+            for argument in attribute.arguments() {
+              match argument.value() {
+                Some(value) => script_interpreter.push(value)
+                None =>
+                  raise AttributeConflict(
+                    first="script",
+                    second="missing-value",
+                    span=attribute.span(),
+                  )
+              }
+            }
+          }
           _ => ()
         }
     }
   }
   if names.contains("no-cd") && names.contains("working-directory") {
-    raise AttributeConflict(
-      first="no-cd",
-      second="working-directory",
-      span=attributes[0].span(),
-    )
+    match (recipe_name, recipe_span) {
+      (Some(recipe), Some(span)) =>
+        raise NoCdWorkingDirectoryAttributes(recipe~, span~)
+      _ =>
+        raise AttributeConflict(
+          first="no-cd",
+          second="working-directory",
+          span=attributes[0].span(),
+        )
+    }
   }
   if names.contains("script") && names.contains("shell") {
-    raise AttributeConflict(
-      first="script",
-      second="shell",
-      span=attributes[0].span(),
-    )
+    match (recipe_name, recipe_span) {
+      (Some(recipe), Some(span)) =>
+        raise ScriptAndShellAttributes(recipe~, span~)
+      _ =>
+        raise AttributeConflict(
+          first="script",
+          second="shell",
+          span=attributes[0].span(),
+        )
+    }
   }
   if names.contains("exit-message") && names.contains("no-exit-message") {
-    raise AttributeConflict(
-      first="exit-message",
-      second="no-exit-message",
-      span=attributes[0].span(),
-    )
+    match (recipe_name, recipe_span) {
+      (Some(recipe), Some(span)) => raise ExitMessageAttributes(recipe~, span~)
+      _ =>
+        raise AttributeConflict(
+          first="exit-message",
+          second="no-exit-message",
+          span=attributes[0].span(),
+        )
+    }
   }
   groups.sort_by(attribute_lexical_compare)
   {
     names,
-    platform,
+    platforms,
     private,
     doc,
+    doc_expression,
     groups,
     working_directory,
     shell,
     script,
+    script_interpreter,
     confirm,
     confirm_prompt,
     default_value,
@@ -442,9 +502,40 @@ pub fn RecipeAttributes::matches(
   self : RecipeAttributes,
   platform : TargetPlatform,
 ) -> Bool {
-  match self.platform {
-    None => true
-    Some(Unix) => platform.is_unix()
-    Some(expected) => expected == platform.operating_system()
+  if self.platforms.is_empty() {
+    return true
   }
+  for expected in self.platforms {
+    if (expected == Unix && platform.is_unix()) ||
+      expected == platform.operating_system() {
+      return true
+    }
+  }
+  false
+}
+
+///|
+pub fn platform_attributes_match(
+  attributes : ArrayView[@syntax.Attribute],
+  platform : TargetPlatform,
+) -> Bool {
+  let mut constrained = false
+  for attribute in attributes {
+    match platform_for(attribute.name()) {
+      Some(Unix) => {
+        constrained = true
+        if platform.is_unix() {
+          return true
+        }
+      }
+      Some(expected) => {
+        constrained = true
+        if expected == platform.operating_system() {
+          return true
+        }
+      }
+      None => ()
+    }
+  }
+  !constrained
 }

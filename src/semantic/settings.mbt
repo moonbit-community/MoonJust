@@ -152,6 +152,7 @@ pub fn SettingValue::as_text(self : SettingValue) -> String? {
 pub struct CompiledSettings {
   values : Map[String, SettingValue]
   ordered : Array[String]
+  spans : Map[String, @source.Span]
 } derive(Debug)
 
 ///|
@@ -170,6 +171,14 @@ pub fn CompiledSettings::get(
 ///|
 pub fn CompiledSettings::has(self : CompiledSettings, name : String) -> Bool {
   self.values.contains(name)
+}
+
+///|
+pub fn CompiledSettings::span(
+  self : CompiledSettings,
+  name : String,
+) -> @source.Span? {
+  self.spans.get(name)
 }
 
 ///|
@@ -200,17 +209,6 @@ fn setting_value(setting : @syntax.Setting) -> SettingValue {
 }
 
 ///|
-fn expression_is_string_list(expression : @syntax.Expression) -> Bool {
-  match expression {
-    List(elements~, ..) =>
-      elements
-      .iter()
-      .all(fn(element) { element is String(_) || element is Backtick(_) })
-    _ => false
-  }
-}
-
-///|
 fn setting_value_valid(name : String, value : SettingValue) -> Bool {
   match setting_spec(name) {
     None => false
@@ -222,23 +220,44 @@ fn setting_value_valid(name : String, value : SettingValue) -> Bool {
             _ => false
           }
         Text => value is Text(_)
-        // Expressions may be literal strings; shell selectors additionally
-        // require a list of string expressions.
         Expression =>
           match value {
             Text(_) => true
-            Expression(expression) =>
-              if name == "script-interpreter" ||
-                name == "shell" ||
-                name == "windows-shell" {
-                expression_is_string_list(expression)
-              } else {
-                true
-              }
+            Expression(_) => true
             _ => false
           }
       }
   }
+}
+
+///|
+fn indentation_error(value : String) -> String? {
+  if value.is_empty() {
+    return Some("indentation must not be empty")
+  }
+  let mut spaces = false
+  let mut tabs = false
+  for character in value {
+    match character {
+      ' ' => spaces = true
+      '\t' => tabs = true
+      _ => return Some("indentation must be spaces or tabs")
+    }
+  }
+  if spaces && tabs {
+    Some("indentation may not be mixed")
+  } else {
+    None
+  }
+}
+
+///|
+fn setting_name_span(setting : @syntax.Setting) -> @source.Span {
+  try! @source.Span::new(
+    setting.span().source_id(),
+    setting.span().start_byte() + 4,
+    setting.span().start_byte() + 4 + setting.name().length(),
+  )
 }
 
 ///|
@@ -247,16 +266,31 @@ fn compile_settings(
 ) -> CompiledSettings raise SemanticError {
   let values : Map[String, SettingValue] = Map([])
   let ordered : Array[String] = []
+  let spans : Map[String, @source.Span] = Map([])
   for setting in settings {
     let name = setting.name()
+    if name == "minimum-version" {
+      match setting.value() {
+        Some(String(value)) if (value.kind() == Raw || value.kind() == Cooked) &&
+          !value.shell_expanded() => ()
+        _ => raise InvalidSettingValue(name~, span=setting_name_span(setting))
+      }
+    }
     let value = setting_value(setting)
     if !setting_value_valid(name, value) {
       raise InvalidSettingValue(name~, span=setting.span())
+    }
+    if name == "indentation" && value is Text(indentation) {
+      match indentation_error(indentation) {
+        Some(message) => raise InvalidIndentation(message~, span=setting.span())
+        None => ()
+      }
     }
     if !values.contains(name) {
       ordered.push(name)
     }
     values[name] = value
+    spans[name] = setting_name_span(setting)
   }
   let conflicts = [
     ("dotenv-command", "dotenv-filename"),
@@ -284,5 +318,5 @@ fn compile_settings(
       raise SettingConflict(first~, second~, span~)
     }
   }
-  { values, ordered }
+  { values, ordered, spans }
 }

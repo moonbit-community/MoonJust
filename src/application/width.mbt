@@ -33,7 +33,9 @@ fn display_width(value : String) -> Int {
   let mut regional_pending = false
   for character in value {
     let code = character.to_int()
-    if code < 0x20 || (code >= 0x7f && code < 0xa0) || is_combining(code) {
+    if code == 9 {
+      width += 1
+    } else if code < 0x20 || (code >= 0x7f && code < 0xa0) || is_combining(code) {
       ()
     } else if code == 0x200d {
       join_next = true

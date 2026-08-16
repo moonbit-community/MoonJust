@@ -17,6 +17,9 @@ pub(all) enum CommandKind {
   ChooseCommand
   EditCommand
   CleanCommand
+  CommandCommand
+  ChangelogCommand
+  ManCommand
 } derive(Eq, Debug)
 
 ///|
@@ -99,8 +102,17 @@ pub fn CliArguments::with_run_positionals(
 }
 
 ///|
+pub fn CliArguments::with_positionals(
+  self : CliArguments,
+  positional : Array[String],
+) -> CliArguments {
+  { ..self, positional: positional.copy() }
+}
+
+///|
 pub(all) suberror CliParseError {
   Invalid(String)
+  Config(String)
   Unsupported(String)
 } derive(Eq, Debug)
 
@@ -202,7 +214,6 @@ fn command_flags() -> Array[@argparse.FlagArg] {
     flag("changelog", about="Print changelog"),
     flag("clean", about="Clear recipe cache"),
     flag("command", short='c', about="Run an arbitrary command"),
-    flag("completions", about="Print shell completion"),
     flag("edit", short='e', about="Edit justfile"),
     flag("man", about="Print man page"),
   ]
@@ -222,6 +233,7 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       "ceiling",
       long="ceiling",
       about="Stop justfile search above this directory",
+      env="JUST_CEILING",
     ),
     option(
       "chooser",
@@ -246,6 +258,7 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       long="dotenv-command",
       about="Load environment from command",
       action=Append,
+      env="JUST_DOTENV_COMMAND",
       conflicts=["dotenv-filename", "dotenv-path", "no-dotenv"],
     ),
     option(
@@ -285,7 +298,12 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       action=Append,
       env="JUST_GROUP",
     ),
-    option("indentation", long="indentation", about="Recipe indentation"),
+    option(
+      "indentation",
+      long="indentation",
+      about="Recipe indentation",
+      env="JUST_INDENTATION",
+    ),
     option("jobs", long="jobs", about="Maximum parallel jobs", env="JUST_JOBS"),
     option(
       "justfile",
@@ -318,11 +336,6 @@ fn option_specs() -> Array[@argparse.OptionArg] {
     option("shell-arg", long="shell-arg", about="Shell argument", action=Append),
     option("set", long="set", about="Override variable", action=Append),
     option(
-      "shell-command",
-      long="shell-command",
-      about="Run command with recipe shell",
-    ),
-    option(
       "tempdir",
       long="tempdir",
       about="Temporary directory",
@@ -349,9 +362,17 @@ fn option_specs() -> Array[@argparse.OptionArg] {
 ///|
 fn other_flags() -> Array[@argparse.FlagArg] {
   [
-    flag("allow-missing", about="Ignore missing recipe and module errors"),
+    flag(
+      "allow-missing",
+      about="Ignore missing recipe and module errors",
+      env="JUST_ALLOW_MISSING",
+    ),
     flag("clear-shell-args", about="Clear shell arguments"),
-    flag("default-list", about="List recipes with no arguments"),
+    flag(
+      "default-list",
+      about="List recipes with no arguments",
+      env="JUST_DEFAULT_LIST",
+    ),
     flag(
       "dry-run",
       short='n',
@@ -359,21 +380,40 @@ fn other_flags() -> Array[@argparse.FlagArg] {
       env="JUST_DRY_RUN",
       conflicts=["quiet"],
     ),
-    flag("explain", about="Print recipe docs before running"),
-    flag("global-justfile", short='g', about="Use global justfile"),
-    flag("highlight", about="Highlight echoed recipe lines"),
-    flag("list-submodules", about="List submodule recipes"),
+    flag(
+      "explain",
+      about="Print recipe docs before running",
+      env="JUST_EXPLAIN",
+    ),
+    flag("global-justfile", short='g', about="Use global justfile", conflicts=[
+      "justfile", "working-directory",
+    ]),
+    flag(
+      "highlight",
+      about="Highlight echoed recipe lines",
+      env="JUST_HIGHLIGHT",
+    ),
+    flag(
+      "list-submodules",
+      about="List submodule recipes",
+      env="JUST_LIST_SUBMODULES",
+      requires=["list"],
+    ),
     flag("no-aliases", about="Hide aliases", env="JUST_NO_ALIASES"),
     flag("no-cache", about="Bypass recipe cache", env="JUST_NO_CACHE"),
-    flag("no-deps", long="no-deps", about="Do not run dependencies"),
     flag(
-      "no-dependencies",
-      long="no-dependencies",
+      "no-deps",
+      long="no-deps",
       about="Do not run dependencies",
+      env="JUST_NO_DEPS",
     ),
     flag("no-dotenv", about="Do not load dotenv", env="JUST_NO_DOTENV"),
-    flag("no-highlight", about="Do not highlight commands"),
-    flag("one", about="Allow only one recipe"),
+    flag(
+      "no-highlight",
+      about="Do not highlight commands",
+      env="JUST_NO_HIGHLIGHT",
+    ),
+    flag("one", about="Allow only one recipe", env="JUST_ONE"),
     flag("quiet", short='q', about="Suppress output", env="JUST_QUIET", conflicts=[
       "dry-run",
     ]),
@@ -389,7 +429,9 @@ fn other_flags() -> Array[@argparse.FlagArg] {
       env="JUST_VERBOSE",
     ),
     flag("yes", about="Automatically confirm recipes", env="JUST_YES"),
-    flag("complete-aliases", about="Completion aliases"),
+    flag("shell-command", about="Run command with recipe shell", requires=[
+      "command",
+    ]),
   ]
 }
 
@@ -414,8 +456,8 @@ fn parser_command() -> @argparse.Command {
     groups=[
       ArgGroup("command-mode", multiple=false, args=[
         "fmt", "init", "list", "show", "summary", "usage", "variables", "dump", "json",
-        "evaluate", "groups", "choose", "changelog", "clean", "command", "completions",
-        "edit", "man",
+        "evaluate", "groups", "choose", "changelog", "clean", "command", "edit",
+        "man",
       ]),
     ],
   )
@@ -462,11 +504,20 @@ fn command_kind(matches : @argparse.Matches) -> CommandKind {
   if matches.flags.get("choose").unwrap_or(false) {
     return ChooseCommand
   }
+  if matches.flags.get("changelog").unwrap_or(false) {
+    return ChangelogCommand
+  }
+  if matches.flags.get("man").unwrap_or(false) {
+    return ManCommand
+  }
   if matches.flags.get("edit").unwrap_or(false) {
     return EditCommand
   }
   if matches.flags.get("clean").unwrap_or(false) {
     return CleanCommand
+  }
+  if matches.flags.get("command").unwrap_or(false) {
+    return CommandCommand
   }
   RunCommand
 }
@@ -500,6 +551,7 @@ fn supported_option(token : String) -> Bool {
     | "--edit"
     | "-e"
     | "--group"
+    | "--list-submodules"
     | "--no-aliases"
     | "--unstable"
     | "--unsorted"
@@ -507,6 +559,7 @@ fn supported_option(token : String) -> Bool {
     | "--list-heading"
     | "--list-prefix"
     | "--alias-style"
+    | "--ceiling"
     | "--dump-format"
     | "--evaluate-format"
     | "--justfile"
@@ -514,6 +567,7 @@ fn supported_option(token : String) -> Bool {
     | "-f"
     | "--dotenv-filename"
     | "-F"
+    | "--dotenv-command"
     | "--dotenv-path"
     | "-E"
     | "--no-dotenv"
@@ -532,13 +586,29 @@ fn supported_option(token : String) -> Bool {
     | "--shell"
     | "--shell-arg"
     | "--clear-shell-args"
+    | "--allow-missing"
+    | "--default-list"
+    | "--explain"
+    | "--global-justfile"
+    | "-g"
+    | "--highlight"
+    | "--indentation"
+    | "--no-highlight"
+    | "--no-deps"
+    | "--no-dependencies"
+    | "--one"
+    | "--shell-command"
     | "--tempdir"
     | "--working-directory"
     | "-d"
     | "--jobs"
     | "--no-cache"
     | "--yes"
-    | "--clean" => true
+    | "--clean"
+    | "--changelog"
+    | "--command"
+    | "-c"
+    | "--man" => true
     _ => false
   }
 }
@@ -563,6 +633,7 @@ fn option_name(token : String) -> String {
     "--format" => "--fmt"
     "--initialize" => "--init"
     "--eval" => "--evaluate"
+    "--no-dependencies" => "--no-deps"
     _ => name
   }
 }
@@ -571,17 +642,20 @@ fn option_name(token : String) -> String {
 fn supported_value_option(name : String) -> Bool {
   match name {
     "--alias-style"
+    | "--ceiling"
     | "--color"
     | "--command-color"
     | "--dump-format"
     | "--evaluate-format"
     | "--group"
+    | "--indentation"
     | "--chooser"
     | "--justfile"
     | "--justfile-name"
     | "-f"
     | "--dotenv-filename"
     | "-F"
+    | "--dotenv-command"
     | "--dotenv-path"
     | "-E"
     | "--list-heading"
@@ -622,9 +696,74 @@ fn command_option(name : String) -> Bool {
     | "--choose"
     | "--edit"
     | "-e"
-    | "--clean" => true
+    | "--clean"
+    | "--command"
+    | "-c"
+    | "--shell-command" => true
     _ => false
   }
+}
+
+///|
+fn raw_command_option(name : String) -> Bool {
+  name == "--command" || name == "-c" || name == "--shell-command"
+}
+
+///|
+fn valid_override_component(component : StringView) -> Bool {
+  if component.is_empty() {
+    return false
+  }
+  let first = component.unsafe_get(0).to_int()
+  if !((first >= 65 && first <= 90) ||
+    (first >= 97 && first <= 122) ||
+    first == 95) {
+    return false
+  }
+  for index in 1..<component.length() {
+    let code = component.unsafe_get(index).to_int()
+    if !((code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      (code >= 48 && code <= 57) ||
+      code == 95 ||
+      code == 45) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn valid_override_path(path : String) -> Bool {
+  if path.has_prefix(":") || path.has_suffix(":") || path.contains(":::") {
+    return false
+  }
+  for component in path.split("::") {
+    if !valid_override_component(component) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn valid_query_module_path(arguments : ArrayView[String]) -> Bool {
+  for argument in arguments {
+    if argument.contains("/") || argument == "." || argument == ".." {
+      continue
+    }
+    for space_part in argument.split(" ") {
+      if space_part.is_empty() {
+        continue
+      }
+      for component in space_part.split("::") {
+        if !valid_override_component(component) {
+          return false
+        }
+      }
+    }
+  }
+  true
 }
 
 ///|
@@ -641,6 +780,61 @@ fn has_command_mode_before_invocation(argv : ArrayView[String]) -> Bool {
     if token.has_prefix("-") && token != "-" {
       let name = option_name(token)
       if command_option(name) {
+        return true
+      }
+      if supported_value_option(name) && !token.contains("=") {
+        consumes_value = true
+      }
+    } else {
+      return false
+    }
+  }
+  false
+}
+
+///|
+fn has_raw_command_mode_before_invocation(argv : ArrayView[String]) -> Bool {
+  let mut consumes_value = false
+  for token in argv {
+    if consumes_value {
+      consumes_value = false
+      continue
+    }
+    if token == "--" {
+      return false
+    }
+    if token.has_prefix("-") && token != "-" {
+      let name = option_name(token)
+      if raw_command_option(name) {
+        return true
+      }
+      if supported_value_option(name) && !token.contains("=") {
+        consumes_value = true
+      }
+    } else {
+      return false
+    }
+  }
+  false
+}
+
+///|
+/// Query commands keep accepting global options after their recipe/module
+/// argument. Other command modes deliberately treat every following token as
+/// command data, matching just's positional parsing rules.
+fn has_interspersed_query_command(argv : ArrayView[String]) -> Bool {
+  let mut consumes_value = false
+  for token in argv {
+    if consumes_value {
+      consumes_value = false
+      continue
+    }
+    if token == "--" {
+      return false
+    }
+    if token.has_prefix("-") && token != "-" {
+      let name = option_name(token)
+      if name == "--show" || name == "-s" || name == "--list" || name == "-l" {
         return true
       }
       if supported_value_option(name) && !token.contains("=") {
@@ -686,14 +880,30 @@ fn check_supported(argv : ArrayView[String]) -> Unit raise CliParseError {
 
 ///|
 fn normalize_argv(argv : ArrayView[String]) -> Array[String] {
-  argv.map(fn(token) {
+  let mapped = argv.map(fn(token) {
     match token {
       "--format" => "--fmt"
       "--initialize" => "--init"
       "--eval" => "--evaluate"
+      "--no-dependencies" => "--no-deps"
       _ => token
     }
   })
+  let mut last_highlight : Int? = None
+  for index, token in mapped {
+    if token == "--highlight" || token == "--no-highlight" {
+      last_highlight = Some(index)
+    }
+  }
+  let result : Array[String] = []
+  for index, token in mapped {
+    if (token == "--highlight" || token == "--no-highlight") &&
+      last_highlight != Some(index) {
+      continue
+    }
+    result.push(token)
+  }
+  result
 }
 
 ///|
@@ -725,6 +935,7 @@ fn normalize_environment_argv(
   argv : ArrayView[String],
 ) -> EnvironmentArgv raise CliParseError {
   let command_mode = has_command_mode_before_invocation(argv)
+  let raw_command_mode = has_raw_command_mode_before_invocation(argv)
   let normalized : Array[String] = []
   let variable_overrides : Array[(String, String)] = []
   let mut shell_arguments : Array[String]? = None
@@ -744,6 +955,19 @@ fn normalize_environment_argv(
       continue
     }
     if !token.has_prefix("-") || token == "-" {
+      if !raw_command_mode && token != "-" {
+        match token.find("=") {
+          Some(separator) if separator > 0 => {
+            variable_overrides.push(
+              (token[:separator].to_owned(), token[separator + 1:].to_owned()),
+            )
+            normalized.push("--set=\{variable_overrides.length() - 1}")
+            index += 1
+            continue
+          }
+          _ => ()
+        }
+      }
       normalized.push(token)
       if !command_mode {
         global = false
@@ -824,6 +1048,7 @@ fn normalize_environment_argv(
 ///|
 fn parser_argv(argv : ArrayView[String]) -> Array[String] {
   let result : Array[String] = []
+  let query_mode = has_interspersed_query_command(argv)
   let mut consumes_value = false
   let mut separated = false
   for token in argv {
@@ -847,6 +1072,10 @@ fn parser_argv(argv : ArrayView[String]) -> Array[String] {
       if supported_value_option(name) && !token.contains("=") {
         consumes_value = true
       }
+      continue
+    }
+    if query_mode {
+      result.push(token)
       continue
     }
     result.push("--")
@@ -935,19 +1164,8 @@ fn check_unsupported_environment(
 ) -> Unit raise CliParseError {
   for
     entry in [
-      ("JUST_ALLOW_MISSING", "--allow-missing", true),
-      ("JUST_CEILING", "--ceiling", false),
       ("JUST_COMPLETE_ALIASES", "--complete-aliases", true),
       ("JUST_CYGPATH", "--cygpath", false),
-      ("JUST_DEFAULT_LIST", "--default-list", true),
-      ("JUST_DOTENV_COMMAND", "--dotenv-command", false),
-      ("JUST_EXPLAIN", "--explain", true),
-      ("JUST_HIGHLIGHT", "--highlight", true),
-      ("JUST_INDENTATION", "--indentation", false),
-      ("JUST_LIST_SUBMODULES", "--list-submodules", true),
-      ("JUST_NO_DEPS", "--no-deps", true),
-      ("JUST_NO_HIGHLIGHT", "--no-highlight", true),
-      ("JUST_ONE", "--one", true),
     ] {
     let (name, option_name, is_flag) = entry
     guard env.get(name) is Some(value) else { continue }
@@ -968,7 +1186,9 @@ fn normalize_supported_environment(
         normalized[name] = "true"
       }
     } else if [
-        "JUST_DRY_RUN", "JUST_NO_ALIASES", "JUST_NO_CACHE", "JUST_NO_DOTENV", "JUST_QUIET",
+        "JUST_ALLOW_MISSING", "JUST_DEFAULT_LIST", "JUST_DRY_RUN", "JUST_EXPLAIN",
+        "JUST_HIGHLIGHT", "JUST_LIST_SUBMODULES", "JUST_NO_ALIASES", "JUST_NO_CACHE",
+        "JUST_NO_DEPS", "JUST_NO_DOTENV", "JUST_NO_HIGHLIGHT", "JUST_ONE", "JUST_QUIET",
         "JUST_TIME", "JUST_TIMESTAMP", "JUST_UNSORTED", "JUST_YES",
       ].contains(name) {
       if enabled_environment_flag(value) {
@@ -1016,9 +1236,25 @@ fn command_accepts_overrides(command : CommandKind) -> Bool {
     | ShowCommand
     | UsageCommand
     | EvaluateCommand
-    | ChooseCommand => true
+    | ChooseCommand
+    | CommandCommand => true
     _ => false
   }
+}
+
+///|
+fn normalize_argparse_error(message : String) -> String {
+  let fmt = "error: the following required argument was not provided: 'fmt' (required by 'check')"
+  if message.has_prefix(fmt) {
+    return "error: the following required arguments were not provided:\n  --fmt" +
+      message.view(start_offset=fmt.length()).to_owned()
+  }
+  let list = "error: the following required argument was not provided: 'list' (required by 'list-submodules')"
+  if message.has_prefix(list) {
+    return "error: the following required arguments were not provided:\n  --list <list>" +
+      message.view(start_offset=list.length()).to_owned()
+  }
+  message
 }
 
 ///|
@@ -1033,19 +1269,27 @@ pub fn parse_arguments(
     normalize_supported_environment(env)
   }
   let environment_argv = normalize_environment_argv(argv)
+  for entry in environment_argv.variable_overrides {
+    if !valid_override_path(entry.0) {
+      raise Config("error: invalid override path `" + entry.0 + "`")
+    }
+  }
   check_supported(environment_argv.argv)
   let normalized = normalize_argv(environment_argv.argv)
-  let parser_input = if has_command_mode_before_invocation(normalized) {
-    normalized
-  } else {
-    parser_argv(normalized)
+  for token in normalized {
+    if token == "--highlight" {
+      normalized_env.remove("JUST_NO_HIGHLIGHT")
+    } else if token == "--no-highlight" {
+      normalized_env.remove("JUST_HIGHLIGHT")
+    }
   }
+  let parser_input = parser_argv(normalized)
   let matches = @argparse.Command::parse(
     parser_command(),
     argv=parser_input[:],
     env=normalized_env,
   ) catch {
-    error => raise Invalid(error.to_string())
+    error => raise Invalid(normalize_argparse_error(error.to_string()))
   }
   if !matches.flags.get("help").unwrap_or(false) &&
     !matches.flags.get("version").unwrap_or(false) {
@@ -1058,7 +1302,42 @@ pub fn parse_arguments(
   validate_choice(matches, "command-color", [
     "black", "blue", "cyan", "green", "purple", "red", "yellow",
   ])
+  match matches.values.get("jobs") {
+    Some(values) =>
+      match values.last() {
+        Some(value) => {
+          let parsed = @string.parse_int(value[:]) catch {
+            _ =>
+              raise Invalid(
+                "error: invalid value '" +
+                value +
+                "' for '--jobs <N>': expected a positive integer\n\nFor more information, try '--help'.",
+              )
+          }
+          if parsed <= 0 {
+            raise Invalid(
+              "error: invalid value '" +
+              value +
+              "' for '--jobs <N>': number would be zero for non-zero type\n\nFor more information, try '--help'.",
+            )
+          }
+        }
+        None => ()
+      }
+    None => ()
+  }
   let command = command_kind(matches)
+  let command_arguments = matches.values.get("arguments").unwrap_or([])
+  if (command == ListCommand || command == ShowCommand) &&
+    !valid_query_module_path(command_arguments) {
+    raise Config(
+      "error: invalid module path `" + command_arguments.join(" ") + "`",
+    )
+  }
+  if command == CommandCommand &&
+    matches.values.get("arguments").unwrap_or([]).is_empty() {
+    raise Invalid("error: '--command' requires at least one command argument")
+  }
   if !matches.values.get("group").unwrap_or([]).is_empty() &&
     command != ListCommand &&
     command != ChooseCommand {

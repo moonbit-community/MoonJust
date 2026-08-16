@@ -2,6 +2,7 @@
 fn compile_fixture(text : String) -> @semantic.Compilation raise {
   @semantic.compile_source(
     @source.Source::from_text(@source.SourceId::new(1), "justfile", text),
+    allow_unstable=true,
   )
 }
 
@@ -24,7 +25,7 @@ test "positional defaults variadics and multiple invocations are grouped" {
   let defaulted = compile_fixture("defaulted value='fallback':\n")
   assert_eq(
     values(@invocation.parse_invocations(defaulted, ["defaulted"])[0]),
-    [[]],
+    [["fallback"]],
   )
 }
 
@@ -206,9 +207,12 @@ test "required options count constraints and anchored patterns are enforced" {
 
 ///|
 test "a star variadic with positive min is required even when omitted" {
-  let compilation = compile_fixture("[arg('x', min='2')]\nrun *x:\n")
+  let compilation = compile_fixture("set lists\n[arg('x', min='2')]\nrun *x:\n")
   try @invocation.parse_invocations(compilation, ["run"]) catch {
-    PositionalArgumentCountMismatch(minimum~, ..) => assert_eq(minimum, 1)
+    ArgumentTooFewValues(found~, minimum~, ..) => {
+      assert_eq(found, 0)
+      assert_eq(minimum, 2)
+    }
     _ => fail("unexpected required star variadic error")
   } noraise {
     _ => fail("expected omitted star variadic failure")
@@ -308,6 +312,8 @@ test "invalid argument metadata is rejected before argv is consumed" {
     try @invocation.parse_invocations(compilation, ["run", "value"]) catch {
       InvalidArgumentAttribute(_) as error =>
         assert_eq(error.code(), "MJ-INV-0004")
+      DuplicateDefinitionOption(_) as error =>
+        assert_eq(error.code(), "MJ-INV-0004")
       _ => fail("unexpected metadata error")
     } noraise {
       _ => fail("expected invalid metadata")
@@ -354,4 +360,53 @@ test "variable overrides affect invocation defaults and patterns" {
   } noraise {
     _ => fail("expected unknown invocation override")
   }
+}
+
+///|
+test "project invocations resolve colon and spaced module paths" {
+  let root = compile_fixture("root:\n")
+  let tools = compile_fixture("default:\n\ntool value:\n")
+  let tools_path = try! @modulepath.ModulePath::parse("tools")
+  let project = try! @semantic.ProjectCompilation::new([
+    @semantic.ProjectModule::new(
+      @modulepath.ModulePath::root(),
+      root,
+      try! @path.PathValue::new("/workspace", Unix),
+    ),
+    @semantic.ProjectModule::new(
+      tools_path,
+      tools,
+      try! @path.PathValue::new("/workspace/tools", Unix),
+    ),
+  ])
+  let colon = @invocation.parse_project_invocations(project, [
+    "tools::tool", "value",
+  ])
+  assert_eq(colon.length(), 1)
+  assert_eq(colon[0].module_path(), tools_path)
+  assert_eq(colon[0].invocation().recipe(), "tool")
+  assert_eq(values(colon[0].invocation()), [["value"]])
+  let spaced = @invocation.parse_project_invocations(project, [
+    "tools", "tool", "other",
+  ])
+  assert_eq(spaced[0].module_path(), tools_path)
+  assert_eq(values(spaced[0].invocation()), [["other"]])
+  let defaulted = @invocation.parse_project_invocations(project, ["tools::"])
+  assert_eq(defaulted[0].invocation().recipe(), "default")
+}
+
+///|
+test "project target parsing does not evaluate parameter defaults" {
+  let root = compile_fixture("set lazy\nx := `exit 1`\nfoo value=x:\n")
+  let project = try! @semantic.ProjectCompilation::new([
+    @semantic.ProjectModule::new(
+      @modulepath.ModulePath::root(),
+      root,
+      try! @path.PathValue::new("/workspace", Unix),
+    ),
+  ])
+  let targets = @invocation.parse_project_invocation_targets(project, ["foo"])
+  assert_eq(targets.length(), 1)
+  assert_true(targets[0].0.is_root())
+  assert_eq(targets[0].1, "foo")
 }
