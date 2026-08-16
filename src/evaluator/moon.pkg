@@ -12,3 +12,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/x/time",
 }
+
+import {
+  "moonbitlang/async",
+} for "test"

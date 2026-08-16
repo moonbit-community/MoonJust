@@ -26,8 +26,8 @@ phase_8_not_applicable_registrations = 2
 planned_registrations = 0
 
 [target_matrix]
-native = "local pass: 352 tests and macOS aarch64 real platform gate"
-wasm1 = "local pass: 348 tests and explicit portable platform/terminal fallback"
+native = "local pass: 354 tests and macOS aarch64 real platform gate"
+wasm1 = "local pass: 350 tests and explicit portable platform/terminal fallback"
 linux = "pass: remediation PR CI and protected-main CI"
 macos = "pass: local macOS aarch64 gate, remediation PR CI and protected-main CI"
 windows = "pass: remediation PR CI and protected-main CI"

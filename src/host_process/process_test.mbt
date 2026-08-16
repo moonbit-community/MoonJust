@@ -41,6 +41,20 @@ async test "process adapter maps nonzero exit termination" {
 
 ///|
 #cfg(not(platform="windows"))
+async test "process adapter suppresses shell signal notices" {
+  let signaled = try! @host.CommandSpec::new("/bin/sh", ["-c", "kill -TERM $$"])
+  signaled.set_stdout(Capture)
+  signaled.set_stderr(Capture)
+  let result = try! @host.HostAsyncProcess::run_process_async(
+    ProcessAdapter::new(),
+    signaled,
+  )
+  assert_eq(result.termination(), Signaled(Terminate))
+  assert_eq(result.stderr(), b"")
+}
+
+///|
+#cfg(not(platform="windows"))
 async test "discarded streams are drained without being retained" {
   let command = try! @host.CommandSpec::new("/bin/sh", [
     "-c", "printf ignored; printf warning >&2",
