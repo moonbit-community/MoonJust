@@ -34,8 +34,8 @@ NATIVE_SIGNAL_TESTS = {
 }
 NATIVE_SIGNAL_EXCLUSIONS = {
     "signals::forwarding",
-    "signals::siginfo_prints_current_process",
 }
+NATIVE_SIGINFO_SYSTEMS = {"Darwin", "DragonFly", "FreeBSD", "iOS", "NetBSD", "OpenBSD"}
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 DIAGNOSTIC_KEYWORDS = {
     "alias",
@@ -416,6 +416,8 @@ def execute_native_signal_gate(
         return
     registered = {name for name in tests if name.startswith("signals::")}
     expected = NATIVE_SIGNAL_TESTS | NATIVE_SIGNAL_EXCLUSIONS
+    if platform.system() in NATIVE_SIGINFO_SYSTEMS:
+        expected.add("signals::siginfo_prints_current_process")
     if registered != expected:
         missing = sorted(expected - registered)
         extra = sorted(registered - expected)
