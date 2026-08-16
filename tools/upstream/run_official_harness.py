@@ -501,6 +501,26 @@ def verified_names(encoded: str) -> set[str]:
     }
 
 
+def regression_details(
+    names: set[str],
+    native: dict[str, str],
+    wasm: dict[str, str],
+) -> str:
+    artifact = repository_root() / "_build" / "upstream-harness"
+    logs = {
+        label: failure_blocks((artifact / f"{label}.log").read_text(encoding="utf-8"))
+        for label in ("native", "wasm1")
+    }
+    details: list[str] = []
+    for name in sorted(names):
+        details.append(f"{name}: native={native[name]}, wasm1={wasm[name]}")
+        for label in ("native", "wasm1"):
+            block = ANSI_ESCAPE.sub("", logs[label].get(name, "")).strip()
+            if block:
+                details.append(f"[{label}]\n{block[:2000]}")
+    return "\n".join(details)
+
+
 def main() -> int:
     repo = repository_root()
     parser = argparse.ArgumentParser()
@@ -561,6 +581,8 @@ def main() -> int:
             fail(
                 f"{len(missing)} recorded harness tests regressed: "
                 + ", ".join(sorted(missing))
+                + "\n"
+                + regression_details(missing, native, wasm)
             )
     print(f"verified exact Native/wasm1 intersection: {len(verified_names(encoded))}")
     return 0
