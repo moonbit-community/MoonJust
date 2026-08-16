@@ -21,7 +21,7 @@ stdio, script, and process contracts before the runtime grants process access.
 | PR-083 | async backticks/shell capture, exact newline trim, stderr and failure propagation | `src/evaluator/async_evaluator.mbt`, executor effect tests |
 | PR-084 | deterministic dependency order, once key, starred/parameterized dependencies | `src/executor/plan.mbt`, DAG tests and order fixture |
 | PR-085 | stream separation, verbosity, timestamp/color, elapsed timing, stable failures | `src/executor/output.mbt`, native CLI output smoke |
-| PR-086 | async cancellation boundary, signal mapping, cancellation-safe cleanup | `src/runtime/runtime.mbt`, native signal test |
+| PR-086 | async cancellation boundary, POSIX child forwarding, signal mapping, cancellation-safe cleanup | `src/runtime/runtime.mbt`, 12 pinned native signal tests |
 | PR-087 | native/wasm process adapters, exact cwd/env/stdio, policy diagnostics | `src/host_process`, `policies/execute.toml`, moonrun smoke |
 
 ## Verification
@@ -34,6 +34,9 @@ stdio, script, and process contracts before the runtime grants process access.
 - `moon test --target wasm`: 232 passed, 0 failed.
 - `tools/check_phase8_executor.sh`: oracle dry-run, native/wasm CLI corpus and
   executor package tests pass locally.
+- `tools/upstream/run_official_harness.py`: 12 ignored upstream signal tests
+  pass against the native candidate by sending SIGINT, SIGHUP and SIGQUIT to
+  the running MoonJust process.
 - Native CLI smoke covers dotenv, effect ordering, failure output,
   timestamp/color, elapsed timing and ordinary dry-run. Wasm execute policy
   covers script creation and process execution; inspect policy rejects writes

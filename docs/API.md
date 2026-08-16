@@ -23,8 +23,8 @@ not granted by this function.
 ## Build identity
 
 `version`, `compatible_just_version`, and `version_line` expose the MoonJust
-application version and the pinned upstream compatibility baseline. Release
-automation checks these values against the packaged metadata.
+application version and the pinned upstream oracle baseline. The version line
+records compatibility with the completed `just 1.57.0` Tier A gate.
 
 Run `moon info` to regenerate the formal interfaces and `moon doc` to generate
 the complete package documentation from committed `///` comments.
