@@ -559,8 +559,8 @@ def main() -> int:
         missing = verified_names(recorded) - verified_names(encoded)
         if missing:
             fail(
-                f"{len(missing)} recorded harness tests regressed, first: "
-                + sorted(missing)[0]
+                f"{len(missing)} recorded harness tests regressed: "
+                + ", ".join(sorted(missing))
             )
     print(f"verified exact Native/wasm1 intersection: {len(verified_names(encoded))}")
     return 0
