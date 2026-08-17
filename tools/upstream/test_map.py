@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
-MAP_SCHEMA_VERSION = 3
+MAP_SCHEMA_VERSION = 4
 EXPECTED_COUNT = 2417
 EXPECTED_LIST_SHA256 = (
     "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
@@ -31,6 +31,8 @@ NATIVE_SIGNAL_TESTS = {
     "signals::interrupt_command",
     "signals::interrupt_line",
     "signals::interrupt_shebang",
+    "signals::forwarding",
+    "signals::siginfo_prints_current_process",
 }
 
 AREA_PREFIXES = {
@@ -212,7 +214,7 @@ RUNTIME_CACHE_DIFFERENCES = {
 
 EXPLICIT_CONTRACT_EVIDENCE = {
     "global::not_macos": (
-        "src/application/application_test.mbt",
+        "internal/application/application_test.mbt",
         "global context follows Linux XDG lookup and project root",
     ),
 }
@@ -286,105 +288,105 @@ EXECUTOR_UNSUPPORTED_MARKERS = (
 AREA_TEST_ANCHORS = {
     "parser-formatter": {
         "parser": (
-            "src/parser/top_level_test.mbt",
+            "internal/parser/top_level_test.mbt",
             "top-level parser builds assignments aliases settings recipes and imports",
         ),
         "format": (
-            "src/formatter/formatter_test.mbt",
+            "internal/formatter/formatter_test.mbt",
             "formatter corpus is idempotent across representative grammar",
         ),
         "markdown": (
-            "src/formatter/markdown_test.mbt",
+            "internal/formatter/markdown_test.mbt",
             "markdown corpus preserves CommonMark fence boundaries",
         ),
         "tangle": (
-            "src/formatter/markdown_test.mbt",
+            "internal/formatter/markdown_test.mbt",
             "markdown tangle requires matching fence character and minimum length",
         ),
     },
     "semantic-loader": {
         "semantic": (
-            "src/semantic/semantic_test.mbt",
+            "internal/semantic/semantic_test.mbt",
             "compilation exposes ordered symbols and typed settings",
         ),
         "validation": (
-            "src/semantic/semantic_test.mbt",
+            "internal/semantic/semantic_test.mbt",
             "semantic validation checks minimum version, dependency arity, and recipe variables",
         ),
         "settings": (
-            "src/semantic/semantic_test.mbt",
+            "internal/semantic/semantic_test.mbt",
             "settings and attributes expose complete typed contracts",
         ),
         "loader_search": (
-            "src/loader/loader_test.mbt",
+            "internal/loader/loader_test.mbt",
             "search ascends to the project ceiling and loads through host",
         ),
         "loader_global": (
-            "src/loader/loader_test.mbt",
+            "internal/loader/loader_test.mbt",
             "global fallback and stdin loading are explicit",
         ),
         "loader_graph": (
-            "src/loader/loader_test.mbt",
+            "internal/loader/loader_test.mbt",
             "optional imports are skipped and cycles are reported",
         ),
     },
     "evaluator-builtins": {
         "pure": (
-            "src/builtin/builtin_test.mbt",
+            "internal/builtin/builtin_test.mbt",
             "pure builtins cover string, path, regex and semver contracts",
         ),
         "builtin_collections": (
-            "src/builtin/builtin_test.mbt",
+            "internal/builtin/builtin_test.mbt",
             "canonical string and list builtins are deterministic",
         ),
         "effect": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "effect context connects fs random clock process terminal and PATH facts",
         ),
         "evaluation": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "pure evaluation supports conditions, lists, concatenation and builtins",
         ),
         "lazy": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "lazy assignments expose states and redact cycle diagnostics",
         ),
         "scope": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "recipe and module scopes implement defaults variadics shadowing and exports",
         ),
         "limits": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "evaluation limits reject adversarial depth",
         ),
     },
     "query-cli": {
         "init": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "init creates the canonical template and refuses overwrite",
         ),
         "list": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "list renders docs aliases groups and hides private recipes",
         ),
         "alias_style": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "list groups recipes once and supports every upstream alias style",
         ),
         "groups": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "groups are deduplicated and Unicode list padding uses display width",
         ),
         "show_usage": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "show and usage resolve aliases without executing recipes",
         ),
         "summary": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "summary supports sorted and source-order output",
         ),
         "inspect": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "dump and JSON inspect are deterministic and schema-pinned",
         ),
         "version": (
@@ -394,181 +396,181 @@ AREA_TEST_ANCHORS = {
     },
     "execution-context": {
         "dotenv": (
-            "src/environment/environment_test.mbt",
+            "internal/environment/environment_test.mbt",
             "dotenv file loading implements path filename precedence and ancestor search",
         ),
         "invocation": (
-            "src/invocation/invocation_test.mbt",
+            "internal/invocation/invocation_test.mbt",
             "long short combined repeatable and terminator options match upstream",
         ),
         "stdin": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "relative justfile and working directory use explicit invocation cwd",
         ),
         "workdir": (
-            "src/workdir/workdir_test.mbt",
+            "internal/workdir/workdir_test.mbt",
             "recipe working-directory overrides settings and no-cd",
         ),
         "cli_environment": (
-            "src/cli/cli_test.mbt",
+            "internal/cli/cli_test.mbt",
             "shell arguments and clear flag use last occurrence semantics",
         ),
         "overrides": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "CLI variable overrides reach evaluate and invocation validation",
         ),
         "tempdir": (
-            "src/environment/environment_test.mbt",
+            "internal/environment/environment_test.mbt",
             "temporary directory CLI setting and host precedence is lexical",
         ),
     },
     "runtime-cache": {
         "cache_key": (
-            "src/cache/cache_test.mbt",
+            "internal/cache/cache_test.mbt",
             "cache key invalidates on body extra inputs and outputs",
         ),
         "cache_runtime": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "cache miss hit input invalidation and corruption recovery",
         ),
         "cache_outputs": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "missing cache outputs fail without publishing a manifest",
         ),
         "cache_bypass": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "no-cache bypasses lookup locks and publication",
         ),
         "cache_verbose": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "verbose cache diagnostics report stable hits and key material",
         ),
         "cache_gate": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "cache attributes require the explicit unstable gate",
         ),
         "cache_scope": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "cache expressions resolve in recipe scope and require scripts",
         ),
         "cache_clean": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "clean filters recipe and module prefixes",
         ),
         "path_clean": (
-            "src/path/path_test.mbt",
+            "internal/path/path_test.mbt",
             "Unix paths clean without escaping an absolute root",
         ),
         "parallel_runtime": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "parallel dependencies use bounded stable concurrency",
         ),
         "parallel_failure": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "parallel failure selection ignores completion timing",
         ),
         "parallel_subsequent": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "parallel subsequent dependencies join before completion",
         ),
         "jobs": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "jobs must be a positive integer before execution planning",
         ),
     },
     "executor": {
         "bom": (
-            "src/lexer/lexer_test.mbt",
+            "internal/lexer/lexer_test.mbt",
             "operators, comments, BOM, CRLF, and continued lines",
         ),
         "cli": (
-            "src/cli/cli_test.mbt",
+            "internal/cli/cli_test.mbt",
             "CLI validates command conflicts color aliases and verbosity",
         ),
         "dependency": (
-            "src/executor/executor_test.mbt",
+            "internal/executor/executor_test.mbt",
             "dependency graph is deterministic and once is keyed by parameter values",
         ),
         "effect": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "configured shell captures stdout and removes exactly one line ending",
         ),
         "environment": (
-            "src/environment/environment_test.mbt",
+            "internal/environment/environment_test.mbt",
             "process environment precedence table is complete",
         ),
         "evaluation": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "pure evaluation supports conditions, lists, concatenation and builtins",
         ),
         "lexer": (
-            "src/lexer/lexer_test.mbt",
+            "internal/lexer/lexer_test.mbt",
             "recipe bodies preserve text, prefixes, blank lines, and brace escapes",
         ),
         "invocation": (
-            "src/invocation/invocation_test.mbt",
+            "internal/invocation/invocation_test.mbt",
             "long short combined repeatable and terminator options match upstream",
         ),
         "line": (
-            "src/executor/executor_test.mbt",
+            "internal/executor/executor_test.mbt",
             "ordinary line evaluates interpolation and captures exact process request",
         ),
         "output": (
-            "src/executor/executor_test.mbt",
+            "internal/executor/executor_test.mbt",
             "quiet discards child streams while verbose timestamp and color force echo",
         ),
         "platform": (
-            "src/executor/executor_test.mbt",
+            "internal/executor/executor_test.mbt",
             "shell families preserve representative argv without quoting rewrites",
         ),
         "query": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "list renders docs aliases groups and hides private recipes",
         ),
         "script": (
-            "src/executor/executor_test.mbt",
+            "internal/executor/executor_test.mbt",
             "shebang script uses executable temporary path and always cleans it",
         ),
         "semantic": (
-            "src/semantic/semantic_test.mbt",
+            "internal/semantic/semantic_test.mbt",
             "settings and attributes expose complete typed contracts",
         ),
         "signal": (
-            "src/host/fake_host_test.mbt",
+            "internal/host/fake_host_test.mbt",
             "signal numbers and exit codes preserve the process contract",
         ),
         "signals": (
-            "src/runtime/runtime_test.mbt",
+            "internal/runtime/runtime_test.mbt",
             "continue signals are explicit per recipe and preserve subsequent execution",
         ),
         "dotenv": (
-            "src/environment/environment_test.mbt",
+            "internal/environment/environment_test.mbt",
             "dotenv file loading implements path filename precedence and ancestor search",
         ),
         "justfile": (
-            "src/parser/top_level_test.mbt",
+            "internal/parser/top_level_test.mbt",
             "top-level parser builds assignments aliases settings recipes and imports",
         ),
         "style": (
-            "src/evaluator/evaluator_test.mbt",
+            "internal/evaluator/evaluator_test.mbt",
             "effect context connects fs random clock process terminal and PATH facts",
         ),
     },
     "platform-compatibility": {
         "choose": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "chooser filters candidates and preserves each selected invocation",
         ),
         "confirm": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "confirmation plan preserves parent-first dependency context and prompts",
         ),
         "edit": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "editor uses visual precedence and opens invalid source from its directory",
         ),
         "list": (
-            "src/application/application_test.mbt",
+            "internal/application/application_test.mbt",
             "list color highlights doc backticks on stdout",
         ),
     },
@@ -883,39 +885,39 @@ def anchor_for(area: str, category: str, name: str | None = None) -> tuple[str, 
         if key == "list":
             if name == "list::doc_above_wide_signature":
                 return (
-                    "src/application/application_test.mbt",
+                    "internal/application/application_test.mbt",
                     "list places wide signature documentation above",
                 )
             if "::tests::" in name:
                 return (
-                    "src/application/width_wbtest.mbt",
+                    "internal/application/width_wbtest.mbt",
                     "human-readable lists use upstream conjunctions and ticks",
                 )
         if key == "choose":
             if name in {"choose::cancelled_by_user", "choose::chooser_signal_exit_code_is_propagated"}:
                 return (
-                    "src/application/application_test.mbt",
+                    "internal/application/application_test.mbt",
                     "chooser cancellation succeeds and signals preserve exit status",
                 )
             if name == "choose::status_error":
                 return (
-                    "src/application/application_test.mbt",
+                    "internal/application/application_test.mbt",
                     "chooser nonzero status is propagated",
                 )
             if name == "choose::invoke_error_function":
                 return (
-                    "src/application/application_test.mbt",
+                    "internal/application/application_test.mbt",
                     "interactive invocation and exit failures retain context",
                 )
         if key == "edit":
             if name in {"edit::invoke_error", "edit::status_error"}:
                 return (
-                    "src/application/application_test.mbt",
+                    "internal/application/application_test.mbt",
                     "interactive invocation and exit failures retain context",
                 )
             if name == "edit::editor_precedence":
                 return (
-                    "src/application/application_test.mbt",
+                    "internal/application/application_test.mbt",
                     "editor falls back through EDITOR and vim",
                 )
         if key == "confirm" and any(
@@ -923,7 +925,7 @@ def anchor_for(area: str, category: str, name: str | None = None) -> tuple[str, 
             for marker in ("dump", "format", "too_many", "argument")
         ):
             return (
-                "src/application/application_test.mbt",
+                "internal/application/application_test.mbt",
                 "confirm attributes format and reject excess prompt arguments",
             )
         return AREA_TEST_ANCHORS["platform-compatibility"][key]
@@ -965,14 +967,35 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
         repository_root()
         / "tests/upstream/just-1.57.0/harness-results.jsonl"
     )
-    harness_evidence = {
-        row["upstream_name"]
-        for row in map(json.loads, harness_path.read_text(encoding="utf-8").splitlines())
-        if row["disposition"] == "verified-differential"
-        and row["official"] == "passed"
-        and row["native"] in {"passed", "diagnostic-style"}
-        and row["wasm1"] in {"passed", "diagnostic-style"}
-    }
+    harness_evidence: set[str] = set()
+    legacy_diagnostic_evidence: set[str] = set()
+    for recorded in map(
+        json.loads, harness_path.read_text(encoding="utf-8").splitlines()
+    ):
+        if recorded.get("schema_version") == 4:
+            classifications = {
+                recorded.get("native"),
+                recorded.get("wasm1"),
+            }
+            if (
+                recorded.get("official") == "passed"
+                and recorded.get("disposition")
+                in {"exact", "diagnostic-exact"}
+                and classifications <= {"exact", "diagnostic-exact"}
+            ):
+                harness_evidence.add(recorded["upstream_name"])
+        elif recorded.get("disposition") == "verified-differential" and (
+            recorded.get("official") == "passed"
+            and recorded.get("native") == "passed"
+            and recorded.get("wasm1") == "passed"
+        ):
+            harness_evidence.add(recorded["upstream_name"])
+        elif recorded.get("disposition") == "verified-differential" and (
+            recorded.get("official") == "passed"
+            and "diagnostic-style"
+            in {recorded.get("native"), recorded.get("wasm1")}
+        ):
+            legacy_diagnostic_evidence.add(recorded["upstream_name"])
     rows = []
     for index, name in enumerate(names, start=1):
         category = name.split("::", 1)[0]
@@ -995,10 +1018,10 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             "upstream_name": name,
             "category": category,
             "owner_area": area,
-            "tier": (
-                "B"
-                if area == "platform-compatibility" and category in {"choose", "confirm", "edit", "list"}
-                else "X" if category == "completions" else "A"
+            "scope": (
+                "excluded-completion"
+                if category == "completions"
+                else "compatibility"
             ),
             "targets": [],
             "disposition": "unverified",
@@ -1016,6 +1039,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
         elif area == "lexer" and name == "lexer::tests::presume_error":
             row.update(
+                scope="upstream-internal",
                 disposition="not-applicable",
                 evidence=["compat/lexer.toml"],
                 tracking=f"MJ-CONTRACT-{index:04d}",
@@ -1027,25 +1051,25 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 targets=["native", "wasm1"],
                 evidence=[
                     "compat/lexer.toml",
-                    "src/lexer/upstream_lexer_test.mbt",
-                    "src/lexer/hardening_test.mbt",
+                    "internal/lexer/upstream_lexer_test.mbt",
+                    "internal/lexer/hardening_test.mbt",
                 ],
                 tracking="MJ-LEX-HARDEN-0001",
                 test_anchor={
-                    "suite": "src/lexer/upstream_lexer_test.mbt",
+                    "suite": "internal/lexer/upstream_lexer_test.mbt",
                     "test_name": "just 1.57.0 key token oracle corpus",
                 },
-                contract_case="MJ-CONTRACT::src/lexer/upstream_lexer_test.mbt::just 1.57.0 key token oracle corpus",
+                contract_case="MJ-CONTRACT::internal/lexer/upstream_lexer_test.mbt::just 1.57.0 key token oracle corpus",
             )
         elif category in {"changelog", "man", "readme"}:
             row.update(
-                tier="X",
+                scope="product-identity",
                 disposition="not-applicable",
                 evidence=["docs/adr/0001-product-and-command-name.md"],
                 tracking="ADR-0001",
                 reason="Upstream product-maintenance output is not part of MoonJust compatibility.",
             )
-        elif name in harness_evidence and row["tier"] == "A":
+        elif name in harness_evidence and row["scope"] == "compatibility":
             row.update(
                 disposition="verified-differential",
                 targets=["native", "wasm1"],
@@ -1055,6 +1079,20 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 ],
                 tracking="MJ-UPSTREAM-HARNESS-1.57.0",
                 evidence_case=f"MJ-UPSTREAM-HARNESS::{name}",
+            )
+        elif name in legacy_diagnostic_evidence:
+            row.update(
+                disposition="unverified",
+                targets=[],
+                evidence=[
+                    "tests/upstream/just-1.57.0/harness-results.jsonl",
+                    "tools/upstream/run_official_harness.py",
+                ],
+                tracking=f"MJ-DIAGNOSTIC-{index:04d}",
+                reason=(
+                    "Historical diagnostic-style output is not byte-exact or "
+                    "approved semantic compatibility evidence."
+                ),
             )
         elif area == "runtime-cache" and name in RUNTIME_CACHE_DIFFERENCES:
             row.update(
@@ -1067,34 +1105,19 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 tracking="PROJECT_PLAN_PR-105",
                 reason=RUNTIME_CACHE_DIFFERENCES[name],
             )
-        elif name == "signals::forwarding":
-            row.update(
-                tier="X",
-                disposition="not-applicable",
-                evidence=["docs/adr/0002-compatibility-baseline.md"],
-                tracking="ADR-0002",
-                reason=(
-                    "The upstream registration exclusively exercises the excluded "
-                    "--request testing interface."
-                ),
-            )
-        elif name == "signals::siginfo_prints_current_process":
-            row.update(
-                tier="B",
-                disposition="unsupported",
-                targets=["native"],
-                evidence=["docs/reports/PHASE_8_REPORT.md"],
-                tracking=f"MJ-COMPAT-{index:04d}",
-                reason=(
-                    "BSD/macOS SIGINFO process-inventory diagnostics are outside "
-                    "the Tier A execution contract."
-                ),
-            )
         elif name in NATIVE_SIGNAL_TESTS:
             test_anchor = anchor_dict(area, category, name)
             row.update(
                 disposition="verified-contract",
-                targets=["native", "wasm1"],
+                targets=(
+                    ["native"]
+                    if name
+                    in {
+                        "signals::forwarding",
+                        "signals::siginfo_prints_current_process",
+                    }
+                    else ["native", "wasm1"]
+                ),
                 evidence=[
                     "tests/upstream/just-1.57.0/executor-cases.jsonl",
                     test_anchor["suite"],
@@ -1110,7 +1133,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
         elif area == "executor" and category in {"examples", "request"}:
             row.update(
-                tier="X",
+                scope="upstream-internal",
                 disposition="not-applicable",
                 evidence=["docs/adr/0002-compatibility-baseline.md"],
                 tracking=f"MJ-COMPAT-{index:04d}",
@@ -1121,7 +1144,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
         elif area == "executor" and name == "constants::tests::readme_table":
             row.update(
-                tier="X",
+                scope="upstream-internal",
                 disposition="not-applicable",
                 evidence=["docs/adr/0002-compatibility-baseline.md"],
                 tracking="ADR-0002",
@@ -1143,7 +1166,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
         elif area == "platform-compatibility" and category == "config" and "completions" in name:
             row.update(
-                tier="X",
+                scope="excluded-completion",
                 disposition="excluded-completion",
                 evidence=["docs/adr/0002-compatibility-baseline.md"],
                 tracking="ADR-0002",
@@ -1151,7 +1174,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
         elif area == "platform-compatibility" and category == "config" and "changelog" in name:
             row.update(
-                tier="X",
+                scope="product-identity",
                 disposition="not-applicable",
                 evidence=["docs/adr/0001-product-and-command-name.md"],
                 tracking="ADR-0001",
@@ -1159,7 +1182,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
         elif area == "platform-compatibility" and category == "count":
             row.update(
-                tier="X",
+                scope="upstream-internal",
                 disposition="not-applicable",
                 evidence=["docs/adr/0002-compatibility-baseline.md"],
                 tracking=f"MJ-COMPAT-{index:04d}",
@@ -1236,7 +1259,8 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
             row.pop("reason", None)
             row.pop("test_anchor", None)
-        elif name in harness_evidence and row["tier"] == "A":
+            row.pop("contract_case", None)
+        elif name in harness_evidence and row["scope"] == "compatibility":
             row.update(
                 disposition="verified-differential",
                 targets=["native", "wasm1"],
@@ -1249,7 +1273,32 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
             row.pop("reason", None)
             row.pop("test_anchor", None)
+            row.pop("contract_case", None)
         rows.append(row)
+
+    anchor_counts: dict[tuple[str, str], int] = {}
+    for row in rows:
+        if row["disposition"] != "verified-contract":
+            continue
+        anchor = row["test_anchor"]
+        key = (anchor["suite"], anchor["test_name"])
+        anchor_counts[key] = anchor_counts.get(key, 0) + 1
+    for row in rows:
+        if row["disposition"] != "verified-contract":
+            continue
+        anchor = row["test_anchor"]
+        key = (anchor["suite"], anchor["test_name"])
+        if anchor_counts[key] > 1:
+            row.update(
+                disposition="unverified",
+                targets=[],
+                reason=(
+                    "The registered MoonBit test is shared by multiple upstream "
+                    "registrations and is not independent compatibility evidence."
+                ),
+            )
+            row.pop("test_anchor", None)
+            row.pop("contract_case", None)
     return rows
 
 
@@ -1346,6 +1395,7 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
         "unsupported",
         "unverified",
     }
+    contract_anchors: set[tuple[str, str]] = set()
     for index, (row, name) in enumerate(zip(rows, names), start=1):
         expected_id = f"JUST-1.57.0-{index:04d}"
         if row.get("schema_version") != MAP_SCHEMA_VERSION or row.get("id") != expected_id:
@@ -1356,8 +1406,13 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
             raise ValueError(f"row {expected_id} has an invalid disposition")
         if row.get("owner_area") not in AREA_PREFIXES:
             raise ValueError(f"row {expected_id} has no owner area")
-        if row.get("tier") not in {"A", "B", "W", "X"}:
-            raise ValueError(f"row {expected_id} has no valid compatibility tier")
+        if row.get("scope") not in {
+            "compatibility",
+            "excluded-completion",
+            "product-identity",
+            "upstream-internal",
+        }:
+            raise ValueError(f"row {expected_id} has no valid compatibility scope")
         if not isinstance(row.get("targets"), list):
             raise ValueError(f"row {expected_id} has no target list")
         if not isinstance(row.get("evidence"), list):
@@ -1379,6 +1434,13 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
                 )
             if not isinstance(row.get("contract_case"), str) or not row["contract_case"]:
                 raise ValueError(f"row {expected_id} has no contract case id")
+            anchor_key = (anchor["suite"], anchor["test_name"])
+            if anchor_key in contract_anchors:
+                raise ValueError(
+                    f"row {expected_id} reuses contract anchor "
+                    f"{anchor['suite']}::{anchor['test_name']}"
+                )
+            contract_anchors.add(anchor_key)
         if row["disposition"] == "verified-differential":
             evidence_case = row.get("evidence_case")
             if not isinstance(evidence_case, str) or not evidence_case:

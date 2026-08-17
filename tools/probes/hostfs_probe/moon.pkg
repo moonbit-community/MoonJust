@@ -1,7 +1,7 @@
 import {
-  "moonbit-community/MoonJust/src/host",
-  "moonbit-community/MoonJust/src/host_wasm/transaction",
-  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/internal/host",
+  "moonbit-community/MoonJust/internal/host_wasm/transaction",
+  "moonbit-community/MoonJust/internal/path",
   "moonbitlang/async",
   "moonbitlang/async/fs" @async_fs,
   "moonbitlang/core/env",

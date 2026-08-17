@@ -11,12 +11,12 @@ fail() {
   exit 1
 }
 
-moon test --target native src/host
-moon test --target native src/host_native
-moon test --target native src/host_process
-moon test --target native src/environment
-moon test --target native src/executor
-moon test --target native src/application
+moon test --target native internal/host
+moon test --target native internal/host_native
+moon test --target native internal/host_process
+moon test --target native internal/environment
+moon test --target native internal/executor
+moon test --target native internal/application
 moon build cmd/just --target native >/dev/null
 cli="$repo_root/_build/native/debug/build/cmd/just/just.exe"
 [ -x "$cli" ] || [ -f "$cli" ] || fail "Native CLI artifact is missing"

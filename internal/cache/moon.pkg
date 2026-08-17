@@ -1,0 +1,5 @@
+import {
+  "moonbit-community/MoonJust/internal/builtin",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+}

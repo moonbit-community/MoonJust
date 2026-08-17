@@ -1,8 +1,8 @@
 schema_version = 2
 area = "platform-compatibility"
 upstream = "just 1.57.0"
-status = "implemented"
-plan_exit = "passed"
+status = "strict-remediation"
+plan_exit = "blocked-by-strict-evidence"
 report = "docs/reports/PHASE_10_REPORT.md"
 audit = "docs/reports/RELEASE_AUDIT.md"
 
@@ -16,13 +16,13 @@ inventory = "all CLI flags, commands, settings, attributes, builtins and 2,417 u
 
 [compatibility]
 covered_registrations = 40
-unverified_registrations = 0
-unsupported_registrations = 4
+unverified_registrations = 4
+unsupported_registrations = 0
 excluded_registrations = 8
-executor_covered_registrations = 729
-executor_unverified_registrations = 0
-executor_unsupported_registrations = 1
-executor_not_applicable_registrations = 2
+executor_covered_registrations = 572
+executor_unverified_registrations = 159
+executor_unsupported_registrations = 0
+executor_not_applicable_registrations = 1
 planned_registrations = 0
 
 [target_matrix]

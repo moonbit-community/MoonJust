@@ -70,9 +70,6 @@ jobs:
       - name: Test real upstream differential smoke
         run: ./tools/differential/real_smoke.sh
 
-      - name: Verify pinned official integration harness
-        run: python3 ./tools/upstream/run_official_harness.py
-
       - name: Verify Evaluator builtin oracle
         run: python3 ./tools/upstream/evaluator_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
 
@@ -103,9 +100,6 @@ jobs:
       - name: Verify Scheduler and cache runtime
         run: ./tools/checks/runtime.sh
 
-      - name: Verify Compatibility convergence
-        run: ./tools/checks/compatibility.sh
-
       - name: Verify Release engineering
         run: ./tools/checks/release.sh
 
@@ -129,8 +123,37 @@ jobs:
       - name: Smoke-test wasm1 CLI
         run: moon run --target wasm cmd/just -- --version
 
+  wasm1-shared:
+    name: Shared MoonX wasm1 asset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Install MoonBit
+        uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: 0.10.6+62c2592d1
+      - name: Ensure MoonX entry point
+        run: ./tools/release/ensure_moonx.sh
+      - run: moon update
+      - name: Build wasm1 once on Ubuntu
+        run: moon build --frozen --release --strip --target wasm cmd/just
+      - name: Stage and hash wasm1
+        shell: bash
+        run: |
+          mkdir -p _build/shared-wasm
+          cp _build/wasm/release/build/cmd/just/just.wasm _build/shared-wasm/just.wasm
+          sha256sum _build/shared-wasm/just.wasm | sed 's#_build/shared-wasm/##' > _build/shared-wasm/just.wasm.sha256
+      - name: Upload shared wasm1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-ci-wasm1
+          path: _build/shared-wasm/**
+          if-no-files-found: error
+
   native-platforms:
     name: Native smoke (${{ matrix.os }})
+    needs: wasm1-shared
     strategy:
       fail-fast: false
       matrix:
@@ -155,6 +178,25 @@ jobs:
       - name: Refresh dependencies
         run: moon update
 
+      - name: Download shared wasm1 asset
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        with:
+          name: moonjust-ci-wasm1
+          path: _build/shared-wasm
+
+      - name: Verify shared wasm1 checksum
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          asset = Path("_build/shared-wasm/just.wasm")
+          sidecar = Path("_build/shared-wasm/just.wasm.sha256").read_text().split()
+          actual = hashlib.sha256(asset.read_bytes()).hexdigest()
+          if len(sidecar) != 2 or sidecar[0] != actual or sidecar[1] != "just.wasm":
+              raise SystemExit("shared wasm1 checksum mismatch")
+          PY
+
       - name: Test Native
         run: ./tools/checks/test_target.sh native
 
@@ -164,6 +206,13 @@ jobs:
       - name: Verify Native platform behavior
         shell: bash
         run: ./tools/checks/platform.sh
+
+      - name: Verify Native and shared wasm1 against the pinned official suite
+        shell: bash
+        run: |
+          python3 ./tools/upstream/run_official_harness.py \
+            --native-candidate "$GITHUB_WORKSPACE/_build/native/debug/build/cmd/just/just.exe" \
+            --wasm-candidate "$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm"
 
       - name: Build and verify Release artifact
         shell: bash
@@ -178,9 +227,21 @@ jobs:
             Windows-X64) platform=windows-x86_64 ;;
             *) echo "unsupported runner ${{ runner.os }}-${{ runner.arch }}" >&2; exit 1 ;;
           esac
-          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="$platform" ./tools/release/build_artifacts.sh)
+          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="$platform" \
+            MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
+            ./tools/release/build_artifacts.sh)
           python3 ./tools/release/verify_bundle.py \
             --repo . --archive "$archive" --platform "$platform"
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
+          python3 ./tools/release/check_moonx_asset.py \
+            --repo . --registry _build/release \
+            --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+          python3 ./tools/release/check_artifact_size.py \
+            --baseline compat/artifact-size-baseline.json \
+            --platform "$platform" \
+            --native _build/release/build/native/release/build/cmd/just/just.exe \
+            --wasm _build/shared-wasm/just.wasm \
+            --output "_build/release/artifact-size-$platform.json"
 
       - name: Upload Release artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -190,4 +251,5 @@ jobs:
             _build/release/moonjust-*
             _build/release/assets/**
             _build/release/build-*.json
+            _build/release/artifact-size-*.json
           if-no-files-found: error

@@ -1,5 +1,5 @@
 import {
-  "moonbit-community/MoonJust/src/environment",
+  "moonbit-community/MoonJust/internal/environment",
   "moonbitlang/async",
   "moonbitlang/async/stdio",
   "moonbitlang/core/encoding/utf8",

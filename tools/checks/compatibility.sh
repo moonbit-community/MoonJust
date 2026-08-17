@@ -6,18 +6,29 @@ repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 
 python3 "$repo_root/tools/upstream/test_map.py"
 python3 "$repo_root/tools/upstream/verify_manifest.py"
-moon test --target native src/cli
-moon test --target native src/application
-moon test --target native src/formatter
-moon test --target native src/loader
-moon test --target wasm src/cli
-moon test --target wasm src/application
-moon test --target wasm src/formatter
-moon test --target wasm src/loader
+if [ -n "${MOONJUST_NATIVE_CANDIDATE:-}" ] || [ -n "${MOONJUST_WASM_CANDIDATE:-}" ]; then
+  [ -n "${MOONJUST_NATIVE_CANDIDATE:-}" ] && [ -n "${MOONJUST_WASM_CANDIDATE:-}" ] || {
+    echo "both explicit compatibility candidates are required" >&2
+    exit 1
+  }
+  python3 "$repo_root/tools/upstream/run_official_harness.py" \
+    --native-candidate "$MOONJUST_NATIVE_CANDIDATE" \
+    --wasm-candidate "$MOONJUST_WASM_CANDIDATE"
+else
+  python3 "$repo_root/tools/upstream/run_official_harness.py"
+fi
+moon test --target native internal/cli
+moon test --target native internal/application
+moon test --target native internal/formatter
+moon test --target native internal/loader
+moon test --target wasm internal/cli
+moon test --target wasm internal/application
+moon test --target wasm internal/formatter
+moon test --target wasm internal/loader
 
 "$repo_root/tools/upstream/build_oracle.sh" >/dev/null
 upstream="$repo_root/_build/upstream/just-1.57.0/source"
 CARGO_TARGET_DIR="$repo_root/_build/upstream/just-1.57.0/target" \
   cargo test --manifest-path "$upstream/Cargo.toml" --locked tangle::tests
 
-echo "Compatibility gate passed (interactive, terminal, Markdown, complete inventory)"
+echo "Compatibility gate passed (strict pinned differential and inventory consistency)"

@@ -1,17 +1,54 @@
 ///|
-test "public api facade exposes parse format compile and pure evaluate" {
-  let source = @source.Source::from_text(
-    @source.SourceId::new(60),
-    "justfile",
-    "message := \"ok\"\nshow:\n  echo {{message}}\n",
-  )
-  let ast = try! parse(source)
-  assert_eq(ast.items().length(), 2)
-  assert_true(format_source(source).contains("show:"))
-  let compilation = try! compile_source(source)
-  assert_eq(compilation.recipe_names(), ["show"])
-  let expression = try! @parser.parse_expression(
-    @source.Source::from_text(@source.SourceId::new(61), "expr", "true"),
-  )
-  assert_eq(evaluate_expression(expression), Bool(true))
+test "public api checks formats and lists recipes without leaking internals" {
+  let text =
+    #|message := "ok"
+    #|zeta:
+    #|  echo {{message}}
+    #|_hidden:
+    #|  true
+    #|[private]
+    #|secret:
+    #|  true
+    #|alpha:
+    #|  true
+    #|
+  check_source(text, source_name="example.just")
+  assert_true(format_text(text, source_name="example.just").contains("zeta:"))
+  assert_eq(recipe_names(text, source_name="example.just"), ["alpha", "zeta"])
+}
+
+///|
+test "public api returns owned one-based diagnostics" {
+  try check_source("foo: missing\n", source_name="example.just") catch {
+    InvalidSource(diagnostics) => {
+      assert_eq(diagnostics.length(), 1)
+      let diagnostic = diagnostics[0]
+      assert_eq(diagnostic.source_name(), "example.just")
+      assert_true(!diagnostic.code().is_empty())
+      assert_true(diagnostic.message().contains("missing"))
+      assert_eq(diagnostic.start_line(), Some(1))
+      assert_eq(diagnostic.start_column(), Some(6))
+      assert_true(diagnostic.end_line() is Some(_))
+      assert_true(diagnostic.end_column() is Some(_))
+    }
+  } noraise {
+    _ => fail("invalid source was accepted")
+  }
+}
+
+///|
+test "public api converts syntax failures without exposing parser types" {
+  try check_source("broken:\n {{\n", source_name="syntax.just") catch {
+    InvalidSource(diagnostics) => {
+      assert_eq(diagnostics.length(), 1)
+      let diagnostic = diagnostics[0]
+      assert_eq(diagnostic.source_name(), "syntax.just")
+      assert_true(!diagnostic.code().is_empty())
+      assert_true(!diagnostic.message().is_empty())
+      assert_true(diagnostic.start_line() is Some(_))
+      assert_true(diagnostic.start_column() is Some(_))
+    }
+  } noraise {
+    _ => fail("syntactically invalid source was accepted")
+  }
 }

@@ -1,8 +1,8 @@
 schema_version = 2
 area = "query-cli"
 upstream = "just 1.57.0"
-status = "implemented"
-plan_exit = "passed"
+status = "strict-remediation"
+plan_exit = "blocked-by-strict-evidence"
 report = "docs/reports/PHASE_6_REPORT.md"
 audit = "docs/reports/PHASE_6_REPORT.md"
 
@@ -31,7 +31,7 @@ wasm_policy = "policies/inspect.toml"
 wasm_e2e = "tools/checks/inspect.sh"
 query_oracle = "tools/checks/query.sh"
 upstream_corpus = "tests/upstream/just-1.57.0/query-cli.toml"
-upstream_covered_registrations = 86
-upstream_unverified_registrations = 0
+upstream_covered_registrations = 83
+upstream_unverified_registrations = 3
 upstream_excluded_registrations = 35
 provenance = "tests/upstream/NOTICE.md"

@@ -21,13 +21,14 @@ The command fails rather than updating the snapshot if the commit or expected
 compatibility PR; do not change the expected count to make CI green.
 
 `test_map.py` generates one deterministic JSONL row for every pinned
-registration using schema version 3. Differential rows name a case executed against
+registration using schema version 4. Differential rows name a case executed against
 the official, native and wasm binaries. Contract rows carry a stable contract
 case ID plus an executable `suite`/`test_name` anchor, and each generated area
 case explicitly lists its upstream registration. The verifier reads the
 referenced MoonBit source and checks that the named declaration exists.
-Completion and maintenance rows remain explicitly excluded or not applicable;
-Tier A contains no unsupported or unverified row.
+Completion and maintenance rows remain explicit and are never counted as
+compatibility passes. Contract anchors must be unique, independently runnable
+MoonBit tests; a broad test name cannot stand in for multiple upstream cases.
 
 Regenerate and verify the map with:
 
@@ -45,3 +46,27 @@ The real oracle is built from the same pinned source with:
 The builder verifies the annotated tag's peeled commit, `Cargo.lock` digest,
 release version, and emits the resulting binary digest. It never accepts a
 downloaded or prebuilt `just` executable as compatibility evidence.
+
+Run the strict official integration differential with:
+
+```bash
+python3 tools/upstream/run_official_harness.py
+```
+
+The default command writes a machine-readable candidate report below
+`_build/upstream-harness/` and fails on every unapproved difference. Results
+are classified as `exact`, `diagnostic-exact`, `diagnostic-semantic`,
+`product-identity`, `excluded-completion`, `upstream-ignored`, or `failed`.
+Exceptions are exact test IDs in
+`tests/upstream/just-1.57.0/compatibility-exceptions.toml`; wildcards are not
+accepted.
+
+Replacing the committed oracle is deliberately verbose and is allowed only
+after every strict gate passes. The command prints the complete unified diff
+before writing:
+
+```bash
+python3 tools/upstream/run_official_harness.py \
+  --audit-write \
+  --approve-audit-write e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f
+```

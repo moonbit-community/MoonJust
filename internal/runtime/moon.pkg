@@ -1,0 +1,21 @@
+import {
+  "moonbit-community/MoonJust/internal/cache",
+  "moonbit-community/MoonJust/internal/executor",
+  "moonbit-community/MoonJust/internal/host",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbit-community/MoonJust/internal/scheduler",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbit-community/MoonJust/internal/environment",
+  "moonbit-community/MoonJust/internal/evaluator",
+  "moonbit-community/MoonJust/internal/parser",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbit-community/MoonJust/internal/semantic",
+  "moonbit-community/MoonJust/internal/source",
+  "moonbitlang/async",
+} for "test"
+
+supported_targets = "-all+native+wasm"

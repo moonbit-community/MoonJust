@@ -2,58 +2,48 @@ schema_version = 1
 upstream = "just 1.57.0"
 
 # Status values: implemented, unsupported, excluded.
-# Tier values: A, B, W, X.
 
 [[option]]
 name = "--alias-style"
-tier = "A"
 status = "implemented"
 env = "JUST_ALIAS_STYLE"
 
 [[option]]
 name = "--allow-missing"
-tier = "A"
 status = "implemented"
 env = "JUST_ALLOW_MISSING"
 
 [[option]]
 name = "--ceiling"
-tier = "A"
 status = "implemented"
 env = "JUST_CEILING"
 
 [[option]]
 name = "--check"
-tier = "A"
 status = "implemented"
 requires = ["--fmt"]
 
 [[option]]
 name = "--chooser"
-tier = "B"
 status = "implemented"
 env = "JUST_CHOOSER"
 
 [[option]]
 name = "--clear-shell-args"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--color"
-tier = "A"
 status = "implemented"
 env = "JUST_COLOR"
 
 [[option]]
 name = "--command-color"
-tier = "A"
 status = "implemented"
 env = "JUST_COMMAND_COLOR"
 
 [[option]]
 name = "--complete-aliases"
-tier = "X"
 status = "excluded"
 env = "JUST_COMPLETE_ALIASES"
 env_status = "unsupported"
@@ -61,360 +51,300 @@ reason = "Completion is outside project scope."
 
 [[option]]
 name = "--cygpath"
-tier = "B"
 status = "unsupported"
 env = "JUST_CYGPATH"
 reason = "MoonJust does not perform Cygwin path conversion."
 
 [[option]]
 name = "--default-list"
-tier = "A"
 status = "implemented"
 env = "JUST_DEFAULT_LIST"
 
 [[option]]
 name = "--dotenv-command"
-tier = "A"
 status = "implemented"
 env = "JUST_DOTENV_COMMAND"
 
 [[option]]
 name = "--dotenv-filename"
 short = "-F"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--dotenv-path"
 short = "-E"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--dry-run"
 short = "-n"
-tier = "A"
 status = "implemented"
 env = "JUST_DRY_RUN"
 conflicts = ["--quiet"]
 
 [[option]]
 name = "--dump-format"
-tier = "A"
 status = "implemented"
 env = "JUST_DUMP_FORMAT"
 
 [[option]]
 name = "--evaluate-format"
-tier = "A"
 status = "implemented"
 env = "JUST_EVALUATE_FORMAT"
 
 [[option]]
 name = "--explain"
-tier = "A"
 status = "implemented"
 env = "JUST_EXPLAIN"
 
 [[option]]
 name = "--global-justfile"
 short = "-g"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--group"
-tier = "A"
 status = "implemented"
 env = "JUST_GROUP"
 modes = ["--list", "--choose"]
 
 [[option]]
 name = "--highlight"
-tier = "A"
 status = "implemented"
 env = "JUST_HIGHLIGHT"
 
 [[option]]
 name = "--indentation"
-tier = "A"
 status = "implemented"
 env = "JUST_INDENTATION"
 
 [[option]]
 name = "--jobs"
-tier = "A"
 status = "implemented"
 env = "JUST_JOBS"
 
 [[option]]
 name = "--justfile"
 short = "-f"
-tier = "A"
 status = "implemented"
 env = "JUST_JUSTFILE"
 
 [[option]]
 name = "--justfile-name"
-tier = "A"
 status = "implemented"
 env = "JUST_JUSTFILE_NAME"
 
 [[option]]
 name = "--list-heading"
-tier = "A"
 status = "implemented"
 env = "JUST_LIST_HEADING"
 
 [[option]]
 name = "--list-prefix"
-tier = "A"
 status = "implemented"
 env = "JUST_LIST_PREFIX"
 
 [[option]]
 name = "--list-submodules"
-tier = "A"
 status = "implemented"
 env = "JUST_LIST_SUBMODULES"
 
 [[option]]
 name = "--no-aliases"
-tier = "A"
 status = "implemented"
 env = "JUST_NO_ALIASES"
 
 [[option]]
 name = "--no-cache"
-tier = "A"
 status = "implemented"
 env = "JUST_NO_CACHE"
 
 [[option]]
 name = "--no-deps"
 aliases = ["--no-dependencies"]
-tier = "A"
 status = "implemented"
 env = "JUST_NO_DEPS"
 
 [[option]]
 name = "--no-dotenv"
-tier = "A"
 status = "implemented"
 env = "JUST_NO_DOTENV"
 
 [[option]]
 name = "--no-highlight"
-tier = "A"
 status = "implemented"
 env = "JUST_NO_HIGHLIGHT"
 
 [[option]]
 name = "--one"
-tier = "A"
 status = "implemented"
 env = "JUST_ONE"
 
 [[option]]
 name = "--quiet"
 short = "-q"
-tier = "A"
 status = "implemented"
 env = "JUST_QUIET"
 conflicts = ["--dry-run"]
 
 [[option]]
 name = "--set"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--shell"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--shell-arg"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--shell-command"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--tempdir"
-tier = "A"
 status = "implemented"
 env = "JUST_TEMPDIR"
 
 [[option]]
 name = "--time"
-tier = "B"
 status = "implemented"
 env = "JUST_TIME"
 
 [[option]]
 name = "--timestamp"
-tier = "B"
 status = "implemented"
 env = "JUST_TIMESTAMP"
 
 [[option]]
 name = "--timestamp-format"
-tier = "B"
 status = "implemented"
 env = "JUST_TIMESTAMP_FORMAT"
 
 [[option]]
 name = "--unsorted"
 short = "-u"
-tier = "A"
 status = "implemented"
 env = "JUST_UNSORTED"
 
 [[option]]
 name = "--unstable"
-tier = "X"
 status = "implemented"
 env = "JUST_UNSTABLE"
 
 [[option]]
 name = "--verbose"
 short = "-v"
-tier = "A"
 status = "implemented"
 env = "JUST_VERBOSE"
 
 [[option]]
 name = "--working-directory"
 short = "-d"
-tier = "A"
 status = "implemented"
 env = "JUST_WORKING_DIRECTORY"
 requires = ["--justfile"]
 
 [[option]]
 name = "--yes"
-tier = "A"
 status = "implemented"
 env = "JUST_YES"
 
 [[option]]
 name = "--help"
 short = "-h"
-tier = "A"
 status = "implemented"
 
 [[option]]
 name = "--version"
 short = "-V"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--changelog"
-tier = "X"
 status = "excluded"
 reason = "Upstream product-maintenance output is outside MoonJust compatibility."
 
 [[command]]
 name = "--choose"
-tier = "B"
 status = "implemented"
 
 [[command]]
 name = "--clean"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--command"
 short = "-c"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--completions"
-tier = "X"
 status = "excluded"
 reason = "Completion is outside project scope."
 
 [[command]]
 name = "--dump"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--edit"
 short = "-e"
-tier = "B"
 status = "implemented"
 
 [[command]]
 name = "--evaluate"
 aliases = ["--eval"]
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--fmt"
 aliases = ["--format"]
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--groups"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--init"
 aliases = ["--initialize"]
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--json"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--list"
 short = "-l"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--man"
-tier = "X"
 status = "excluded"
 reason = "Man-page generation is outside project scope."
 
 [[command]]
 name = "--request"
-tier = "X"
 status = "excluded"
 reason = "Upstream internal testing interface; not a public compatibility promise."
 
 [[command]]
 name = "--show"
 short = "-s"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--summary"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--usage"
-tier = "A"
 status = "implemented"
 
 [[command]]
 name = "--variables"
-tier = "A"
 status = "implemented"

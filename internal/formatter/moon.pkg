@@ -1,0 +1,7 @@
+import {
+  "moonbit-community/MoonJust/internal/diagnostic",
+  "moonbit-community/MoonJust/internal/parser",
+  "moonbit-community/MoonJust/internal/source",
+  "moonbit-community/MoonJust/internal/syntax",
+  "moonbitlang/core/bytes",
+}

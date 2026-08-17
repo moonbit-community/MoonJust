@@ -1,0 +1,151 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/internal/environment"
+
+import {
+  "moonbit-community/MoonJust/internal/host",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compose_process_environment(EnvTable, EnvTable, EnvTable, EnvTable, EnvTable, unexports? : ArrayView[String]) -> EnvTable
+
+pub fn[T : @host.HostFs + @host.HostProcess] load_dotenv(T, @path.PathValue, EnvTable, DotenvOptions) -> EnvTable raise DotenvError
+
+pub fn[T : @host.HostProcess] load_dotenv_commands(T, @path.PathValue, EnvTable, DotenvOptions) -> EnvTable raise DotenvError
+
+pub fn[T : @host.HostFs] load_dotenv_files(T, @path.PathValue, EnvTable, DotenvOptions) -> EnvTable raise DotenvError
+
+pub fn parse_dotenv(String, ambient? : EnvTable) -> EnvTable raise DotenvError
+
+pub fn[T : @host.HostPlatform] platform_configuration(T) -> PlatformConfiguration raise @host.HostError
+
+pub fn resolve_shell(PlatformConfiguration, cli_shell? : String?, cli_arguments? : Array[String]?, setting_shell? : ShellConfiguration?, windows_shell? : ShellConfiguration?, windows_powershell? : Bool) -> ShellConfiguration raise EnvironmentConfigError
+
+pub fn resolve_temporary_directory(@path.PathValue, cli_tempdir? : String?, setting_tempdir? : String?) -> TemporaryDirectoryConfiguration raise EnvironmentConfigError
+
+pub fn[T : @host.HostEnv] snapshot(T, name_mode? : EnvNameMode) -> EnvTable raise @host.HostError
+
+// Errors
+pub(all) suberror DotenvError {
+  InvalidUtf8(path~ : @path.PathValue)
+  Parse(line~ : Int, column~ : Int)
+  ParseFile(path~ : @path.PathValue, line~ : Int, column~ : Int)
+  HostDenied(@host.HostCapability)
+  HostUnavailable(@host.HostCapability)
+  SourceAccess
+  InvalidPath
+  Required
+  ArgumentsRequireLists
+  CommandUnavailable(index~ : Int)
+  CommandFailed(index~ : Int, exit_code~ : Int)
+} derive(Eq, @debug.Debug)
+pub fn DotenvError::exit_code(Self) -> Int
+pub fn DotenvError::message(Self) -> String
+
+pub(all) suberror EnvironmentConfigError {
+  InvalidOverridePath(path~ : String)
+  EmptyShell
+  Path(@path.PathError)
+} derive(Eq, @debug.Debug)
+pub fn EnvironmentConfigError::message(Self) -> String
+
+// Types and methods
+pub struct DotenvOptions {
+  load : Bool
+  override_environment : Bool
+  required : Bool
+  lists : Bool
+  dry_run : Bool
+  filenames : Array[String]
+  paths : Array[String]
+  commands : Array[@host.CommandSpec]
+}
+pub fn DotenvOptions::new(load? : Bool, override_environment? : Bool, required? : Bool, lists? : Bool, dry_run? : Bool, filenames? : Array[String], paths? : Array[String], commands? : Array[@host.CommandSpec]) -> Self
+
+pub(all) enum EnvNameMode {
+  Sensitive
+  AsciiInsensitive
+} derive(Eq, @debug.Debug)
+
+pub struct EnvTable {
+  values : Map[String, String]
+  ordered : Array[String]
+  name_mode : EnvNameMode
+}
+pub fn EnvTable::contains(Self, String) -> Bool
+pub fn EnvTable::entries(Self) -> Array[(String, String)]
+pub fn EnvTable::from_entries(ArrayView[(String, String)], name_mode? : EnvNameMode) -> Self
+pub fn EnvTable::get(Self, String) -> String?
+pub fn EnvTable::keys(Self) -> Array[String]
+pub fn EnvTable::merge(Self, Self, override_existing? : Bool) -> Unit
+pub fn EnvTable::name_mode(Self) -> EnvNameMode
+pub fn EnvTable::new(name_mode? : EnvNameMode) -> Self
+pub fn EnvTable::remove(Self, String) -> Unit
+pub fn EnvTable::set(Self, String, String) -> Unit
+
+pub struct EnvironmentConfiguration {
+  platform : PlatformConfiguration
+  overrides : OverrideTable
+  shell : ShellConfiguration
+  temporary_directory : TemporaryDirectoryConfiguration
+}
+pub fn EnvironmentConfiguration::new(@host.PlatformInfo, @path.PathValue, ArrayView[(String, String)], cli_shell? : String?, cli_shell_arguments? : Array[String]?, cli_tempdir? : String?, setting_shell? : ShellConfiguration?, setting_tempdir? : String?, windows_shell? : ShellConfiguration?, windows_powershell? : Bool) -> Self raise EnvironmentConfigError
+pub fn EnvironmentConfiguration::overrides(Self) -> OverrideTable
+pub fn EnvironmentConfiguration::platform(Self) -> PlatformConfiguration
+pub fn EnvironmentConfiguration::shell(Self) -> ShellConfiguration
+pub fn EnvironmentConfiguration::temporary_directory(Self) -> TemporaryDirectoryConfiguration
+
+pub struct OverrideTable {
+  values : Map[String, VariableOverride]
+  ordered : Array[String]
+}
+pub fn OverrideTable::entries(Self) -> Array[VariableOverride]
+pub fn OverrideTable::from_entries(ArrayView[(String, String)]) -> Self raise EnvironmentConfigError
+pub fn OverrideTable::get(Self, String) -> VariableOverride?
+pub fn OverrideTable::new() -> Self
+pub fn OverrideTable::set(Self, VariableOverride) -> Unit
+
+pub struct PlatformConfiguration {
+  info : @host.PlatformInfo
+} derive(Eq, @debug.Debug)
+pub fn PlatformConfiguration::environment_name_mode(Self) -> EnvNameMode
+pub fn PlatformConfiguration::info(Self) -> @host.PlatformInfo
+pub fn PlatformConfiguration::is_windows(Self) -> Bool
+pub fn PlatformConfiguration::new(@host.PlatformInfo) -> Self
+
+pub struct ShellConfiguration {
+  program : String
+  arguments : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn ShellConfiguration::arguments(Self) -> ArrayView[String]
+pub fn ShellConfiguration::new(String, Array[String]) -> Self raise EnvironmentConfigError
+pub fn ShellConfiguration::program(Self) -> String
+
+pub struct TemporaryDirectoryConfiguration {
+  source : TemporaryDirectorySource
+  directory : @path.PathValue?
+} derive(Eq, @debug.Debug)
+pub fn TemporaryDirectoryConfiguration::directory(Self) -> @path.PathValue?
+pub fn TemporaryDirectoryConfiguration::source(Self) -> TemporaryDirectorySource
+
+pub(all) enum TemporaryDirectorySource {
+  CommandLine
+  Setting
+  HostDefault
+} derive(Eq, @debug.Debug)
+
+pub struct VariableOverride {
+  modules : Array[String]
+  name : String
+  value : String
+}
+pub fn VariableOverride::modules(Self) -> ArrayView[String]
+pub fn VariableOverride::name(Self) -> String
+pub fn VariableOverride::parse(String, String) -> Self raise EnvironmentConfigError
+pub fn VariableOverride::path(Self) -> String
+pub fn VariableOverride::value(Self) -> String
+
+// Type aliases
+
+// Traits

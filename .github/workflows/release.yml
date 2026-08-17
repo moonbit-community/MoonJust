@@ -28,7 +28,7 @@ jobs:
 
   artifacts:
     name: Artifact (${{ matrix.platform }})
-    needs: validate
+    needs: [validate, wasm-asset]
     strategy:
       fail-fast: false
       matrix:
@@ -55,14 +55,54 @@ jobs:
         shell: bash
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - name: Download Ubuntu wasm1 asset
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        with:
+          name: moonjust-wasm1
+          path: _build/shared-wasm
+      - name: Verify shared wasm1 checksum
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          asset = Path("_build/shared-wasm/just.wasm")
+          sidecar = Path("_build/shared-wasm/just.wasm.sha256").read_text().split()
+          actual = hashlib.sha256(asset.read_bytes()).hexdigest()
+          if len(sidecar) != 2 or sidecar[0] != actual or sidecar[1] != "just.wasm":
+              raise SystemExit("shared wasm1 checksum mismatch")
+          PY
       - name: Install exact dependencies
         run: moon check --target all --warn-list +73
+      - name: Test Native
+        run: ./tools/checks/test_target.sh native
+      - name: Verify Native platform behavior
+        shell: bash
+        run: ./tools/checks/platform.sh
+      - name: Verify Native and shared wasm1 against the pinned official suite
+        shell: bash
+        run: |
+          python3 ./tools/upstream/run_official_harness.py \
+            --native-candidate "$GITHUB_WORKSPACE/_build/native/debug/build/cmd/just/just.exe" \
+            --wasm-candidate "$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm"
       - name: Build and verify
         shell: bash
         run: |
-          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="${{ matrix.platform }}" ./tools/release/build_artifacts.sh)
+          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="${{ matrix.platform }}" \
+            MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
+            ./tools/release/build_artifacts.sh)
           python3 ./tools/release/verify_bundle.py \
             --repo . --archive "$archive" --platform "${{ matrix.platform }}"
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
+          python3 ./tools/release/check_moonx_asset.py \
+            --repo . --registry _build/release \
+            --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+          python3 ./tools/release/check_artifact_size.py \
+            --baseline compat/artifact-size-baseline.json \
+            --platform "${{ matrix.platform }}" \
+            --native _build/release/build/native/release/build/cmd/just/just.exe \
+            --wasm _build/shared-wasm/just.wasm \
+            --output "_build/release/artifact-size-${{ matrix.platform }}.json"
       - name: Attest bundles and checksums
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
@@ -71,6 +111,7 @@ jobs:
             _build/release/moonjust-*.zip
             _build/release/moonjust-*.sha256
             _build/release/build-*.json
+            _build/release/artifact-size-*.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-${{ matrix.platform }}
@@ -79,6 +120,7 @@ jobs:
             _build/release/moonjust-*.zip
             _build/release/moonjust-*.sha256
             _build/release/build-*.json
+            _build/release/artifact-size-*.json
           if-no-files-found: error
 
   wasm-asset:
@@ -103,6 +145,13 @@ jobs:
         run: moon check --target all --warn-list +73
       - name: Build wasm1 staging asset
         run: MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM=linux-x86_64 ./tools/release/build_artifacts.sh
+      - name: Extract shared wasm1 asset and checksum
+        shell: bash
+        run: |
+          mkdir -p _build/shared-wasm
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
+          cp "_build/release/assets/moonbit-community/MoonJust@${version}/cmd/just/just.wasm" _build/shared-wasm/just.wasm
+          sha256sum _build/shared-wasm/just.wasm | sed 's#_build/shared-wasm/##' > _build/shared-wasm/just.wasm.sha256
       - name: Verify staging MoonX protocol
         shell: bash
         run: |
@@ -112,9 +161,9 @@ jobs:
             --coordinate "moonbit-community/MoonJust/cmd/just@$version"
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: _build/release/assets/**
+          subject-path: _build/shared-wasm/**
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-wasm1
-          path: _build/release/assets/**
+          path: _build/shared-wasm/**
           if-no-files-found: error

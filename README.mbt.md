@@ -7,10 +7,12 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> MoonJust is compatible with the pinned `just 1.57.0` Tier A surface on
-> native and wasm/moonrun. Completion, browser execution and arbitrary WASI
-> remain outside scope. No publication, tag or GitHub Release is performed by
-> the compatibility gate.
+> MoonJust is working toward compatibility with the pinned `just 1.57.0`
+> command-line behavior on native and wasm/moonrun. Shell completion is the
+> sole feature exclusion. The official differential harness currently has zero
+> failed cases, but the strict release-evidence gate still rejects 568 upstream
+> registrations without independent executable evidence. This repository does
+> not claim full compatibility or release readiness.
 
 ## What is delivered
 
@@ -41,14 +43,15 @@ versioned, locked across processes and atomically published after output checks.
 - Upstream: `just 1.57.0`, commit
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
-- Tier A registrations: 2,328 total; 1,758 verified by official/native/wasm
-  differential execution, 569 by executable contract cases, one explicitly
-  not applicable, and zero unsupported or unverified.
-- Full pinned inventory: 2,366 verified, five Tier B chooser/submodule/SIGINFO
-  differences, 35 excluded completion rows and eleven not-applicable
-  Rust-internal, testing-interface or product-maintenance rows.
-- Structured CLI differential corpus: 147 exact matches and 35 bounded
-  product-identity or diagnostic-layout differences, with zero failures.
+- Differential results are classified as exact, diagnostic-exact,
+  diagnostic-semantic, product identity, excluded completion, upstream
+  ignored, or failed. Product identity and excluded/ignored cases never enter
+  the compatibility denominator.
+- Unapproved differences fail by default. Updating the committed oracle
+  requires the explicit audited command documented in
+  [`tools/upstream/README.md`](tools/upstream/README.md).
+- Native signal qualification activates the pinned ignored signal suite,
+  including forwarding and SIGINFO where the host supports it.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 
@@ -138,11 +141,11 @@ Wasm inspection adapter receives only the capabilities its policy allows.
 | Path | Responsibility |
 | --- | --- |
 | `api/` | stable public library facade and build metadata |
-| `src/source`, `src/diagnostic`, `src/path` | target-independent source coordinates, diagnostics and lexical paths |
-| `src/lexer`, `src/parser`, `src/syntax`, `src/formatter` | language front end and Markdown tangle |
-| `src/semantic`, `src/loader`, `src/evaluator`, `src/builtin` | compilation, graph loading, evaluation and typed builtins |
-| `src/host`, `src/host_native`, `src/host_wasm` | explicit host contracts and platform adapters |
-| `src/cli`, `src/application`, `src/invocation`, `src/workdir`, `src/environment` | CLI, invocation, working-directory and environment models |
+| `internal/source`, `internal/diagnostic`, `internal/path` | target-independent source coordinates, diagnostics and lexical paths |
+| `internal/lexer`, `internal/parser`, `internal/syntax`, `internal/formatter` | language front end and Markdown tangle |
+| `internal/semantic`, `internal/loader`, `internal/evaluator`, `internal/builtin` | compilation, graph loading, evaluation and typed builtins |
+| `internal/host`, `internal/host_native`, `internal/host_wasm` | explicit host contracts and platform adapters |
+| `internal/cli`, `internal/application`, `internal/invocation`, `internal/workdir`, `internal/environment` | CLI, invocation, working-directory and environment models |
 | `cmd/just` | Native/wasm1 executable composition root |
 | `compat/` | machine-readable compatibility inventories and area contracts |
 | `tests/upstream/` | pinned upstream corpus, ownership map and provenance |
@@ -171,9 +174,9 @@ child with a deterministic error.
 
 ## Development workflow
 
-Every behavior change must identify its compatibility tier, upstream reference,
-supported targets, and regression evidence. Use the existing package boundaries
-and ADRs before introducing a new abstraction.
+Every behavior change must identify its upstream reference, supported targets,
+and regression evidence. Use the existing package boundaries and ADRs before
+introducing a new abstraction.
 
 ```bash
 moon check --target all --warn-list +73

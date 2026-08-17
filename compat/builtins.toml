@@ -3,7 +3,6 @@ upstream = "just 1.57.0"
 
 [registry]
 status = "implemented"
-tier = "A"
 canonical_count = 83
 typed_manifest = "tests/upstream/just-1.57.0/builtins.jsonl"
 canonical = [

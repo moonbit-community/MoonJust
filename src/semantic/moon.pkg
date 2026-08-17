@@ -1,9 +1,0 @@
-import {
-  "moonbit-community/MoonJust/src/builtin",
-  "moonbit-community/MoonJust/src/diagnostic",
-  "moonbit-community/MoonJust/src/modulepath",
-  "moonbit-community/MoonJust/src/parser",
-  "moonbit-community/MoonJust/src/path",
-  "moonbit-community/MoonJust/src/source",
-  "moonbit-community/MoonJust/src/syntax",
-}

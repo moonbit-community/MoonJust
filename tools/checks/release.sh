@@ -30,6 +30,7 @@ for required in api/API.mbt.md docs/API.md docs/RELEASE_POLICY.md LICENSE NOTICE
 done
 
 moon check --target all --warn-list +73
+python3 "$repo_root/tools/upstream/verify_manifest.py" --release
 python3 "$release_dir/check_dependencies.py"
 moon package
 source_archive="$repo_root/_build/package/moonbit-community-MoonJust-$version.zip"
@@ -38,6 +39,16 @@ source_archive="$repo_root/_build/package/moonbit-community-MoonJust-$version.zi
 python3 "$release_dir/verify_source_package.py" --archive "$source_archive"
 moon build --frozen --release --strip --target native cmd/just
 moon build --frozen --release --strip --target wasm cmd/just
+MOONJUST_NATIVE_CANDIDATE="$repo_root/_build/native/release/build/cmd/just/just.exe" \
+MOONJUST_WASM_CANDIDATE="$repo_root/_build/wasm/release/build/cmd/just/just.wasm" \
+  "$repo_root/tools/checks/compatibility.sh"
+"$repo_root/tools/checks/coverage.sh"
+"$repo_root/tools/checks/performance.sh"
+python3 "$release_dir/check_artifact_size.py" \
+  --baseline "$repo_root/compat/artifact-size-baseline.json" \
+  --native "$repo_root/_build/native/release/build/cmd/just/just.exe" \
+  --wasm "$repo_root/_build/wasm/release/build/cmd/just/just.wasm" \
+  --output "$repo_root/_build/release/artifact-size.json"
 "$release_dir/rebuild_source_package.sh" "$source_archive"
 "$release_dir/check_repeatable_build.sh"
 

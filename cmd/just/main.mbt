@@ -36,6 +36,24 @@ const JUST_MAN_HEADER : String =
   #|[options] [recipe [arguments...]]
 
 ///|
+async fn read_stdin_source_bounded(max_bytes : Int) -> Bytes {
+  let read_limit = max_bytes + 1
+  let result = Buffer(size_hint=Int::min(read_limit, 64 * 1024))
+  while result.length() < read_limit {
+    let remaining = read_limit - result.length()
+    guard @stdio.stdin.read_some(max_len=Int::min(remaining, 64 * 1024))
+      is Some(chunk) else {
+      break
+    }
+    if chunk.is_empty() {
+      break
+    }
+    result.write_bytes(chunk)
+  }
+  result.to_bytes()
+}
+
+///|
 fn request_response(
   argv : ArrayView[String],
   environment : Map[String, String],
@@ -45,6 +63,19 @@ fn request_response(
   }
   let request = @json.parse(argv[1][:]) catch {
     _ => return Some(failure("error: invalid request", 2))
+  }
+  match request {
+    String("signal") =>
+      return Some(
+        match @host_process.wait_for_signal_request() {
+          Some(signal) =>
+            @cli.ApplicationResponse::success(
+              stdout=@utf8.encode("{\"signal\":\"" + signal + "\"}"),
+            )
+          None => failure("error: invalid request", 2)
+        },
+      )
+    _ => ()
   }
   guard request is Object(fields) &&
     fields.get("environment-variable") is Some(String(name)) else {
@@ -64,14 +95,14 @@ fn request_response(
 }
 
 ///|
-fn[F : @host.HostFs] application_failure(
+async fn[F : @host.HostFs + @host.HostSourceReader] application_failure(
   host : F,
   arguments : @cli.CliArguments,
   context : @application.ApplicationContext,
   error : @application.ApplicationError,
 ) -> @cli.ApplicationResponse {
   let response = failure(
-    @application.render_application_error(host, arguments, context, error),
+    @application.render_application_error_async(host, arguments, context, error),
     error.exit_code(),
   )
   if arguments.flag("quiet") {
@@ -113,7 +144,7 @@ async fn confirm_execution(
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  F : @host.HostFs + @host.HostSourceReader + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
   P : @host.HostAsyncProcess + @host.HostAsyncOutput,
 ] execute_run(
@@ -147,7 +178,7 @@ async fn[
       } else {
         let message = match error.error() {
           Evaluation(evaluation) =>
-            @application.render_application_error(
+            @application.render_application_error_async(
               host,
               arguments,
               context,
@@ -183,7 +214,7 @@ fn append_response(
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostTemp + @host.HostAsyncScriptTemp + @host.HostCacheStore + @host.HostAtomicFs,
+  F : @host.HostFs + @host.HostSourceReader + @host.HostAsyncScriptTemp + @host.HostCacheStore + @host.HostAtomicFs,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] run_cli(
   host : F,
@@ -256,7 +287,7 @@ async fn[
   let process = @host_process.ProcessAdapter::new()
   if arguments.command() == RunCommand {
     let default_list = try
-      @application.execute_default_list_command(
+      @application.execute_default_list_command_async(
         host, environment_host, arguments, context,
       )
     catch {
@@ -349,9 +380,30 @@ async fn[
     } noraise {
       response => response
     }
+  } else if arguments.command() == DumpCommand ||
+    arguments.command() == JsonCommand {
+    let inspect_environment = try
+      @host.HostEnv::env_entries(environment_host)
+    catch {
+      error => return failure("error: host operation failed: \{Repr(error)}", 1)
+    } noraise {
+      value => value
+    }
+    try
+      @application.execute_inspect_command_async(
+        host,
+        arguments,
+        context,
+        environment=inspect_environment,
+      )
+    catch {
+      error => application_failure(host, arguments, context, error)
+    } noraise {
+      response => response
+    }
   } else {
     try
-      @application.execute_command_with_terminal(
+      @application.execute_query_command_with_terminal_async(
         host, environment_host, arguments, context,
       )
     catch {
@@ -389,7 +441,7 @@ async fn main {
     !arguments.flag("help") &&
     !arguments.flag("version") &&
     arguments.value("justfile") == Some("-") {
-    @stdio.stdin.read_all().binary() catch {
+    read_stdin_source_bounded(@lexer.LexerLimits::default().max_source_bytes()) catch {
       _ => b""
     }
   } else {

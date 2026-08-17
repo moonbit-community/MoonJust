@@ -1,0 +1,14 @@
+{
+  "commit": "573792ffc7bf61c3a423920b433a2a8bc80df3b0",
+  "native": {
+    "macos-aarch64": {
+      "bytes": 5377016,
+      "sha256": "895551e3667856e8880229921e8617c4abbf175154fa4c2e98ead70d3674f528"
+    }
+  },
+  "schema_version": 1,
+  "wasm1": {
+    "bytes": 1729627,
+    "sha256": "d358e5cbdba99ca2be04db0fdd3a6ef234b6dc4ba24cc577d6c974a54f845a65"
+  }
+}

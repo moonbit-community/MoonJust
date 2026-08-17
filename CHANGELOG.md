@@ -56,6 +56,14 @@ All notable changes to MoonJust will be documented here. The project follows
 
 - Moved the public library facade from `moonbit-community/MoonJust` to
   `moonbit-community/MoonJust/api`; update imports to use the `/api` package.
+- Replaced the pre-beta facade (`parse`, `format_source`, `compile_source`, and
+  `evaluate_expression`) with the API-owned `check_source`, `format_text`, and
+  `recipe_names` operations. Callers no longer receive implementation AST,
+  compilation, evaluator, or value types.
+- Moved all implementation packages from `src/*` to `internal/*`; only `api`
+  is a stable library package and `cmd/just` remains an executable entry point.
+- Removed Tier A and broad compatibility claims. Strict official-harness
+  classifications and release gates now determine readiness.
 
 ### Fixed
 

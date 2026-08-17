@@ -1,8 +1,8 @@
 schema_version = 2
 area = "runtime-cache"
 upstream = "just 1.57.0"
-status = "implemented"
-plan_exit = "passed"
+status = "strict-remediation"
+plan_exit = "blocked-by-strict-evidence"
 report = "docs/reports/PHASE_9_REPORT.md"
 audit = "docs/reports/RELEASE_AUDIT.md"
 

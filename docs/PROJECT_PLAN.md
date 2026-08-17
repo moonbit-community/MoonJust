@@ -1,5 +1,10 @@
 # MoonJust 项目实施计划
 
+> Historical planning record: this document preserves earlier planning
+> snapshots. Its Tier A/B/W/X language is historical only; the active release
+> oracle is the pinned official harness and classification report under
+> `tests/upstream/just-1.57.0/`.
+
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
 > 最近严格复核：2026-08-13；Phase 0-11 已完成并通过全部阶段出口。Phase 11 由 [PR #43](https://github.com/moonbit-community/MoonJust/pull/43) 交付，并由 [PR #44](https://github.com/moonbit-community/MoonJust/pull/44)、[PR #45](https://github.com/moonbit-community/MoonJust/pull/45) 和 [PR #46](https://github.com/moonbit-community/MoonJust/pull/46) 完成远程复核修复；审计闭合基线 `ec960b5a` 的 protected-main CI [31697473589](https://github.com/moonbit-community/MoonJust/actions/runs/31697473589) 与非发布候选工作流 [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163) 均通过。完整结论见 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。

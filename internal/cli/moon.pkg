@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/core/argparse",
+  "moonbit-community/MoonJust/internal/diagnostic",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbit-community/MoonJust/internal/source",
+  "moonbitlang/core/array",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+}

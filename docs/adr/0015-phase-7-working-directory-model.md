@@ -18,7 +18,7 @@ the user-visible symlink parent.
 
 ## Decision
 
-- `src/workdir` is a pure package that stores invocation, project, and module
+- `internal/workdir` is a pure package that stores invocation, project, and module
   directories as lexical `PathValue` values. It never consults a filesystem or
   changes global process state.
 - Relative `--justfile` and `--working-directory` values are resolved against

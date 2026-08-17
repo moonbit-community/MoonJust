@@ -1,0 +1,24 @@
+import {
+  "moonbit-community/MoonJust/internal/host",
+  "moonbitlang/async",
+  "moonbitlang/async/io",
+  "moonbitlang/async/process",
+  "moonbitlang/async/signal",
+  "moonbitlang/async/stdio",
+  "moonbitlang/async/types",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbit-community/MoonJust/internal/path",
+} for "test"
+
+supported_targets = "-all+native+wasm"
+
+options(
+  "native-stub": [ "signal_forward.c" ],
+  targets: {
+    "process_native_test.mbt": [ "native", "llvm" ],
+    "process_wbtest.mbt": [ "native", "llvm" ],
+  },
+)
