@@ -111,7 +111,14 @@ def main() -> int:
                 "--no-parallelize",
             ]
             started = time.monotonic_ns()
-            result = subprocess.run(command, cwd=root(), capture_output=True, text=True)
+            result = subprocess.run(
+                command,
+                cwd=root(),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
             elapsed_ms = (time.monotonic_ns() - started) / 1_000_000
             passed = result.returncode == 0
             failed = failed or not passed

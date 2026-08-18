@@ -127,6 +127,8 @@ def run_shell_script(script: Path, cwd: Path) -> None:
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if result.returncode != 0:
         fail(
@@ -214,6 +216,8 @@ def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> 
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=600,
     )
 
