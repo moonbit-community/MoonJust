@@ -329,6 +329,8 @@ jobs:
       - run: moon update
       - run: moon install
       - name: Measure and enforce production coverage
+        env:
+          MOONJUST_COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: ./tools/checks/coverage.sh
       - name: Upload coverage evidence
         if: always()
