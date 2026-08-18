@@ -140,6 +140,7 @@ jobs:
       - name: Ensure MoonX entry point
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - run: moon install
       - name: Build wasm1 once on Ubuntu
         run: moon build --frozen --release --strip --target wasm cmd/just
       - name: Build no-strip wasm1 analysis sibling
@@ -192,7 +193,9 @@ jobs:
         run: ./tools/release/ensure_moonx.sh
 
       - name: Refresh dependencies
-        run: moon update
+        run: |
+          moon update
+          moon install
 
       - name: Download shared wasm1 asset
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
@@ -298,6 +301,7 @@ jobs:
         with:
           version: latest
       - run: moon update
+      - run: moon install
       - name: Build pinned official source
         run: ./tools/upstream/build_oracle.sh
       - name: Execute every unique contract on native and wasm1
@@ -323,6 +327,7 @@ jobs:
         with:
           version: latest
       - run: moon update
+      - run: moon install
       - name: Measure and enforce production coverage
         run: ./tools/checks/coverage.sh
       - name: Upload coverage evidence
@@ -348,6 +353,7 @@ jobs:
           version: latest
       - run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - run: moon install
       - name: Build merge-base pair
         env:
           MOONJUST_PERF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}

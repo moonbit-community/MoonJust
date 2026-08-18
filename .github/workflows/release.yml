@@ -23,6 +23,7 @@ jobs:
           version: latest
       - run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - run: moon install
       - name: Verify source and generated interfaces
         shell: bash
         run: |
@@ -58,6 +59,7 @@ jobs:
           version: latest
       - run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - run: moon install
       - name: Build release staging and no-strip analysis sibling
         shell: bash
         run: |
@@ -125,6 +127,7 @@ jobs:
         shell: bash
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - run: moon install
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
         with:
           name: moonjust-release-wasm1
@@ -220,6 +223,7 @@ jobs:
         with:
           version: latest
       - run: moon update
+      - run: moon install
       - run: ./tools/upstream/build_oracle.sh
       - run: python3 ./tools/upstream/run_contract_harness.py
       - name: Enforce complete one-to-one evidence
@@ -243,6 +247,7 @@ jobs:
         with:
           version: latest
       - run: moon update
+      - run: moon install
       - run: ./tools/checks/coverage.sh
       - name: Upload coverage report
         if: always()
@@ -267,6 +272,7 @@ jobs:
           version: latest
       - run: ./tools/release/ensure_moonx.sh
       - run: moon update
+      - run: moon install
       - name: Build frozen comparison pair
         env:
           MOONJUST_PERF_BASE: d0038b0

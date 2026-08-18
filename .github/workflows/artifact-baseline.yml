@@ -22,8 +22,12 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
+      - name: Apply latest MoonBit baseline compatibility patch
+        run: git -C baseline-source apply "$GITHUB_WORKSPACE/tools/release/latest-moonbit-baseline.patch"
       - run: ./baseline-source/tools/release/ensure_moonx.sh
-      - run: moon -C baseline-source update
+      - run: |
+          moon -C baseline-source update
+          moon -C baseline-source install
       - name: Build wasm1 twice without shared build cache
         shell: bash
         run: |
@@ -90,9 +94,13 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
+      - name: Apply latest MoonBit baseline compatibility patch
+        run: git -C baseline-source apply "$GITHUB_WORKSPACE/tools/release/latest-moonbit-baseline.patch"
       - run: ./baseline-source/tools/release/ensure_moonx.sh
         shell: bash
-      - run: moon -C baseline-source update
+      - run: |
+          moon -C baseline-source update
+          moon -C baseline-source install
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
         with:
           name: moonjust-baseline-wasm1
