@@ -60,6 +60,126 @@ def read_uleb(data: bytes, offset: int) -> tuple[int, int]:
     raise ValueError("invalid wasm unsigned LEB128")
 
 
+def wasm_string(data: bytes, offset: int, end: int) -> tuple[str, int]:
+    size, offset = read_uleb(data, offset)
+    string_end = offset + size
+    if string_end > end:
+        raise ValueError("wasm string extends beyond section payload")
+    return data[offset:string_end].decode("utf-8", errors="replace"), string_end
+
+
+def wasm_section_payloads(data: bytes) -> list[tuple[int, int, int]]:
+    if not data.startswith(b"\0asm\x01\0\0\0"):
+        raise ValueError("artifact is not a wasm1 module")
+    offset = 8
+    rows: list[tuple[int, int, int]] = []
+    while offset < len(data):
+        section_id = data[offset]
+        payload_size, payload_offset = read_uleb(data, offset + 1)
+        end = payload_offset + payload_size
+        if end > len(data):
+            raise ValueError("wasm section extends beyond end of file")
+        rows.append((section_id, payload_offset, end))
+        offset = end
+    return rows
+
+
+def skip_wasm_limits(data: bytes, offset: int) -> int:
+    flags, offset = read_uleb(data, offset)
+    _, offset = read_uleb(data, offset)
+    if flags & 1:
+        _, offset = read_uleb(data, offset)
+    return offset
+
+
+def wasm_imported_functions(data: bytes, start: int, end: int) -> int:
+    count, offset = read_uleb(data, start)
+    functions = 0
+    for _ in range(count):
+        _, offset = wasm_string(data, offset, end)
+        _, offset = wasm_string(data, offset, end)
+        if offset >= end:
+            raise ValueError("wasm import descriptor is missing")
+        kind = data[offset]
+        offset += 1
+        if kind == 0:
+            functions += 1
+            _, offset = read_uleb(data, offset)
+        elif kind == 1:
+            offset += 1
+            offset = skip_wasm_limits(data, offset)
+        elif kind == 2:
+            offset = skip_wasm_limits(data, offset)
+        elif kind == 3:
+            offset += 2
+        elif kind == 4:
+            _, offset = read_uleb(data, offset)
+            _, offset = read_uleb(data, offset)
+        else:
+            raise ValueError(f"unknown wasm import descriptor kind {kind}")
+        if offset > end:
+            raise ValueError("wasm import descriptor exceeds section payload")
+    return functions
+
+
+def wasm_function_names(data: bytes, start: int, end: int) -> dict[int, str]:
+    names: dict[int, str] = {}
+    _, offset = wasm_string(data, start, end)
+    while offset < end:
+        subsection_id = data[offset]
+        size, payload = read_uleb(data, offset + 1)
+        subsection_end = payload + size
+        if subsection_end > end:
+            raise ValueError("wasm name subsection exceeds custom section")
+        if subsection_id == 1:
+            count, cursor = read_uleb(data, payload)
+            for _ in range(count):
+                index, cursor = read_uleb(data, cursor)
+                name, cursor = wasm_string(data, cursor, subsection_end)
+                names[index] = name
+            if cursor != subsection_end:
+                raise ValueError("wasm function name subsection has trailing bytes")
+        offset = subsection_end
+    return names
+
+
+def wasm_top_functions(data: bytes, limit: int = 50) -> list[dict[str, object]]:
+    imports = 0
+    names: dict[int, str] = {}
+    code: tuple[int, int] | None = None
+    for section_id, start, end in wasm_section_payloads(data):
+        if section_id == 2:
+            imports = wasm_imported_functions(data, start, end)
+        elif section_id == 10:
+            code = (start, end)
+        elif section_id == 0:
+            custom_name, _ = wasm_string(data, start, end)
+            if custom_name == "name":
+                names.update(wasm_function_names(data, start, end))
+    if code is None:
+        return []
+    start, end = code
+    count, offset = read_uleb(data, start)
+    rows: list[dict[str, object]] = []
+    for body_index in range(count):
+        body_bytes, body_start = read_uleb(data, offset)
+        body_end = body_start + body_bytes
+        if body_end > end:
+            raise ValueError("wasm function body exceeds code section")
+        function_index = imports + body_index
+        rows.append(
+            {
+                "bytes": body_bytes,
+                "function_index": function_index,
+                "name": names.get(function_index, f"function[{function_index}]"),
+            }
+        )
+        offset = body_end
+    if offset != end:
+        raise ValueError("wasm code section has trailing bytes")
+    return sorted(rows, key=lambda row: (-int(row["bytes"]), int(row["function_index"])))[:limit]
+
+
 def wasm_sections(data: bytes) -> list[dict[str, object]]:
     if not data.startswith(b"\0asm\x01\0\0\0"):
         raise ValueError("artifact is not a wasm1 module")
@@ -225,6 +345,7 @@ def analyze_sections(path: Path) -> dict[str, object]:
     if data.startswith(b"\0asm"):
         kind = "wasm1"
         sections = wasm_sections(data)
+        top_functions = wasm_top_functions(data)
     elif data.startswith(b"\x7fELF"):
         kind = "elf"
         sections = elf_sections(data)
@@ -234,7 +355,10 @@ def analyze_sections(path: Path) -> dict[str, object]:
     else:
         kind = "mach-o"
         sections = macho_sections(data)
-    return {"format": kind, "sections": sections}
+    record: dict[str, object] = {"format": kind, "sections": sections}
+    if kind == "wasm1":
+        record["top_functions"] = top_functions
+    return record
 
 
 def top_elf_symbols(path: Path, limit: int = 50) -> list[dict[str, object]]:

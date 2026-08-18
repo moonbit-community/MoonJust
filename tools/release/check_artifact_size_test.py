@@ -67,6 +67,32 @@ class ArtifactSizeTest(unittest.TestCase):
         self.assertEqual(diff[0]["delta_bytes"], 100)
         self.assertTrue(diff[0]["requires_review"])
 
+    def test_wasm_top_functions_reads_name_and_code_sections(self) -> None:
+        code_payload = uleb(2) + uleb(2) + b"\x00\x0b" + uleb(4) + b"\x00\x41\x00\x0b"
+        names = (
+            uleb(2)
+            + uleb(0)
+            + uleb(2)
+            + b"f0"
+            + uleb(1)
+            + uleb(2)
+            + b"f1"
+        )
+        name_payload = uleb(4) + b"name" + b"\x01" + uleb(len(names)) + names
+        module = (
+            b"\0asm\x01\0\0\0"
+            + b"\x02\x01\x00"
+            + b"\x0a"
+            + uleb(len(code_payload))
+            + code_payload
+            + b"\x00"
+            + uleb(len(name_payload))
+            + name_payload
+        )
+        functions = artifact_size.wasm_top_functions(module)
+        self.assertEqual([row["name"] for row in functions], ["f1", "f0"])
+        self.assertEqual([row["bytes"] for row in functions], [4, 2])
+
 
 if __name__ == "__main__":
     unittest.main()
