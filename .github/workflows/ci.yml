@@ -192,6 +192,11 @@ jobs:
         shell: bash
         run: ./tools/release/ensure_moonx.sh
 
+      - name: Add Git Bash to Windows PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+
       - name: Refresh dependencies
         run: |
           moon update

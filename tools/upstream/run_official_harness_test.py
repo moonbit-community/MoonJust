@@ -29,6 +29,25 @@ class OfficialHarnessTest(unittest.TestCase):
         self.assertTrue(timed_out)
         self.assertEqual(result.returncode, 124)
 
+    @unittest.skipIf(os.name == "nt", "Unix signal masks are not available")
+    def test_isolated_runner_restores_ignored_parent_signal(self) -> None:
+        previous = harness.signal.signal(harness.signal.SIGHUP, harness.signal.SIG_IGN)
+        try:
+            result, timed_out = harness.run_isolated_unix(
+                [
+                    sys.executable,
+                    "-c",
+                    "import signal; print(signal.getsignal(signal.SIGHUP))",
+                ],
+                cwd=Path(tempfile.gettempdir()),
+                timeout=1,
+            )
+        finally:
+            harness.signal.signal(harness.signal.SIGHUP, previous)
+        self.assertFalse(timed_out)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.strip(), "0")
+
 
 if __name__ == "__main__":
     unittest.main()

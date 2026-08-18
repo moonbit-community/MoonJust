@@ -229,6 +229,13 @@ def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> 
     )
 
 
+def reset_subprocess_signals() -> None:
+    """Prevent an ignored parent signal mask from invalidating signal tests."""
+    signal.pthread_sigmask(signal.SIG_SETMASK, [])
+    for signum in (signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM):
+        signal.signal(signum, signal.SIG_DFL)
+
+
 def run_isolated_unix(
     command: list[str],
     *,
@@ -245,6 +252,7 @@ def run_isolated_unix(
         encoding="utf-8",
         errors="replace",
         start_new_session=True,
+        preexec_fn=reset_subprocess_signals,
     )
     timed_out = False
     try:
