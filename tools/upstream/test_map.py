@@ -18,6 +18,43 @@ EXPECTED_COUNT = 2417
 EXPECTED_LIST_SHA256 = (
     "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
 )
+CONTRACT_SOURCE_PROVENANCE = {
+    "config::tests::dotenv_both_filename_and_path": {
+        "path": "src/config.rs",
+        "line": 699,
+        "file_sha256": "3d7332ce2a6a75380d19d99bb4b35e41d3538976c5f3f9e11ca3e988113d3fa8",
+    },
+    "config::tests::edit_arguments": {
+        "path": "src/config.rs",
+        "line": 1257,
+        "file_sha256": "3d7332ce2a6a75380d19d99bb4b35e41d3538976c5f3f9e11ca3e988113d3fa8",
+    },
+    "config::tests::no_cache": {
+        "path": "src/config.rs",
+        "line": 645,
+        "file_sha256": "3d7332ce2a6a75380d19d99bb4b35e41d3538976c5f3f9e11ca3e988113d3fa8",
+    },
+    "parallel::subsequent_dependencies_run_in_parallel": {
+        "path": "tests/parallel.rs",
+        "line": 46,
+        "file_sha256": "aecd29701b1a97434f3e2ef12f23dac7bac01871c8e3dd432f970c5bc1f3eb44",
+    },
+    "run::tests::run_can_be_called_more_than_once": {
+        "path": "src/run.rs",
+        "line": 41,
+        "file_sha256": "fe030fce9db0faa6f9a4cd6e3b5cee22fdc8da8ec2f0b682794ba95a0ef9a414",
+    },
+    "shell_kind::tests::from_str": {
+        "path": "src/shell_kind.rs",
+        "line": 55,
+        "file_sha256": "b46954de1fc8df24669196c7ff1182a45b1b3afc9eca4d245a40fa178b1201b0",
+    },
+    "subcommand::tests::init_justfile": {
+        "path": "src/subcommand.rs",
+        "line": 1125,
+        "file_sha256": "69a90bd00509e15a83b8c9d60ec1db16692a58e8f468f9e0c3b460960b856f25",
+    },
+}
 NATIVE_SIGNAL_TESTS = {
     "signals::continue_default_excludes_hangup",
     "signals::continue_default_excludes_quit",
@@ -1299,6 +1336,15 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             )
             row.pop("test_anchor", None)
             row.pop("contract_case", None)
+    for row in rows:
+        if row["disposition"] != "verified-contract":
+            continue
+        provenance = CONTRACT_SOURCE_PROVENANCE.get(row["upstream_name"])
+        if provenance is None:
+            raise ValueError(
+                f"verified contract lacks pinned upstream source: {row['upstream_name']}"
+            )
+        row["upstream_source"] = provenance
     return rows
 
 
@@ -1318,22 +1364,28 @@ def write_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
             if row["owner_area"] == area
             and row["disposition"] in {"verified-differential", "verified-contract"}
         ]
+        def case_record(row: dict[str, object]) -> dict[str, object]:
+            record = {
+                "schema_version": MAP_SCHEMA_VERSION,
+                "case_id": row["id"],
+                "upstream_name": row["upstream_name"],
+                "category": row["category"],
+                "owner_area": area,
+                "disposition": row["disposition"],
+                "targets": row["targets"],
+                "evidence_case": row.get("evidence_case"),
+                "contract_case": row.get("contract_case"),
+                "upstream_tests": [row["upstream_name"]],
+                "test_anchor": row.get("test_anchor"),
+                "tracking": row["tracking"],
+            }
+            if row.get("upstream_source") is not None:
+                record["upstream_source"] = row["upstream_source"]
+            return record
+
         encoded = "".join(
             json.dumps(
-                {
-                    "schema_version": MAP_SCHEMA_VERSION,
-                    "case_id": row["id"],
-                    "upstream_name": row["upstream_name"],
-                    "category": row["category"],
-                    "owner_area": area,
-                    "disposition": row["disposition"],
-                    "targets": row["targets"],
-                    "evidence_case": row.get("evidence_case"),
-                    "contract_case": row.get("contract_case"),
-                    "upstream_tests": [row["upstream_name"]],
-                    "test_anchor": row.get("test_anchor"),
-                    "tracking": row["tracking"],
-                },
+                case_record(row),
                 ensure_ascii=True,
                 separators=(",", ":"),
                 sort_keys=True,
@@ -1367,6 +1419,8 @@ def validate_case_manifests(root: Path, rows: list[dict[str, object]]) -> None:
                 raise ValueError(f"{area} differential case differs from test map")
             if case.get("contract_case") != row.get("contract_case"):
                 raise ValueError(f"{area} contract case differs from test map")
+            if case.get("upstream_source") != row.get("upstream_source"):
+                raise ValueError(f"{area} upstream source differs from test map")
             if case.get("upstream_tests") != [row["upstream_name"]]:
                 raise ValueError(f"{area} case lacks explicit upstream registration")
 
@@ -1434,6 +1488,21 @@ def validate_rows(rows: list[dict[str, object]], names: list[str]) -> None:
                 )
             if not isinstance(row.get("contract_case"), str) or not row["contract_case"]:
                 raise ValueError(f"row {expected_id} has no contract case id")
+            source = row.get("upstream_source")
+            if not isinstance(source, dict) or set(source) != {
+                "path",
+                "line",
+                "file_sha256",
+            }:
+                raise ValueError(f"row {expected_id} has no pinned upstream source")
+            if (
+                not isinstance(source["path"], str)
+                or not source["path"]
+                or not isinstance(source["line"], int)
+                or source["line"] < 1
+                or not re.fullmatch(r"[0-9a-f]{64}", source["file_sha256"])
+            ):
+                raise ValueError(f"row {expected_id} has invalid upstream source provenance")
             anchor_key = (anchor["suite"], anchor["test_name"])
             if anchor_key in contract_anchors:
                 raise ValueError(
@@ -1462,9 +1531,16 @@ def main() -> int:
     parser.add_argument("--test-list", type=Path, default=default_list)
     parser.add_argument("--map", type=Path, default=default_map)
     parser.add_argument("--write", action="store_true")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="verify the generated map and one-to-one case manifests without writing",
+    )
     args = parser.parse_args()
 
     try:
+        if args.write and args.check:
+            raise ValueError("--write and --check cannot be used together")
         names = load_names(args.test_list)
         expected_rows = build_rows(names)
         validate_rows(expected_rows, names)

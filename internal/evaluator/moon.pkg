@@ -14,3 +14,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/x/time",
 }
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

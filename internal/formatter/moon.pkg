@@ -5,3 +5,7 @@ import {
   "moonbit-community/MoonJust/internal/syntax",
   "moonbitlang/core/bytes",
 }
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

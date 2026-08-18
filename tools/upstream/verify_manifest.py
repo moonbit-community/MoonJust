@@ -184,6 +184,28 @@ def validate_test_anchor(
     )
 
 
+def validate_upstream_source(row_id: str, source: object) -> None:
+    expect(isinstance(source, dict), f"{row_id} has no upstream source provenance")
+    expect(
+        set(source) == {"path", "line", "file_sha256"},
+        f"{row_id} has an invalid upstream source schema",
+    )
+    expect(
+        isinstance(source["path"], str)
+        and source["path"]
+        and not Path(source["path"]).is_absolute()
+        and ".." not in Path(source["path"]).parts,
+        f"{row_id} has an invalid upstream source path",
+    )
+    expect(
+        isinstance(source["line"], int) and source["line"] > 0,
+        f"{row_id} has an invalid upstream source line",
+    )
+    expect(
+        isinstance(source["file_sha256"], str)
+        and re.fullmatch(r"[0-9a-f]{64}", source["file_sha256"]) is not None,
+        f"{row_id} has an invalid upstream source digest",
+    )
 def validate_map() -> None:
     repo = root()
     test_list = repo / "tests/upstream/just-1.57.0/test-list.txt"
@@ -293,6 +315,7 @@ def validate_map() -> None:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
         if row["disposition"] == "verified-contract":
             validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
+            validate_upstream_source(row["id"], row.get("upstream_source"))
             expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
             anchor_key = (
                 row["test_anchor"]["suite"],
@@ -358,6 +381,7 @@ def validate_map() -> None:
             expected = expected_by_id.get(case.get("case_id"))
             expect(expected is not None, f"{area} case has an unknown id")
             expect(case.get("test_anchor") == expected.get("test_anchor"), f"{area} case anchor differs from test map")
+            expect(case.get("upstream_source") == expected.get("upstream_source"), f"{area} case source differs from test map")
 
 
 def validate_differential_cases() -> None:
@@ -788,7 +812,7 @@ def validate() -> None:
     expect(selected_tests("wasm") == counts["wasm1"], "wasm1 test outline count changed")
 
 
-def validate_release() -> None:
+def validate_release(contract_results: Path) -> None:
     repo = root()
     rows = [
         json.loads(line)
@@ -805,16 +829,37 @@ def validate_release() -> None:
         if row["disposition"] not in VERIFIED_DISPOSITIONS
     ]
     expect(
-        not incomplete,
-        f"strict release evidence is incomplete for {len(incomplete)} registrations",
-    )
-    expect(
         all(
             row["targets"] == ["native", "wasm1"]
             for row in compatibility_rows
             if is_verified(row)
         ),
         "strict release target matrix is incomplete",
+    )
+    contract_rows = [row for row in rows if row["disposition"] == "verified-contract"]
+    expect(contract_results.is_file(), f"contract execution results are missing: {contract_results}")
+    executions = [
+        json.loads(line)
+        for line in contract_results.read_text(encoding="utf-8").splitlines()
+    ]
+    expected_executions = {
+        (row["id"], target)
+        for row in contract_rows
+        for target in row["targets"]
+    }
+    actual_executions = {(row.get("case_id"), row.get("target")) for row in executions}
+    expect(actual_executions == expected_executions, "contract execution target matrix differs")
+    contract_by_id = {row["id"]: row for row in contract_rows}
+    for execution in executions:
+        row = contract_by_id[execution["case_id"]]
+        expect(execution.get("schema_version") == 1, f"contract result schema changed for {row['id']}")
+        expect(execution.get("passed") is True, f"contract execution failed for {row['id']}")
+        expect(execution.get("upstream_commit") == EXPECTED_COMMIT, f"contract source commit changed for {row['id']}")
+        expect(execution.get("upstream_name") == row["upstream_name"], f"contract upstream name changed for {row['id']}")
+        expect(execution.get("upstream_source") == row["upstream_source"], f"contract source provenance changed for {row['id']}")
+    expect(
+        not incomplete,
+        f"strict release evidence is incomplete for {len(incomplete)} registrations",
     )
     completion_rows = [
         row for row in rows if row["scope"] == "excluded-completion"
@@ -832,11 +877,16 @@ def validate_release() -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--release", action="store_true")
+    parser.add_argument(
+        "--contract-results",
+        type=Path,
+        default=root() / "_build/upstream-contracts/results.jsonl",
+    )
     args = parser.parse_args()
     try:
         validate()
         if args.release:
-            validate_release()
+            validate_release(args.contract_results.resolve())
     except (OSError, ValueError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
         print(f"manifest verification error: {error}", file=sys.stderr)
         return 1

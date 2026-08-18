@@ -51,8 +51,8 @@ if moonrun --policy "$policy" "$binary" \
   fail "effectful evaluate unexpectedly succeeded"
 fi
 [ ! -e "$marker" ] || fail "inspect evaluation launched a process"
-grep -q 'error\[MJ-EVAL-0004\]' "$work/effect.stderr" || \
-  fail "effectful evaluate lost its stable error code"
+grep -q 'backtick could not be run because just could not find the shell' \
+  "$work/effect.stderr" || fail "effectful evaluate lost its stable denial diagnostic"
 grep -q 'PermissionDenied(Process' "$work/effect.stderr" || \
   fail "effectful evaluate did not report process denial"
 

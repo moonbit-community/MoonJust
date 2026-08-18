@@ -7,3 +7,7 @@ import {
   "moonbit-community/MoonJust/internal/source",
   "moonbit-community/MoonJust/internal/syntax",
 }
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

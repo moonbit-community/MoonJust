@@ -112,6 +112,7 @@ cat >"$out_root/build-$platform.json" <<EOF
   "version": "$version",
   "commit": "$commit",
   "platform": "$platform",
+  "native_sha256": "$native_digest",
   "archive": "$(basename "$archive")",
   "archive_sha256": "$archive_digest",
   "wasm_asset": "assets/moonbit-community/MoonJust@$version/cmd/just/just.wasm",

@@ -26,7 +26,7 @@ jobs:
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
-          version: 0.10.6+62c2592d1
+          version: latest
 
       - name: Ensure MoonX entry point
         run: ./tools/release/ensure_moonx.sh
@@ -51,6 +51,13 @@ jobs:
 
       - name: Test differential harness
         run: ./tools/differential/self_test.sh
+
+      - name: Test release and measurement tooling
+        shell: bash
+        run: |
+          for test in tools/performance/*_test.py tools/release/*_test.py; do
+            python3 "$test"
+          done
 
       - name: Verify async Host capability spike
         run: ./tools/spikes/check_host_async.sh
@@ -100,9 +107,6 @@ jobs:
       - name: Verify Scheduler and cache runtime
         run: ./tools/checks/runtime.sh
 
-      - name: Verify Release engineering
-        run: ./tools/checks/release.sh
-
       - name: Verify Query compatibility
         run: ./tools/checks/query.sh
 
@@ -132,18 +136,27 @@ jobs:
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
-          version: 0.10.6+62c2592d1
+          version: latest
       - name: Ensure MoonX entry point
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
       - name: Build wasm1 once on Ubuntu
         run: moon build --frozen --release --strip --target wasm cmd/just
+      - name: Build no-strip wasm1 analysis sibling
+        run: moon build --frozen --release --no-strip --target wasm --target-dir _build/size-debug cmd/just
+      - name: Rebuild stripped wasm1 without cache
+        run: MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip --target wasm --target-dir _build/wasm-repeat cmd/just
       - name: Stage and hash wasm1
         shell: bash
         run: |
           mkdir -p _build/shared-wasm
           cp _build/wasm/release/build/cmd/just/just.wasm _build/shared-wasm/just.wasm
+          cp _build/size-debug/wasm/release/build/cmd/just/just.wasm _build/shared-wasm/just.debug.wasm
           sha256sum _build/shared-wasm/just.wasm | sed 's#_build/shared-wasm/##' > _build/shared-wasm/just.wasm.sha256
+          python3 tools/release/check_repeatable_artifacts.py \
+            --platform wasm1 \
+            --pair wasm1=_build/shared-wasm/just.wasm=_build/wasm-repeat/wasm/release/build/cmd/just/just.wasm \
+            --output _build/shared-wasm/repeatability.json
       - name: Upload shared wasm1
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -157,10 +170,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-aarch64
+          - os: windows-latest
+            platform: windows-x86_64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -169,7 +185,7 @@ jobs:
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
-          version: 0.10.6+62c2592d1
+          version: latest
 
       - name: Ensure MoonX entry point
         shell: bash
@@ -219,37 +235,232 @@ jobs:
         env:
           MOONJUST_BUILDER_ID: https://github.com/moonbit-community/MoonJust/.github/workflows/ci.yml
         run: |
-          case "${{ runner.os }}-${{ runner.arch }}" in
-            Linux-X64) platform=linux-x86_64 ;;
-            Linux-ARM64) platform=linux-aarch64 ;;
-            macOS-X64) platform=macos-x86_64 ;;
-            macOS-ARM64) platform=macos-aarch64 ;;
-            Windows-X64) platform=windows-x86_64 ;;
-            *) echo "unsupported runner ${{ runner.os }}-${{ runner.arch }}" >&2; exit 1 ;;
-          esac
+          platform="${{ matrix.platform }}"
           archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="$platform" \
             MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
             ./tools/release/build_artifacts.sh)
           python3 ./tools/release/verify_bundle.py \
             --repo . --archive "$archive" --platform "$platform"
+          mkdir -p _build/repeat-first
+          cp "$archive" _build/repeat-first/archive
+          cp _build/release/build/native/release/build/cmd/just/just.exe \
+            _build/repeat-first/native
+          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="$platform" \
+            MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
+            ./tools/release/build_artifacts.sh)
+          python3 ./tools/release/verify_bundle.py \
+            --repo . --archive "$archive" --platform "$platform"
+          python3 ./tools/release/check_repeatable_artifacts.py \
+            --platform "$platform" \
+            --pair native=_build/repeat-first/native=_build/release/build/native/release/build/cmd/just/just.exe \
+            --pair archive=_build/repeat-first/archive="$archive" \
+            --output "_build/release/repeatability-$platform.json"
           version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
           python3 ./tools/release/check_moonx_asset.py \
             --repo . --registry _build/release \
             --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+          moon build --frozen --release --no-strip --target native \
+            --target-dir _build/size-debug cmd/just
           python3 ./tools/release/check_artifact_size.py \
             --baseline compat/artifact-size-baseline.json \
             --platform "$platform" \
             --native _build/release/build/native/release/build/cmd/just/just.exe \
             --wasm _build/shared-wasm/just.wasm \
+            --native-debug _build/size-debug/native/release/build/cmd/just/just.exe \
+            --wasm-debug _build/shared-wasm/just.debug.wasm \
+            --archive "$archive" \
+            --require-complete-baseline \
             --output "_build/release/artifact-size-$platform.json"
 
       - name: Upload Release artifact
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: moonjust-${{ runner.os }}-${{ runner.arch }}
+          name: moonjust-ci-${{ matrix.platform }}
           path: |
             _build/release/moonjust-*
             _build/release/assets/**
             _build/release/build-*.json
             _build/release/artifact-size-*.json
+            _build/release/repeatability-*.json
+            _build/release/build/native/release/build/cmd/just/just.exe
+            _build/upstream-harness/compatibility-report.jsonl
+          if-no-files-found: error
+
+  contract-evidence:
+    name: One-to-one contract evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: latest
+      - run: moon update
+      - name: Build pinned official source
+        run: ./tools/upstream/build_oracle.sh
+      - name: Execute every unique contract on native and wasm1
+        run: python3 ./tools/upstream/run_contract_harness.py
+      - name: Upload contract results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-contract-evidence
+          path: _build/upstream-contracts/results.jsonl
+          if-no-files-found: error
+      - name: Enforce strict registration evidence
+        run: python3 ./tools/upstream/verify_manifest.py --release
+
+  coverage:
+    name: Production coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: latest
+      - run: moon update
+      - name: Measure and enforce production coverage
+        run: ./tools/checks/coverage.sh
+      - name: Upload coverage evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-coverage-evidence
+          path: _build/coverage/**
+          if-no-files-found: error
+
+  performance:
+    name: Authoritative Linux x86_64 performance
+    runs-on: [self-hosted, linux, x64, moonjust-perf]
+    concurrency:
+      group: moonjust-authoritative-performance
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: latest
+      - run: ./tools/release/ensure_moonx.sh
+      - run: moon update
+      - name: Build merge-base pair
+        env:
+          MOONJUST_PERF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: ./tools/performance/build_merge_base.sh
+      - name: Capture Linux CPU profiles
+        run: |
+          ./tools/performance/profile.sh recipes-1000
+          ./tools/performance/profile.sh check
+          ./tools/performance/profile.sh format
+          ./tools/performance/profile.sh dag-1000
+      - name: Run authoritative interleaved benchmark
+        env:
+          MOONJUST_PERF_AUTHORITATIVE: "1"
+          MOONJUST_BASELINE_NATIVE: ${{ github.workspace }}/_build/performance/merge-base/just-native
+          MOONJUST_BASELINE_WASM: ${{ github.workspace }}/_build/performance/merge-base/just.wasm
+        run: ./tools/checks/performance.sh
+      - name: Upload performance evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-performance-evidence
+          path: _build/performance/**
+          if-no-files-found: error
+
+  release-evidence:
+    name: Aggregate release evidence
+    if: always()
+    needs: [quality, wasm1-shared, native-platforms, contract-evidence, coverage, performance]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-ci-linux-x86_64
+          path: evidence/linux-x86_64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-ci-macos-aarch64
+          path: evidence/macos-aarch64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-ci-windows-x86_64
+          path: evidence/windows-x86_64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-ci-wasm1
+          path: evidence/wasm1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-coverage-evidence
+          path: evidence/coverage
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-performance-evidence
+          path: evidence/performance
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-contract-evidence
+          path: evidence/contracts
+      - name: Validate and aggregate evidence
+        if: always()
+        shell: bash
+        run: |
+          python3 tools/release/generate_release_evidence.py \
+            --test-map tests/upstream/just-1.57.0/test-map.jsonl \
+            --contract-results evidence/contracts/results.jsonl \
+            --compat-report linux-x86_64=evidence/linux-x86_64/upstream-harness/compatibility-report.jsonl \
+            --compat-report macos-aarch64=evidence/macos-aarch64/upstream-harness/compatibility-report.jsonl \
+            --compat-report windows-x86_64=evidence/windows-x86_64/upstream-harness/compatibility-report.jsonl \
+            --coverage evidence/coverage/summary.json \
+            --performance evidence/performance/results.json \
+            --size-report linux-x86_64=evidence/linux-x86_64/release/artifact-size-linux-x86_64.json \
+            --size-report macos-aarch64=evidence/macos-aarch64/release/artifact-size-macos-aarch64.json \
+            --size-report windows-x86_64=evidence/windows-x86_64/release/artifact-size-windows-x86_64.json \
+            --native linux-x86_64=evidence/linux-x86_64/release/build/native/release/build/cmd/just/just.exe \
+            --native macos-aarch64=evidence/macos-aarch64/release/build/native/release/build/cmd/just/just.exe \
+            --native windows-x86_64=evidence/windows-x86_64/release/build/native/release/build/cmd/just/just.exe \
+            --wasm evidence/wasm1/just.wasm \
+            --build-proof linux-x86_64=evidence/linux-x86_64/release/build-linux-x86_64.json \
+            --build-proof macos-aarch64=evidence/macos-aarch64/release/build-macos-aarch64.json \
+            --build-proof windows-x86_64=evidence/windows-x86_64/release/build-windows-x86_64.json \
+            --repeatability linux-x86_64=evidence/linux-x86_64/release/repeatability-linux-x86_64.json \
+            --repeatability macos-aarch64=evidence/macos-aarch64/release/repeatability-macos-aarch64.json \
+            --repeatability windows-x86_64=evidence/windows-x86_64/release/repeatability-windows-x86_64.json \
+            --repeatability wasm1=evidence/wasm1/repeatability.json \
+            --output _build/release-evidence.json \
+            --strict
+      - name: Check prerequisite job results
+        if: always()
+        shell: bash
+        run: |
+          for result in \
+            "${{ needs.quality.result }}" \
+            "${{ needs['wasm1-shared'].result }}" \
+            "${{ needs['native-platforms'].result }}" \
+            "${{ needs['contract-evidence'].result }}" \
+            "${{ needs.coverage.result }}" \
+            "${{ needs.performance.result }}"; do
+            [ "$result" = success ] || exit 1
+          done
+      - name: Upload aggregate evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-release-evidence
+          path: _build/release-evidence.json
           if-no-files-found: error

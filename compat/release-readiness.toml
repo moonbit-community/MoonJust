@@ -33,7 +33,8 @@ moonrun = "0.1.20260803"
 moonx = "0.1.0"
 
 [evidence]
-release_gate = "tools/checks/release.sh"
+release_gate = ".github/workflows/release.yml (aggregate evidence job)"
+release_evidence = "tools/release/generate_release_evidence.py --strict"
 policy_gate = "tools/release/check_policies.sh"
 artifact_builder = "tools/release/build_artifacts.sh"
 artifact_verifier = "tools/release/verify_bundle.py"

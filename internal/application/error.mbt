@@ -118,6 +118,17 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
 }
 
 ///|
+fn stable_application_error_message(error : ApplicationError) -> String {
+  match error {
+    Evaluation(evaluation) =>
+      "error[" + evaluation.code() + "]: " + evaluation.message()
+    Executor(Evaluation(evaluation)) =>
+      "error[" + evaluation.code() + "]: " + evaluation.message()
+    _ => error.message()
+  }
+}
+
+///|
 fn diagnostic_source(
   source : @source.Source,
   cwd : @path.PathValue,
@@ -210,7 +221,9 @@ pub fn[T : @host.HostFs] render_application_error(
     Executor(error) => error.to_diagnostic() catch { _ => None }
     _ => None
   }
-  guard diagnostic is Some(diagnostic) else { return error.message() }
+  guard diagnostic is Some(diagnostic) else {
+    return stable_application_error_message(error)
+  }
   let sources = @source.SourceMap::new()
   let render_cwd = match error {
     ContextualSemantic(cwd~, ..) => cwd
@@ -225,7 +238,7 @@ pub fn[T : @host.HostFs] render_application_error(
   match direct_source {
     Some(source) =>
       try sources.add(diagnostic_source(source, render_cwd)) catch {
-        _ => return error.message()
+        _ => return stable_application_error_message(error)
       } noraise {
         _ => ()
       }
@@ -237,19 +250,19 @@ pub fn[T : @host.HostFs] render_application_error(
           let loaded = try
             load_input_with_directories(host, arguments, context).0
           catch {
-            _ => return error.message()
+            _ => return stable_application_error_message(error)
           } noraise {
             value => value
           }
           try
             sources.add(diagnostic_source(loaded.source(), render_cwd))
           catch {
-            _ => return error.message()
+            _ => return stable_application_error_message(error)
           } noraise {
             _ => ()
           }
           return @diagnostic.render_text(diagnostic, sources) catch {
-            _ => error.message()
+            _ => stable_application_error_message(error)
           }
         }
       } noraise {
@@ -257,7 +270,7 @@ pub fn[T : @host.HostFs] render_application_error(
       }
       for file in graph.files() {
         try sources.add(diagnostic_source(file.source(), render_cwd)) catch {
-          _ => return error.message()
+          _ => return stable_application_error_message(error)
         } noraise {
           _ => ()
         }
@@ -265,7 +278,7 @@ pub fn[T : @host.HostFs] render_application_error(
     }
   }
   @diagnostic.render_text(diagnostic, sources) catch {
-    _ => error.message()
+    _ => stable_application_error_message(error)
   }
 }
 
@@ -304,7 +317,9 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error
     Executor(error) => error.to_diagnostic() catch { _ => None }
     _ => None
   }
-  guard diagnostic is Some(diagnostic) else { return error.message() }
+  guard diagnostic is Some(diagnostic) else {
+    return stable_application_error_message(error)
+  }
   let sources = @source.SourceMap::new()
   let render_cwd = match error {
     ContextualSemantic(cwd~, ..) => cwd
@@ -319,7 +334,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error
   match direct_source {
     Some(source) =>
       try sources.add(diagnostic_source(source, render_cwd)) catch {
-        _ => return error.message()
+        _ => return stable_application_error_message(error)
       } noraise {
         _ => ()
       }
@@ -331,19 +346,19 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error
           let loaded = try
             load_input_with_directories_async(host, arguments, context).0
           catch {
-            _ => return error.message()
+            _ => return stable_application_error_message(error)
           } noraise {
             value => value
           }
           try
             sources.add(diagnostic_source(loaded.source(), render_cwd))
           catch {
-            _ => return error.message()
+            _ => return stable_application_error_message(error)
           } noraise {
             _ => ()
           }
           return @diagnostic.render_text(diagnostic, sources) catch {
-            _ => error.message()
+            _ => stable_application_error_message(error)
           }
         }
       } noraise {
@@ -351,7 +366,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error
       }
       for file in graph.files() {
         try sources.add(diagnostic_source(file.source(), render_cwd)) catch {
-          _ => return error.message()
+          _ => return stable_application_error_message(error)
         } noraise {
           _ => ()
         }
@@ -359,6 +374,6 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error
     }
   }
   @diagnostic.render_text(diagnostic, sources) catch {
-    _ => error.message()
+    _ => stable_application_error_message(error)
   }
 }

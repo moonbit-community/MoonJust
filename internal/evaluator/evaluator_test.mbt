@@ -40,11 +40,12 @@ test "list operator failures identify the operator and preserve operands" {
       EvaluationContext::new(lists=true),
     )
   catch {
-    Builtin(Failure(message~), span~) => {
+    Builtin(Failure(message~), span~) as error => {
       assert_eq(
         message, "operator `+` cannot be applied to lists of different lengths: [\"a\", \"b\"] + [\"c\", \"d\", \"e\"]",
       )
       assert_eq(span.end_byte() - span.start_byte(), 1)
+      assert_eq(error.code(), "MJ-EVAL-0004")
     }
     error => fail("unexpected list operator error: \{Repr(error)}")
   } noraise {
