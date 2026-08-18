@@ -14,6 +14,11 @@ jobs:
     name: Repeat Ubuntu wasm1 baseline
     runs-on: ubuntu-latest
     steps:
+      - name: Check out evidence tooling
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: evidence-tools
+          persist-credentials: false
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.MOONJUST_BASELINE_COMMIT }}
@@ -23,7 +28,7 @@ jobs:
         with:
           version: latest
       - name: Apply latest MoonBit baseline compatibility patch
-        run: git -C baseline-source apply "$GITHUB_WORKSPACE/tools/release/latest-moonbit-baseline.patch"
+        run: git -C baseline-source apply "$GITHUB_WORKSPACE/evidence-tools/tools/release/latest-moonbit-baseline.patch"
       - run: ./baseline-source/tools/release/ensure_moonx.sh
       - run: |
           moon -C baseline-source update
@@ -95,7 +100,7 @@ jobs:
         with:
           version: latest
       - name: Apply latest MoonBit baseline compatibility patch
-        run: git -C baseline-source apply "$GITHUB_WORKSPACE/tools/release/latest-moonbit-baseline.patch"
+        run: git -C baseline-source apply "$GITHUB_WORKSPACE/evidence-tools/tools/release/latest-moonbit-baseline.patch"
       - run: ./baseline-source/tools/release/ensure_moonx.sh
         shell: bash
       - run: |
@@ -110,7 +115,7 @@ jobs:
         run: |
           archive=$(cd baseline-source && \
             MOON_DEP_CACHE=off MOON_BUILD_CACHE=off \
-            MOONJUST_REQUIRE_CLEAN=1 \
+            MOONJUST_REQUIRE_CLEAN=0 \
             MOONJUST_RELEASE_PLATFORM="${{ matrix.platform }}" \
             MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
             ./tools/release/build_artifacts.sh)
@@ -120,6 +125,7 @@ jobs:
             --baseline evidence-tools/compat/artifact-size-baseline.json \
             --platform "${{ matrix.platform }}" \
             --source-commit "$MOONJUST_BASELINE_COMMIT" \
+            --source-patch evidence-tools/tools/release/latest-moonbit-baseline.patch \
             --native baseline-source/_build/release/build/native/release/build/cmd/just/just.exe \
             --wasm _build/shared-wasm/just.wasm \
             --native-debug baseline-source/_build/size-debug/native/release/build/cmd/just/just.exe \

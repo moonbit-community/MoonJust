@@ -369,6 +369,7 @@ def main() -> None:
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--platform", default=detected_platform())
     parser.add_argument("--source-commit")
+    parser.add_argument("--source-patch", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--require-complete-baseline", action="store_true")
     parser.add_argument("--report-only", action="store_true")
@@ -431,6 +432,10 @@ def main() -> None:
             missing.append(f"archive/{args.platform}/bytes")
         else:
             apply_budget("archive", archive_record, archive_frozen, hard_limit, target, failures)
+    if args.source_patch is not None:
+        if not args.source_patch.is_file():
+            raise ValueError(f"source compatibility patch is missing: {args.source_patch}")
+        record["source_patch"] = artifact_record(args.source_patch)
     if args.native_debug is not None:
         record["native_debug"] = artifact_record(args.native_debug, analyze=True)
     if args.wasm_debug is not None:

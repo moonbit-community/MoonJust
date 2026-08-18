@@ -94,6 +94,10 @@ def main() -> None:
         native[platform] = executable
 
     all_reports = [report for values in by_platform.values() for report in values]
+    proposed["source_compatibility_patch"] = {
+        "bytes": repeated_value(all_reports, "source_patch", "bytes"),
+        "sha256": repeated_value(all_reports, "source_patch", "sha256"),
+    }
     wasm = {
         "bytes": repeated_value(all_reports, "wasm1", "bytes"),
         "sha256": repeated_value(all_reports, "wasm1", "sha256"),
