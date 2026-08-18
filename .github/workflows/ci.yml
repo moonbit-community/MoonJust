@@ -378,10 +378,34 @@ jobs:
           path: _build/performance/**
           if-no-files-found: error
 
+  performance-trend:
+    name: Hosted Linux performance trend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: latest
+      - run: ./tools/release/ensure_moonx.sh
+      - run: |
+          moon update
+          moon install
+      - name: Run non-authoritative interleaved benchmark
+        run: ./tools/checks/performance.sh --report-only
+      - name: Upload trend evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-performance-trend
+          path: _build/performance/**
+          if-no-files-found: error
+
   release-evidence:
     name: Aggregate release evidence
     if: always()
-    needs: [quality, wasm1-shared, native-platforms, contract-evidence, coverage, performance]
+    needs: [quality, wasm1-shared, native-platforms, contract-evidence, coverage, performance, performance-trend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -460,7 +484,8 @@ jobs:
             "${{ needs['native-platforms'].result }}" \
             "${{ needs['contract-evidence'].result }}" \
             "${{ needs.coverage.result }}" \
-            "${{ needs.performance.result }}"; do
+            "${{ needs.performance.result }}" \
+            "${{ needs['performance-trend'].result }}"; do
             [ "$result" = success ] || exit 1
           done
       - name: Upload aggregate evidence
