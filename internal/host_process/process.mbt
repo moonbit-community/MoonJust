@@ -38,6 +38,10 @@ extern "C" fn unregister_signal_child_ffi(pid : Int) -> Int = "moonjust_unregist
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+extern "C" fn peek_signal_child_ffi(pid : Int) -> Int = "moonjust_peek_signal_child"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 extern "C" fn kill_signal_child_ffi(pid : Int) = "moonjust_kill_signal_child"
 
 ///|
@@ -207,6 +211,9 @@ async fn wait_signal_child(pid : Int, description : String) -> Int {
         } noraise {
           _ => ()
         }
+        return wait_signal_child(pid, description)
+      }
+      if peek_signal_child_ffi(pid) != 0 {
         return wait_signal_child(pid, description)
       }
       ignore(unregister_signal_child_ffi(pid))

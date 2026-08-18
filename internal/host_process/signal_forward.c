@@ -167,6 +167,21 @@ int32_t moonjust_unregister_signal_child(int32_t pid) {
 }
 
 MOONBIT_FFI_EXPORT
+int32_t moonjust_peek_signal_child(int32_t pid) {
+  sigset_t previous;
+  moonjust_signal_mask(&previous);
+  int32_t signal = 0;
+  for (size_t index = 0; index < MOONJUST_MAX_CHILDREN; ++index) {
+    if (moonjust_children[index] == pid) {
+      signal = moonjust_child_signals[index];
+      break;
+    }
+  }
+  sigprocmask(SIG_SETMASK, &previous, NULL);
+  return signal;
+}
+
+MOONBIT_FFI_EXPORT
 void moonjust_kill_signal_child(int32_t pid) {
   kill((pid_t)pid, SIGKILL);
 }
@@ -184,6 +199,12 @@ int32_t moonjust_register_signal_child(int32_t pid) {
 
 MOONBIT_FFI_EXPORT
 int32_t moonjust_unregister_signal_child(int32_t pid) {
+  (void)pid;
+  return 0;
+}
+
+MOONBIT_FFI_EXPORT
+int32_t moonjust_peek_signal_child(int32_t pid) {
   (void)pid;
   return 0;
 }
