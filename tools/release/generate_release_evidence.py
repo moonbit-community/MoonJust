@@ -113,19 +113,42 @@ def test_map_summary(path: Path, failures: list[str]) -> dict[str, object]:
     rows = load_jsonl(path)
     dispositions = Counter(str(row.get("disposition")) for row in rows)
     compatibility = [row for row in rows if row.get("scope") == "compatibility"]
-    unverified = [
+    incomplete = [
         row
         for row in compatibility
         if row.get("disposition") not in {"verified-differential", "verified-contract"}
     ]
-    if unverified:
-        failures.append(f"strict release evidence has {len(unverified)} unverified registrations")
+    by_area = Counter(str(row.get("owner_area", "unknown")) for row in incomplete)
+    by_disposition = Counter(
+        str(row.get("disposition", "unknown")) for row in incomplete
+    )
+    if incomplete:
+        breakdown = ", ".join(
+            f"{area}={count}" for area, count in sorted(by_area.items())
+        )
+        failures.append(
+            f"strict release evidence has {len(incomplete)} incomplete registrations "
+            f"({breakdown})"
+        )
     return {
         "path": str(path),
         "sha256": sha256(path),
         "rows": len(rows),
         "compatibility_rows": len(compatibility),
-        "unverified": len(unverified),
+        "unverified": len(incomplete),
+        "incomplete_by_area": dict(sorted(by_area.items())),
+        "incomplete_by_disposition": dict(sorted(by_disposition.items())),
+        "incomplete_registrations": [
+            {
+                "id": row.get("id"),
+                "upstream_name": row.get("upstream_name"),
+                "owner_area": row.get("owner_area"),
+                "disposition": row.get("disposition"),
+                "reason": row.get("reason"),
+                "tracking": row.get("tracking"),
+            }
+            for row in incomplete
+        ],
         "dispositions": dict(sorted(dispositions.items())),
     }
 

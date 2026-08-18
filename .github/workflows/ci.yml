@@ -55,7 +55,7 @@ jobs:
       - name: Test release and measurement tooling
         shell: bash
         run: |
-          for test in tools/performance/*_test.py tools/release/*_test.py; do
+          for test in tools/performance/*_test.py tools/release/*_test.py tools/upstream/*_test.py; do
             python3 "$test"
           done
 
@@ -287,7 +287,7 @@ jobs:
             _build/release/artifact-size-*.json
             _build/release/repeatability-*.json
             _build/release/build/native/release/build/cmd/just/just.exe
-            _build/upstream-harness/compatibility-report.jsonl
+            _build/upstream-harness/**
           if-no-files-found: error
 
   contract-evidence:

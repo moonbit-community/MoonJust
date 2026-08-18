@@ -10,6 +10,7 @@ import json
 import os
 import platform
 import re
+import signal
 import shutil
 import subprocess
 import sys
@@ -196,7 +197,9 @@ def load_exceptions(path: Path, tests: list[str]) -> dict[str, dict[str, object]
     return rules
 
 
-def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def clean_subprocess_environment(
+    env: dict[str, str] | None = None,
+) -> dict[str, str]:
     environment = os.environ.copy() if env is None else env.copy()
     for name in (
         "GIT_DIR",
@@ -209,16 +212,58 @@ def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> 
         "GIT_NAMESPACE",
     ):
         environment.pop(name, None)
+    return environment
+
+
+def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=cwd,
-        env=environment,
+        env=clean_subprocess_environment(env),
         check=False,
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
         timeout=600,
+    )
+
+
+def run_isolated_unix(
+    command: list[str],
+    *,
+    cwd: Path,
+    timeout: float,
+) -> tuple[subprocess.CompletedProcess[str], bool]:
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=clean_subprocess_environment(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        start_new_session=True,
+    )
+    timed_out = False
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        stdout, stderr = process.communicate()
+    return (
+        subprocess.CompletedProcess(
+            command,
+            124 if timed_out else process.returncode,
+            stdout,
+            stderr,
+        ),
+        timed_out,
     )
 
 
@@ -584,29 +629,76 @@ def execute_native_signal_gate(
         missing = sorted(expected - registered)
         extra = sorted(registered - expected)
         fail(f"pinned signal registration drift: missing={missing}, extra={extra}")
-    command = [
-        str(executable),
-        "--ignored",
-        "--test-threads=1",
-        "signals::",
-        "--color=never",
-    ]
-    result = run(command, cwd=source)
     artifact = repository_root() / "_build" / "upstream-harness"
     artifact.mkdir(parents=True, exist_ok=True)
+    signal_artifact = artifact / "native-signals"
+    signal_artifact.mkdir(parents=True, exist_ok=True)
+    records: list[dict[str, object]] = []
+    combined: list[str] = []
+    passed: set[str] = set()
+    for name in sorted(expected):
+        command = [
+            str(executable),
+            name,
+            "--ignored",
+            "--exact",
+            "--test-threads=1",
+            "--color=never",
+        ]
+        result, timed_out = run_isolated_unix(
+            command,
+            cwd=source,
+            timeout=120,
+        )
+        output = result.stdout + result.stderr
+        matched = (
+            result.returncode == 0
+            and re.search(
+                rf"^test {re.escape(name)} \.\.\. ok$",
+                result.stdout,
+                re.MULTILINE,
+            )
+            is not None
+        )
+        if matched:
+            passed.add(name)
+        slug = name.replace("::", "__")
+        (signal_artifact / f"{slug}.log").write_text(output, encoding="utf-8")
+        records.append(
+            {
+                "schema_version": 1,
+                "upstream_commit": UPSTREAM_COMMIT,
+                "upstream_name": name,
+                "command": command,
+                "returncode": result.returncode,
+                "timed_out": timed_out,
+                "passed": matched,
+                "log": f"native-signals/{slug}.log",
+            }
+        )
+        combined.append(f"===== {name} =====\n{output}")
     (artifact / "native-signals.log").write_text(
-        result.stdout + result.stderr,
+        "\n".join(combined),
         encoding="utf-8",
     )
-    if result.returncode != 0:
-        fail(f"native signal gate failed:\n{result.stdout}{result.stderr}")
-    passed = {
-        name
-        for name in expected
-        if re.search(rf"^test {re.escape(name)} \.\.\. ok$", result.stdout, re.MULTILINE)
-    }
+    (artifact / "native-signals.jsonl").write_text(
+        "".join(
+            json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+            for record in records
+        ),
+        encoding="utf-8",
+    )
     if passed != expected:
-        fail(f"native signal gate omitted: {sorted(expected - passed)}")
+        details = []
+        for record in records:
+            if record["passed"]:
+                continue
+            details.append(
+                f"{record['upstream_name']} "
+                f"returncode={record['returncode']} timed_out={record['timed_out']} "
+                f"log={record['log']}"
+            )
+        fail("native signal gate failed:\n" + "\n".join(details))
     print(f"native signals: passed={len(passed)}")
 
 
@@ -730,6 +822,7 @@ def regression_details(
     names: set[str],
     native: dict[str, str],
     wasm: dict[str, str],
+    limit: int = 40,
 ) -> str:
     artifact = repository_root() / "_build" / "upstream-harness"
     logs = {
@@ -737,12 +830,18 @@ def regression_details(
         for label in ("native", "wasm1")
     }
     details: list[str] = []
-    for name in sorted(names):
+    ordered = sorted(names)
+    for name in ordered[:limit]:
         details.append(f"{name}: native={native[name]}, wasm1={wasm[name]}")
         for label in ("native", "wasm1"):
             block = ANSI_ESCAPE.sub("", logs[label].get(name, "")).strip()
             if block:
                 details.append(f"[{label}]\n{block[:2000]}")
+    if len(ordered) > limit:
+        details.append(
+            f"... {len(ordered) - limit} additional failures are preserved in "
+            "_build/upstream-harness/native.log and wasm1.log"
+        )
     return "\n".join(details)
 
 
@@ -872,14 +971,19 @@ def main() -> int:
                 stale_diagnostics.append(
                     f"{name} ({target_name} became {statuses[name]})"
                 )
-    if stale_diagnostics:
-        fail("stale diagnostic exceptions: " + ", ".join(stale_diagnostics))
     failures = failed_names(native) | failed_names(wasm)
+    regression_errors: list[str] = []
+    if stale_diagnostics:
+        regression_errors.append(
+            "stale diagnostic exceptions: " + ", ".join(stale_diagnostics)
+        )
     if failures:
-        fail(
+        regression_errors.append(
             f"{len(failures)} unapproved compatibility failures\n"
             + regression_details(failures, native, wasm)
         )
+    if regression_errors:
+        fail("\n\n".join(regression_errors))
     exact = {
         name
         for name in tests

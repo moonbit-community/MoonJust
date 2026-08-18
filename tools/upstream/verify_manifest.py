@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tomllib
+from collections import Counter
 from pathlib import Path
 
 
@@ -130,6 +131,19 @@ def expect(condition: bool, message: str) -> None:
 
 def is_verified(row: dict) -> bool:
     return row.get("disposition") in VERIFIED_DISPOSITIONS
+
+
+def incomplete_release_message(rows: list[dict[str, object]]) -> str:
+    by_area = Counter(str(row.get("owner_area", "unknown")) for row in rows)
+    breakdown = ", ".join(
+        f"{area}={count}" for area, count in sorted(by_area.items())
+    )
+    sample = ", ".join(str(row.get("id", "unknown")) for row in rows[:12])
+    suffix = ", ..." if len(rows) > 12 else ""
+    return (
+        f"strict release evidence is incomplete for {len(rows)} registrations "
+        f"({breakdown}); first IDs: {sample}{suffix}"
+    )
 
 
 def load(path: Path) -> dict:
@@ -859,7 +873,7 @@ def validate_release(contract_results: Path) -> None:
         expect(execution.get("upstream_source") == row["upstream_source"], f"contract source provenance changed for {row['id']}")
     expect(
         not incomplete,
-        f"strict release evidence is incomplete for {len(incomplete)} registrations",
+        incomplete_release_message(incomplete),
     )
     completion_rows = [
         row for row in rows if row["scope"] == "excluded-completion"

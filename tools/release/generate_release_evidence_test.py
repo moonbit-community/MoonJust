@@ -26,14 +26,33 @@ class ReleaseEvidenceTest(unittest.TestCase):
             path = Path(raw) / "map.jsonl"
             rows = [
                 {"scope": "compatibility", "disposition": "verified-contract"},
-                {"scope": "compatibility", "disposition": "unverified"},
+                {
+                    "id": "JUST-1.57.0-0002",
+                    "scope": "compatibility",
+                    "disposition": "unverified",
+                    "owner_area": "lexer",
+                    "upstream_name": "lexer::tests::example",
+                    "reason": "missing independent test",
+                    "tracking": "MJ-CONTRACT-0002",
+                },
                 {"scope": "excluded-completion", "disposition": "excluded-completion"},
             ]
             path.write_text("".join(json.dumps(row) + "\n" for row in rows))
             failures: list[str] = []
             summary = evidence.test_map_summary(path, failures)
             self.assertEqual(summary["unverified"], 1)
-            self.assertEqual(len(failures), 1)
+            self.assertEqual(summary["incomplete_by_area"], {"lexer": 1})
+            self.assertEqual(
+                summary["incomplete_by_disposition"], {"unverified": 1}
+            )
+            self.assertEqual(
+                summary["incomplete_registrations"][0]["id"],
+                "JUST-1.57.0-0002",
+            )
+            self.assertEqual(
+                failures,
+                ["strict release evidence has 1 incomplete registrations (lexer=1)"],
+            )
 
     def test_compatibility_summary_keeps_exclusions_out_of_denominator(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+import importlib.util
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+MODULE_PATH = Path(__file__).with_name("run_official_harness.py")
+SPEC = importlib.util.spec_from_file_location("moonjust_official_harness", MODULE_PATH)
+assert SPEC is not None and SPEC.loader is not None
+harness = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(harness)
+
+
+class OfficialHarnessTest(unittest.TestCase):
+    @unittest.skipIf(os.name == "nt", "Unix process groups are not available")
+    def test_isolated_timeout_kills_the_process_group(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            result, timed_out = harness.run_isolated_unix(
+                [sys.executable, "-c", "import time; time.sleep(10)"],
+                cwd=Path(raw),
+                timeout=0.05,
+            )
+        self.assertTrue(timed_out)
+        self.assertEqual(result.returncode, 124)
+
+
+if __name__ == "__main__":
+    unittest.main()
