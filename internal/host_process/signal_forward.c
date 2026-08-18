@@ -62,6 +62,19 @@ static void moonjust_signal_mask(sigset_t *previous) {
   sigprocmask(SIG_BLOCK, &set, previous);
 }
 
+static void moonjust_unblock_forwarding_signals(void) {
+  sigset_t set;
+  sigemptyset(&set);
+  sigaddset(&set, SIGINT);
+  sigaddset(&set, SIGHUP);
+  sigaddset(&set, SIGQUIT);
+  sigaddset(&set, SIGTERM);
+#ifdef SIGINFO
+  sigaddset(&set, SIGINFO);
+#endif
+  sigprocmask(SIG_UNBLOCK, &set, NULL);
+}
+
 MOONBIT_FFI_EXPORT
 void moonjust_configure_signal_forwarding(void) {
   struct sigaction action;
@@ -78,6 +91,7 @@ void moonjust_configure_signal_forwarding(void) {
   action.sa_flags = 0;
   sigaction(SIGINFO, &action, NULL);
 #endif
+  moonjust_unblock_forwarding_signals();
 }
 
 MOONBIT_FFI_EXPORT
@@ -106,6 +120,7 @@ int32_t moonjust_wait_for_signal_request(void) {
   sigaction(SIGHUP, &action, NULL);
   sigaction(SIGQUIT, &action, NULL);
   sigaction(SIGTERM, &action, NULL);
+  moonjust_unblock_forwarding_signals();
   moonjust_signal_request_received = 0;
   moonjust_signal_request_enabled = 1;
   while (moonjust_signal_request_received == 0) {

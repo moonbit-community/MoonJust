@@ -219,9 +219,15 @@ def clean_subprocess_environment(
         ]
         existing = [str(path) for path in git_paths if path.is_dir()]
         if existing:
-            environment["PATH"] = os.pathsep.join(
-                existing + [environment.get("PATH", "")]
+            path_key = next(
+                (key for key in environment if key.casefold() == "path"),
+                "Path",
             )
+            current_path = environment.get(path_key, "")
+            for key in list(environment):
+                if key.casefold() == "path":
+                    environment.pop(key, None)
+            environment[path_key] = os.pathsep.join(existing + [current_path])
     return environment
 
 
