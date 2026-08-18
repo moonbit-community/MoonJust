@@ -112,10 +112,21 @@ if [ "$platform_status" -ne 0 ]; then
   echo "Platform dry-run:" >&2
   (cd "$work" && "$cli" --verbose --dry-run platform) >&2 || true
   if [ "$expected_os" = windows ]; then
+    echo "Windows cmd recipe execution:" >&2
+    (cd "$work" && "$cli" --verbose cmd-probe) >&2 || true
     echo "Platform verbose execution:" >&2
     (cd "$work" && "$cli" --verbose platform) >&2 || true
     echo "Static script execution:" >&2
     (cd "$work" && "$cli" --verbose script) >&2 || true
+    cat >"$work/justfile-absolute" <<'EOF'
+set script-interpreter := ['C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', '-NoLogo', '-NoProfile', '-File']
+
+[script]
+platform:
+  Write-Output platform-absolute
+EOF
+    echo "Absolute PowerShell recipe execution:" >&2
+    (cd "$work" && "$cli" --verbose --justfile justfile-absolute platform) >&2 || true
     cat >"$work/direct.ps1" <<'EOF'
 Write-Output platform-direct-file
 EOF
