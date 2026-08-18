@@ -378,6 +378,23 @@ fn windows_program_candidates(
 }
 
 ///|
+fn windows_batch_command(
+  program : String,
+  arguments : ArrayView[String],
+  windows : Bool,
+) -> (String, Array[String]) {
+  let lower = program.to_lower()
+  if !windows || (!lower.has_suffix(".bat") && !lower.has_suffix(".cmd")) {
+    return (program, arguments.to_owned())
+  }
+  let command_arguments = ["/d", "/s", "/c", program]
+  for argument in arguments {
+    command_arguments.push(argument)
+  }
+  ("cmd.exe", command_arguments)
+}
+
+///|
 #cfg(platform="windows")
 fn windows_process_runtime() -> Bool {
   true
@@ -413,17 +430,17 @@ async fn resolve_process_program(program : String) -> String {
 ///|
 #cfg(not(target="wasm"))
 fn observable_process_command(
-  command : @host.CommandSpec,
-  program? : String = command.program(),
+  program : String,
+  arguments : ArrayView[String],
 ) -> (String, Array[String], Bool) {
-  (program, command.arguments().to_owned(), false)
+  (program, arguments.to_owned(), false)
 }
 
 ///|
 #cfg(target="wasm")
 fn observable_process_command(
-  command : @host.CommandSpec,
-  program? : String = command.program(),
+  program : String,
+  arguments : ArrayView[String],
 ) -> (String, Array[String], Bool) {
   let shell = program == "sh" ||
     program == "bash" ||
@@ -439,16 +456,16 @@ fn observable_process_command(
     program.has_suffix("/fish")
   let temporary_script = program.contains("/just") && program.contains("/")
   if !shell && !temporary_script {
-    return (program, command.arguments().to_owned(), false)
+    return (program, arguments.to_owned(), false)
   }
-  let arguments = [
+  let wrapped_arguments = [
     "-c", "{ \"$@\" 0<&4 2>&3 3>&- 4<&- & child=$!; wait \"$child\"; status=$?; exit \"$status\"; } 3>&2 4<&0 2>/dev/null",
     "moonjust-signal-wrapper", program,
   ]
-  for argument in command.arguments() {
-    arguments.push(argument)
+  for argument in arguments {
+    wrapped_arguments.push(argument)
   }
-  ("/bin/sh", arguments, true)
+  ("/bin/sh", wrapped_arguments, true)
 }
 
 ///|
@@ -548,9 +565,13 @@ async fn run_process_with_output_limit(
   } noraise {
     value => value
   }
+  let (batch_program, batch_arguments) = windows_batch_command(
+    resolved_program,
+    command.arguments(),
+    windows_process_runtime(),
+  )
   let (program, arguments, signal_observable) = observable_process_command(
-    command,
-    program=resolved_program,
+    batch_program, batch_arguments,
   )
   let collected = try
     @async.with_task_group() <| group => {

@@ -25,3 +25,19 @@ test "Windows executable candidates preserve explicit paths and extensions" {
     ["bin\\runner.EXE", "bin\\runner.CMD"],
   )
 }
+
+///|
+test "Windows batch programs use cmd without changing arguments" {
+  assert_eq(
+    windows_batch_command("C:\\Tools\\runner.CMD", ["/C", "echo hi"], true),
+    ("cmd.exe", ["/d", "/s", "/c", "C:\\Tools\\runner.CMD", "/C", "echo hi"]),
+  )
+  assert_eq(
+    windows_batch_command("runner.exe", ["one"], true),
+    ("runner.exe", ["one"]),
+  )
+  assert_eq(
+    windows_batch_command("runner.cmd", ["one"], false),
+    ("runner.cmd", ["one"]),
+  )
+}
