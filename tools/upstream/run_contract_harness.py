@@ -131,10 +131,26 @@ def main() -> int:
                 "stderr": result.stderr,
             }
             results.append(record)
-            print(
-                f"{'PASS' if passed else 'FAIL'} {row['id']} {target_name} "
+            label = (
+                f"{row['id']} {target_name} "
                 f"{anchor['suite']}::{anchor['test_name']}"
             )
+            if passed:
+                print(f"PASS {label}")
+            else:
+                detail = next(
+                    (
+                        line.strip()
+                        for text in (result.stderr, result.stdout)
+                        for line in text.splitlines()
+                        if line.strip()
+                    ),
+                    "no diagnostic output",
+                )
+                print(
+                    f"FAIL {label} exit={result.returncode}: {detail}",
+                    file=sys.stderr,
+                )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in results),
