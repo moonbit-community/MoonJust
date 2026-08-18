@@ -331,19 +331,100 @@ fn environment_map(command : @host.CommandSpec) -> Map[String, String] {
 }
 
 ///|
+fn windows_program_candidates(
+  program : String,
+  path : String,
+  pathext : String,
+) -> Array[String] {
+  let bases = [program]
+  if !program.contains("/") && !program.contains("\\") {
+    for raw_directory in path.split(";") {
+      let directory = raw_directory.trim(chars="\"")
+      bases.push(
+        if directory.is_empty() {
+          program
+        } else if directory.has_suffix("/") || directory.has_suffix("\\") {
+          directory.to_owned() + program
+        } else {
+          directory.to_owned() + "\\" + program
+        },
+      )
+    }
+  }
+  let basename = program
+    .replace_all(old="\\", new="/")
+    .split("/")
+    .last()
+    .unwrap_or(program[:])
+  if basename.contains(".") {
+    return bases
+  }
+  let candidates : Array[String] = []
+  for base in bases {
+    for raw_extension in pathext.split(";") {
+      let extension = raw_extension.trim()
+      if extension.is_empty() {
+        continue
+      }
+      let suffix = if extension.has_prefix(".") {
+        extension.to_owned()
+      } else {
+        "." + extension.to_owned()
+      }
+      candidates.push(base + suffix)
+    }
+  }
+  candidates
+}
+
+///|
+#cfg(platform="windows")
+fn windows_process_runtime() -> Bool {
+  true
+}
+
+///|
+#cfg(not(platform="windows"))
+fn windows_process_runtime() -> Bool {
+  @env.get_env_var("MOONJUST_OS") == Some("windows")
+}
+
+///|
+async fn resolve_process_program(program : String) -> String {
+  if !windows_process_runtime() {
+    return program
+  }
+  let path = @env.get_env_var("PATH").unwrap_or("")
+  let pathext = @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD")
+  for candidate in windows_program_candidates(program, path, pathext) {
+    let regular = try @async_fs.kind(candidate) catch {
+      _ => false
+    } noraise {
+      Regular => true
+      _ => false
+    }
+    if regular {
+      return candidate
+    }
+  }
+  program
+}
+
+///|
 #cfg(not(target="wasm"))
 fn observable_process_command(
   command : @host.CommandSpec,
+  program? : String = command.program(),
 ) -> (String, Array[String], Bool) {
-  (command.program(), command.arguments().to_owned(), false)
+  (program, command.arguments().to_owned(), false)
 }
 
 ///|
 #cfg(target="wasm")
 fn observable_process_command(
   command : @host.CommandSpec,
+  program? : String = command.program(),
 ) -> (String, Array[String], Bool) {
-  let program = command.program()
   let shell = program == "sh" ||
     program == "bash" ||
     program == "dash" ||
@@ -462,8 +543,14 @@ async fn run_process_with_output_limit(
     raise InvalidInput("captured process output limit must be non-negative")
   }
   let cwd = command.cwd().map(fn(path) { path.as_string() }).unwrap_or(".")
+  let resolved_program = try resolve_process_program(command.program()) catch {
+    error => raise InvalidInput(error.to_string())
+  } noraise {
+    value => value
+  }
   let (program, arguments, signal_observable) = observable_process_command(
     command,
+    program=resolved_program,
   )
   let collected = try
     @async.with_task_group() <| group => {
