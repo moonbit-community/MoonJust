@@ -24,7 +24,9 @@ jobs:
       - name: Add Git Bash to Windows PATH
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+        run: |
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\usr\bin'
       - run: ./tools/release/ensure_moonx.sh
       - run: moon update
       - run: moon install
@@ -130,7 +132,9 @@ jobs:
       - name: Add Git Bash to Windows PATH
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+        run: |
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\usr\bin'
       - name: Ensure MoonX entry point
         shell: bash
         run: ./tools/release/ensure_moonx.sh

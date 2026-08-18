@@ -195,7 +195,9 @@ jobs:
       - name: Add Git Bash to Windows PATH
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+        run: |
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\usr\bin'
 
       - name: Refresh dependencies
         run: |

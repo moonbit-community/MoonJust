@@ -30,7 +30,9 @@ jobs:
       - name: Add Git Bash to Windows PATH
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+        run: |
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\usr\bin'
       - name: Apply latest MoonBit baseline compatibility patch
         run: git -C baseline-source apply "$GITHUB_WORKSPACE/evidence-tools/tools/release/latest-moonbit-baseline.patch"
       - run: ./baseline-source/tools/release/ensure_moonx.sh
