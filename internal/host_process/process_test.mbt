@@ -1,4 +1,7 @@
 ///|
+let process_test_mutex : @async.Mutex = @async.Mutex()
+
+///|
 #cfg(not(platform="windows"))
 fn unix_path(value : String) -> @path.PathValue {
   try! @path.PathValue::new(value, Unix)
@@ -7,6 +10,8 @@ fn unix_path(value : String) -> @path.PathValue {
 ///|
 #cfg(not(platform="windows"))
 async test "process adapter preserves cwd env buffered stdin and output" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
   let command = try! @host.CommandSpec::new("/bin/sh", [
     "-c", "printf '%s|%s|' \"$MODE\" \"$PWD\"; cat",
   ])
@@ -31,6 +36,8 @@ async test "process adapter preserves cwd env buffered stdin and output" {
 ///|
 #cfg(not(platform="windows"))
 async test "process adapter maps nonzero exit termination" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
   let failed = try! @host.CommandSpec::new("/bin/sh", ["-c", "exit 7"])
   let result = try! @host.HostAsyncProcess::run_process_async(
     ProcessAdapter::new(),
@@ -42,6 +49,8 @@ async test "process adapter maps nonzero exit termination" {
 ///|
 #cfg(not(platform="windows"))
 async test "process adapter suppresses shell signal notices" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
   let signaled = try! @host.CommandSpec::new("/bin/sh", ["-c", "kill -TERM $$"])
   signaled.set_stdout(Capture)
   signaled.set_stderr(Capture)
@@ -56,6 +65,8 @@ async test "process adapter suppresses shell signal notices" {
 ///|
 #cfg(not(platform="windows"))
 async test "discarded streams are drained without being retained" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
   let command = try! @host.CommandSpec::new("/bin/sh", [
     "-c", "printf ignored; printf warning >&2",
   ])
@@ -73,6 +84,8 @@ async test "discarded streams are drained without being retained" {
 ///|
 #cfg(platform="windows")
 async test "Windows process adapter preserves env buffered stdin and output" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
   let command = try! @host.CommandSpec::new("powershell.exe", [
     "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "$value = [Console]::In.ReadToEnd(); [Console]::Out.Write($env:MODE + '|' + $value)",
   ])
@@ -93,6 +106,8 @@ async test "Windows process adapter preserves env buffered stdin and output" {
 ///|
 #cfg(platform="windows")
 async test "Windows process adapter maps nonzero exit termination" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
   let failed = try! @host.CommandSpec::new("cmd.exe", ["/D", "/C", "exit /B 7"])
   let result = try! @host.HostAsyncProcess::run_process_async(
     ProcessAdapter::new(),
@@ -104,6 +119,8 @@ async test "Windows process adapter maps nonzero exit termination" {
 ///|
 #cfg(platform="windows")
 async test "Windows discarded streams are drained without being retained" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
   let command = try! @host.CommandSpec::new("cmd.exe", [
     "/D", "/C", "echo ignored& echo warning 1>&2",
   ])
