@@ -112,6 +112,17 @@ if [ "$platform_status" -ne 0 ]; then
   echo "Platform dry-run:" >&2
   (cd "$work" && "$cli" --verbose --dry-run platform) >&2 || true
   if [ "$expected_os" = windows ]; then
+    echo "Platform verbose execution:" >&2
+    (cd "$work" && "$cli" --verbose platform) >&2 || true
+    echo "Static script execution:" >&2
+    (cd "$work" && "$cli" --verbose script) >&2 || true
+    cat >"$work/direct.ps1" <<'EOF'
+Write-Output platform-direct-file
+EOF
+    echo "Direct PowerShell execution:" >&2
+    powershell.exe -NoLogo -NoProfile -Command \
+      'Write-Output platform-direct-command' >&2 || true
+    powershell.exe -NoLogo -NoProfile -File "$work/direct.ps1" >&2 || true
     echo "Windows executable resolution:" >&2
     for executable in cmd.exe powershell.exe sh.exe bash.exe; do
       where.exe "$executable" >&2 || true

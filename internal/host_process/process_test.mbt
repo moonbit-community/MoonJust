@@ -1,5 +1,5 @@
 ///|
-let process_test_mutex : @async.Mutex = @async.Mutex()
+let process_test_mutex : @async.Mutex = Mutex()
 
 ///|
 #cfg(not(platform="windows"))
