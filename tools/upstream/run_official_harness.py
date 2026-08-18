@@ -117,6 +117,24 @@ def fail(message: str) -> None:
     raise RuntimeError(message)
 
 
+def run_shell_script(script: Path, cwd: Path) -> None:
+    shell = shutil.which("sh") or shutil.which("bash")
+    if shell is None:
+        fail("a POSIX shell is required to build the pinned upstream oracle")
+    result = subprocess.run(
+        [shell, script.as_posix()],
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        fail(
+            f"upstream oracle build failed ({result.returncode}):\n"
+            f"{result.stdout}{result.stderr}"
+        )
+
+
 def load_exceptions(path: Path, tests: list[str]) -> dict[str, dict[str, object]]:
     if not path.is_file():
         fail(f"compatibility exception manifest is missing: {path}")
@@ -760,7 +778,7 @@ def main() -> int:
     if args.approve_audit_write is not None and not args.audit_write:
         fail("--approve-audit-write is only valid with --audit-write")
 
-    subprocess.run([str(repo / "tools/upstream/build_oracle.sh")], cwd=repo, check=True)
+    run_shell_script(repo / "tools/upstream/build_oracle.sh", repo)
     if args.native_candidate is None:
         subprocess.run(
             ["moon", "build", "--target", "native", "cmd/just"],
