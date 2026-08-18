@@ -426,32 +426,8 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 }
 
 ///|
-#cfg(target="native")
-fn configure_before_async() -> Unit {
+async fn main {
   @host_process.configure_signal_forwarding()
-}
-
-///|
-#cfg(target="wasm")
-fn configure_before_async() -> Unit {
-
-}
-
-///|
-#cfg(target="native")
-fn configure_inside_async() -> Unit {
-
-}
-
-///|
-#cfg(target="wasm")
-fn configure_inside_async() -> Unit {
-  @host_process.configure_signal_forwarding()
-}
-
-///|
-async fn run_main() -> Unit {
-  configure_inside_async()
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
   let environment_host = runtime_environment_host()
@@ -474,11 +450,4 @@ async fn run_main() -> Unit {
   emit_response(run_cli(runtime_host(), environment_host, argv, stdin)) catch {
     _ => runtime_exit(1)
   }
-}
-
-///|
-fn main {
-  // Configure the process signal mask before async creates its sigwait worker.
-  configure_before_async()
-  @async.run_async_main(() => run_main())
 }
