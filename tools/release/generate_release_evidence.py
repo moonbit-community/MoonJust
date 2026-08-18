@@ -72,14 +72,22 @@ def parse_assignment(value: str) -> tuple[str, Path]:
     return name, Path(raw_path).resolve()
 
 
-def indexed_paths(values: list[str], label: str) -> dict[str, Path]:
+def indexed_paths(
+    values: list[str],
+    label: str,
+    failures: list[str] | None = None,
+) -> dict[str, Path]:
     result: dict[str, Path] = {}
     for value in values:
         name, path = parse_assignment(value)
         if name in result:
             raise ValueError(f"duplicate {label} record for {name}")
         if not path.is_file():
-            raise ValueError(f"{label} input is missing: {path}")
+            message = f"{label} input is missing: {path}"
+            if failures is None:
+                raise ValueError(message)
+            failures.append(message)
+            continue
         result[name] = path
     return result
 
@@ -349,11 +357,12 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
 
-    compatibility_paths = indexed_paths(args.compat_report, "compatibility")
-    size_paths = indexed_paths(args.size_report, "size")
-    native_paths = indexed_paths(args.native, "native")
-    proof_paths = indexed_paths(args.build_proof, "build proof")
-    repeatability_paths = indexed_paths(args.repeatability, "repeatability")
+    failures: list[str] = []
+    compatibility_paths = indexed_paths(args.compat_report, "compatibility", failures)
+    size_paths = indexed_paths(args.size_report, "size", failures)
+    native_paths = indexed_paths(args.native, "native", failures)
+    proof_paths = indexed_paths(args.build_proof, "build proof", failures)
+    repeatability_paths = indexed_paths(args.repeatability, "repeatability", failures)
     for path in (
         args.test_map,
         args.contract_results,
@@ -362,9 +371,8 @@ def main() -> int:
         args.wasm,
     ):
         if not path.is_file():
-            raise ValueError(f"release evidence input is missing: {path}")
+            failures.append(f"release evidence input is missing: {path}")
 
-    failures: list[str] = []
     if set(compatibility_paths) != REQUIRED_PLATFORMS:
         failures.append("compatibility reports do not cover all three release platforms")
     compatibility = {
@@ -374,7 +382,7 @@ def main() -> int:
     if set(native_paths) != REQUIRED_PLATFORMS:
         failures.append("native artifacts do not cover all three release platforms")
     native = {name: artifact(path) for name, path in sorted(native_paths.items())}
-    wasm = artifact(args.wasm)
+    wasm = artifact(args.wasm) if args.wasm.is_file() else {"path": str(args.wasm)}
     moonjust_commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
     ).stdout.strip()
@@ -385,18 +393,37 @@ def main() -> int:
         "moonjust_commit": moonjust_commit,
         "official": {"version": "1.57.0", "commit": UPSTREAM_COMMIT},
         "generated_on": {"os": platform.platform(), "python": platform.python_version()},
-        "test_map": test_map_summary(args.test_map, failures),
-        "contracts": contract_summary(args.contract_results, args.test_map, failures),
+        "test_map": (
+            test_map_summary(args.test_map, failures)
+            if args.test_map.is_file()
+            else {"path": str(args.test_map), "missing": True}
+        ),
+        "contracts": (
+            contract_summary(args.contract_results, args.test_map, failures)
+            if args.contract_results.is_file() and args.test_map.is_file()
+            else {"path": str(args.contract_results), "missing": True}
+        ),
         "compatibility": compatibility,
-        "coverage": coverage_summary(args.coverage, failures),
-        "performance": performance_summary(args.performance, failures),
+        "coverage": (
+            coverage_summary(args.coverage, failures)
+            if args.coverage.is_file()
+            else {"path": str(args.coverage), "missing": True}
+        ),
+        "performance": (
+            performance_summary(args.performance, failures)
+            if args.performance.is_file()
+            else {"path": str(args.performance), "missing": True}
+        ),
         "size": sizes,
         "artifacts": {"native": native, "wasm1": wasm},
         "build_proofs": build_proofs(
-            proof_paths, str(wasm["sha256"]), moonjust_commit, sizes, failures
+            proof_paths, str(wasm.get("sha256", "")), moonjust_commit, sizes, failures
         ),
         "repeatability": repeatability_summaries(
             repeatability_paths, moonjust_commit, native, wasm, sizes, failures
+        ),
+        "missing_inputs": sorted(
+            failure for failure in failures if " input is missing:" in failure
         ),
     }
     # Validators append failures while the record is assembled.

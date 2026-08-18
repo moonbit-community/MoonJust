@@ -212,6 +212,16 @@ def clean_subprocess_environment(
         "GIT_NAMESPACE",
     ):
         environment.pop(name, None)
+    if os.name == "nt":
+        git_paths = [
+            Path(r"C:\Program Files\Git\bin"),
+            Path(r"C:\Program Files\Git\usr\bin"),
+        ]
+        existing = [str(path) for path in git_paths if path.is_dir()]
+        if existing:
+            environment["PATH"] = os.pathsep.join(
+                existing + [environment.get("PATH", "")]
+            )
     return environment
 
 

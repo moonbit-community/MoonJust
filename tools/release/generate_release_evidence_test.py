@@ -126,6 +126,36 @@ class ReleaseEvidenceTest(unittest.TestCase):
             self.assertEqual(record["status"], "failed")
             self.assertIn("missing coverage", record["failures"][0])
 
+    def test_aggregate_preserves_partial_evidence_when_inputs_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw) / "evidence.json"
+            missing = Path(raw) / "missing.json"
+            previous = evidence.sys.argv
+            evidence.sys.argv = [
+                "generate_release_evidence.py",
+                "--test-map",
+                str(missing),
+                "--contract-results",
+                str(missing),
+                "--coverage",
+                str(missing),
+                "--performance",
+                str(missing),
+                "--wasm",
+                str(missing),
+                "--output",
+                str(output),
+                "--strict",
+            ]
+            try:
+                self.assertEqual(evidence.main(), 1)
+            finally:
+                evidence.sys.argv = previous
+            record = json.loads(output.read_text())
+            self.assertEqual(record["status"], "failed")
+            self.assertTrue(record["missing_inputs"])
+            self.assertIn("release evidence input is missing", " ".join(record["failures"]))
+
     def test_repeatability_hashes_must_match_release_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             directory = Path(raw)
