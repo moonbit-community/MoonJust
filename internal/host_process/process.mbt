@@ -12,7 +12,7 @@ const MAX_CAPTURED_STREAM_BYTES : Int = 16 * 1024 * 1024
 
 ///|
 #cfg(target="native")
-extern "C" fn stdio_kind(fd : @types.Fd) -> Int = "moonbitlang_async_kind_of_fd"
+extern "C" fn stdio_kind(fd : @types.Fd) -> Int = "moonjust_kind_of_fd"
 
 ///|
 #cfg(target="wasm")
