@@ -107,6 +107,16 @@ if [ "$platform_status" -ne 0 ]; then
   cat "$work/platform.stdout" >&2
   echo "Platform stderr:" >&2
   cat "$work/platform.stderr" >&2
+  echo "Platform configuration:" >&2
+  (cd "$work" && "$cli" --dump) >&2 || true
+  echo "Platform dry-run:" >&2
+  (cd "$work" && "$cli" --verbose --dry-run platform) >&2 || true
+  if [ "$expected_os" = windows ]; then
+    echo "Windows executable resolution:" >&2
+    for executable in cmd.exe powershell.exe sh.exe bash.exe; do
+      where.exe "$executable" >&2 || true
+    done
+  fi
   fail "platform recipe exited with status $platform_status"
 fi
 actual_os=$(sed -n '1p' "$work/platform.stdout" | tr -d '\r')
