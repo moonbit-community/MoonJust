@@ -1,8 +1,9 @@
 #include <moonbit.h>
-#include <sys/stat.h>
 
 #ifdef _WIN32
-#include <io.h>
+#include <windows.h>
+#else
+#include <sys/stat.h>
 #endif
 
 #ifndef _WIN32
@@ -236,13 +237,15 @@ int32_t moonjust_wait_for_signal_request(void) {
 
 #endif
 
+#ifdef _WIN32
+MOONBIT_FFI_EXPORT
+int32_t moonjust_kind_of_fd(HANDLE handle) {
+  return GetFileType(handle) == FILE_TYPE_DISK;
+}
+#else
 MOONBIT_FFI_EXPORT
 int32_t moonjust_kind_of_fd(int32_t fd) {
-#ifdef _WIN32
-  struct _stat info;
-  return _fstat(fd, &info) == 0 && (info.st_mode & _S_IFMT) == _S_IFREG;
-#else
   struct stat info;
   return fstat(fd, &info) == 0 && S_ISREG(info.st_mode);
-#endif
 }
+#endif
