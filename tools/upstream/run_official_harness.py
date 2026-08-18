@@ -275,11 +275,35 @@ def run_isolated_unix(
         stdout, stderr = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         timed_out = True
+        timeout_stderr = ""
+        try:
+            snapshot = subprocess.run(
+                [
+                    "ps",
+                    "-eo",
+                    "pid=,ppid=,pgid=,sid=,stat=,args=",
+                    "--forest",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=5,
+            )
+            timeout_stderr = (
+                "\n[timeout process snapshot]\n"
+                + snapshot.stdout
+                + snapshot.stderr
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            timeout_stderr = f"\n[timeout process snapshot unavailable: {error}]\n"
         try:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
         stdout, stderr = process.communicate()
+        stderr += timeout_stderr
     return (
         subprocess.CompletedProcess(
             command,
