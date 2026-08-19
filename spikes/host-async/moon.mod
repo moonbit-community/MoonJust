@@ -9,5 +9,5 @@ preferred_target = "native"
 description = "Isolated MoonJust host capability spike"
 
 import {
-  "moonbitlang/async@0.20.4",
+  "moonbitlang/async@0.21.0",
 }

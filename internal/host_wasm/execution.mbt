@@ -151,10 +151,7 @@ fn execution_atomic_error(
 ///|
 async fn execution_remove_after_failure(path : @path.PathValue) -> Unit {
   try
-    @async.protect_from_cancel(
-      () => @async_fs.remove(path.as_string()),
-      resume_on_cancel=false,
-    )
+    @async.protect_from_cancel(() => @async_fs.remove(path.as_string()))
   catch {
     _ => ()
   } noraise {

@@ -225,14 +225,11 @@ async fn[
             }
             group.add_defer(() => {
               try
-                @async.protect_from_cancel(
-                  () => {
-                    @executor.cleanup_materialized_script_async(
-                      scripts, materialized,
-                    )
-                  },
-                  resume_on_cancel=false,
-                )
+                @async.protect_from_cancel(() => {
+                  @executor.cleanup_materialized_script_async(
+                    scripts, materialized,
+                  )
+                })
               catch {
                 _ => ()
               } noraise {
@@ -546,14 +543,11 @@ async fn[
             }
             group.add_defer(() => {
               try
-                @async.protect_from_cancel(
-                  () => {
-                    @executor.cleanup_materialized_script_async(
-                      scripts, materialized,
-                    )
-                  },
-                  resume_on_cancel=false,
-                )
+                @async.protect_from_cancel(() => {
+                  @executor.cleanup_materialized_script_async(
+                    scripts, materialized,
+                  )
+                })
               catch {
                 _ => ()
               } noraise {
@@ -904,10 +898,9 @@ async fn[
     @async.with_task_group() <| group => {
       group.add_defer(() => {
         try
-          @async.protect_from_cancel(
-            () => @host.HostCacheStore::release_cache_lease(scripts, lease),
-            resume_on_cancel=false,
-          )
+          @async.protect_from_cancel(() => {
+            @host.HostCacheStore::release_cache_lease(scripts, lease)
+          })
         catch {
           _ => ()
         } noraise {
@@ -1344,10 +1337,9 @@ async fn[
     @async.with_task_group() <| group => {
       group.add_defer(() => {
         try
-          @async.protect_from_cancel(
-            () => @host.HostCacheStore::release_cache_lease(scripts, lease),
-            resume_on_cancel=false,
-          )
+          @async.protect_from_cancel(() => {
+            @host.HostCacheStore::release_cache_lease(scripts, lease)
+          })
         catch {
           _ => ()
         } noraise {
