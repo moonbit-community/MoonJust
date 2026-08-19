@@ -36,6 +36,14 @@ const JUST_MAN_HEADER : String =
   #|[options] [recipe [arguments...]]
 
 ///|
+// Prevent the async event loop from installing its default global cancellation
+// signals before the MoonJust signal pipe is ready.
+#cfg(all(target="native", not(platform="windows")))
+fn init {
+  @host_process.prepare_signal_forwarding()
+}
+
+///|
 async fn read_stdin_source_bounded(max_bytes : Int) -> Bytes {
   let read_limit = max_bytes + 1
   let result = Buffer(size_hint=Int::min(read_limit, 64 * 1024))
@@ -54,7 +62,7 @@ async fn read_stdin_source_bounded(max_bytes : Int) -> Bytes {
 }
 
 ///|
-fn request_response(
+async fn request_response(
   argv : ArrayView[String],
   environment : Map[String, String],
 ) -> @cli.ApplicationResponse? {
@@ -427,27 +435,46 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 
 ///|
 async fn main {
-  @host_process.configure_signal_forwarding()
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
-  let environment_host = runtime_environment_host()
-  let parsed = try {
-    let environment = parse_environment(environment_host)
-    Some(@cli.parse_arguments(argv, environment))
-  } catch {
-    _ => None
-  }
-  let stdin = if parsed is Some(arguments) &&
-    !arguments.flag("help") &&
-    !arguments.flag("version") &&
-    arguments.value("justfile") == Some("-") {
-    read_stdin_source_bounded(@lexer.LexerLimits::default().max_source_bytes()) catch {
-      _ => b""
+  let signal_request = argv.length() == 2 &&
+    argv[0] == "--request" &&
+    argv[1] == "\"signal\""
+  @async.with_task_group() <| group => {
+    match @host_process.configure_signal_forwarding(group, !signal_request) {
+      Some(InvalidInput(message)) => {
+        @stdio.stderr.write(@utf8.encode(message + "\n"))
+        runtime_exit(1)
+      }
+      Some(_) => {
+        @stdio.stderr.write(
+          @utf8.encode("failed to initialize signal forwarding\n"),
+        )
+        runtime_exit(1)
+      }
+      None => ()
     }
-  } else {
-    b""
-  }
-  emit_response(run_cli(runtime_host(), environment_host, argv, stdin)) catch {
-    _ => runtime_exit(1)
+    let environment_host = runtime_environment_host()
+    let parsed = try {
+      let environment = parse_environment(environment_host)
+      Some(@cli.parse_arguments(argv, environment))
+    } catch {
+      _ => None
+    }
+    let stdin = if parsed is Some(arguments) &&
+      !arguments.flag("help") &&
+      !arguments.flag("version") &&
+      arguments.value("justfile") == Some("-") {
+      read_stdin_source_bounded(
+        @lexer.LexerLimits::default().max_source_bytes(),
+      ) catch {
+        _ => b""
+      }
+    } else {
+      b""
+    }
+    emit_response(run_cli(runtime_host(), environment_host, argv, stdin)) catch {
+      _ => runtime_exit(1)
+    }
   }
 }

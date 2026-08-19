@@ -26,65 +26,8 @@ pub fn ProcessAdapter::new() -> ProcessAdapter {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-extern "C" fn configure_signal_forwarding_ffi() = "moonjust_configure_signal_forwarding"
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-extern "C" fn register_signal_child_ffi(pid : Int) -> Int = "moonjust_register_signal_child"
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-extern "C" fn unregister_signal_child_ffi(pid : Int) -> Int = "moonjust_unregister_signal_child"
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-extern "C" fn take_signal_info_ffi() -> Int = "moonjust_take_signal_info"
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-extern "C" fn current_process_id_ffi() -> Int = "moonjust_current_process_id"
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-extern "C" fn wait_for_signal_request_ffi() -> Int = "moonjust_wait_for_signal_request"
-
-///|
-/// Install process-wide forwarding before the CLI starts child processes.
-/// The portable adapter relies on moonrun's process lifecycle instead.
-#cfg(all(target="native", not(platform="windows")))
-pub fn configure_signal_forwarding() -> Unit {
-  @signal.set_global_cancellation_signals([])
-  configure_signal_forwarding_ffi()
-}
-
-///|
-#cfg(any(target="wasm", platform="windows"))
-pub fn configure_signal_forwarding() -> Unit {
-  @signal.set_global_cancellation_signals([SIGINT, SIGTERM, SIGHUP, SIGBREAK])
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-pub fn wait_for_signal_request() -> String? {
-  match wait_for_signal_request_ffi() {
-    1 => Some("SIGHUP")
-    2 => Some("SIGINT")
-    3 => Some("SIGQUIT")
-    15 => Some("SIGTERM")
-    _ => None
-  }
-}
-
-///|
-#cfg(any(target="wasm", platform="windows"))
-pub fn wait_for_signal_request() -> String? {
-  None
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
 priv enum ObservedProcess {
-  Managed(process~ : @process.Process, pid~ : Int, description~ : String)
+  Managed(process~ : @process.Process, pid~ : Int)
 }
 
 ///|
@@ -120,17 +63,6 @@ async fn[X] spawn_observed_process(
     no_wait=true,
   )
   let pid = process.pid
-  if register_signal_child_ffi(pid) == 0 {
-    @process.hard_cancel()(pid)
-    try ignore(process.wait()) catch {
-      _ => ()
-    } noraise {
-      _ => ()
-    }
-    raise @host.HostError::InvalidInput(
-      "too many concurrent child processes for signal forwarding",
-    )
-  }
   let quoted : Array[String] = []
   quoted.push("\"" + program.replace_all(old="\"", new="\\\"") + "\"")
   for argument in arguments {
@@ -140,55 +72,8 @@ async fn[X] spawn_observed_process(
     cwd.replace_all(old="\"", new="\\\"") +
     "\" && " +
     quoted.join(" ")
-  start_signal_info_watcher(group, process, pid, description)
-  Managed(process~, pid~, description~)
-}
-
-///|
-#cfg(platform="macos")
-fn[X] start_signal_info_watcher(
-  group : @async.TaskGroup[X],
-  process : @process.Process,
-  pid : Int,
-  description : String,
-) -> Unit {
-  group.spawn_bg(() => watch_signal_info(process, pid, description))
-}
-
-///|
-#cfg(all(target="native", not(platform="windows"), not(platform="macos")))
-fn[X] start_signal_info_watcher(
-  _group : @async.TaskGroup[X],
-  _process : @process.Process,
-  _pid : Int,
-  _description : String,
-) -> Unit {
-  ()
-}
-
-///|
-#cfg(platform="macos")
-async fn watch_signal_info(
-  process : @process.Process,
-  pid : Int,
-  description : String,
-) -> Unit {
-  while true {
-    if take_signal_info_ffi() != 0 {
-      write_signal_info(pid, description)
-    }
-    let running = try process.try_wait() catch {
-      _ => return
-    } noraise {
-      status => status is None
-    }
-    guard running else { return }
-    try @async.sleep(5) catch {
-      _ => return
-    } noraise {
-      _ => ()
-    }
-  }
+  add_signal_child(pid, description)
+  Managed(process~, pid~)
 }
 
 ///|
@@ -224,49 +109,18 @@ async fn[X] spawn_observed_process(
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
-  let Managed(process~, pid~, description~) = self
+  let Managed(process~, pid~) = self
   let status = try process.wait() catch {
     error => {
-      if take_signal_info_ffi() != 0 {
-        write_signal_info(pid, description)
-      }
-      ignore(unregister_signal_child_ffi(pid))
+      remove_signal_child(pid)
       raise error
     }
   } noraise {
     value => value
   }
-  if take_signal_info_ffi() != 0 {
-    write_signal_info(pid, description)
-  }
-  let forwarded_signal = unregister_signal_child_ffi(pid)
-  if forwarded_signal == 0 {
-    status
-  } else {
-    -(256 + forwarded_signal)
-  }
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-async fn write_signal_info(pid : Int, description : String) -> Unit {
-  try
-    @stdio.stderr.write(
-      @utf8.encode(
-        "just " +
-        current_process_id_ffi().to_string() +
-        ": 1 child process:\n" +
-        pid.to_string() +
-        ": " +
-        description +
-        "\n",
-      ),
-    )
-  catch {
-    _ => ()
-  } noraise {
-    _ => ()
-  }
+  let result = signal_process_status(status)
+  remove_signal_child(pid)
+  result
 }
 
 ///|
