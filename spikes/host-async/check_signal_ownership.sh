@@ -49,7 +49,7 @@ status=passed
 if [ "$total_conflicts" -ne 0 ]; then
   status=failed
 fi
-printf '{"async_version":"0.20.4","attempts_per_signal":5,"conflicts":{%s},"status":"%s"}\n' \
+printf '{"async_version":"0.21.0","attempts_per_signal":5,"conflicts":{%s},"status":"%s"}\n' \
   "$conflict_json" "$status"
 if [ "$total_conflicts" -ne 0 ]; then
   echo "application signal handler lost $total_conflicts ownership attempts" >&2

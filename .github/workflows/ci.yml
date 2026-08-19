@@ -127,6 +127,14 @@ jobs:
       - name: Smoke-test wasm1 CLI
         run: moon run --target wasm cmd/just -- --version
 
+      - name: Upload async lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-host-async-lifecycle-linux
+          path: _build/host-async/process-lifecycle.jsonl
+          if-no-files-found: error
+
   wasm1-shared:
     name: Shared MoonX wasm1 asset
     runs-on: ubuntu-latest

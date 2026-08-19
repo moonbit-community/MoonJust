@@ -19,3 +19,19 @@ moon -C "$spike" check --target wasm --warn-list +73
 moon -C "$spike" test --target native
 moon -C "$spike" test --target wasm
 "$spike/check_signal_ownership.sh"
+
+moon -C "$spike" build --target native process_lifecycle
+lifecycle="$spike/_build/native/debug/build/process_lifecycle/process_lifecycle.exe"
+evidence="$repo_root/_build/host-async/process-lifecycle.jsonl"
+if [ "$(uname -s)" = Linux ]; then
+  python3 "$spike/check_process_lifecycle.py" \
+    --executable "$lifecycle" \
+    --async-root "$spike/.mooncakes/moonbitlang/async" \
+    --output "$evidence" \
+    --assert-linux
+else
+  python3 "$spike/check_process_lifecycle.py" \
+    --executable "$lifecycle" \
+    --async-root "$spike/.mooncakes/moonbitlang/async" \
+    --output "$evidence"
+fi

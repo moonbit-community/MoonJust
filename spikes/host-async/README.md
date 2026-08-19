@@ -21,3 +21,9 @@ after global async cancellation signals are disabled, the application handler
 must receive HUP, INT, QUIT, and TERM. Each signal is sampled five times and
 reported separately. Any lost signal fails the spike instead of being inferred
 from the larger upstream process-tree test.
+
+`check_process_lifecycle.py` records the signal-to-cancellation path and runs
+direct-child, shell-`exec`, and ordinary shell-descendant scenarios. Each case
+captures PID, PPID, PGID, process state, and Linux pipe holders before cleanup.
+The driver always starts an isolated test session and kills that exact group on
+failure, so the evidence run cannot leave its own descendants behind.
