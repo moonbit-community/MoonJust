@@ -128,9 +128,15 @@ async fn[
 async fn[P : @host.HostAsyncProcess] wasm_path_is_executable(
   process : P,
   candidate : @path.PathValue,
+  metadata : @host.FileMetadata,
+  platform : @host.PlatformInfo,
+  pathext : String?,
   context : EvaluationContext,
   span : @source.Span,
 ) -> Bool raise EvaluationError {
+  if platform.operating_system() == Windows {
+    return windows_candidate_is_executable(candidate, metadata, pathext)
+  }
   let spec = @host.CommandSpec::new("/bin/test", ["-x", candidate.as_string()]) catch {
     error => raise Host(error, span~)
   }
@@ -158,69 +164,45 @@ async fn[
   if executable == "" {
     return ""
   }
-  let cwd = require_context_path("cwd", context.cwd, span)
-  if executable.contains("/") || executable.contains("\\") {
-    let candidate = resolve_context_path(context, executable, span)
-    let exists = @host.HostFs::file_exists(host, candidate) catch {
-      error => raise Host(error, span~)
-    }
-    if !exists {
-      return ""
-    }
-    let metadata = try @host.HostFs::metadata(host, candidate) catch {
-      NotFound(_) => return ""
-      error => raise Host(error, span~)
-    } noraise {
-      value => value
-    }
-    return if metadata.is_file() &&
-      wasm_path_is_executable(process, candidate, context, span) {
-      candidate.as_string()
-    } else {
-      ""
-    }
-  }
   let path = @host.HostEnv::env_get(host, "PATH") catch {
     error => raise Host(error, span~)
   }
   let platform = @host.HostPlatform::platform_info(host) catch {
     error => raise Host(error, span~)
   }
-  let separator = if platform.operating_system() == Windows { ";" } else { ":" }
-  let extensions = if platform.operating_system() == Windows {
-    ["", ".exe", ".cmd", ".bat", ".com"]
-  } else {
-    [""]
-  }
-  for directory in path.unwrap_or("").split(separator) {
-    let base = if directory.length() == 0 {
-      cwd
-    } else {
-      @path.PathValue::new(directory.to_owned(), cwd.flavor()) catch {
-        _ => continue
-      }
+  let pathext = if platform.operating_system() == Windows {
+    @host.HostEnv::env_get(host, "PATHEXT") catch {
+      error => raise Host(error, span~)
     }
-    for extension in extensions {
-      let child = @path.PathValue::new(executable + extension, cwd.flavor()) catch {
-        _ => continue
-      }
-      let candidate = base.join(child) catch { _ => continue }
-      let exists = @host.HostFs::file_exists(host, candidate) catch {
-        error => raise Host(error, span~)
-      }
-      if !exists {
-        continue
-      }
-      let metadata = try @host.HostFs::metadata(host, candidate) catch {
-        NotFound(_) => continue
-        error => raise Host(error, span~)
-      } noraise {
-        value => value
-      }
-      if metadata.is_file() &&
-        wasm_path_is_executable(process, candidate, context, span) {
-        return candidate.as_string()
-      }
+  } else {
+    None
+  }
+  for
+    candidate in which_candidates(
+      executable,
+      context,
+      path.unwrap_or(""),
+      platform,
+      pathext,
+      span,
+    ) {
+    let exists = @host.HostFs::file_exists(host, candidate) catch {
+      error => raise Host(error, span~)
+    }
+    if !exists {
+      continue
+    }
+    let metadata = try @host.HostFs::metadata(host, candidate) catch {
+      NotFound(_) => continue
+      error => raise Host(error, span~)
+    } noraise {
+      value => value
+    }
+    if metadata.is_file() &&
+      wasm_path_is_executable(
+        process, candidate, metadata, platform, pathext, context, span,
+      ) {
+      return candidate.as_string()
     }
   }
   ""

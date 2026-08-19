@@ -577,6 +577,113 @@ fn[T : @host.HostTerminal] style_value(
 }
 
 ///|
+fn which_extensions(
+  executable : String,
+  platform : @host.PlatformInfo,
+  pathext : String?,
+  span : @source.Span,
+) -> Array[String] raise EvaluationError {
+  let extensions = [""]
+  if platform.operating_system() != Windows {
+    return extensions
+  }
+  let path = @path.PathValue::new(executable, platform.path_flavor()) catch {
+    _ => raise effect_failure("invalid executable path", span)
+  }
+  if path.extension() is Some(_) {
+    return extensions
+  }
+  guard pathext is Some(value) else { return extensions }
+  for raw_extension in value.split(";") {
+    let extension = raw_extension.to_owned()
+    if !extension.has_prefix(".") {
+      raise effect_failure(
+        "`PATHEXT` entry `" + extension + "` does not start with `.`",
+        span,
+      )
+    }
+    extensions.push(extension)
+  }
+  extensions
+}
+
+///|
+fn which_candidates(
+  executable : String,
+  context : EvaluationContext,
+  path : String,
+  platform : @host.PlatformInfo,
+  pathext : String?,
+  span : @source.Span,
+) -> Array[@path.PathValue] raise EvaluationError {
+  let cwd = require_context_path("cwd", context.cwd, span)
+  let extensions = which_extensions(executable, platform, pathext, span)
+  let direct = executable.contains("/") ||
+    executable.contains("\\") ||
+    (platform.operating_system() == Windows && executable.contains(":"))
+  let bases : Array[@path.PathValue] = []
+  if direct {
+    bases.push(resolve_context_path(context, executable, span))
+  } else {
+    let separator = if platform.operating_system() == Windows {
+      ";"
+    } else {
+      ":"
+    }
+    for raw_directory in path.split(separator) {
+      let directory = @path.PathValue::new(
+        raw_directory.to_owned(),
+        cwd.flavor(),
+      ) catch {
+        _ => continue
+      }
+      let base = if directory.is_absolute() {
+        directory
+      } else {
+        cwd.join(directory) catch {
+          _ => continue
+        }
+      }
+      let child = @path.PathValue::new(executable, cwd.flavor()) catch {
+        _ => continue
+      }
+      bases.push(base.join(child) catch { _ => continue })
+    }
+  }
+  let candidates : Array[@path.PathValue] = []
+  for base in bases {
+    for extension in extensions {
+      let candidate = @path.PathValue::new(
+        base.as_string() + extension,
+        base.flavor(),
+      ) catch {
+        _ => continue
+      }
+      candidates.push(candidate)
+    }
+  }
+  candidates
+}
+
+///|
+fn windows_candidate_is_executable(
+  candidate : @path.PathValue,
+  metadata : @host.FileMetadata,
+  pathext : String?,
+) -> Bool {
+  guard metadata.is_file() else { return false }
+  guard candidate.extension() is Some(extension) else { return false }
+  guard pathext is Some(value) else { return metadata.is_executable() }
+  for raw_extension in value.split(";") {
+    if raw_extension.length() > 1 &&
+      extension.to_lower() == raw_extension[1:].to_owned().to_lower() {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
   host : T,
   executable : String,
@@ -586,69 +693,47 @@ fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
   if executable == "" {
     return ""
   }
-  let cwd = require_context_path("cwd", context.cwd, span)
-  if executable.contains("/") || executable.contains("\\") {
-    let candidate = resolve_context_path(context, executable, span)
-    let exists = @host.HostFs::file_exists(host, candidate) catch {
-      error => raise Host(error, span~)
-    }
-    if !exists {
-      return ""
-    }
-    let metadata = try @host.HostFs::metadata(host, candidate) catch {
-      NotFound(_) => return ""
-      error => raise Host(error, span~)
-    } noraise {
-      value => value
-    }
-    return if metadata.is_file() && metadata.is_executable() {
-      candidate.as_string()
-    } else {
-      ""
-    }
-  }
   let path = @host.HostEnv::env_get(host, "PATH") catch {
     error => raise Host(error, span~)
   }
   let platform = @host.HostPlatform::platform_info(host) catch {
     error => raise Host(error, span~)
   }
-  let separator = match platform.operating_system() {
-    Windows => ";"
-    _ => ":"
-  }
-  let extensions : Array[String] = match platform.operating_system() {
-    Windows => ["", ".exe", ".cmd", ".bat", ".com"]
-    _ => [""]
-  }
-  for directory in path.unwrap_or("").split(separator) {
-    let base = if directory.length() == 0 {
-      cwd
-    } else {
-      @path.PathValue::new(directory.to_owned(), cwd.flavor()) catch {
-        _ => continue
-      }
+  let pathext = if platform.operating_system() == Windows {
+    @host.HostEnv::env_get(host, "PATHEXT") catch {
+      error => raise Host(error, span~)
     }
-    for extension in extensions {
-      let child = @path.PathValue::new(executable + extension, cwd.flavor()) catch {
-        _ => continue
-      }
-      let candidate = base.join(child) catch { _ => continue }
-      let exists = @host.HostFs::file_exists(host, candidate) catch {
-        error => raise Host(error, span~)
-      }
-      if !exists {
-        continue
-      }
-      let metadata = try @host.HostFs::metadata(host, candidate) catch {
-        NotFound(_) => continue
-        error => raise Host(error, span~)
-      } noraise {
-        value => value
-      }
-      if metadata.is_file() && metadata.is_executable() {
-        return candidate.as_string()
-      }
+  } else {
+    None
+  }
+  for
+    candidate in which_candidates(
+      executable,
+      context,
+      path.unwrap_or(""),
+      platform,
+      pathext,
+      span,
+    ) {
+    let exists = @host.HostFs::file_exists(host, candidate) catch {
+      error => raise Host(error, span~)
+    }
+    if !exists {
+      continue
+    }
+    let metadata = try @host.HostFs::metadata(host, candidate) catch {
+      NotFound(_) => continue
+      error => raise Host(error, span~)
+    } noraise {
+      value => value
+    }
+    let executable = if platform.operating_system() == Windows {
+      windows_candidate_is_executable(candidate, metadata, pathext)
+    } else {
+      metadata.is_file() && metadata.is_executable()
+    }
+    if executable {
+      return candidate.as_string()
     }
   }
   ""

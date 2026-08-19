@@ -12,7 +12,8 @@ fn detected_operating_system() -> @host.OperatingSystem {
 ///|
 fn detected_architecture() -> String {
   match @env.get_env_var("MOONJUST_ARCH") {
-    Some("arm64") => "aarch64"
+    Some("arm64") | Some("ARM64") => "aarch64"
+    Some("amd64") | Some("AMD64") => "x86_64"
     Some(value) => value
     None => "wasm32"
   }

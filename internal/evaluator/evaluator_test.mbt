@@ -404,6 +404,58 @@ test "effect context connects fs random clock process terminal and PATH facts" {
     call_effect_with_context(host, "which", [String("tool")], context, span),
     List([String("/usr/bin/tool")]),
   )
+  let windows = fake()
+  windows.set_platform(@host.PlatformInfo::new(Windows, "x86_64", Windows))
+  windows.set_env("PATH", "tools")
+  windows.set_env("PATHEXT", ".BAR")
+  windows.put_file(
+    @path.PathValue::new("C:\\workspace\\tools\\tool.BAR", Windows),
+    b"script",
+  )
+  windows.put_file(
+    @path.PathValue::new("C:\\workspace\\tools\\plain", Windows),
+    b"not executable",
+  )
+  let windows_context = EvaluationContext::new(
+    cwd=@path.PathValue::new("C:\\workspace", Windows),
+    lists=true,
+  )
+  assert_eq(
+    call_effect_with_context(
+      windows,
+      "which",
+      [String("tool")],
+      windows_context,
+      span,
+    ),
+    List([String("C:\\workspace\\tools\\tool.BAR")]),
+  )
+  assert_eq(
+    call_effect_with_context(
+      windows,
+      "which",
+      [String("plain")],
+      windows_context,
+      span,
+    ),
+    List([]),
+  )
+  windows.set_env("PATHEXT", "BAR")
+  try
+    call_effect_with_context(
+      windows,
+      "which",
+      [String("tool")],
+      windows_context,
+      span,
+    )
+  catch {
+    Builtin(Failure(message~), ..) =>
+      assert_true(message.contains("does not start"))
+    _ => fail("unexpected invalid PATHEXT error")
+  } noraise {
+    _ => fail("expected invalid PATHEXT error")
+  }
   assert_eq(
     call_effect_with_context(
       host,
