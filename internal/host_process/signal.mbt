@@ -30,6 +30,10 @@ extern "C" fn install_signal_pipe_ffi(fd : @types.Fd) = "moonjust_install_signal
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+extern "C" fn unblock_signal_mask_ffi() = "moonjust_unblock_forwarded_signals"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 extern "C" fn signal_pipe_overflow_ffi() -> Int = "moonjust_signal_pipe_overflow"
 
 ///|
@@ -68,6 +72,7 @@ pub fn[X] configure_signal_forwarding(
   // handler instead of cancelling the root task.
   @signal.set_global_cancellation_signals([])
   install_signal_pipe_ffi(write.fd())
+  unblock_signal_mask_ffi()
   let state = { read, write, children: [], first_signal: None }
   ignore(state.write.fd())
   signal_runtime.val = Some(state)

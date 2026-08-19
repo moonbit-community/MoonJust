@@ -45,6 +45,17 @@ static volatile sig_atomic_t moonjust_signal_owner_pid = -1;
 MOONBIT_FFI_EXPORT
 void moonjust_install_signal_pipe(int32_t fd);
 
+MOONBIT_FFI_EXPORT
+void moonjust_unblock_forwarded_signals(void) {
+  sigset_t signals;
+  sigemptyset(&signals);
+  sigaddset(&signals, SIGINT);
+  sigaddset(&signals, SIGHUP);
+  sigaddset(&signals, SIGQUIT);
+  sigaddset(&signals, SIGTERM);
+  pthread_sigmask(SIG_UNBLOCK, &signals, NULL);
+}
+
 static void moonjust_restore_default_and_reraise(int signal) {
   struct sigaction action = {0};
   sigemptyset(&action.sa_mask);
@@ -85,6 +96,7 @@ void moonjust_prepare_signal_forwarding(void) {
   // the handler here prevents the worker from consuming process-directed
   // signals before MoonJust can apply just's forwarding policy.
   moonjust_install_signal_pipe(-1);
+  moonjust_unblock_forwarded_signals();
 }
 
 MOONBIT_FFI_EXPORT
@@ -103,6 +115,7 @@ void moonjust_install_signal_pipe(int32_t fd) {
   moonjust_signal_fd = (sig_atomic_t)fd;
   moonjust_signal_owner_pid = (sig_atomic_t)getpid();
   moonjust_signal_overflowed = 0;
+  moonjust_unblock_forwarded_signals();
 }
 
 MOONBIT_FFI_EXPORT
