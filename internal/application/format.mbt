@@ -58,6 +58,24 @@ fn format_check_response(
 }
 
 ///|
+fn write_permission_detail(path : @path.PathValue) -> String {
+  if path.flavor() == Windows {
+    "Access is denied. (os error 5)"
+  } else {
+    "Permission denied (os error 13)"
+  }
+}
+
+///|
+fn write_directory_detail(path : @path.PathValue) -> String {
+  if path.flavor() == Windows {
+    "Access is denied. (os error 5)"
+  } else {
+    "Is a directory (os error 21)"
+  }
+}
+
+///|
 fn[T : @host.HostFs + @host.HostTemp] format_response(
   host : T,
   arguments : @cli.CliArguments,
@@ -122,7 +140,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] format_
           PermissionDenied(_, detail=_) =>
             raise WriteJustfile(
               path=loaded.path(),
-              detail="Permission denied (os error 13)",
+              detail=write_permission_detail(loaded.path()),
             )
           error => raise Host(error)
         }
@@ -208,7 +226,7 @@ fn[T : @host.HostFs + @host.HostTemp] init_response(
       error => raise Host(error)
     }
     if metadata.is_directory() {
-      raise WriteJustfile(path~, detail="Is a directory (os error 21)")
+      raise WriteJustfile(path~, detail=write_directory_detail(path))
     }
     raise AlreadyExists(path)
   }
@@ -293,7 +311,7 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response_async(
       error => raise Host(error)
     }
     if metadata.is_directory() {
-      raise WriteJustfile(path~, detail="Is a directory (os error 21)")
+      raise WriteJustfile(path~, detail=write_directory_detail(path))
     }
     raise AlreadyExists(path)
   }
@@ -304,7 +322,7 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response_async(
     false,
   ) catch {
     PermissionDenied(_, detail=_) =>
-      raise WriteJustfile(path~, detail="Permission denied (os error 13)")
+      raise WriteJustfile(path~, detail=write_permission_detail(path))
     error => raise Host(error)
   }
   @cli.ApplicationResponse::success(

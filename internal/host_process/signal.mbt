@@ -38,6 +38,14 @@ extern "C" fn signal_pipe_overflow_ffi() -> Int = "moonjust_signal_pipe_overflow
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+extern "C" fn caught_signal_ffi() -> Int = "moonjust_caught_signal"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+extern "C" fn clear_caught_signal_ffi() = "moonjust_clear_caught_signal"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 extern "C" fn forward_signal_ffi(pid : Int, signal : Int) -> Int = "moonjust_forward_signal"
 
 ///|
@@ -130,6 +138,7 @@ fn remove_signal_child(pid : Int) -> Unit {
   }
   if state.children.is_empty() {
     state.first_signal = None
+    clear_caught_signal_ffi()
   }
 }
 
@@ -137,8 +146,28 @@ fn remove_signal_child(pid : Int) -> Unit {
 #cfg(all(target="native", not(platform="windows")))
 fn caught_signal() -> Int? {
   match signal_runtime.val {
-    Some(state) => state.first_signal
+    Some(state) =>
+      match state.first_signal {
+        Some(signal) => Some(signal)
+        None =>
+          match caught_signal_ffi() {
+            signal if signal > 0 => Some(signal)
+            _ => None
+          }
+      }
     None => None
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async fn cancel_signal_child(pid : Int) -> Unit {
+  match caught_signal() {
+    Some(1) | Some(2) | Some(3) => ()
+    _ => {
+      let CancellationHandler(cancel) = @process.graceful_cancel(timeout=5000)
+      cancel(pid)
+    }
   }
 }
 

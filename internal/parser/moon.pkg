@@ -3,6 +3,7 @@ import {
   "moonbit-community/MoonJust/internal/lexer",
   "moonbit-community/MoonJust/internal/source",
   "moonbit-community/MoonJust/internal/syntax",
+  "moonbitlang/core/env",
 }
 
 import {

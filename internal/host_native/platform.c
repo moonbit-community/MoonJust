@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -33,6 +35,32 @@ MOONBIT_FFI_EXPORT int32_t moonjust_host_architecture(void) {
   return 4;
 #else
   return 0;
+#endif
+}
+
+MOONBIT_FFI_EXPORT moonbit_string_t
+moonjust_host_short_path(moonbit_string_t path) {
+#ifdef _WIN32
+  WCHAR stack_buffer[1024];
+  DWORD capacity = (DWORD)(sizeof(stack_buffer) / sizeof(stack_buffer[0]));
+  DWORD length = GetShortPathNameW((LPCWSTR)path, stack_buffer, capacity);
+  WCHAR *resolved = stack_buffer;
+  if (length >= capacity) {
+    capacity = length + 1;
+    resolved = (WCHAR *)malloc((size_t)capacity * sizeof(WCHAR));
+    if (resolved == NULL) return path;
+    length = GetShortPathNameW((LPCWSTR)path, resolved, capacity);
+  }
+  if (length == 0 || length >= capacity || length > INT32_MAX) {
+    if (resolved != stack_buffer) free(resolved);
+    return path;
+  }
+  moonbit_string_t result = moonbit_make_string_raw((int32_t)length);
+  memcpy(result, resolved, (size_t)length * sizeof(WCHAR));
+  if (resolved != stack_buffer) free(resolved);
+  return result;
+#else
+  return path;
 #endif
 }
 

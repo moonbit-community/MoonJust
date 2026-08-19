@@ -5,6 +5,10 @@ extern "C" fn native_operating_system() -> Int = "moonjust_host_operating_system
 extern "C" fn native_architecture() -> Int = "moonjust_host_architecture"
 
 ///|
+#borrow(path)
+extern "C" fn native_short_path(path : String) -> String = "moonjust_host_short_path"
+
+///|
 extern "C" fn native_is_terminal(stream : Int) -> Int = "moonjust_host_is_terminal"
 
 ///|

@@ -122,6 +122,19 @@ pub async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostAsyncProcess] ex
     }
   }
   let justfile = directories.justfile().unwrap()
+  let editor_path = @path.PathValue::new(
+    editor,
+    directories.project_directory().flavor(),
+  ) catch {
+    error => raise Path(error)
+  }
+  if editor_path.flavor() == Windows && editor_path.file_name() is None {
+    raise InteractiveInvocation(
+      kind="editor",
+      command=editor,
+      detail="program path has no file name",
+    )
+  }
   let spec = @host.CommandSpec::new(editor, [justfile.as_string()]) catch {
     error => raise Host(error)
   }

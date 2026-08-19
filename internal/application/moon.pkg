@@ -16,6 +16,7 @@ import {
   "moonbit-community/MoonJust/internal/syntax",
   "moonbit-community/MoonJust/internal/value",
   "moonbit-community/MoonJust/internal/workdir",
+  "moonbitlang/core/env",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
   "moonbitlang/core/string",

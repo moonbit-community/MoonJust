@@ -59,7 +59,7 @@ async fn[X] spawn_observed_process(
     stdout~,
     stderr~,
     cwd~,
-    cancel_handler=@process.graceful_cancel(timeout=5000),
+    cancel_handler=CancellationHandler(cancel_signal_child),
     no_wait=true,
   )
   let pid = process.pid
@@ -112,7 +112,11 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
   let Managed(process~, pid~) = self
   let status = try process.wait() catch {
     error => {
+      let signal = caught_signal()
       remove_signal_child(pid)
+      if @async.is_cancellation_error(error) && signal is Some(number) {
+        return -(256 + number)
+      }
       raise error
     }
   } noraise {
@@ -265,6 +269,7 @@ fn windows_program_candidates(
 }
 
 ///|
+#warnings("-unused_value")
 fn windows_batch_command(
   program : String,
   arguments : ArrayView[String],
@@ -336,6 +341,25 @@ async fn materialize_windows_command(
   guard body is Some(command) else {
     return (program, arguments.to_owned(), None)
   }
+  let command_lower = command.to_lower()
+  let command_is_batch_path = (
+      command_lower.has_suffix(".cmd") || command_lower.has_suffix(".bat")
+    ) &&
+    (try @async_fs.kind(command) catch {
+      _ => false
+    } noraise {
+      Regular => true
+      _ => false
+    })
+  let script = if is_batch {
+    command
+  } else if command_is_batch_path {
+    "@echo off\r\ncall \"" +
+    command.replace_all(old="\"", new="\"\"") +
+    "\"\r\nexit /b %errorlevel%\r\n"
+  } else {
+    "@echo off\r\n" + command + "\r\n"
+  }
   let filename = ".moonjust-cmd-" + process_random_suffix() + ".cmd"
   let path = if cwd == "." || cwd.is_empty() {
     filename
@@ -346,7 +370,7 @@ async fn materialize_windows_command(
   }
   @async_fs.write_file(
     path,
-    @utf8.encode(command + "\r\n"),
+    @utf8.encode(script),
     create_mode=CreateNew,
     permission=0o600,
   ) catch {
@@ -363,9 +387,15 @@ async fn materialize_windows_command(
     }
   } else {
     let index = command_index.unwrap()
-    for argument in arguments[:index + 1] {
-      rewritten.push(argument)
+    rewritten.push("/d")
+    rewritten.push("/s")
+    for argument in arguments[:index] {
+      let lower_argument = argument.to_lower()
+      if lower_argument != "/d" && lower_argument != "/s" {
+        rewritten.push(argument)
+      }
     }
+    rewritten.push("/c")
     rewritten.push(path)
     for argument in arguments[index + 2:] {
       rewritten.push(argument)
@@ -384,6 +414,37 @@ async fn remove_windows_command_script(path : String) -> Unit {
 }
 
 ///|
+async fn windows_native_program(
+  program : String,
+  cwd : String,
+) -> String noraise {
+  if !windows_process_runtime() || !program.contains("/") {
+    return program
+  }
+  let cygpath = @env.get_env_var("JUST_CYGPATH").unwrap_or("cygpath")
+  let (status, stdout, _) = try
+    @process.collect_output(cygpath, ["--windows", program], cwd~)
+  catch {
+    _ => return program
+  } noraise {
+    value => value
+  }
+  if status != 0 {
+    return program
+  }
+  let translated = try stdout.text() catch {
+    _ => return program
+  } noraise {
+    value => value.trim_end().to_owned()
+  }
+  if translated.is_empty() {
+    program
+  } else {
+    translated
+  }
+}
+
+///|
 #cfg(platform="windows")
 fn windows_process_runtime() -> Bool {
   true
@@ -396,10 +457,11 @@ fn windows_process_runtime() -> Bool {
 }
 
 ///|
-async fn resolve_process_program(program : String) -> String {
+async fn resolve_process_program(program : String, cwd : String) -> String {
   if !windows_process_runtime() {
     return program
   }
+  let program = windows_native_program(program, cwd)
   let path = @env.get_env_var("PATH").unwrap_or("")
   let pathext = @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD")
   for candidate in windows_program_candidates(program, path, pathext) {
@@ -549,7 +611,9 @@ async fn run_process_with_output_limit(
     raise InvalidInput("captured process output limit must be non-negative")
   }
   let cwd = command.cwd().map(fn(path) { path.as_string() }).unwrap_or(".")
-  let resolved_program = try resolve_process_program(command.program()) catch {
+  let resolved_program = try
+    resolve_process_program(command.program(), cwd)
+  catch {
     error => raise InvalidInput(error.to_string())
   } noraise {
     value => value

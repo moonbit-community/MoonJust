@@ -86,12 +86,16 @@ pub fn LoaderError::message(self : LoaderError) -> String {
     AmbiguousModuleFile(module_name~, found~, ..) => {
       let directory_candidates : Array[String] = []
       let direct_candidates : Array[String] = []
+      let separator = found
+        .get(0)
+        .map(fn(path) { path.flavor().separator().to_string() })
+        .unwrap_or("/")
       for path in found {
         let filename = path.file_name().unwrap_or(path.as_string())
         if filename == module_name + ".just" {
           direct_candidates.push(filename)
         } else {
-          directory_candidates.push(module_name + "/" + filename)
+          directory_candidates.push(module_name + separator + filename)
         }
       }
       directory_candidates.append(direct_candidates)

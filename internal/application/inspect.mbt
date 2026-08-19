@@ -936,6 +936,9 @@ pub async fn[
     platform=semantic_target_platform(platform),
   )
   let (path, selected) = evaluation_path(project, arguments.positional())
+  let invocation_directory = shell_invocation_directory(
+    process, directories, arguments, platform,
+  )
   let (globals, _) = evaluate_project_globals_async(
     filesystem,
     process,
@@ -944,6 +947,7 @@ pub async fn[
     directories,
     arguments,
     platform,
+    invocation_directory,
     evaluation_target=(path, selected),
   )
   guard project.module_compilation(path) is Some(compilation) else {

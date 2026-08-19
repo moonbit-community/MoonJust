@@ -65,6 +65,7 @@ async fn read_stdin_source_bounded(max_bytes : Int) -> Bytes {
 async fn request_response(
   argv : ArrayView[String],
   environment : Map[String, String],
+  windows : Bool,
 ) -> @cli.ApplicationResponse? {
   if argv.length() != 2 || argv[0] != "--request" {
     return None
@@ -93,10 +94,28 @@ async fn request_response(
     None => "{\"environment-variable\":null}"
     Some(value) => {
       let numbers : Array[String] = []
-      for byte in @utf8.encode(value) {
-        numbers.push(byte.to_int().to_string())
+      if windows {
+        for character in value {
+          let code = character.to_int()
+          if code <= 0xffff {
+            numbers.push(code.to_string())
+          } else {
+            let scalar = code - 0x10000
+            numbers.push((0xd800 + (scalar >> 10)).to_string())
+            numbers.push((0xdc00 + (scalar & 0x3ff)).to_string())
+          }
+        }
+      } else {
+        for byte in @utf8.encode(value) {
+          numbers.push(byte.to_int().to_string())
+        }
       }
-      "{\"environment-variable\":{\"Unix\":[" + numbers.join(",") + "]}}"
+      let platform = if windows { "Windows" } else { "Unix" }
+      "{\"environment-variable\":{\"" +
+      platform +
+      "\":[" +
+      numbers.join(",") +
+      "]}}"
     }
   }
   Some(@cli.ApplicationResponse::success(stdout=@utf8.encode(response)))
@@ -239,7 +258,12 @@ async fn[
   } noraise {
     value => value
   }
-  match request_response(argv, environment) {
+  let windows = try @host.HostPlatform::platform_info(environment_host) catch {
+    _ => false
+  } noraise {
+    value => value.operating_system() == Windows
+  }
+  match request_response(argv, environment, windows) {
     Some(response) => return response
     None => ()
   }

@@ -457,6 +457,7 @@ fn project_evaluation_context(
   cwd : @path.PathValue,
   directories : @workdir.WorkingDirectoryModel,
   arguments : @cli.CliArguments,
+  invocation_directory : @path.PathValue,
   environment? : Array[(String, String)],
   platform? : @host.PlatformInfo,
 ) -> @evaluator.EvaluationContext {
@@ -602,7 +603,7 @@ fn project_evaluation_context(
     module_path=path.as_string(),
     executable?,
     executable_directory?,
-    invocation_directory=directories.invocation_directory(),
+    invocation_directory~,
     invocation_directory_native=directories.invocation_directory(),
     home_directory?=home,
     config_directory?=config,
@@ -625,6 +626,45 @@ fn project_evaluation_context(
     environment?,
     process_environment?=environment,
   )
+}
+
+///|
+async fn[P : @host.HostAsyncProcess] shell_invocation_directory(
+  process : P,
+  directories : @workdir.WorkingDirectoryModel,
+  arguments : @cli.CliArguments,
+  platform : @host.PlatformInfo,
+) -> @path.PathValue noraise {
+  let native = directories.invocation_directory()
+  if platform.operating_system() != Windows {
+    return native
+  }
+  let program = arguments.value("cygpath").unwrap_or("cygpath")
+  let spec = @host.CommandSpec::new(program, ["--unix", native.as_string()]) catch {
+    _ => return native
+  }
+  spec.set_cwd(native)
+  spec.set_stdout(Capture)
+  spec.set_stderr(Discard)
+  let output = try
+    @host.HostAsyncProcess::run_process_async(process, spec)
+  catch {
+    _ => return native
+  } noraise {
+    value => value
+  }
+  guard output.exit_code() == Some(0) else { return native }
+  let text = try @utf8.decode(output.stdout()) catch {
+    _ => return native
+  } noraise {
+    value => value.trim_end().to_owned()
+  }
+  if text.is_empty() {
+    return native
+  }
+  @path.PathValue::new(text, Unix) catch {
+    _ => native
+  }
 }
 
 ///|
@@ -1405,6 +1445,7 @@ async fn[
   directories : @workdir.WorkingDirectoryModel,
   arguments : @cli.CliArguments,
   platform : @host.PlatformInfo,
+  invocation_directory : @path.PathValue,
   targets? : ArrayView[(@modulepath.ModulePath, String)],
   evaluation_target? : (@modulepath.ModulePath, String?),
 ) -> (
@@ -1482,6 +1523,7 @@ async fn[
       evaluation_cwd,
       directories,
       arguments,
+      invocation_directory,
       environment=evaluation_environment,
       platform~,
     )
@@ -1670,7 +1712,9 @@ pub async fn[
         if arguments.flag("verbose") {
           fallback_stderr.write_string("Trying ")
           for _ in 0..<fallback_depth {
-            fallback_stderr.write_string("../")
+            fallback_stderr.write_string(
+              ".." + platform.path_flavor().separator().to_string(),
+            )
           }
           fallback_stderr.write_string("justfile\n")
         }
@@ -1680,6 +1724,9 @@ pub async fn[
     } noraise {
       value => value
     }
+    let invocation_directory = shell_invocation_directory(
+      process, directories, arguments, platform,
+    )
     let (globals, dotenv_by_module) = evaluate_project_globals_async(
       filesystem,
       process,
@@ -1688,6 +1735,7 @@ pub async fn[
       directories,
       arguments,
       platform,
+      invocation_directory,
       targets~,
     )
     let invocations = @invocation.parse_project_invocations_in_environments(
@@ -1750,6 +1798,7 @@ pub async fn[
         evaluation_cwd,
         directories,
         arguments,
+        invocation_directory,
         environment~,
         platform~,
       )

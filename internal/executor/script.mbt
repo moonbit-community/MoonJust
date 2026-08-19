@@ -177,7 +177,8 @@ fn prepare_planned_script(
       lines,
       needs_bom(program),
       shebang is Some(_),
-      configuration.platform().operating_system() == Windows,
+      configuration.platform().operating_system() == Windows &&
+      inferred_extension(program) != "",
     ),
     shebang,
     cwd,
@@ -501,7 +502,8 @@ pub fn[T : @host.HostProcess + @host.HostScriptTemp + @host.HostExecutable] exec
     lines,
     needs_bom(program),
     shebang is Some(_),
-    configuration.platform().operating_system() == Windows,
+    configuration.platform().operating_system() == Windows &&
+    inferred_extension(program) != "",
   )
   let path = @host.HostScriptTemp::create_script_temp(
     host,

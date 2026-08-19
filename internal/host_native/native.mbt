@@ -236,6 +236,11 @@ pub impl @host.HostEnv for NativeFs with fn current_dir(_self : NativeFs) -> @pa
     raise CapabilityUnavailable(Environment)
   }
   let operating_system = detected_operating_system()
+  let value = if operating_system == Windows {
+    native_short_path(value)
+  } else {
+    value
+  }
   @path.PathValue::new(
     value,
     path_flavor_for_operating_system(operating_system),

@@ -33,6 +33,16 @@ pub(all) suberror ApplicationError {
 } derive(Debug)
 
 ///|
+fn process_exit_label() -> String {
+  if @env.get_env_var("MOONJUST_OS") == Some("windows") ||
+    @env.get_env_var("OS") == Some("Windows_NT") {
+    "exit code"
+  } else {
+    "exit status"
+  }
+}
+
+///|
 pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
   match self {
     Cli(_) | UnsupportedCommand(_) => 2
@@ -87,9 +97,9 @@ pub fn ApplicationError::message(self : ApplicationError) -> String {
     InteractiveInvocation(kind~, command~, detail~) =>
       "error: \{kind} `\{command}` invocation failed: \{detail}"
     InteractiveProcess(kind="command", command~, termination=Exited(code)) =>
-      "error: command \{command} failed: exit status: \{code}"
+      "error: command \{command} failed: \{process_exit_label()}: \{code}"
     InteractiveProcess(kind~, command~, termination=Exited(code)) =>
-      "error: \{kind} `\{command}` failed: exit status: \{code}"
+      "error: \{kind} `\{command}` failed: \{process_exit_label()}: \{code}"
     InteractiveProcess(kind="command", command~, termination=Signaled(signal)) =>
       "error: command \{command} terminated by signal \{signal.number()}"
     InteractiveProcess(kind~, command~, termination=Signaled(signal)) => {

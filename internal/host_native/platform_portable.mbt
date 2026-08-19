@@ -1,4 +1,9 @@
 ///|
+fn native_short_path(path : String) -> String {
+  path
+}
+
+///|
 fn detected_operating_system() -> @host.OperatingSystem {
   match @env.get_env_var("MOONJUST_OS") {
     Some("linux") => Linux

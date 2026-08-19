@@ -102,6 +102,22 @@ pub fn EffectShell::arguments(self : EffectShell) -> ArrayView[String] {
 }
 
 ///|
+fn shell_takes_name(program : String) -> Bool {
+  let name = program
+    .replace_all(old="\\", new="/")
+    .split("/")
+    .last()
+    .unwrap_or(program[:])
+    .to_lower()
+  name != "cmd" &&
+  name != "cmd.exe" &&
+  name != "powershell" &&
+  name != "powershell.exe" &&
+  name != "pwsh" &&
+  name != "pwsh.exe"
+}
+
+///|
 fn strip_one_line_ending(text : String) -> String {
   if text.has_suffix("\r\n") {
     text[:text.length() - 2].to_owned()
@@ -141,7 +157,7 @@ pub fn[T : @host.HostProcess] call_shell_effect(
   let command = expect_string(name, arguments, 0, span)
   let shell_arguments = shell.arguments().to_owned()
   shell_arguments.push(command)
-  if shell_function {
+  if shell_function && shell_takes_name(shell.program()) {
     shell_arguments.push(command)
     for argument in arguments[1:] {
       shell_arguments.push(expect_string(name, [argument], 0, span))
@@ -190,7 +206,7 @@ pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
   let command = expect_string(name, arguments, 0, span)
   let shell_arguments = shell.arguments().to_owned()
   shell_arguments.push(command)
-  if shell_function {
+  if shell_function && shell_takes_name(shell.program()) {
     shell_arguments.push(command)
     for argument in arguments[1:] {
       shell_arguments.push(expect_string(name, [argument], 0, span))

@@ -7,6 +7,16 @@ pub struct ParserLimits {
 } derive(Eq, Debug)
 
 ///|
+fn default_parser_depth() -> Int {
+  if @env.get_env_var("MOONJUST_OS") == Some("windows") ||
+    @env.get_env_var("OS") == Some("Windows_NT") {
+    48
+  } else {
+    256
+  }
+}
+
+///|
 pub fn ParserLimits::new(
   max_depth : Int,
   max_nodes : Int,
@@ -20,7 +30,11 @@ pub fn ParserLimits::new(
 
 ///|
 pub fn ParserLimits::default() -> ParserLimits {
-  { max_depth: 256, max_nodes: 1_000_000, max_diagnostics: 64 }
+  {
+    max_depth: default_parser_depth(),
+    max_nodes: 1_000_000,
+    max_diagnostics: 64,
+  }
 }
 
 ///|

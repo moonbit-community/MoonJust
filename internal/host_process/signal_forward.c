@@ -48,6 +48,7 @@ int32_t moonjust_kind_of_fd(HANDLE handle) {
 static volatile sig_atomic_t moonjust_signal_fd = -1;
 static volatile sig_atomic_t moonjust_signal_overflowed = 0;
 static volatile sig_atomic_t moonjust_signal_owner_pid = -1;
+static volatile sig_atomic_t moonjust_first_signal = 0;
 
 MOONBIT_FFI_EXPORT
 void moonjust_install_signal_pipe(int32_t fd);
@@ -77,6 +78,11 @@ static void moonjust_record_signal(int signal) {
   int saved_errno = errno;
   if (moonjust_signal_owner_pid != (sig_atomic_t)getpid()) {
     moonjust_restore_default_and_reraise(signal);
+  }
+  if ((signal == SIGINT || signal == SIGHUP || signal == SIGQUIT ||
+       signal == SIGTERM) &&
+      moonjust_first_signal == 0) {
+    moonjust_first_signal = (sig_atomic_t)signal;
   }
   int fd = (int)moonjust_signal_fd;
   if (fd >= 0) {
@@ -122,6 +128,7 @@ void moonjust_install_signal_pipe(int32_t fd) {
   moonjust_signal_fd = (sig_atomic_t)fd;
   moonjust_signal_owner_pid = (sig_atomic_t)getpid();
   moonjust_signal_overflowed = 0;
+  moonjust_first_signal = 0;
   moonjust_unblock_forwarded_signals();
 }
 
@@ -130,6 +137,16 @@ int32_t moonjust_signal_pipe_overflow(void) {
   sig_atomic_t overflowed = moonjust_signal_overflowed;
   moonjust_signal_overflowed = 0;
   return overflowed != 0;
+}
+
+MOONBIT_FFI_EXPORT
+int32_t moonjust_caught_signal(void) {
+  return (int32_t)moonjust_first_signal;
+}
+
+MOONBIT_FFI_EXPORT
+void moonjust_clear_caught_signal(void) {
+  moonjust_first_signal = 0;
 }
 
 MOONBIT_FFI_EXPORT
