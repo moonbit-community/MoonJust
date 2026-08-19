@@ -8,8 +8,7 @@
 static volatile sig_atomic_t moonjust_async_probe_seen;
 
 static void moonjust_async_probe_handler(int signal) {
-  (void)signal;
-  moonjust_async_probe_seen = 1;
+  moonjust_async_probe_seen = signal;
 }
 
 MOONBIT_FFI_EXPORT
@@ -18,7 +17,10 @@ void moonjust_async_install_signal_probe(void) {
   memset(&action, 0, sizeof(action));
   action.sa_handler = moonjust_async_probe_handler;
   sigemptyset(&action.sa_mask);
+  sigaction(SIGHUP, &action, NULL);
   sigaction(SIGINT, &action, NULL);
+  sigaction(SIGQUIT, &action, NULL);
+  sigaction(SIGTERM, &action, NULL);
 }
 
 MOONBIT_FFI_EXPORT

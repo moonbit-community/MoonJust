@@ -4,7 +4,7 @@ set -eu
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
 if [ "$(uname -s)" != Linux ]; then
-  echo "async signal ownership probe skipped: Linux-specific sigwait behavior"
+  echo "async signal ownership probe skipped: Linux-specific signal behavior"
   exit 0
 fi
 
@@ -22,24 +22,36 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-conflicts=0
-attempt=1
-while [ "$attempt" -le 5 ]; do
-  "$probe" >"$work/stdout-$attempt" 2>"$work/stderr-$attempt" &
-  pid=$!
-  sleep 0.05
-  kill -INT "$pid"
-  status=0
-  wait "$pid" || status=$?
-  if [ "$status" -ne 0 ]; then
-    conflicts=$((conflicts + 1))
-  fi
-  attempt=$((attempt + 1))
+total_conflicts=0
+conflict_json=
+for signal in HUP INT QUIT TERM; do
+  conflicts=0
+  attempt=1
+  while [ "$attempt" -le 5 ]; do
+    "$probe" >"$work/stdout-$signal-$attempt" 2>"$work/stderr-$signal-$attempt" &
+    pid=$!
+    sleep 0.05
+    kill -"$signal" "$pid"
+    status=0
+    wait "$pid" || status=$?
+    if [ "$status" -ne 0 ] || ! grep -qx custom-handler "$work/stdout-$signal-$attempt"; then
+      conflicts=$((conflicts + 1))
+    fi
+    attempt=$((attempt + 1))
+  done
+  total_conflicts=$((total_conflicts + conflicts))
+  separator=,
+  [ -n "$conflict_json" ] || separator=
+  conflict_json="$conflict_json$separator\"SIG$signal\":$conflicts"
 done
 
-if [ "$conflicts" -eq 0 ]; then
-  echo "async signal ownership limitation is stale: custom handler won all attempts" >&2
+status=passed
+if [ "$total_conflicts" -ne 0 ]; then
+  status=failed
+fi
+printf '{"async_version":"0.20.4","attempts_per_signal":5,"conflicts":{%s},"status":"%s"}\n' \
+  "$conflict_json" "$status"
+if [ "$total_conflicts" -ne 0 ]; then
+  echo "application signal handler lost $total_conflicts ownership attempts" >&2
   exit 1
 fi
-
-printf '{"async_version":"0.20.4","attempts":5,"sigwait_conflicts":%s,"status":"unsupported"}\n' "$conflicts"

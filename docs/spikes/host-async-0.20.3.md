@@ -62,14 +62,13 @@ for Native and wasm1 filesystem/process adapters, subject to these controls:
 
 ## Linux signal ownership follow-up
 
-The isolated `signal_probe` demonstrates a remaining Linux limitation in
-async 0.20.4 and current upstream main. Calling
-`set_global_cancellation_signals([])` unblocks the supported signals, but the
-event loop still starts a worker that calls `sigwait` for every supported
-signal. That worker can consume a process-directed signal before an
-application handler, so MoonJust cannot implement official just's
-"record INT/HUP/QUIT, forward TERM" contract using the public async signal API
-alone. Process spawn, wait, cancellation, and Windows Job Object ownership
+The isolated `signal_probe` checks HUP, INT, QUIT, and TERM independently after
+calling `set_global_cancellation_signals([])`. Hosted Linux evidence showed the
+application handler receiving every sampled SIGINT, so a previously suspected
+`sigwait` ownership race is not accepted as the cause of the forwarding test
+failure. The public async signal API still does not expose the first received
+signal or official just's selective "record INT/HUP/QUIT, forward TERM"
+contract. Process spawn, wait, cancellation, and Windows Job Object ownership
 remain delegated to async; the Unix compatibility adapter must stay isolated
 until async exposes signal observation or configurable wait ownership.
 
