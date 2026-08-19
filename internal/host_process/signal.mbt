@@ -62,6 +62,11 @@ pub fn[X] configure_signal_forwarding(
   } noraise {
     value => value
   }
+  // Async creates its signal-wait worker while the event loop starts. Reset
+  // the current thread's cancellation mask after that initialization as well
+  // as during package setup, so process-directed signals reach our pipe
+  // handler instead of cancelling the root task.
+  @signal.set_global_cancellation_signals([])
   install_signal_pipe_ffi(write.fd())
   let state = { read, write, children: [], first_signal: None }
   ignore(state.write.fd())
