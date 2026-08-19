@@ -504,30 +504,57 @@ fn project_evaluation_context(
   }
   let entries = environment.unwrap_or([])
   let home = environment_path(entries, "HOME", cwd.flavor())
+  let windows = platform
+    .map(fn(value) { value.operating_system() == Windows })
+    .unwrap_or(false)
   let macos_home = home
     .map(fn(path) { path.as_string().has_prefix("/Users/") })
     .unwrap_or(false) ||
     environment_value(entries, "__CF_USER_TEXT_ENCODING") is Some(_)
   let application_support = child_path(home, "Library/Application Support")
+  let windows_appdata = environment_path(entries, "APPDATA", cwd.flavor())
+  let windows_local_appdata = environment_path(
+    entries,
+    "LOCALAPPDATA",
+    cwd.flavor(),
+  )
   let config = prefer_path(
-    environment_path(entries, "XDG_CONFIG_HOME", cwd.flavor()),
-    if macos_home {
+    if windows {
+      windows_appdata
+    } else {
+      environment_path(entries, "XDG_CONFIG_HOME", cwd.flavor())
+    },
+    if windows {
+      windows_appdata
+    } else if macos_home {
       application_support
     } else {
       child_path(home, ".config")
     },
   )
   let data = prefer_path(
-    environment_path(entries, "XDG_DATA_HOME", cwd.flavor()),
-    if macos_home {
+    if windows {
+      windows_local_appdata
+    } else {
+      environment_path(entries, "XDG_DATA_HOME", cwd.flavor())
+    },
+    if windows {
+      windows_local_appdata
+    } else if macos_home {
       application_support
     } else {
       child_path(home, ".local/share")
     },
   )
   let cache = prefer_path(
-    environment_path(entries, "XDG_CACHE_HOME", cwd.flavor()),
-    if macos_home {
+    if windows {
+      windows_local_appdata
+    } else {
+      environment_path(entries, "XDG_CACHE_HOME", cwd.flavor())
+    },
+    if windows {
+      windows_local_appdata
+    } else if macos_home {
       child_path(home, "Library/Caches")
     } else {
       child_path(home, ".cache")
@@ -579,7 +606,7 @@ fn project_evaluation_context(
     invocation_directory_native=directories.invocation_directory(),
     home_directory?=home,
     config_directory?=config,
-    config_local_directory?=config,
+    config_local_directory?=if windows { windows_local_appdata } else { config },
     data_directory?=data,
     data_local_directory?=data,
     cache_directory?=cache,

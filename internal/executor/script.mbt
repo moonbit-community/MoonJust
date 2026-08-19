@@ -128,13 +128,19 @@ fn script_bytes(
   lines : ArrayView[String],
   bom : Bool,
   direct_shebang : Bool,
+  strip_shebang : Bool,
 ) -> Bytes {
   let output : Array[Byte] = []
   if bom {
     append_bytes(output, @utf8.encode("\u{feff}")[:])
   }
   for line in positioned_script_lines(recipe, lines, direct_shebang) {
-    append_bytes(output, @utf8.encode(line)[:])
+    let rendered = if strip_shebang && line.has_prefix("#!") {
+      ""
+    } else {
+      line
+    }
+    append_bytes(output, @utf8.encode(rendered)[:])
     output.push(b'\n')
   }
   Bytes::from_array(output)
@@ -166,7 +172,13 @@ fn prepare_planned_script(
   }
   PlannedScript::new(
     recipe.name(),
-    script_bytes(recipe, lines, needs_bom(program), shebang is Some(_)),
+    script_bytes(
+      recipe,
+      lines,
+      needs_bom(program),
+      shebang is Some(_),
+      configuration.platform().operating_system() == Windows,
+    ),
     shebang,
     cwd,
     process_environment.to_owned(),
@@ -489,6 +501,7 @@ pub fn[T : @host.HostProcess + @host.HostScriptTemp + @host.HostExecutable] exec
     lines,
     needs_bom(program),
     shebang is Some(_),
+    configuration.platform().operating_system() == Windows,
   )
   let path = @host.HostScriptTemp::create_script_temp(
     host,
