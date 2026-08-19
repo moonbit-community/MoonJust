@@ -18,3 +18,4 @@ moon -C "$spike" check --target native --warn-list +73
 moon -C "$spike" check --target wasm --warn-list +73
 moon -C "$spike" test --target native
 moon -C "$spike" test --target wasm
+"$spike/check_signal_ownership.sh"

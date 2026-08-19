@@ -1,23 +1,4 @@
 ///|
-// Configure signal ownership before moonbitlang/async creates its event loop.
-#cfg(all(target="native", not(platform="windows")))
-fn init {
-  @host_process.configure_signal_forwarding()
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-fn configure_signal_forwarding_runtime() -> Unit {
-  ()
-}
-
-///|
-#cfg(any(target="wasm", platform="windows"))
-fn configure_signal_forwarding_runtime() -> Unit {
-  @host_process.configure_signal_forwarding()
-}
-
-///|
 fn[E : @host.HostEnv] parse_environment(
   environment_host : E,
 ) -> Map[String, String] raise @host.HostError {
@@ -446,7 +427,7 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 
 ///|
 async fn main {
-  configure_signal_forwarding_runtime()
+  @host_process.configure_signal_forwarding()
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
   let environment_host = runtime_environment_host()
