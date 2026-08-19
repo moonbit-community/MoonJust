@@ -19,7 +19,8 @@ from typing import Any
 
 
 SCHEMA_VERSION = 1
-SCENARIOS = ("direct", "shell-exec", "shell-descendant")
+SCENARIOS = ("direct", "shell-exec", "shell-foreground", "shell-descendant")
+OBSERVATION_ERRORS: list[str] = []
 
 
 def encode(record: dict[str, Any]) -> str:
@@ -70,14 +71,20 @@ def linux_marker_pids(name: str, value: str) -> list[int]:
 
 
 def group_pids(pgid: int) -> list[int]:
-    result = subprocess.run(
-        ["ps", "-axo", "pid=,pgid="],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    try:
+        result = subprocess.run(
+            ["ps", "-axo", "pid=,pgid="],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except OSError as error:
+        message = f"process observation unavailable: {error}"
+        if message not in OBSERVATION_ERRORS:
+            OBSERVATION_ERRORS.append(message)
+        return []
     matches: list[int] = []
     for line in result.stdout.splitlines():
         fields = line.split()
@@ -101,20 +108,26 @@ def marker_pids(name: str, value: str, pgid: int) -> list[int]:
 def process_snapshot(pids: list[int]) -> list[dict[str, Any]]:
     if not pids:
         return []
-    result = subprocess.run(
-        [
-            "ps",
-            "-o",
-            "pid=,ppid=,pgid=,state=,command=",
-            "-p",
-            ",".join(map(str, pids)),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    try:
+        result = subprocess.run(
+            [
+                "ps",
+                "-o",
+                "pid=,ppid=,pgid=,state=,command=",
+                "-p",
+                ",".join(map(str, pids)),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except OSError as error:
+        message = f"process observation unavailable: {error}"
+        if message not in OBSERVATION_ERRORS:
+            OBSERVATION_ERRORS.append(message)
+        return []
     rows: list[dict[str, Any]] = []
     pattern = re.compile(r"^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(.*)$")
     for line in result.stdout.splitlines():
@@ -315,7 +328,7 @@ def async_cause_report(async_root: Path) -> dict[str, Any]:
 
 def validate_linux(records: list[dict[str, Any]]) -> None:
     by_key = {(record["mode"], record["scenario"]): record for record in records}
-    for scenario in ("direct", "shell-exec"):
+    for scenario in ("direct", "shell-exec", "shell-foreground"):
         record = by_key[("observe", scenario)]
         event_names = [event["event"] for event in record["events"]]
         parent_signals = [
@@ -382,6 +395,34 @@ def validate_linux(records: list[dict[str, Any]]) -> None:
         raise RuntimeError("Process cancellation cause surface changed")
     if global_direct["before_cleanup"]["processes"]:
         raise RuntimeError("global cancellation returned before direct child cleanup")
+    late_direct = by_key[("late", "direct")]
+    late_events = [event["event"] for event in late_direct["events"]]
+    late_signals = [
+        event["signal"]
+        for event in late_direct["events"]
+        if event["event"] == "parent-signal"
+    ]
+    if (
+        not late_direct["alive_after_first_signal"]
+        or late_direct["timed_out"]
+        or late_direct["returncode"] != 0
+        or late_signals != ["SIGINT", "SIGTERM"]
+        or "direct-forward" not in late_events
+        or "process-wait-complete" not in late_events
+        or "pipe-reader-eof" not in late_events
+        or "pipe-reader-joined" not in late_events
+        or "parent-complete" not in late_events
+    ):
+        raise RuntimeError(
+            "late signal configuration did not preserve observed lifecycle"
+        )
+    if (
+        late_direct["ready"]["orphans"]
+        or late_direct["after_first_signal"]["orphans"]
+        or late_direct["before_cleanup"]["processes"]
+        or late_direct["remaining_after_cleanup"]
+    ):
+        raise RuntimeError("late signal configuration leaked processes")
     for record in records:
         if record["remaining_after_cleanup"]:
             raise RuntimeError(
@@ -402,6 +443,7 @@ def main() -> int:
         run_case(args.executable.resolve(), scenario, "observe", timeout=2.0)
         for scenario in SCENARIOS
     ]
+    records.append(run_case(args.executable.resolve(), "direct", "late", timeout=2.0))
     records.append(run_case(args.executable.resolve(), "direct", "global", timeout=2.0))
     cause = async_cause_report(args.async_root.resolve())
     if args.assert_linux:
@@ -420,10 +462,11 @@ def main() -> int:
         "cases": len(records),
         "linux_assertions": args.assert_linux,
         "output": str(args.output),
-        "status": "passed",
+        "status": "infrastructure-invalid" if OBSERVATION_ERRORS else "passed",
+        "observation_errors": OBSERVATION_ERRORS,
     }
     print(encode(summary))
-    return 0
+    return 2 if OBSERVATION_ERRORS else 0
 
 
 if __name__ == "__main__":

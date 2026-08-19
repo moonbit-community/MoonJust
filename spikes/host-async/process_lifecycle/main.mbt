@@ -18,7 +18,7 @@ extern "C" fn process_group_id() -> Int = "moonjust_async_lifecycle_process_grou
 
 ///|
 fn init {
-  if @env.get_env_var("MOONJUST_LIFECYCLE_SIGNAL_MODE") != Some("global") {
+  if @env.get_env_var("MOONJUST_LIFECYCLE_SIGNAL_MODE") == Some("observe") {
     @signal.set_global_cancellation_signals([])
     install_signal_observer()
   }
@@ -128,6 +128,7 @@ fn child_command(
   match scenario {
     "direct" => (executable, ["child"])
     "shell-exec" => ("/bin/sh", ["-cu", "exec \"$0\" child", executable])
+    "shell-foreground" => ("/bin/sh", ["-cu", "\"$0\" child", executable])
     "shell-descendant" =>
       ("/bin/sh", ["-cu", "\"$0\" child & wait", executable])
     _ => abort("unknown lifecycle scenario")
@@ -201,6 +202,10 @@ async fn run_parent(scenario : String) -> Unit {
 
 ///|
 async fn main {
+  if @env.get_env_var("MOONJUST_LIFECYCLE_SIGNAL_MODE") == Some("late") {
+    @signal.set_global_cancellation_signals([])
+    install_signal_observer()
+  }
   match @env.args()[1:] {
     ["child"] => run_signal_child()
     ["parent", scenario] => run_parent(scenario)

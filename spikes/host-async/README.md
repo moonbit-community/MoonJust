@@ -23,7 +23,15 @@ reported separately. Any lost signal fails the spike instead of being inferred
 from the larger upstream process-tree test.
 
 `check_process_lifecycle.py` records the signal-to-cancellation path and runs
-direct-child, shell-`exec`, and ordinary shell-descendant scenarios. Each case
-captures PID, PPID, PGID, process state, and Linux pipe holders before cleanup.
-The driver always starts an isolated test session and kills that exact group on
-failure, so the evidence run cannot leave its own descendants behind.
+direct-child, shell-`exec`, ordinary foreground shell, and background shell
+descendant scenarios, plus a direct-child case where signal ownership is
+configured at the first async-main statement instead of during module init.
+Each case captures PID, PPID, PGID, process state, and Linux pipe holders before
+cleanup. The driver always starts an isolated test session and kills that exact
+group on failure, so the evidence run cannot leave its own descendants behind.
+
+The lifecycle report is authoritative only when PID observation is available.
+If a host forbids `ps` (for example, a restricted local sandbox), the report is
+emitted with `status: infrastructure-invalid` and a non-zero exit status; this
+must not be interpreted as a lifecycle pass. Linux CI uses `/proc` and `ps` and
+enables the full assertion set.
