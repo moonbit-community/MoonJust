@@ -75,15 +75,10 @@ pub impl @host.HostFs for ReadOnlyFs with fn metadata(
   self : ReadOnlyFs,
   path : @path.PathValue,
 ) -> @host.FileMetadata raise @host.HostError {
-  try @host.HostFs::read_file(self.inner, path) catch {
-    _ => {
-      ignore(@host.HostFs::read_dir(self.inner, path))
-      @host.FileMetadata::new(false, true, 0L)
-    }
-  } noraise {
-    contents =>
-      @host.FileMetadata::new(true, false, contents.length().to_int64())
-  }
+  // Metadata must not read the file: a FIFO or other special file can block
+  // until a writer appears. The native adapter already uses non-consuming
+  // type checks and reports special files without a size probe.
+  @host.HostFs::metadata(self.inner, path)
 }
 
 ///|

@@ -980,44 +980,25 @@ fn dotenv_runtime_path(
 }
 
 ///|
-async fn[P : @host.HostAsyncProcess] read_dotenv_runtime_file(
-  process : P,
+async fn[F : @host.HostFs + @host.HostSourceReader] read_dotenv_runtime_file(
+  filesystem : F,
   path : @path.PathValue,
-  cwd : @path.PathValue,
   ambient : @environment.EnvTable,
 ) -> @environment.EnvTable? raise ApplicationError {
-  let directory_test = @host.CommandSpec::new("/bin/test", [
-    "-d",
-    path.as_string(),
-  ]) catch {
+  let metadata = @host.HostFs::metadata(filesystem, path) catch {
     _ => raise Dotenv(SourceAccess)
   }
-  directory_test.set_cwd(cwd)
-  directory_test.set_stdout(Discard)
-  directory_test.set_stderr(Discard)
-  let directory_result = @host.HostAsyncProcess::run_process_async(
-    process, directory_test,
+  if metadata.is_directory() {
+    return None
+  }
+  let bytes = @host.HostSourceReader::read_source(
+    filesystem,
+    path,
+    @lexer.LexerLimits::default().max_source_bytes(),
   ) catch {
     _ => raise Dotenv(SourceAccess)
   }
-  if directory_result.termination() == Exited(0) {
-    return None
-  }
-  let command = @host.CommandSpec::new("/bin/cat", [path.as_string()]) catch {
-    _ => raise Dotenv(SourceAccess)
-  }
-  command.set_cwd(cwd)
-  command.set_stdout(Capture)
-  command.set_stderr(Discard)
-  let result = @host.HostAsyncProcess::run_process_async(process, command) catch {
-    _ => raise Dotenv(SourceAccess)
-  }
-  if result.termination() != Exited(0) {
-    raise Dotenv(SourceAccess)
-  }
-  let text = @utf8.decode(result.stdout()) catch {
-    _ => raise Dotenv(InvalidUtf8(path~))
-  }
+  let text = @utf8.decode(bytes) catch { _ => raise Dotenv(InvalidUtf8(path~)) }
   Some(
     @environment.parse_dotenv(text, ambient~) catch {
       Parse(line~, column~) => raise Dotenv(ParseFile(path~, line~, column~))
@@ -1027,9 +1008,8 @@ async fn[P : @host.HostAsyncProcess] read_dotenv_runtime_file(
 }
 
 ///|
-async fn[F : @host.HostFs, P : @host.HostAsyncProcess] load_dotenv_files_for_runtime(
+async fn[F : @host.HostFs + @host.HostSourceReader] load_dotenv_files_for_runtime(
   filesystem : F,
-  process : P,
   portable_runtime : Bool,
   cwd : @path.PathValue,
   ambient : @environment.EnvTable,
@@ -1083,7 +1063,7 @@ async fn[F : @host.HostFs, P : @host.HostAsyncProcess] load_dotenv_files_for_run
       _ => raise Dotenv(SourceAccess)
     }
     if exists {
-      match read_dotenv_runtime_file(process, path, cwd, ambient) {
+      match read_dotenv_runtime_file(filesystem, path, ambient) {
         Some(loaded) => {
           merge(result, loaded, ambient, override_environment)
           found = true
@@ -1104,7 +1084,7 @@ async fn[F : @host.HostFs, P : @host.HostAsyncProcess] load_dotenv_files_for_run
         _ => raise Dotenv(SourceAccess)
       }
       if exists {
-        match read_dotenv_runtime_file(process, path, cwd, ambient) {
+        match read_dotenv_runtime_file(filesystem, path, ambient) {
           Some(loaded) => {
             merge(result, loaded, ambient, override_environment)
             found = true
@@ -1125,7 +1105,7 @@ async fn[F : @host.HostFs, P : @host.HostAsyncProcess] load_dotenv_files_for_run
 }
 
 ///|
-async fn[F : @host.HostFs, P : @host.HostAsyncProcess] compose_dotenv_environment_async(
+async fn[F : @host.HostFs + @host.HostSourceReader, P : @host.HostAsyncProcess] compose_dotenv_environment_async(
   filesystem : F,
   process : P,
   portable_runtime : Bool,
@@ -1169,7 +1149,6 @@ async fn[F : @host.HostFs, P : @host.HostAsyncProcess] compose_dotenv_environmen
       )
     load_dotenv_files_for_runtime(
       filesystem,
-      process,
       portable_runtime,
       cwd,
       ambient,
@@ -1415,7 +1394,7 @@ async fn[
 
 ///|
 async fn[
-  F : @host.HostFs,
+  F : @host.HostFs + @host.HostSourceReader,
   P : @host.HostAsyncProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] evaluate_project_globals_async(

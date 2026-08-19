@@ -7,6 +7,7 @@ import {
   "moonbit-community/MoonJust/internal/executor",
   "moonbit-community/MoonJust/internal/host",
   "moonbit-community/MoonJust/internal/invocation",
+  "moonbit-community/MoonJust/internal/lexer",
   "moonbit-community/MoonJust/internal/loader",
   "moonbit-community/MoonJust/internal/modulepath",
   "moonbit-community/MoonJust/internal/path",
