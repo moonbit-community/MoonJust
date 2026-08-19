@@ -45,7 +45,7 @@ jobs:
       - name: Verify measurement tooling
         shell: bash
         run: |
-          for test in tools/performance/*_test.py tools/release/*_test.py tools/upstream/*_test.py; do
+          for test in tools/performance/*_test.py tools/quality/*_test.py tools/release/*_test.py tools/upstream/*_test.py; do
             python3 "$test"
           done
 
@@ -358,12 +358,15 @@ jobs:
         shell: bash
         run: |
           python3 tools/release/generate_release_evidence.py \
+            --mode release \
             --test-map tests/upstream/just-1.57.0/test-map.jsonl \
             --contract-results evidence/contracts/results.jsonl \
             --compat-report linux-x86_64=evidence/linux-x86_64/upstream-harness/compatibility-report.jsonl \
             --compat-report macos-aarch64=evidence/macos-aarch64/upstream-harness/compatibility-report.jsonl \
             --compat-report windows-x86_64=evidence/windows-x86_64/upstream-harness/compatibility-report.jsonl \
             --coverage evidence/coverage/summary.json \
+            --coverage-metadata native=evidence/coverage/native.metadata.json \
+            --coverage-metadata wasm=evidence/coverage/wasm.metadata.json \
             --performance evidence/performance/results.json \
             --size-report linux-x86_64=evidence/linux-x86_64/release/artifact-size-linux-x86_64.json \
             --size-report macos-aarch64=evidence/macos-aarch64/release/artifact-size-macos-aarch64.json \

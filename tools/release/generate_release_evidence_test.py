@@ -17,6 +17,28 @@ SPEC.loader.exec_module(evidence)
 
 
 class ReleaseEvidenceTest(unittest.TestCase):
+    def test_moon_toolchain_identity_ignores_install_paths(self) -> None:
+        first = "moon 1 (abc) /home/runner/.moon/bin/moon\nmoonc 2 C:\\\\moon\\\\moonc"
+        second = "moon 1 (abc) /Users/example/.moon/bin/moon\nmoonc 2 /opt/moon/moonc"
+        self.assertEqual(
+            evidence.moon_toolchain_identity(first),
+            evidence.moon_toolchain_identity(second),
+        )
+
+    def test_toolchain_summary_rejects_cross_job_drift(self) -> None:
+        failures: list[str] = []
+        summary = evidence.toolchain_summary(
+            {"native": {"toolchain": "moon 1"}, "wasm": {"toolchain": "moon 1"}},
+            {"summary": {"moon": "moon 2 /tmp/moon"}},
+            {},
+            failures,
+        )
+        self.assertIsNone(summary["identity"])
+        self.assertEqual(
+            failures,
+            ["infrastructure: MoonBit toolchain fingerprints differ across jobs"],
+        )
+
     def test_assignment_parser_rejects_ambiguous_values(self) -> None:
         with self.assertRaisesRegex(ValueError, "NAME=PATH"):
             evidence.parse_assignment("linux-x86_64")
@@ -152,7 +174,7 @@ class ReleaseEvidenceTest(unittest.TestCase):
             finally:
                 evidence.sys.argv = previous
             record = json.loads(output.read_text())
-            self.assertEqual(record["status"], "failed")
+            self.assertEqual(record["status"], "missing")
             self.assertTrue(record["missing_inputs"])
             self.assertIn("release evidence input is missing", " ".join(record["failures"]))
 

@@ -13,7 +13,7 @@ from collections import Counter
 from pathlib import Path
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 REQUIRED_PLATFORMS = {"linux-x86_64", "macos-aarch64", "windows-x86_64"}
 REQUIRED_COVERAGE_AREAS = {
@@ -94,6 +94,117 @@ def indexed_paths(
 
 def artifact(path: Path) -> dict[str, object]:
     return {"path": str(path), "bytes": path.stat().st_size, "sha256": sha256(path)}
+
+
+def command_output(command: list[str]) -> str | None:
+    try:
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return (result.stdout + result.stderr).strip()
+
+
+def source_provenance(moonjust_commit: str, failures: list[str]) -> dict[str, object]:
+    clean = subprocess.run(
+        ["git", "diff", "--quiet"], check=False
+    ).returncode == 0 and subprocess.run(
+        ["git", "diff", "--cached", "--quiet"], check=False
+    ).returncode == 0
+    if not clean:
+        failures.append("release evidence source tree is dirty")
+    return {
+        "moonjust_commit": moonjust_commit,
+        "official_commit": UPSTREAM_COMMIT,
+        "merge_base": command_output(["git", "merge-base", "HEAD", "main"]),
+        "working_tree_clean": clean,
+        "runner": {
+            "os": platform.platform(),
+            "python": platform.python_version(),
+        },
+    }
+
+
+def moon_toolchain_identity(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    lines: list[str] = []
+    for line in value.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        parts = stripped.split()
+        if parts[0] in {"moon", "moonc", "moonrun"} and len(parts) > 1:
+            if parts[-1].startswith(("/", "~")) or "\\" in parts[-1]:
+                parts.pop()
+            stripped = " ".join(parts)
+        lines.append(stripped)
+    return "\n".join(lines)
+
+
+def coverage_metadata_summaries(
+    paths: dict[str, Path],
+    moonjust_commit: str,
+    failures: list[str],
+) -> dict[str, object]:
+    expected = {"native", "wasm"}
+    if set(paths) != expected:
+        failures.append("coverage metadata must cover native and wasm exactly")
+    values: dict[str, object] = {}
+    for target, path in sorted(paths.items()):
+        value = load_json(path)
+        if value.get("schema_version") != 1:
+            failures.append(f"coverage metadata schema changed for {target}")
+        if value.get("target") != target or value.get("commit") != moonjust_commit:
+            failures.append(f"coverage metadata source or target mismatch for {target}")
+        sources = value.get("sources", [])
+        traces = value.get("traces", [])
+        if not isinstance(sources, list) or not sources:
+            failures.append(f"coverage metadata has no sources for {target}")
+        if not isinstance(traces, list) or not traces:
+            failures.append(f"coverage metadata has no traces for {target}")
+        identity = moon_toolchain_identity(value.get("moon"))
+        if identity is None:
+            failures.append(f"coverage MoonBit toolchain is missing for {target}")
+        values[target] = {
+            "path": str(path),
+            "sha256": sha256(path),
+            "toolchain": identity,
+            "sources": len(sources) if isinstance(sources, list) else 0,
+            "traces": len(traces) if isinstance(traces, list) else 0,
+        }
+    return values
+
+
+def toolchain_summary(
+    coverage_metadata: dict[str, object],
+    performance: dict[str, object],
+    sizes: dict[str, object],
+    failures: list[str],
+) -> dict[str, object]:
+    sources: dict[str, str] = {}
+    for target, entry in coverage_metadata.items():
+        if isinstance(entry, dict) and isinstance(entry.get("toolchain"), str):
+            sources[f"coverage/{target}"] = str(entry["toolchain"])
+    performance_value = performance.get("summary", {})
+    if isinstance(performance_value, dict):
+        identity = moon_toolchain_identity(performance_value.get("moon"))
+        if identity is not None:
+            sources["performance"] = identity
+    for platform_name, entry in sizes.items():
+        summary = entry.get("summary", {}) if isinstance(entry, dict) else {}
+        if isinstance(summary, dict):
+            identity = moon_toolchain_identity(summary.get("moon"))
+            if identity is not None:
+                sources[f"size/{platform_name}"] = identity
+    identities = set(sources.values())
+    if not sources:
+        failures.append("release evidence contains no MoonBit toolchain fingerprints")
+    elif len(identities) != 1:
+        failures.append("infrastructure: MoonBit toolchain fingerprints differ across jobs")
+    return {
+        "identity": next(iter(identities)) if len(identities) == 1 else None,
+        "sources": dict(sorted(sources.items())),
+    }
 
 
 def compatibility_summary(path: Path, failures: list[str]) -> dict[str, object]:
@@ -231,17 +342,40 @@ def coverage_summary(path: Path, failures: list[str]) -> dict[str, object]:
     return {"path": str(path), "sha256": sha256(path), "summary": value}
 
 
-def performance_summary(path: Path, failures: list[str]) -> dict[str, object]:
+def performance_summary(
+    path: Path,
+    failures: list[str],
+    require_authoritative: bool,
+) -> dict[str, object]:
     value = load_json(path)
     configuration = value.get("configuration", {})
     machine = value.get("machine", {})
-    if value.get("status") != "passed":
+    if value.get("schema_version") != 2:
+        failures.append("performance report schema changed")
+    if require_authoritative and value.get("status") != "passed":
         failures.append(f"authoritative performance status is {value.get('status')!r}")
-    if not isinstance(configuration, dict) or configuration.get("authoritative") is not True:
+    if require_authoritative and (
+        not isinstance(configuration, dict)
+        or configuration.get("authoritative") is not True
+    ):
         failures.append("performance report is not authoritative")
-    if not isinstance(machine, dict) or machine.get("system") != "Linux" or machine.get("machine") not in {"x86_64", "AMD64"}:
+    if require_authoritative and (
+        not isinstance(machine, dict)
+        or machine.get("system") != "Linux"
+        or machine.get("machine") not in {"x86_64", "AMD64"}
+    ):
         failures.append("performance report is not from Linux x86_64")
-    return {"path": str(path), "sha256": sha256(path), "summary": value}
+    if not require_authoritative and (
+        not isinstance(configuration, dict)
+        or configuration.get("authoritative") is not False
+    ):
+        failures.append("PR performance trend is incorrectly marked authoritative")
+    return {
+        "path": str(path),
+        "sha256": sha256(path),
+        "authority": "authoritative" if require_authoritative else "trend",
+        "summary": value,
+    }
 
 
 def size_summaries(paths: dict[str, Path], failures: list[str]) -> dict[str, object]:
@@ -347,18 +481,23 @@ def main() -> int:
     parser.add_argument("--contract-results", type=Path, required=True)
     parser.add_argument("--compat-report", action="append", default=[])
     parser.add_argument("--coverage", type=Path, required=True)
+    parser.add_argument("--coverage-metadata", action="append", default=[])
     parser.add_argument("--performance", type=Path, required=True)
     parser.add_argument("--size-report", action="append", default=[])
     parser.add_argument("--native", action="append", default=[])
     parser.add_argument("--wasm", type=Path, required=True)
     parser.add_argument("--build-proof", action="append", default=[])
     parser.add_argument("--repeatability", action="append", default=[])
+    parser.add_argument("--mode", choices=("pr", "release"), default="release")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
 
     failures: list[str] = []
     compatibility_paths = indexed_paths(args.compat_report, "compatibility", failures)
+    coverage_metadata_paths = indexed_paths(
+        args.coverage_metadata, "coverage metadata", failures
+    )
     size_paths = indexed_paths(args.size_report, "size", failures)
     native_paths = indexed_paths(args.native, "native", failures)
     proof_paths = indexed_paths(args.build_proof, "build proof", failures)
@@ -387,12 +526,36 @@ def main() -> int:
         ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
     ).stdout.strip()
     sizes = size_summaries(size_paths, failures)
+    coverage_metadata = coverage_metadata_summaries(
+        coverage_metadata_paths, moonjust_commit, failures
+    )
+    performance = (
+        performance_summary(
+            args.performance,
+            failures,
+            require_authoritative=args.mode == "release",
+        )
+        if args.performance.is_file()
+        else {"path": str(args.performance), "missing": True}
+    )
+    missing_inputs = sorted(
+        failure for failure in failures if " input is missing:" in failure
+    )
+    status = (
+        "missing"
+        if missing_inputs
+        else "failed"
+        if failures
+        else "passed"
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
-        "status": "failed" if failures else "passed",
+        "mode": args.mode,
+        "status": status,
         "moonjust_commit": moonjust_commit,
         "official": {"version": "1.57.0", "commit": UPSTREAM_COMMIT},
         "generated_on": {"os": platform.platform(), "python": platform.python_version()},
+        "provenance": source_provenance(moonjust_commit, failures),
         "test_map": (
             test_map_summary(args.test_map, failures)
             if args.test_map.is_file()
@@ -409,12 +572,12 @@ def main() -> int:
             if args.coverage.is_file()
             else {"path": str(args.coverage), "missing": True}
         ),
-        "performance": (
-            performance_summary(args.performance, failures)
-            if args.performance.is_file()
-            else {"path": str(args.performance), "missing": True}
-        ),
+        "coverage_metadata": coverage_metadata,
+        "performance": performance,
         "size": sizes,
+        "toolchain": toolchain_summary(
+            coverage_metadata, performance, sizes, failures
+        ),
         "artifacts": {"native": native, "wasm1": wasm},
         "build_proofs": build_proofs(
             proof_paths, str(wasm.get("sha256", "")), moonjust_commit, sizes, failures
@@ -422,12 +585,15 @@ def main() -> int:
         "repeatability": repeatability_summaries(
             repeatability_paths, moonjust_commit, native, wasm, sizes, failures
         ),
-        "missing_inputs": sorted(
-            failure for failure in failures if " input is missing:" in failure
-        ),
+        "missing_inputs": missing_inputs,
     }
     # Validators append failures while the record is assembled.
-    record["status"] = "failed" if failures else "passed"
+    if any("infrastructure" in failure or "authoritative performance status" in failure for failure in failures):
+        record["status"] = "infrastructure-invalid"
+    elif missing_inputs:
+        record["status"] = "missing"
+    else:
+        record["status"] = "failed" if failures else "passed"
     record["failures"] = failures
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")

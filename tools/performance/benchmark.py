@@ -22,6 +22,7 @@ from typing import Iterable
 
 
 SCHEMA_VERSION = 2
+OFFICIAL_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 DEFAULT_SEED = 1_570
 MAX_CV = 0.10
 MAX_CANDIDATE_REGRESSION = 1.02
@@ -316,16 +317,24 @@ def percentile95(values: list[float]) -> float:
     return sorted(values)[math.ceil(len(values) * 0.95) - 1]
 
 
+def coefficient_of_variation(values: list[float]) -> float | None:
+    if not values:
+        return None
+    mean = statistics.fmean(values)
+    return statistics.pstdev(values) / mean if mean else 0.0
+
+
 def summarize(elapsed: list[float], rss: list[int | None]) -> dict[str, object]:
-    mean = statistics.fmean(elapsed)
     measured_rss = [value for value in rss if value is not None]
     return {
         "median_ms": statistics.median(elapsed),
         "p95_ms": percentile95(elapsed),
-        "cv": statistics.pstdev(elapsed) / mean if mean else 0.0,
+        "cv": coefficient_of_variation(elapsed),
+        "rss_cv": coefficient_of_variation([float(value) for value in measured_rss]),
         "peak_rss_kib": max(measured_rss) if measured_rss else None,
         "latency_samples": len(elapsed),
         "memory_samples": len(rss),
+        "memory_observations": len(measured_rss),
     }
 
 
@@ -394,6 +403,19 @@ def command_for(
 def tool_output(command: list[str]) -> str:
     result = subprocess.run(command, check=True, capture_output=True, text=True)
     return (result.stdout + result.stderr).strip()
+
+
+def baseline_metadata(path: Path | None) -> dict[str, object] | None:
+    if path is None:
+        return None
+    metadata = path.parent / "metadata.json"
+    if not metadata.is_file():
+        return None
+    try:
+        value = json.loads(metadata.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, dict) else None
 
 
 def append_raw(path: Path, row: dict[str, object]) -> None:
@@ -503,6 +525,28 @@ def main() -> int:
             raise RuntimeError(f"benchmark input is missing: {artifact}")
 
     machine, environment_errors = machine_fingerprint(args.authoritative)
+    official_commit = os.environ.get("MOONJUST_OFFICIAL_COMMIT", OFFICIAL_COMMIT)
+    if official_commit != OFFICIAL_COMMIT:
+        environment_errors.append(
+            f"official benchmark commit must be {OFFICIAL_COMMIT}, observed {official_commit}"
+        )
+    candidate_commit = tool_output(["git", "rev-parse", "HEAD"])
+    moon_toolchain = tool_output(["moon", "version", "--all"])
+    merge_base = baseline_metadata(args.baseline_native)
+    if args.baseline_native is not None:
+        if merge_base is None:
+            environment_errors.append("merge-base metadata.json is missing or invalid")
+        else:
+            native = merge_base.get("native", {})
+            wasm = merge_base.get("wasm1", {})
+            if not isinstance(merge_base.get("commit"), str):
+                environment_errors.append("merge-base metadata commit is missing")
+            if not isinstance(native, dict) or native.get("sha256") != sha256(args.baseline_native):
+                environment_errors.append("merge-base native artifact hash does not match metadata")
+            if not isinstance(wasm, dict) or wasm.get("sha256") != sha256(args.baseline_wasm):
+                environment_errors.append("merge-base wasm artifact hash does not match metadata")
+            if merge_base.get("moon") != moon_toolchain:
+                environment_errors.append("merge-base and candidate MoonBit toolchains differ")
     args.raw_output.parent.mkdir(parents=True, exist_ok=True)
     args.raw_output.write_text("", encoding="utf-8")
     results: dict[str, dict[str, object]] = {}
@@ -543,6 +587,13 @@ def main() -> int:
         for kind, summary in values.items():
             if float(summary["cv"]) > MAX_CV:
                 failures.append(f"{workload}/{kind} CV {float(summary['cv']):.2%} exceeds 10%")
+            rss_cv = summary["rss_cv"]
+            if rss_cv is not None and float(rss_cv) > MAX_CV:
+                failures.append(
+                    f"{workload}/{kind} RSS CV {float(rss_cv):.2%} exceeds 10%"
+                )
+            if args.authoritative and summary["memory_observations"] == 0:
+                failures.append(f"{workload}/{kind} has no RSS observations")
         official = values["official"]
         native = values["candidate-native"]
         if float(native["median_ms"]) > float(official["median_ms"]) * 1.5:
@@ -564,13 +615,22 @@ def main() -> int:
             add_ratio_failure(failures, workload, native, values["baseline-native"])
             add_ratio_failure(failures, workload, wasm, values["baseline-wasm"])
 
-    infrastructure_invalid = bool(environment_errors) or any(" CV " in item for item in failures)
+    infrastructure_invalid = bool(environment_errors) or any(
+        " CV " in item or "RSS observations" in item for item in failures
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
         "status": "infrastructure-invalid" if infrastructure_invalid else ("failed" if failures else "passed"),
         "commit": tool_output(["git", "rev-parse", "HEAD"]),
+        "provenance": {
+            "official_commit": official_commit,
+            "official_commit_verified": official_commit == OFFICIAL_COMMIT,
+            "candidate_commit": candidate_commit,
+            "merge_base_commit": merge_base.get("commit") if merge_base else None,
+            "merge_base_moon": merge_base.get("moon") if merge_base else None,
+        },
         "machine": machine,
-        "moon": tool_output(["moon", "version", "--all"]),
+        "moon": moon_toolchain,
         "configuration": {
             "warmups": args.warmups,
             "samples": args.samples,

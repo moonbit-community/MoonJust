@@ -1,6 +1,14 @@
 #!/bin/sh
 set -eu
 
+release=
+if [ "${1:-}" = "--release" ]; then
+  release=1
+elif [ "$#" -ne 0 ]; then
+  echo "usage: $0 [--release]" >&2
+  exit 2
+fi
+
 moon fmt --check
 ./tools/checks/architecture.sh
 ./tools/upstream/verify_snapshot.sh
@@ -21,7 +29,9 @@ python3 ./tools/upstream/evaluator_oracle.py --upstream ./_build/upstream/just-1
 ./tools/checks/runtime.sh
 ./tools/checks/compatibility.sh
 ./tools/checks/platform.sh
-./tools/checks/release.sh
+if [ -n "$release" ]; then
+  ./tools/checks/release.sh
+fi
 moon check --target all --warn-list +73
 ./tools/checks/test_target.sh native
 ./tools/checks/test_target.sh wasm

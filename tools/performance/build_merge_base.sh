@@ -44,6 +44,7 @@ python3 - "$out/metadata.json" "$base" "$out/just-native" "$out/just.wasm" <<'PY
 from pathlib import Path
 import hashlib
 import json
+import subprocess
 import sys
 
 def digest(path: Path) -> str:
@@ -53,6 +54,9 @@ output, commit, native, wasm = map(Path, sys.argv[1:])
 record = {
     "schema_version": 1,
     "commit": str(commit),
+    "moon": subprocess.run(
+        ["moon", "version", "--all"], check=True, capture_output=True, text=True
+    ).stdout.strip(),
     "native": {"bytes": native.stat().st_size, "sha256": digest(native)},
     "wasm1": {"bytes": wasm.stat().st_size, "sha256": digest(wasm)},
 }

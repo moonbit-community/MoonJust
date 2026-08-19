@@ -52,6 +52,13 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(summary["peak_rss_kib"], 20)
         self.assertEqual(summary["latency_samples"], 3)
         self.assertEqual(summary["memory_samples"], 3)
+        self.assertEqual(summary["memory_observations"], 2)
+        self.assertIsNotNone(summary["rss_cv"])
+
+    def test_summary_marks_missing_rss_observations(self) -> None:
+        summary = benchmark.summarize([1.0, 1.1], [None, None])
+        self.assertEqual(summary["memory_observations"], 0)
+        self.assertIsNone(summary["rss_cv"])
 
     def test_cpu_list_parser_handles_ranges(self) -> None:
         self.assertEqual(benchmark.parse_cpu_list("1-3,7,9-10"), {1, 2, 3, 7, 9, 10})
