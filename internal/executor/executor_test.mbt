@@ -598,6 +598,33 @@ test "PowerShell script selects ps1 and UTF-8 BOM" {
 }
 
 ///|
+test "Windows cmd shebang is metadata rather than script input" {
+  let (compilation, recipe) = compile_recipe(
+    "build:\n  #!cmd.exe /c\n  echo Hello-World\n",
+  )
+  let environment = try! @evaluator.evaluate_compilation(compilation)
+  let interpreter = try! @environment.ShellConfiguration::new(
+    "powershell.exe",
+    ["-NoLogo", "-Command"],
+  )
+  let host = fake_host()
+  let planned = try! plan_script_recipe(
+    recipe,
+    environment,
+    unix_path("/workspace"),
+    script_configuration("/tmp", interpreter, operating_system=Windows),
+  )
+  let materialized = try! materialize_script(host, planned)
+  assert_true(materialized.path().as_string().has_suffix(".bat"))
+  assert_eq(materialized.spec().program(), "cmd.exe")
+  assert_eq(materialized.spec().arguments(), [
+    "/c",
+    materialized.path().as_string(),
+  ])
+  assert_eq(host.script_temp_creations()[0].1, b"\n\necho Hello-World\n")
+}
+
+///|
 test "script dry run and invalid shebang create no temporary files" {
   let (compilation, recipe) = compile_recipe("build:\n  #!\n  echo later\n")
   let environment = try! @evaluator.evaluate_compilation(compilation)

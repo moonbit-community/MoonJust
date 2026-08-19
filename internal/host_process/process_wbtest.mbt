@@ -15,7 +15,7 @@ async test "full signal registry reaps the rejected managed process" {
     )
     false
   } catch {
-    @host.HostError::InvalidInput(message) =>
+    InvalidInput(message) =>
       message.contains(
         "too many concurrent child processes for signal forwarding",
       )
