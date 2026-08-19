@@ -9,7 +9,6 @@
 #ifndef _WIN32
 
 #include <signal.h>
-#include <errno.h>
 #include <stddef.h>
 #include <string.h>
 #include <sys/types.h>
@@ -19,7 +18,6 @@
 
 static volatile sig_atomic_t moonjust_children[MOONJUST_MAX_CHILDREN];
 static volatile sig_atomic_t moonjust_child_signals[MOONJUST_MAX_CHILDREN];
-static volatile sig_atomic_t moonjust_child_process_groups[MOONJUST_MAX_CHILDREN];
 static volatile sig_atomic_t moonjust_info_requested;
 static volatile sig_atomic_t moonjust_signal_request_enabled;
 static volatile sig_atomic_t moonjust_signal_request_received;
@@ -42,13 +40,7 @@ static void moonjust_forward_signal(int signal) {
         moonjust_child_signals[index] = signal;
       }
       if (signal == SIGTERM) {
-        if (moonjust_child_process_groups[index]) {
-          // A recipe may be a shell that has already spawned the actual
-          // command. Signal the isolated group so the whole tree exits.
-          kill(-(pid_t)pid, signal);
-        } else {
-          kill((pid_t)pid, signal);
-        }
+        kill((pid_t)pid, signal);
       }
     }
   }
@@ -156,21 +148,6 @@ int32_t moonjust_register_signal_child(int32_t pid) {
     if (moonjust_children[index] == 0) {
       moonjust_children[index] = pid;
       moonjust_child_signals[index] = 0;
-      moonjust_child_process_groups[index] = 0;
-      if (pid > 0) {
-        // Isolate the child before it can create descendants. A short retry
-        // covers the posix_spawn/exec hand-off without blocking signal code.
-        for (int attempt = 0; attempt < 10; ++attempt) {
-          if (setpgid((pid_t)pid, (pid_t)pid) == 0) {
-            moonjust_child_process_groups[index] = 1;
-            break;
-          }
-          if (errno != EINTR && errno != EACCES) {
-            break;
-          }
-          usleep(1000);
-        }
-      }
       registered = 1;
       break;
     }
@@ -189,32 +166,11 @@ int32_t moonjust_unregister_signal_child(int32_t pid) {
       signal = moonjust_child_signals[index];
       moonjust_children[index] = 0;
       moonjust_child_signals[index] = 0;
-      moonjust_child_process_groups[index] = 0;
       break;
     }
   }
   sigprocmask(SIG_SETMASK, &previous, NULL);
   return signal;
-}
-
-MOONBIT_FFI_EXPORT
-int32_t moonjust_peek_signal_child(int32_t pid) {
-  sigset_t previous;
-  moonjust_signal_mask(&previous);
-  int32_t signal = 0;
-  for (size_t index = 0; index < MOONJUST_MAX_CHILDREN; ++index) {
-    if (moonjust_children[index] == pid) {
-      signal = moonjust_child_signals[index];
-      break;
-    }
-  }
-  sigprocmask(SIG_SETMASK, &previous, NULL);
-  return signal;
-}
-
-MOONBIT_FFI_EXPORT
-void moonjust_kill_signal_child(int32_t pid) {
-  kill((pid_t)pid, SIGKILL);
 }
 
 #else
@@ -232,17 +188,6 @@ MOONBIT_FFI_EXPORT
 int32_t moonjust_unregister_signal_child(int32_t pid) {
   (void)pid;
   return 0;
-}
-
-MOONBIT_FFI_EXPORT
-int32_t moonjust_peek_signal_child(int32_t pid) {
-  (void)pid;
-  return 0;
-}
-
-MOONBIT_FFI_EXPORT
-void moonjust_kill_signal_child(int32_t pid) {
-  (void)pid;
 }
 
 MOONBIT_FFI_EXPORT

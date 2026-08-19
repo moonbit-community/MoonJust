@@ -38,14 +38,6 @@ extern "C" fn unregister_signal_child_ffi(pid : Int) -> Int = "moonjust_unregist
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-extern "C" fn peek_signal_child_ffi(pid : Int) -> Int = "moonjust_peek_signal_child"
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-extern "C" fn kill_signal_child_ffi(pid : Int) = "moonjust_kill_signal_child"
-
-///|
-#cfg(all(target="native", not(platform="windows")))
 extern "C" fn take_signal_info_ffi() -> Int = "moonjust_take_signal_info"
 
 ///|
@@ -92,7 +84,7 @@ pub fn wait_for_signal_request() -> String? {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 priv enum ObservedProcess {
-  Orphan(pid~ : Int, description~ : String)
+  Managed(process~ : @process.Process, pid~ : Int, description~ : String)
 }
 
 ///|
@@ -104,7 +96,7 @@ priv enum ObservedProcess {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async fn[X] spawn_observed_process(
-  _group : @async.TaskGroup[X],
+  group : @async.TaskGroup[X],
   program : String,
   arguments : ArrayView[String],
   environment : Map[String, String],
@@ -114,7 +106,8 @@ async fn[X] spawn_observed_process(
   stderr : &@process.ProcessOutput,
   cwd : String,
 ) -> ObservedProcess {
-  let pid = @process.spawn_orphan(
+  let process = @process.spawn(
+    group,
     program,
     arguments,
     extra_env=environment,
@@ -123,10 +116,17 @@ async fn[X] spawn_observed_process(
     stdout~,
     stderr~,
     cwd~,
+    cancel_handler=@process.graceful_cancel(timeout=5000),
+    no_wait=true,
   )
+  let pid = process.pid
   if register_signal_child_ffi(pid) == 0 {
-    kill_signal_child_ffi(pid)
-    ignore(@process.wait_pid(pid))
+    @process.hard_cancel()(pid)
+    try ignore(process.wait()) catch {
+      _ => ()
+    } noraise {
+      _ => ()
+    }
     raise @host.HostError::InvalidInput(
       "too many concurrent child processes for signal forwarding",
     )
@@ -136,13 +136,59 @@ async fn[X] spawn_observed_process(
   for argument in arguments {
     quoted.push("\"" + argument.replace_all(old="\"", new="\\\"") + "\"")
   }
-  Orphan(
-    pid~,
-    description="cd \"" +
-      cwd.replace_all(old="\"", new="\\\"") +
-      "\" && " +
-      quoted.join(" "),
-  )
+  let description = "cd \"" +
+    cwd.replace_all(old="\"", new="\\\"") +
+    "\" && " +
+    quoted.join(" ")
+  start_signal_info_watcher(group, process, pid, description)
+  Managed(process~, pid~, description~)
+}
+
+///|
+#cfg(platform="macos")
+fn[X] start_signal_info_watcher(
+  group : @async.TaskGroup[X],
+  process : @process.Process,
+  pid : Int,
+  description : String,
+) -> Unit {
+  group.spawn_bg(() => watch_signal_info(process, pid, description))
+}
+
+///|
+#cfg(all(target="native", not(platform="windows"), not(platform="macos")))
+fn[X] start_signal_info_watcher(
+  _group : @async.TaskGroup[X],
+  _process : @process.Process,
+  _pid : Int,
+  _description : String,
+) -> Unit {
+  ()
+}
+
+///|
+#cfg(platform="macos")
+async fn watch_signal_info(
+  process : @process.Process,
+  pid : Int,
+  description : String,
+) -> Unit {
+  while true {
+    if take_signal_info_ffi() != 0 {
+      write_signal_info(pid, description)
+    }
+    let running = try process.try_wait() catch {
+      _ => return
+    } noraise {
+      status => status is None
+    }
+    guard running else { return }
+    try @async.sleep(5) catch {
+      _ => return
+    } noraise {
+      _ => ()
+    }
+  }
 }
 
 ///|
@@ -178,8 +224,21 @@ async fn[X] spawn_observed_process(
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
-  let Orphan(pid~, description~) = self
-  let status = wait_signal_child(pid, description)
+  let Managed(process~, pid~, description~) = self
+  let status = try process.wait() catch {
+    error => {
+      if take_signal_info_ffi() != 0 {
+        write_signal_info(pid, description)
+      }
+      ignore(unregister_signal_child_ffi(pid))
+      raise error
+    }
+  } noraise {
+    value => value
+  }
+  if take_signal_info_ffi() != 0 {
+    write_signal_info(pid, description)
+  }
   let forwarded_signal = unregister_signal_child_ffi(pid)
   if forwarded_signal == 0 {
     status
@@ -190,58 +249,24 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-async fn wait_signal_child(pid : Int, description : String) -> Int {
-  let status = try @process.wait_pid(pid) catch {
-    error => {
-      if take_signal_info_ffi() != 0 {
-        try
-          @stdio.stderr.write(
-            @utf8.encode(
-              "just " +
-              current_process_id_ffi().to_string() +
-              ": 1 child process:\n" +
-              pid.to_string() +
-              ": " +
-              description +
-              "\n",
-            ),
-          )
-        catch {
-          _ => ()
-        } noraise {
-          _ => ()
-        }
-        return wait_signal_child(pid, description)
-      }
-      if peek_signal_child_ffi(pid) != 0 {
-        return wait_signal_child(pid, description)
-      }
-      ignore(unregister_signal_child_ffi(pid))
-      raise error
-    }
+async fn write_signal_info(pid : Int, description : String) -> Unit {
+  try
+    @stdio.stderr.write(
+      @utf8.encode(
+        "just " +
+        current_process_id_ffi().to_string() +
+        ": 1 child process:\n" +
+        pid.to_string() +
+        ": " +
+        description +
+        "\n",
+      ),
+    )
+  catch {
+    _ => ()
   } noraise {
-    value => value
+    _ => ()
   }
-  if take_signal_info_ffi() != 0 {
-    try
-      @stdio.stderr.write(
-        @utf8.encode(
-          "just " +
-          current_process_id_ffi().to_string() +
-          ": 1 child process:\n" +
-          pid.to_string() +
-          ": " +
-          description +
-          "\n",
-        ),
-      )
-    catch {
-      _ => ()
-    } noraise {
-      _ => ()
-    }
-  }
-  status
 }
 
 ///|
@@ -254,8 +279,8 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 fn ObservedProcess::cancel(self : ObservedProcess) -> Unit {
-  let Orphan(pid~, ..) = self
-  kill_signal_child_ffi(pid)
+  let Managed(process~, ..) = self
+  process.cancel()
 }
 
 ///|
@@ -765,6 +790,9 @@ async fn run_process_with_output_limit(
       (status, stdout, stderr, stdout_limited, stderr_limited)
     }
   catch {
+    @host.HostError::InvalidInput(message) => raise InvalidInput(message)
+    @host.HostError::PermissionDenied(capability, detail~) =>
+      raise PermissionDenied(capability, detail~)
     error => {
       let detail = error.to_string()
       if detail.contains("Permission denied") {

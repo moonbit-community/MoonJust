@@ -121,6 +121,14 @@ if [ -n "$abort_hits" ]; then
   fail "production MoonBit code contains an abort path"
 fi
 
+orphan_process_hits=$(find "$repo_root/internal" "$repo_root/api" "$repo_root/cmd" \
+  -type f -name '*.mbt' ! -name '*_test.mbt' ! -name '*_wbtest.mbt' \
+  -exec grep -nHE '@process\.(spawn_orphan|wait_pid)' {} + || true)
+if [ -n "$orphan_process_hits" ]; then
+  printf '%s\n' "$orphan_process_hits"
+  fail "production process adapters must use async structured concurrency"
+fi
+
 [ -f "$repo_root/internal/host_native/moon.pkg" ] || fail "missing native host adapter package"
 [ -f "$repo_root/internal/host_native/pkg.generated.mbti" ] || fail "missing native host adapter interface"
 if grep -nE 'internal/(semantic|evaluator|builtin|parser|formatter)' "$repo_root/internal/host_native/moon.pkg"; then
