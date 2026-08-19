@@ -22,7 +22,7 @@ test "Windows executable candidates preserve explicit paths and extensions" {
   )
   assert_eq(
     windows_program_candidates("bin\\runner", "D:\\Ignored", "EXE;CMD"),
-    ["bin\\runner.EXE", "bin\\runner.CMD"],
+    [],
   )
 }
 

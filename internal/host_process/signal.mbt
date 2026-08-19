@@ -48,7 +48,9 @@ extern "C" fn current_process_id_ffi() -> Int = "moonjust_current_process_id"
 #cfg(all(target="native", not(platform="windows")))
 pub fn prepare_signal_forwarding() -> Unit {
   ignore(@pipe.pipe)
-  @signal.set_global_cancellation_signals([])
+  // Keep the async cancellation set non-empty but platform-inert. Some async
+  // runtimes treat an empty list as "restore defaults" during initialization.
+  @signal.set_global_cancellation_signals([SIGBREAK])
   prepare_signal_forwarding_ffi()
 }
 
@@ -74,7 +76,7 @@ pub fn[X] configure_signal_forwarding(
   // the current thread's cancellation mask after that initialization as well
   // as during package setup, so process-directed signals reach our pipe
   // handler instead of cancelling the root task.
-  @signal.set_global_cancellation_signals([])
+  @signal.set_global_cancellation_signals([SIGBREAK])
   install_signal_pipe_ffi(write.fd())
   unblock_signal_mask_ffi()
   let state = { read, write, children: [], first_signal: None }

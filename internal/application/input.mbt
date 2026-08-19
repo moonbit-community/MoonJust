@@ -145,6 +145,12 @@ fn[F : @host.HostFs] query_search_prefix(
   let mut directory_text : String? = None
   let mut remaining = positional.copy()
   let first = positional[0]
+  // A module-qualified recipe is a semantic name, never a filesystem path.
+  // Avoid probing it through HostFs: MoonX inspect policy correctly rejects
+  // that read, but the query path should proceed to module resolution.
+  if first.contains("::") {
+    return (arguments, context)
+  }
   let first_path = @path.PathValue::new(first, context.cwd().flavor()) catch {
     error => raise Path(error)
   }

@@ -216,16 +216,27 @@ fn windows_program_candidates(
   pathext : String,
 ) -> Array[String] {
   let bases = [program]
-  if !program.contains("/") && !program.contains("\\") {
+  let has_separator = program.contains("/") || program.contains("\\")
+  let unix_absolute = program.has_prefix("/")
+  if !has_separator || unix_absolute {
+    let name = if unix_absolute {
+      program
+      .replace_all(old="\\", new="/")
+      .split("/")
+      .last()
+      .unwrap_or(program[:])
+    } else {
+      program
+    }
     for raw_directory in path.split(";") {
       let directory = raw_directory.trim(chars="\"")
       bases.push(
         if directory.is_empty() {
-          program
+          name.to_owned()
         } else if directory.has_suffix("/") || directory.has_suffix("\\") {
-          directory.to_owned() + program
+          directory.to_owned() + name.to_owned()
         } else {
-          directory.to_owned() + "\\" + program
+          directory.to_owned() + "\\" + name.to_owned()
         },
       )
     }
@@ -245,12 +256,9 @@ fn windows_program_candidates(
       if extension.is_empty() {
         continue
       }
-      let suffix = if extension.has_prefix(".") {
-        extension.to_owned()
-      } else {
-        "." + extension.to_owned()
+      if extension.has_prefix(".") {
+        candidates.push(base + extension.to_owned())
       }
-      candidates.push(base + suffix)
     }
   }
   candidates
@@ -271,6 +279,108 @@ fn windows_batch_command(
     command_arguments.push(argument)
   }
   ("cmd.exe", command_arguments)
+}
+
+///|
+fn process_random_suffix() -> String raise @host.HostError {
+  guard @env.rand(12) is Some(bytes) else {
+    raise CapabilityUnavailable(Random)
+  }
+  let digits = "0123456789abcdef"
+  let builder = StringBuilder()
+  for byte in bytes {
+    builder.write_char(digits.get_char((byte.to_int() >> 4) & 15).unwrap())
+    builder.write_char(digits.get_char(byte.to_int() & 15).unwrap())
+  }
+  builder.to_string()
+}
+
+///|
+async fn materialize_windows_command(
+  program : String,
+  arguments : ArrayView[String],
+  cwd : String,
+) -> (String, Array[String], String?) raise @host.HostError {
+  if !windows_process_runtime() {
+    return (program, arguments.to_owned(), None)
+  }
+  let lower = program.to_lower()
+  let is_batch = lower.has_suffix(".cmd") || lower.has_suffix(".bat")
+  let basename = program
+    .replace_all(old="\\", new="/")
+    .split("/")
+    .last()
+    .unwrap_or(program[:])
+    .to_lower()
+  let is_cmd = basename == "cmd.exe" || basename == "cmd"
+  let mut body : String? = None
+  let mut command_index : Int? = None
+  if is_cmd {
+    for index, argument in arguments {
+      let lower_argument = argument.to_lower()
+      if lower_argument == "/c" || lower_argument == "/command" {
+        if index + 1 < arguments.length() {
+          body = Some(arguments[index + 1])
+          command_index = Some(index)
+          break
+        }
+      }
+    }
+  } else if is_batch {
+    body = Some(
+      "@echo off\r\ncall \"" +
+      program.replace_all(old="\"", new="\"\"") +
+      "\" %*\r\nexit /b %errorlevel%\r\n",
+    )
+  }
+  guard body is Some(command) else {
+    return (program, arguments.to_owned(), None)
+  }
+  let filename = ".moonjust-cmd-" + process_random_suffix() + ".cmd"
+  let path = if cwd == "." || cwd.is_empty() {
+    filename
+  } else if cwd.has_suffix("\\") || cwd.has_suffix("/") {
+    cwd + filename
+  } else {
+    cwd + "\\" + filename
+  }
+  @async_fs.write_file(
+    path,
+    @utf8.encode(command + "\r\n"),
+    create_mode=CreateNew,
+    permission=0o600,
+  ) catch {
+    _ => raise InvalidInput("failed to create temporary Windows command script")
+  }
+  let rewritten : Array[String] = []
+  if is_batch {
+    rewritten.push("/d")
+    rewritten.push("/s")
+    rewritten.push("/c")
+    rewritten.push(path)
+    for argument in arguments {
+      rewritten.push(argument)
+    }
+  } else {
+    let index = command_index.unwrap()
+    for argument in arguments[:index + 1] {
+      rewritten.push(argument)
+    }
+    rewritten.push(path)
+    for argument in arguments[index + 2:] {
+      rewritten.push(argument)
+    }
+  }
+  ("cmd.exe", rewritten, Some(path))
+}
+
+///|
+async fn remove_windows_command_script(path : String) -> Unit {
+  try @async_fs.remove(path) catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
 }
 
 ///|
@@ -444,16 +554,20 @@ async fn run_process_with_output_limit(
   } noraise {
     value => value
   }
-  let (batch_program, batch_arguments) = windows_batch_command(
-    resolved_program,
-    command.arguments(),
-    windows_process_runtime(),
-  )
-  let (program, arguments, signal_observable) = observable_process_command(
-    batch_program, batch_arguments,
-  )
   let collected = try
     @async.with_task_group() <| group => {
+      let (wrapped_program, wrapped_arguments, temporary_script) = materialize_windows_command(
+        resolved_program,
+        command.arguments(),
+        cwd,
+      )
+      match temporary_script {
+        Some(path) => group.add_defer(() => remove_windows_command_script(path))
+        None => ()
+      }
+      let (program, arguments, signal_observable) = observable_process_command(
+        wrapped_program, wrapped_arguments,
+      )
       let (stdout_reader, stdout_target) = @process.read_from_process()
       let (stderr_reader, stderr_target) = @process.read_from_process()
       let stdout_regular = if command.stdout() == Inherit {
@@ -641,7 +755,9 @@ async fn run_process_with_output_limit(
       }
       let (stdout, stdout_limited) = stdout_task.wait()
       let (stderr, stderr_limited) = stderr_task.wait()
-      (status, stdout, stderr, stdout_limited, stderr_limited)
+      (
+        status, stdout, stderr, stdout_limited, stderr_limited, signal_observable,
+      )
     }
   catch {
     @host.HostError::InvalidInput(message) => raise InvalidInput(message)
@@ -663,7 +779,8 @@ async fn run_process_with_output_limit(
   } noraise {
     value => value
   }
-  let (status, stdout, stderr, stdout_limited, stderr_limited) = collected
+  let (status, stdout, stderr, stdout_limited, stderr_limited, signal_observable
+  ) = collected
   if stdout_limited || stderr_limited {
     raise InvalidInput(
       "process captured output exceeded the \{output_limit}-byte per-stream limit",
