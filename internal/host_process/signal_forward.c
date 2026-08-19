@@ -19,6 +19,13 @@ int32_t moonjust_signal_pipe_overflow(void) {
 }
 
 MOONBIT_FFI_EXPORT
+int32_t moonjust_forward_signal(int32_t pid, int32_t signal) {
+  (void)pid;
+  (void)signal;
+  return 0;
+}
+
+MOONBIT_FFI_EXPORT
 int32_t moonjust_current_process_id(void) {
   return (int32_t)GetCurrentProcessId();
 }
@@ -123,6 +130,11 @@ int32_t moonjust_signal_pipe_overflow(void) {
   sig_atomic_t overflowed = moonjust_signal_overflowed;
   moonjust_signal_overflowed = 0;
   return overflowed != 0;
+}
+
+MOONBIT_FFI_EXPORT
+int32_t moonjust_forward_signal(int32_t pid, int32_t signal) {
+  return kill((pid_t)pid, signal) == 0 ? 0 : errno;
 }
 
 MOONBIT_FFI_EXPORT

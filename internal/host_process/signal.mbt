@@ -38,6 +38,10 @@ extern "C" fn signal_pipe_overflow_ffi() -> Int = "moonjust_signal_pipe_overflow
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+extern "C" fn forward_signal_ffi(pid : Int, signal : Int) -> Int = "moonjust_forward_signal"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 extern "C" fn current_process_id_ffi() -> Int = "moonjust_current_process_id"
 
 ///|
@@ -186,7 +190,9 @@ async fn handle_signal(state : SignalRuntime, signal : Int) -> Unit {
     for child in state.children {
       // Signal the direct child without cancelling its async wait task. The
       // wait must observe the real -SIGTERM status for just's exit mapping.
-      @process.graceful_cancel(timeout=5000, signal=SIGTERM)(child.pid)
+      // The async cancellation handler is intentionally not used here: this
+      // is official just's explicit TERM forwarding policy, not task cancel.
+      ignore(forward_signal_ffi(child.pid, 15))
     }
   } else if signal == 29 {
     write_signal_info(state)
