@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,6 +17,20 @@ SPEC.loader.exec_module(size_baseline)
 
 
 class BuildSizeBaselineTest(unittest.TestCase):
+    def test_run_preserves_stdout_and_stderr_on_failure(self) -> None:
+        with self.assertRaisesRegex(
+            RuntimeError,
+            r"(?s)command failed \(7\):.*stdout:\s+baseline-out.*stderr:\s+baseline-err",
+        ):
+            size_baseline.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys; print('baseline-out'); "
+                    "print('baseline-err', file=sys.stderr); sys.exit(7)",
+                ],
+            )
+
     def test_archive_staging_is_repeatable(self) -> None:
         with tempfile.TemporaryDirectory(prefix="moonjust-size-test-") as temporary:
             root = Path(temporary)

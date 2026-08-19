@@ -21,12 +21,21 @@ def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | No
         command,
         cwd=cwd,
         env=env,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
     if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
+        detail = "\n".join(
+            section
+            for section in (
+                f"stdout:\n{result.stdout.strip()}" if result.stdout.strip() else "",
+                f"stderr:\n{result.stderr.strip()}" if result.stderr.strip() else "",
+            )
+            if section
+        )
+        if not detail:
+            detail = "no output"
         raise RuntimeError(f"command failed ({result.returncode}): {' '.join(command)}: {detail}")
     return (result.stdout + result.stderr).strip()
 
