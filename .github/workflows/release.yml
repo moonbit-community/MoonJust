@@ -173,6 +173,9 @@ jobs:
             ./tools/release/build_artifacts.sh)
           python3 ./tools/release/verify_bundle.py \
             --repo . --archive "$archive" --platform "$platform"
+          python3 ./tools/release/build_size_baseline.py \
+            --repo . --base-ref origin/main --platform "$platform" \
+            --output _build/size-baseline.json
           mkdir -p _build/repeat-first
           cp "$archive" _build/repeat-first/archive
           cp _build/release/build/native/release/build/cmd/just/just.exe \
@@ -190,7 +193,7 @@ jobs:
           moon build --frozen --release --no-strip --target native \
             --target-dir _build/size-debug cmd/just
           python3 ./tools/release/check_artifact_size.py \
-            --baseline compat/artifact-size-baseline.json \
+            --baseline-report _build/size-baseline.json \
             --platform "$platform" \
             --native _build/release/build/native/release/build/cmd/just/just.exe \
             --wasm _build/shared-wasm/just.wasm \
@@ -209,6 +212,7 @@ jobs:
             _build/release/build-*.json
             _build/release/artifact-size-*.json
             _build/release/repeatability-*.json
+            _build/size-baseline.json
       - name: Upload release evidence and assets
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -220,6 +224,7 @@ jobs:
             _build/release/build-*.json
             _build/release/artifact-size-*.json
             _build/release/repeatability-*.json
+            _build/size-baseline.json
             _build/release/build/native/release/build/cmd/just/just.exe
             _build/upstream-harness/**
           if-no-files-found: error

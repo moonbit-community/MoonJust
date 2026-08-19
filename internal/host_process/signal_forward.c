@@ -9,14 +9,17 @@
 #ifndef _WIN32
 
 #include <signal.h>
+#include <errno.h>
 #include <stddef.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #define MOONJUST_MAX_CHILDREN 1024
 
 static volatile sig_atomic_t moonjust_children[MOONJUST_MAX_CHILDREN];
 static volatile sig_atomic_t moonjust_child_signals[MOONJUST_MAX_CHILDREN];
+static volatile sig_atomic_t moonjust_child_process_groups[MOONJUST_MAX_CHILDREN];
 static volatile sig_atomic_t moonjust_info_requested;
 static volatile sig_atomic_t moonjust_signal_request_enabled;
 static volatile sig_atomic_t moonjust_signal_request_received;
@@ -39,7 +42,13 @@ static void moonjust_forward_signal(int signal) {
         moonjust_child_signals[index] = signal;
       }
       if (signal == SIGTERM) {
-        kill((pid_t)pid, signal);
+        if (moonjust_child_process_groups[index]) {
+          // A recipe may be a shell that has already spawned the actual
+          // command. Signal the isolated group so the whole tree exits.
+          kill(-(pid_t)pid, signal);
+        } else {
+          kill((pid_t)pid, signal);
+        }
       }
     }
   }
@@ -147,6 +156,21 @@ int32_t moonjust_register_signal_child(int32_t pid) {
     if (moonjust_children[index] == 0) {
       moonjust_children[index] = pid;
       moonjust_child_signals[index] = 0;
+      moonjust_child_process_groups[index] = 0;
+      if (pid > 0) {
+        // Isolate the child before it can create descendants. A short retry
+        // covers the posix_spawn/exec hand-off without blocking signal code.
+        for (int attempt = 0; attempt < 10; ++attempt) {
+          if (setpgid((pid_t)pid, (pid_t)pid) == 0) {
+            moonjust_child_process_groups[index] = 1;
+            break;
+          }
+          if (errno != EINTR && errno != EACCES) {
+            break;
+          }
+          usleep(1000);
+        }
+      }
       registered = 1;
       break;
     }
@@ -165,6 +189,7 @@ int32_t moonjust_unregister_signal_child(int32_t pid) {
       signal = moonjust_child_signals[index];
       moonjust_children[index] = 0;
       moonjust_child_signals[index] = 0;
+      moonjust_child_process_groups[index] = 0;
       break;
     }
   }

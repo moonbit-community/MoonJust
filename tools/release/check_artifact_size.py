@@ -485,7 +485,9 @@ def apply_budget(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--baseline", type=Path, required=True)
+    baseline_group = parser.add_mutually_exclusive_group(required=True)
+    baseline_group.add_argument("--baseline", type=Path)
+    baseline_group.add_argument("--baseline-report", type=Path)
     parser.add_argument("--native", type=Path, required=True)
     parser.add_argument("--wasm", type=Path, required=True)
     parser.add_argument("--native-debug", type=Path)
@@ -498,11 +500,25 @@ def main() -> None:
     parser.add_argument("--require-complete-baseline", action="store_true")
     parser.add_argument("--report-only", action="store_true")
     args = parser.parse_args()
-    baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
-    if baseline.get("schema_version") not in SUPPORTED_BASELINE_SCHEMAS:
-        raise ValueError("unsupported artifact-size baseline schema")
-    native_baseline = baseline.get("native", {}).get(args.platform)
-    wasm_baseline = baseline.get("wasm1")
+    if args.baseline_report is not None:
+        baseline = json.loads(args.baseline_report.read_text(encoding="utf-8"))
+        if baseline.get("schema_version") != 1 or baseline.get("kind") != "same-run-merge-base":
+            raise ValueError("unsupported same-run artifact-size baseline report")
+        if baseline.get("platform") != args.platform:
+            raise ValueError(
+                f"same-run baseline platform {baseline.get('platform')!r} differs from {args.platform!r}"
+            )
+        native_baseline = baseline.get("native")
+        wasm_baseline = baseline.get("wasm1")
+        archive_baseline = baseline.get("archive")
+    else:
+        assert args.baseline is not None
+        baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+        if baseline.get("schema_version") not in SUPPORTED_BASELINE_SCHEMAS:
+            raise ValueError("unsupported artifact-size baseline schema")
+        native_baseline = baseline.get("native", {}).get(args.platform)
+        wasm_baseline = baseline.get("wasm1")
+        archive_baseline = None
     if not isinstance(wasm_baseline, dict):
         raise ValueError("frozen wasm1 artifact baseline is missing")
     paths = [args.native, args.wasm, args.native_debug, args.wasm_debug, args.archive]
@@ -518,7 +534,8 @@ def main() -> None:
         "schema_version": SCHEMA_VERSION,
         "commit": args.source_commit or command_output(["git", "rev-parse", "HEAD"]),
         "platform": args.platform,
-        "baseline_commit": baseline["commit"],
+        "baseline_commit": baseline.get("commit"),
+        "baseline_kind": baseline.get("kind", "frozen"),
         "moon": command_output(["moon", "version", "--all"]),
         "machine": {
             "platform": platform.platform(),
@@ -532,6 +549,8 @@ def main() -> None:
         "native": artifact_record(args.native, analyze=True),
         "wasm1": artifact_record(args.wasm, analyze=True),
     }
+    if baseline.get("moon") and baseline["moon"] != record["moon"]:
+        failures.append("same-run artifact baseline MoonBit toolchain differs")
     if not isinstance(native_baseline, dict):
         missing.append(f"native/{args.platform}")
     else:
@@ -551,7 +570,13 @@ def main() -> None:
     if args.archive is not None:
         archive_record = artifact_record(args.archive)
         record["archive"] = archive_record
-        archive_frozen = baseline_bytes(native_baseline, archive=True) if isinstance(native_baseline, dict) else None
+        archive_frozen = (
+            baseline_bytes(archive_baseline)
+            if args.baseline_report is not None and isinstance(archive_baseline, dict)
+            else baseline_bytes(native_baseline, archive=True)
+            if isinstance(native_baseline, dict)
+            else None
+        )
         if archive_frozen is None:
             missing.append(f"archive/{args.platform}/bytes")
         else:

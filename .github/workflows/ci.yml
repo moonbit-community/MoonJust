@@ -182,6 +182,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
 
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
@@ -269,10 +271,15 @@ jobs:
           python3 ./tools/release/check_moonx_asset.py \
             --repo . --registry _build/release \
             --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+          base_ref="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$base_ref" ]; then base_ref=origin/main; fi
+          python3 ./tools/release/build_size_baseline.py \
+            --repo . --base-ref "$base_ref" --platform "$platform" \
+            --output _build/size-baseline.json
           moon build --frozen --release --no-strip --target native \
             --target-dir _build/size-debug cmd/just
           python3 ./tools/release/check_artifact_size.py \
-            --baseline compat/artifact-size-baseline.json \
+            --baseline-report _build/size-baseline.json \
             --platform "$platform" \
             --native _build/release/build/native/release/build/cmd/just/just.exe \
             --wasm _build/shared-wasm/just.wasm \
@@ -293,6 +300,7 @@ jobs:
             _build/release/build-*.json
             _build/release/artifact-size-*.json
             _build/release/repeatability-*.json
+            _build/size-baseline.json
             _build/release/build/native/release/build/cmd/just/just.exe
             _build/upstream-harness/**
           if-no-files-found: error
