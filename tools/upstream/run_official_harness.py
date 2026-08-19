@@ -14,6 +14,7 @@ import signal
 import shutil
 import subprocess
 import sys
+import time
 import tomllib
 from pathlib import Path
 
@@ -257,11 +258,15 @@ def run_isolated_unix(
     *,
     cwd: Path,
     timeout: float,
+    extra_env: dict[str, str] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], bool]:
+    environment = os.environ.copy()
+    if extra_env:
+        environment.update(extra_env)
     process = subprocess.Popen(
         command,
         cwd=cwd,
-        env=clean_subprocess_environment(),
+        env=clean_subprocess_environment(environment),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -270,6 +275,7 @@ def run_isolated_unix(
         start_new_session=True,
         preexec_fn=reset_subprocess_signals,
     )
+
     timed_out = False
     try:
         stdout, stderr = process.communicate(timeout=timeout)
@@ -313,6 +319,34 @@ def run_isolated_unix(
         ),
         timed_out,
     )
+
+
+def linux_processes_with_environment(name: str, value: str) -> list[int]:
+    """Find live Linux processes carrying a unique harness environment marker."""
+    if platform.system() != "Linux":
+        return []
+    marker = f"{name}={value}".encode() + b"\0"
+    matches: list[int] = []
+    for entry in Path("/proc").glob("[0-9]*"):
+        try:
+            environment = (entry / "environ").read_bytes()
+        except (OSError, UnicodeError):
+            continue
+        if marker in environment:
+            try:
+                matches.append(int(entry.name))
+            except ValueError:
+                continue
+    return sorted(matches)
+
+
+def wait_for_linux_process_cleanup(name: str, value: str) -> list[int]:
+    deadline = time.monotonic() + 1.0
+    while True:
+        matches = linux_processes_with_environment(name, value)
+        if not matches or time.monotonic() >= deadline:
+            return matches
+        time.sleep(0.02)
 
 
 def compile_harness(source: Path, target: Path) -> tuple[Path, Path]:
@@ -685,6 +719,8 @@ def execute_native_signal_gate(
     combined: list[str] = []
     passed: set[str] = set()
     for name in sorted(expected):
+        slug = name.replace("::", "__")
+        signal_run_id = f"{os.getpid()}-{slug}"
         command = [
             str(executable),
             name,
@@ -697,7 +733,16 @@ def execute_native_signal_gate(
             command,
             cwd=source,
             timeout=120,
+            extra_env={"MOONJUST_SIGNAL_RUN_ID": signal_run_id},
         )
+        orphan_pids = wait_for_linux_process_cleanup(
+            "MOONJUST_SIGNAL_RUN_ID", signal_run_id
+        )
+        for pid in orphan_pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except (OSError, ProcessLookupError):
+                pass
         output = result.stdout + result.stderr
         matched = (
             result.returncode == 0
@@ -710,7 +755,6 @@ def execute_native_signal_gate(
         )
         if matched:
             passed.add(name)
-        slug = name.replace("::", "__")
         (signal_artifact / f"{slug}.log").write_text(output, encoding="utf-8")
         records.append(
             {
@@ -720,6 +764,7 @@ def execute_native_signal_gate(
                 "command": command,
                 "returncode": result.returncode,
                 "timed_out": timed_out,
+                "orphan_pids": orphan_pids,
                 "passed": matched,
                 "log": f"native-signals/{slug}.log",
             }
@@ -736,14 +781,15 @@ def execute_native_signal_gate(
         ),
         encoding="utf-8",
     )
-    if passed != expected:
+    if passed != expected or any(record["orphan_pids"] for record in records):
         details = []
         for record in records:
-            if record["passed"]:
+            if record["passed"] and not record["orphan_pids"]:
                 continue
             details.append(
                 f"{record['upstream_name']} "
                 f"returncode={record['returncode']} timed_out={record['timed_out']} "
+                f"orphan_pids={record['orphan_pids']} "
                 f"log={record['log']}"
             )
         fail("native signal gate failed:\n" + "\n".join(details))
@@ -921,6 +967,11 @@ def main() -> int:
         type=Path,
         help="use this wasm1 module instead of building the debug candidate",
     )
+    parser.add_argument(
+        "--signal-only",
+        action="store_true",
+        help="run only the native signal and process-cleanup gate",
+    )
     args = parser.parse_args()
     if args.audit_write and args.approve_audit_write != UPSTREAM_COMMIT:
         fail(
@@ -939,7 +990,9 @@ def main() -> int:
         native_candidate = repo / "_build/native/debug/build/cmd/just/just.exe"
     else:
         native_candidate = args.native_candidate.resolve()
-    if args.wasm_candidate is None:
+    if args.signal_only:
+        wasm_candidate = None
+    elif args.wasm_candidate is None:
         subprocess.run(
             ["moon", "build", "--target", "wasm", "cmd/just"],
             cwd=repo,
@@ -950,7 +1003,7 @@ def main() -> int:
         wasm_candidate = args.wasm_candidate.resolve()
     if not native_candidate.is_file():
         fail(f"native candidate is missing: {native_candidate}")
-    if not wasm_candidate.is_file():
+    if not args.signal_only and not wasm_candidate.is_file():
         fail(f"wasm1 candidate is missing: {wasm_candidate}")
 
     cache = repo / "_build/upstream/just-1.57.0"
@@ -961,6 +1014,11 @@ def main() -> int:
     target = cache / "harness-target"
     executable, bound_binary = compile_harness(source, target)
     tests = list_tests(executable, source)
+    if args.signal_only:
+        install_binary(bound_binary, native_candidate)
+        execute_native_signal_gate(executable, source, tests)
+        print("native signal-only gate passed")
+        return 0
     exceptions = load_exceptions(
         repo / "tests/upstream/just-1.57.0/compatibility-exceptions.toml",
         tests,

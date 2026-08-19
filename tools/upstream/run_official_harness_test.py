@@ -48,6 +48,23 @@ class OfficialHarnessTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout.strip(), "0")
 
+    @unittest.skipIf(os.name == "nt", "Unix process groups are not available")
+    def test_isolated_runner_merges_signal_marker_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            result, timed_out = harness.run_isolated_unix(
+                [
+                    sys.executable,
+                    "-c",
+                    "import os; print(os.environ['MOONJUST_SIGNAL_RUN_ID'])",
+                ],
+                cwd=Path(raw),
+                timeout=1,
+                extra_env={"MOONJUST_SIGNAL_RUN_ID": "test-marker"},
+            )
+        self.assertFalse(timed_out)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.strip(), "test-marker")
+
 
 if __name__ == "__main__":
     unittest.main()
