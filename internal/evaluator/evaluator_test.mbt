@@ -335,6 +335,23 @@ test "evaluation context supplies invocation facts without ambient fallbacks" {
     evaluate_with_context(expression("invocation_directory_native()"), context),
     String("/native-invoked"),
   )
+  let windows_context = EvaluationContext::new(
+    cwd=@path.PathValue::new("C:\\workspace", Windows),
+  )
+  assert_eq(
+    evaluate_with_context(
+      expression("join('C:/workspace', 'src', 'justfile')"),
+      windows_context,
+    ),
+    String("C:\\workspace\\src\\justfile"),
+  )
+  let unix_context = EvaluationContext::new(
+    cwd=@path.PathValue::new("/workspace", Unix),
+  )
+  assert_eq(
+    evaluate_with_context(expression("join('/workspace', 'src')"), unix_context),
+    String("/workspace/src"),
+  )
   try
     evaluate_with_context(expression("just_pid()"), EvaluationContext::new())
   catch {

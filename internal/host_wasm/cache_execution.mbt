@@ -304,7 +304,7 @@ pub impl @host.HostCacheStore for ExecutionFs with fn clean_cache(
     error => raise execution_cache_error(error)
   }
   if remaining.is_empty() {
-    try @async_fs.remove(directory.as_string()) catch {
+    try @async_fs.rmdir(directory.as_string()) catch {
       @os_error.OSError(_) as error if error.is_ENOENT() => ()
       error => raise execution_cache_error(error)
     } noraise {

@@ -42,6 +42,9 @@ static volatile sig_atomic_t moonjust_signal_fd = -1;
 static volatile sig_atomic_t moonjust_signal_overflowed = 0;
 static volatile sig_atomic_t moonjust_signal_owner_pid = -1;
 
+MOONBIT_FFI_EXPORT
+void moonjust_install_signal_pipe(int32_t fd);
+
 static void moonjust_restore_default_and_reraise(int signal) {
   struct sigaction action = {0};
   sigemptyset(&action.sa_mask);
@@ -77,8 +80,11 @@ static void moonjust_record_signal(int signal) {
 
 MOONBIT_FFI_EXPORT
 void moonjust_prepare_signal_forwarding(void) {
-  // Do not block signals in the process. async may create its spawn worker
-  // after this hook, and a blocked mask would be inherited by direct children.
+  // Install our dispositions before async creates its sigwait worker. The
+  // pipe is attached later, once the event loop task group exists; installing
+  // the handler here prevents the worker from consuming process-directed
+  // signals before MoonJust can apply just's forwarding policy.
+  moonjust_install_signal_pipe(-1);
 }
 
 MOONBIT_FFI_EXPORT

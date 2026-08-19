@@ -534,7 +534,7 @@ fn project_evaluation_context(
   )
   let data = prefer_path(
     if windows {
-      windows_local_appdata
+      windows_appdata
     } else {
       environment_path(entries, "XDG_DATA_HOME", cwd.flavor())
     },
@@ -608,7 +608,7 @@ fn project_evaluation_context(
     config_directory?=config,
     config_local_directory?=if windows { windows_local_appdata } else { config },
     data_directory?=data,
-    data_local_directory?=data,
+    data_local_directory?=if windows { windows_local_appdata } else { data },
     cache_directory?=cache,
     runtime_directory?=environment_path(
       entries,

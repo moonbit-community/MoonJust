@@ -546,6 +546,30 @@ fn context_builtin(
         values => List(values)
       }
     }
+    "join" => {
+      if arguments.length() < 2 {
+        return None
+      }
+      let cwd = require_context_path("cwd", context.cwd, span)
+      let mut path = @path.PathValue::new(
+        expect_string(name, arguments, 0, span),
+        cwd.flavor(),
+      ) catch {
+        _ => raise Builtin(InvalidPath(value=arguments[0].to_string()), span~)
+      }
+      for argument in arguments[1:] {
+        let child = @path.PathValue::new(
+          expect_string(name, [argument], 0, span),
+          cwd.flavor(),
+        ) catch {
+          _ => raise Builtin(InvalidPath(value=argument.to_string()), span~)
+        }
+        path = path.join(child) catch {
+          _ => raise Builtin(InvalidPath(value=path.as_string()), span~)
+        }
+      }
+      String(path.as_string())
+    }
     "semver_matches" => {
       let result = @builtin.call(name, arguments) catch {
         error => raise Builtin(error, span~)
