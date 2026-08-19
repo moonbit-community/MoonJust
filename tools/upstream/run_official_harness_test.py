@@ -65,6 +65,10 @@ class OfficialHarnessTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout.strip(), "test-marker")
 
+    def test_timeout_snapshot_identifies_orphaned_signal_request(self) -> None:
+        snapshot = """\n[timeout process snapshot]\n  123   1   123   123 S /tmp/just --request \"signal\"\n  456 123   123   123 S /bin/sh -c sleep 1\n"""
+        self.assertEqual(harness.timeout_snapshot_orphans(snapshot), [123])
+
 
 if __name__ == "__main__":
     unittest.main()

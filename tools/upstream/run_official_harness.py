@@ -349,6 +349,24 @@ def wait_for_linux_process_cleanup(name: str, value: str) -> list[int]:
         time.sleep(0.02)
 
 
+def timeout_snapshot_orphans(stderr: str) -> list[int]:
+    """Extract orphaned request children from the timeout process snapshot."""
+    if "[timeout process snapshot]" not in stderr:
+        return []
+    matches: list[int] = []
+    for line in stderr.splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) < 6 or fields[1] != "1":
+            continue
+        if "--request \"signal\"" not in fields[5]:
+            continue
+        try:
+            matches.append(int(fields[0]))
+        except ValueError:
+            continue
+    return sorted(set(matches))
+
+
 def compile_harness(source: Path, target: Path) -> tuple[Path, Path]:
     environment = os.environ.copy()
     environment["CARGO_TARGET_DIR"] = str(target)
@@ -737,6 +755,9 @@ def execute_native_signal_gate(
         )
         orphan_pids = wait_for_linux_process_cleanup(
             "MOONJUST_SIGNAL_RUN_ID", signal_run_id
+        )
+        orphan_pids = sorted(
+            set(orphan_pids) | set(timeout_snapshot_orphans(result.stderr))
         )
         for pid in orphan_pids:
             try:
