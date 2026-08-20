@@ -39,6 +39,9 @@ MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip \
   --target native --target-dir "$target_dir" cmd/just
 native_source="$target_dir/native/release/build/cmd/just/just.exe"
 [ -f "$native_source" ] || release_fail "native release executable is missing"
+if [ "${platform%%-*}" = windows ]; then
+  python3 "$script_dir/normalize_pe_timestamp.py" "$native_source"
+fi
 
 mkdir -p "$stage"
 if [ "${platform%%-*}" = windows ]; then
