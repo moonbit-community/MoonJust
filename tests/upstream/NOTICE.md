@@ -13,6 +13,12 @@ The compatibility oracle and fixture source is:
 registrations emitted by `cargo test -- --list`. It contains names only and no
 test implementation.
 
+The recorded differential oracles are platform-specific because the pinned
+Rust test suite has conditional registrations. `harness-results.jsonl` is the
+Darwin/aarch64 audit snapshot and `harness-results-windows.jsonl` is the
+Windows/x86_64 snapshot. The harness selects the matching snapshot and rejects
+cross-platform or mixed-host oracle files before comparing result rows.
+
 Future copied or adapted fixtures must append a row:
 
 | MoonJust path | Upstream path | Modification | Compatibility ID |

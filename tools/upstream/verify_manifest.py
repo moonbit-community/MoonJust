@@ -114,6 +114,15 @@ ATTRIBUTE_NAMES = {
     "no-cd", "no-exit-message", "no-quiet", "openbsd", "parallel", "positional-arguments", "private",
     "script", "shell", "unix", "windows", "working-directory",
 }
+WINDOWS_ONLY_HARNESS_NAMES = {
+    "windows::bare_bash_in_shebang",
+    "windows::cmd_shell_expands_environment_variables",
+    "windows::cmd_shell_receives_command_verbatim",
+    "windows::cmd_shell_redirection",
+    "windows_shell::windows_powershell_setting_uses_powershell",
+    "windows_shell::windows_powershell_setting_uses_powershell_set_shell",
+    "windows_shell::windows_shell_setting",
+}
 
 
 def root() -> Path:
@@ -220,29 +229,18 @@ def validate_upstream_source(row_id: str, source: object) -> None:
         and re.fullmatch(r"[0-9a-f]{64}", source["file_sha256"]) is not None,
         f"{row_id} has an invalid upstream source digest",
     )
-def validate_map() -> None:
-    repo = root()
-    test_list = repo / "tests/upstream/just-1.57.0/test-list.txt"
-    test_map = repo / "tests/upstream/just-1.57.0/test-map.jsonl"
-    raw_list = test_list.read_bytes()
-    expect(hashlib.sha256(raw_list).hexdigest() == EXPECTED_TEST_LIST_SHA256, "upstream test-list digest changed")
-    names = raw_list.decode("utf-8").splitlines()
-    expect(len(names) == EXPECTED_REGISTRATIONS, "upstream registration count changed")
-    rows = [json.loads(line) for line in test_map.read_text(encoding="utf-8").splitlines()]
-    differential = load(repo / "tests/differential/cases.toml")
-    differential_cases = {case["id"]: case for case in differential["case"]}
-    harness_rows = [
-        json.loads(line)
-        for line in (
-            repo / "tests/upstream/just-1.57.0/harness-results.jsonl"
-        ).read_text(encoding="utf-8").splitlines()
-    ]
-    expect(len(harness_rows) == 1842, "official integration harness result count changed")
+def validate_harness_rows(
+    harness_rows: list[dict[str, object]],
+    expected_host: str,
+    known_names: set[str],
+) -> None:
     harness_by_name = {}
     for harness_row in harness_rows:
         name = harness_row["upstream_name"]
+        expect(name in known_names, f"unknown official harness result {name}")
         expect(name not in harness_by_name, f"duplicate official harness result {name}")
         harness_by_name[name] = harness_row
+        expect(harness_row.get("host") == expected_host, f"harness host changed for {name}")
         expect(
             harness_row["schema_version"] == HARNESS_SCHEMA_VERSION,
             f"tracked harness schema changed for {name}",
@@ -306,6 +304,45 @@ def validate_map() -> None:
             ),
             f"harness denominator is inconsistent for {name}",
         )
+
+
+def validate_map() -> None:
+    repo = root()
+    test_list = repo / "tests/upstream/just-1.57.0/test-list.txt"
+    test_map = repo / "tests/upstream/just-1.57.0/test-map.jsonl"
+    raw_list = test_list.read_bytes()
+    expect(hashlib.sha256(raw_list).hexdigest() == EXPECTED_TEST_LIST_SHA256, "upstream test-list digest changed")
+    names = raw_list.decode("utf-8").splitlines()
+    expect(len(names) == EXPECTED_REGISTRATIONS, "upstream registration count changed")
+    rows = [json.loads(line) for line in test_map.read_text(encoding="utf-8").splitlines()]
+    differential = load(repo / "tests/differential/cases.toml")
+    differential_cases = {case["id"]: case for case in differential["case"]}
+    for expected_host, filename, expected_count in (
+        ("darwin-arm64", "harness-results.jsonl", 1842),
+        ("windows-amd64", "harness-results-windows.jsonl", 1821),
+    ):
+        harness_rows = [
+            json.loads(line)
+            for line in (
+                repo / "tests/upstream/just-1.57.0" / filename
+            ).read_text(encoding="utf-8").splitlines()
+        ]
+        expect(
+            len(harness_rows) == expected_count,
+            f"{expected_host} official integration harness result count changed",
+        )
+        known_names = set(names)
+        if expected_host == "windows-amd64":
+            known_names |= WINDOWS_ONLY_HARNESS_NAMES
+        validate_harness_rows(harness_rows, expected_host, known_names)
+    harness_rows = [
+        json.loads(line)
+        for line in (
+            repo / "tests/upstream/just-1.57.0/harness-results.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
+    harness_by_name = {row["upstream_name"]: row for row in harness_rows}
+    expect(len(harness_by_name) == len(harness_rows), "duplicate official harness result")
     expect(len(rows) == len(names), "upstream mapping row count does not match registrations")
     source_cache: dict[str, str] = {}
     contract_anchors: set[tuple[str, str]] = set()

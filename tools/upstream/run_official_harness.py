@@ -115,6 +115,11 @@ def repository_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def default_results_path(repo: Path) -> Path:
+    suffix = "-windows" if platform.system() == "Windows" else ""
+    return repo / f"tests/upstream/just-1.57.0/harness-results{suffix}.jsonl"
+
+
 def fail(message: str) -> None:
     raise RuntimeError(message)
 
@@ -911,10 +916,37 @@ def oracle_projection(encoded: str, source: str) -> str:
     return "\n".join(projected) + ("\n" if projected else "")
 
 
+def oracle_host(encoded: str, source: str) -> str:
+    hosts: set[str] = set()
+    for line_number, line in enumerate(encoded.splitlines(), start=1):
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as error:
+            fail(f"invalid compatibility oracle JSON at {source}:{line_number}: {error}")
+        host = row.get("host") if isinstance(row, dict) else None
+        if not isinstance(host, str) or not host:
+            fail(f"compatibility oracle host is missing at {source}:{line_number}")
+        hosts.add(host)
+    if len(hosts) != 1:
+        fail(
+            "compatibility oracle must contain exactly one host at "
+            f"{source}: {sorted(hosts)}"
+        )
+    return next(iter(hosts))
+
+
 def verify_audited_oracle(path: Path, encoded: str) -> None:
     if not path.is_file():
         fail(f"recorded harness results are missing: {path}")
-    previous = oracle_projection(path.read_text(encoding="utf-8"), str(path))
+    recorded = path.read_text(encoding="utf-8")
+    recorded_host = oracle_host(recorded, str(path))
+    candidate_host = oracle_host(encoded, str(path) + ".candidate")
+    if recorded_host != candidate_host:
+        fail(
+            "compatibility oracle host mismatch: "
+            f"recorded={recorded_host}, candidate={candidate_host}"
+        )
+    previous = oracle_projection(recorded, str(path))
     candidate = oracle_projection(encoded, str(path) + ".candidate")
     if previous == candidate:
         return
@@ -976,7 +1008,8 @@ def main() -> int:
     parser.add_argument(
         "--results",
         type=Path,
-        default=repo / "tests/upstream/just-1.57.0/harness-results.jsonl",
+        default=default_results_path(repo),
+        help="platform-specific audited compatibility result path",
     )
     parser.add_argument(
         "--native-candidate",

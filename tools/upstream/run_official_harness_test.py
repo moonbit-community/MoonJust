@@ -69,6 +69,29 @@ class OfficialHarnessTest(unittest.TestCase):
         snapshot = """\n[timeout process snapshot]\n  123   1   123   123 S /tmp/just --request \"signal\"\n  456 123   123   123 S /bin/sh -c sleep 1\n"""
         self.assertEqual(harness.timeout_snapshot_orphans(snapshot), [123])
 
+    def test_oracle_host_requires_one_nonempty_host(self) -> None:
+        encoded = '{"host":"windows-amd64","schema_version":4}\n'
+        self.assertEqual(harness.oracle_host(encoded, "oracle"), "windows-amd64")
+        with self.assertRaises(RuntimeError):
+            harness.oracle_host(
+                '{"host":"darwin-arm64","schema_version":4}\n'
+                '{"host":"windows-amd64","schema_version":4}\n',
+                "oracle",
+            )
+
+    def test_oracle_comparison_rejects_cross_platform_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "results.jsonl"
+            path.write_text(
+                '{"host":"darwin-arm64","schema_version":4}\n',
+                encoding="utf-8",
+            )
+            with self.assertRaises(RuntimeError):
+                harness.verify_audited_oracle(
+                    path,
+                    '{"host":"windows-amd64","schema_version":4}\n',
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
