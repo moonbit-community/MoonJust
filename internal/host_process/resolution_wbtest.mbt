@@ -41,3 +41,22 @@ test "Windows batch programs use cmd without changing arguments" {
     ("runner.cmd", ["one"]),
   )
 }
+
+///|
+test "Windows batch bodies and undefined variables preserve cmd semantics" {
+  assert_eq(
+    windows_batch_body("for %x in (a) do echo %x"),
+    "for %%x in (a) do echo %%x",
+  )
+  assert_eq(windows_batch_body("echo %PATH%"), "echo %PATH%")
+  assert_eq(
+    windows_escape_undefined_variables(
+      "echo %MISSING% %KNOWN%",
+      [("KNOWN", "1")],
+      false,
+    ),
+    "echo %%MISSING%% %KNOWN%",
+  )
+  assert_true(windows_environment_contains("known", [("KNOWN", "1")], false))
+  assert_false(windows_environment_contains("missing", [], false))
+}
