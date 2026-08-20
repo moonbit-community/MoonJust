@@ -667,7 +667,7 @@ def is_wasm_nonunicode_host_limitation(block: str) -> bool:
     keep it bound to the two pinned upstream non-Unicode cases.
     """
     clean = ANSI_ESCAPE.sub("", block).lower()
-    return "std/src/env.rs" in clean and "non-unicode" not in clean
+    return "std/src/env.rs" in clean and "\\xff" in clean
 
 
 def execute_harness(

@@ -95,7 +95,7 @@ class OfficialHarnessTest(unittest.TestCase):
     def test_wasm_nonunicode_host_limitation_is_narrow(self) -> None:
         self.assertTrue(
             harness.is_wasm_nonunicode_host_limitation(
-                "panicked at /rustc/src/std/src/env.rs:162:83: called unwrap"
+                "panicked at /rustc/src/std/src/env.rs:162:83: called unwrap: foo\\xff"
             )
         )
         self.assertFalse(
