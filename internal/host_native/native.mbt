@@ -232,12 +232,13 @@ fn path_flavor_for_operating_system(
 
 ///|
 pub impl @host.HostEnv for NativeFs with fn current_dir(_self : NativeFs) -> @path.PathValue raise @host.HostError {
-  guard @env.current_dir() is Some(value) else {
-    raise CapabilityUnavailable(Environment)
-  }
   let operating_system = detected_operating_system()
   let native_value = native_current_dir()
-  let value = if native_value.is_empty() { value } else { native_value }
+  let value = if native_value.is_empty() {
+    @env.current_dir().unwrap_or(".")
+  } else {
+    native_value
+  }
   @path.PathValue::new(
     value,
     path_flavor_for_operating_system(operating_system),

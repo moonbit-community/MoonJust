@@ -90,6 +90,7 @@ RESULT_CLASSIFICATIONS = {
     "product-identity",
     "excluded-completion",
     "upstream-ignored",
+    "not-applicable",
     "failed",
 }
 EXCEPTION_CLASSIFICATIONS = {
@@ -97,6 +98,7 @@ EXCEPTION_CLASSIFICATIONS = {
     "diagnostic-semantic",
     "product-identity",
     "excluded-completion",
+    "not-applicable",
 }
 
 
@@ -647,6 +649,17 @@ def is_ansi_normalized_diagnostic_exact(block: str) -> bool:
     return sides is not None and sides[0] == sides[1]
 
 
+def is_wasm_nonunicode_host_limitation(block: str) -> bool:
+    """Identify MoonX failing before wasm starts in a non-UTF-8 cwd.
+
+    The host launcher calls Rust's `current_dir().unwrap()` before invoking
+    the module. This is a precise runner limitation, not a MoonJust result;
+    keep it bound to the two pinned upstream non-Unicode cases.
+    """
+    clean = ANSI_ESCAPE.sub("", block).lower()
+    return "std/src/env.rs" in clean and "non-unicode" not in clean
+
+
 def execute_harness(
     label: str,
     executable: Path,
@@ -709,6 +722,13 @@ def execute_harness(
             and "Bad stderr:" not in block
         ):
             statuses[name] = "product-identity"
+        elif (
+            label == "wasm1"
+            and target_rule is not None
+            and target_rule["classification"] == "not-applicable"
+            and is_wasm_nonunicode_host_limitation(block)
+        ):
+            statuses[name] = "not-applicable"
     counts = {classification: 0 for classification in RESULT_CLASSIFICATIONS}
     for status in statuses.values():
         if status not in counts:
@@ -840,6 +860,8 @@ def encode_results(
             disposition = "excluded-completion"
         elif "product-identity" in target_statuses:
             disposition = "product-identity"
+        elif "not-applicable" in target_statuses:
+            disposition = "not-applicable"
         elif "diagnostic-semantic" in target_statuses:
             disposition = "diagnostic-semantic"
         elif "upstream-ignored" in target_statuses:
@@ -852,6 +874,7 @@ def encode_results(
             "excluded-completion",
             "product-identity",
             "upstream-ignored",
+            "not-applicable",
         }
         rows.append(
             {
@@ -1121,6 +1144,7 @@ def main() -> int:
         if rule["classification"] not in {
             "diagnostic-exact",
             "diagnostic-semantic",
+            "not-applicable",
         }:
             continue
         for target_name, statuses in (("native", native), ("wasm1", wasm)):

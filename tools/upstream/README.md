@@ -56,7 +56,8 @@ python3 tools/upstream/run_official_harness.py
 The default command writes a machine-readable candidate report below
 `_build/upstream-harness/` and fails on every unapproved difference. Results
 are classified as `exact`, `diagnostic-exact`, `diagnostic-semantic`,
-`product-identity`, `excluded-completion`, `upstream-ignored`, or `failed`.
+`product-identity`, `excluded-completion`, `upstream-ignored`,
+`not-applicable`, or `failed`.
 Exceptions are exact test IDs in
 `tests/upstream/just-1.57.0/compatibility-exceptions.toml`; wildcards are not
 accepted.

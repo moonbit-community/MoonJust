@@ -5,7 +5,46 @@ extern "C" fn native_operating_system() -> Int = "moonjust_host_operating_system
 extern "C" fn native_architecture() -> Int = "moonjust_host_architecture"
 
 ///|
+#cfg(platform="windows")
 extern "C" fn native_current_dir() -> String = "moonjust_host_current_dir"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+extern "C" fn native_current_dir_bytes() -> Bytes = "moonjust_host_current_dir_bytes"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+extern "C" fn native_cwd_is_nonunicode() -> Int = "moonjust_host_cwd_is_nonunicode"
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn native_current_dir() -> String {
+  @utf8.decode(native_current_dir_bytes()) catch {
+    _ => "."
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn native_cwd_nonunicode() -> Bool {
+  native_cwd_is_nonunicode() != 0
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+extern "C" fn native_warn_nonunicode_justfile() -> Unit = "moonjust_host_warn_nonunicode_justfile"
+
+///|
+#cfg(platform="windows")
+fn native_cwd_nonunicode() -> Bool {
+  false
+}
+
+///|
+#cfg(platform="windows")
+fn native_warn_nonunicode_justfile() -> Unit {
+
+}
 
 ///|
 extern "C" fn native_is_terminal(stream : Int) -> Int = "moonjust_host_is_terminal"

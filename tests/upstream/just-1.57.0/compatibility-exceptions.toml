@@ -9,6 +9,20 @@ owner = "release"
 targets = ["native", "wasm1"]
 
 [[exceptions]]
+test = "non_unicode::warn_for_non_unicode_invocation_directory"
+classification = "not-applicable"
+reason = "MoonX's launcher currently rejects a non-UTF-8 working directory before invoking the wasm module; this exact host limitation is re-audited when MoonX gains byte-preserving cwd support."
+owner = "platform"
+targets = ["wasm1"]
+
+[[exceptions]]
+test = "non_unicode::warn_for_non_unicode_justfile_path"
+classification = "not-applicable"
+reason = "MoonX's launcher currently rejects a non-UTF-8 working directory before invoking the wasm module; this exact host limitation is re-audited when MoonX gains byte-preserving cwd support."
+owner = "platform"
+targets = ["wasm1"]
+
+[[exceptions]]
 test = "misc::color_always"
 classification = "diagnostic-exact"
 normalizations = ["ansi"]

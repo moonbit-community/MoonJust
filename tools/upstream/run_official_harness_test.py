@@ -92,6 +92,18 @@ class OfficialHarnessTest(unittest.TestCase):
                     '{"host":"windows-amd64","schema_version":4}\n',
                 )
 
+    def test_wasm_nonunicode_host_limitation_is_narrow(self) -> None:
+        self.assertTrue(
+            harness.is_wasm_nonunicode_host_limitation(
+                "panicked at /rustc/src/std/src/env.rs:162:83: called unwrap"
+            )
+        )
+        self.assertFalse(
+            harness.is_wasm_nonunicode_host_limitation(
+                "error: host error while loading"
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

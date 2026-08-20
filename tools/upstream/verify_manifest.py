@@ -264,6 +264,7 @@ def validate_harness_rows(
                 "product-identity",
                 "excluded-completion",
                 "upstream-ignored",
+                "not-applicable",
             },
             f"harness result is not approved for {name}",
         )
@@ -300,6 +301,7 @@ def validate_harness_rows(
                     "product-identity",
                     "excluded-completion",
                     "upstream-ignored",
+                    "not-applicable",
                 }
             ),
             f"harness denominator is inconsistent for {name}",
