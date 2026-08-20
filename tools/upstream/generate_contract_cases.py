@@ -39,7 +39,7 @@ LIST_SUITE = "internal/application/upstream_list_contract_wbtest.mbt"
 VALUE_SOURCE = "src/value.rs"
 VALUE_SUITE = "internal/value/upstream_contract_test.mbt"
 UNINDENT_SOURCE = "src/unindent.rs"
-UNINDENT_SUITE = "internal/parser/upstream_unindent_contract_test.mbt"
+UNINDENT_SUITE = "internal/parser/upstream_unindent_contract_wbtest.mbt"
 CONFIG_SOURCE = "src/config.rs"
 CONFIG_SUITE = "internal/cli/upstream_config_contract_test.mbt"
 CONFIG_CONTRACT_NAMES = {
@@ -412,17 +412,45 @@ def unindent_cases(source: str, name: str) -> tuple[int, list[dict[str, object]]
         raise ValueError(f"unterminated upstream unindent test function {name}")
     body = source[function.end() : end]
     cases: list[dict[str, object]] = []
-    for match in re.finditer(r"assert_eq!\s*\(\s*unindent\s*\(", body):
+    if name in {"unindents"}:
+        pattern = r"assert_eq!\s*\(\s*unindent\s*\("
+    elif name == "indentations":
+        pattern = r"assert_eq!\s*\(\s*indentation\s*\("
+    elif name == "commons":
+        pattern = r"assert_eq!\s*\(\s*common\s*\("
+    else:
+        pattern = r"assert!\s*\(\s*(!)?blank\s*\("
+    for match in re.finditer(pattern, body):
+        if name == "blanks":
+            input_value, index = rust_literal(body, match.end())
+            expected = match.group(1) is None
+            cases.append({"input": input_value, "expected": expected})
+            continue
         input_value, index = rust_literal(body, match.end())
         while index < len(body) and body[index].isspace():
             index += 1
-        if index >= len(body) or body[index] != ")":
+        if name in {"unindents", "indentations"} and (index >= len(body) or body[index] != ")"):
             raise ValueError(f"malformed unindent input in {name}")
-        index += 1
+        if name in {"unindents", "indentations"}:
+            index += 1
         while index < len(body) and body[index].isspace():
             index += 1
-        if index >= len(body) or body[index] != ",":
+        if name != "blanks" and (index >= len(body) or body[index] != ","):
             raise ValueError(f"malformed unindent expectation in {name}")
+        if name == "commons":
+            second, index = rust_literal(body, index + 1)
+            while index < len(body) and body[index].isspace():
+                index += 1
+            if index >= len(body) or body[index] != ")":
+                raise ValueError(f"malformed common expectation in {name}")
+            index += 1
+            while index < len(body) and body[index].isspace():
+                index += 1
+            if index >= len(body) or body[index] != ",":
+                raise ValueError(f"malformed common expectation in {name}")
+            expected, _ = rust_literal(body, index + 1)
+            cases.append({"input": input_value, "second": second, "expected": expected})
+            continue
         expected, _ = rust_literal(body, index + 1)
         cases.append({"input": input_value, "expected": expected})
     if not cases:
@@ -786,6 +814,21 @@ fn assert_unindent_contract(input : String, expected : String) -> Unit raise {
   assert_eq(unindent_string(input), expected)
 }
 
+///|
+fn assert_indentation_contract(input : String, expected : String) -> Unit raise {
+  assert_eq(string_line_indentation(input), expected)
+}
+
+///|
+fn assert_blank_contract(input : String, expected : Bool) -> Unit raise {
+  assert_eq(string_line_is_blank(input), expected)
+}
+
+///|
+fn assert_common_contract(left : String, right : String, expected : String) -> Unit raise {
+  assert_eq(common_string_indentation(left, right), expected)
+}
+
 '''
     tests: list[str] = []
     for case in cases:
@@ -793,11 +836,30 @@ fn assert_unindent_contract(input : String, expected : String) -> Unit raise {
         assert isinstance(expectation, dict)
         entries = expectation["cases"]
         assert isinstance(entries, list)
-        assertions = [
-            f"  assert_unindent_contract({moon_string(str(entry['input']))}, "
-            f"{moon_string(str(entry['value']))})"
-            for entry in entries
-        ]
+        kind = str(expectation["kind"])
+        assertions = []
+        for entry in entries:
+            if kind == "unindents":
+                assertions.append(
+                    f"  assert_unindent_contract({moon_string(str(entry['input']))}, "
+                    f"{moon_string(str(entry['value']))})"
+                )
+            elif kind == "indentations":
+                assertions.append(
+                    f"  assert_indentation_contract({moon_string(str(entry['input']))}, "
+                    f"{moon_string(str(entry['value']))})"
+                )
+            elif kind == "blanks":
+                assertions.append(
+                    f"  assert_blank_contract({moon_string(str(entry['input']))}, "
+                    f"{str(bool(entry['value'])).lower()})"
+                )
+            else:
+                assertions.append(
+                    f"  assert_common_contract({moon_string(str(entry['input']))}, "
+                    f"{moon_string(str(entry['second']))}, "
+                    f"{moon_string(str(entry['value']))})"
+                )
         tests.append(
             "///|\n"
             f'test "{case["test_name"]}" {{\n'
@@ -1140,16 +1202,22 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
         for row in rows
         if row["owner_area"] == "evaluator-builtins"
         and row["scope"] == "compatibility"
-        and row["upstream_name"] == "unindent::tests::unindents"
+        and str(row["upstream_name"]).startswith("unindent::tests::")
     ]
     rendered_unindent_cases: list[dict[str, object]] = []
     for row in unindent_rows:
-        line, extracted_cases = unindent_cases(unindent_source, "unindents")
+        leaf = str(row["upstream_name"]).rsplit("::", 1)[-1]
+        line, extracted_cases = unindent_cases(unindent_source, leaf)
         inputs = [case["input"] for case in extracted_cases]
         expected = {
             "outcome": "success",
+            "kind": leaf,
             "cases": [
-                {"input": input_value, "value": case["expected"]}
+                {
+                    "input": input_value,
+                    "second": case.get("second"),
+                    "value": case["expected"],
+                }
                 for input_value, case in zip(inputs, extracted_cases)
             ],
         }
