@@ -129,6 +129,7 @@ jobs:
             --target native --target-dir _build/size-debug cmd/just
           python3 evidence-tools/tools/release/check_artifact_size.py \
             --baseline evidence-tools/compat/artifact-size-baseline.json \
+            --historical-baseline \
             --platform "${{ matrix.platform }}" \
             --source-commit "$MOONJUST_BASELINE_COMMIT" \
             --source-patch evidence-tools/tools/release/latest-moonbit-baseline.patch \

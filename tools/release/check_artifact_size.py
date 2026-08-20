@@ -11,11 +11,15 @@ import platform
 import shutil
 import struct
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dependency_fingerprint
 
 
 SCHEMA_VERSION = 2
-SUPPORTED_BASELINE_SCHEMAS = {1, 2}
+BASELINE_KIND = "dependency-normalized-merge-base"
 DEFAULT_HARD_LIMIT = 1.05
 DEFAULT_ENGINEERING_TARGET = 1.00
 
@@ -483,11 +487,40 @@ def apply_budget(
         failures.append(f"{name} grew {(ratio - 1) * 100:.2f}% from frozen baseline")
 
 
+def validate_baseline_metadata(
+    baseline: dict[str, object],
+    *,
+    historical: bool,
+    platform_name: str,
+) -> None:
+    if historical:
+        if baseline.get("schema_version") not in {1, 2}:
+            raise ValueError("unsupported historical artifact-size baseline report")
+    else:
+        if baseline.get("schema_version") != SCHEMA_VERSION or baseline.get("kind") != BASELINE_KIND:
+            raise ValueError("only dependency-normalized merge-base reports are accepted")
+        if baseline.get("status") != "passed" or baseline.get("comparable_assets") is not True:
+            raise ValueError("dependency-normalized merge-base is unavailable")
+        repeatability = baseline.get("repeatability")
+        if not isinstance(repeatability, dict) or repeatability.get("status") != "passed":
+            raise ValueError("dependency-normalized merge-base is not reproducible")
+    if baseline.get("platform") != platform_name:
+        raise ValueError(
+            f"same-run baseline platform {baseline.get('platform')!r} differs from {platform_name!r}"
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     baseline_group = parser.add_mutually_exclusive_group(required=True)
     baseline_group.add_argument("--baseline", type=Path)
     baseline_group.add_argument("--baseline-report", type=Path)
+    parser.add_argument(
+        "--historical-baseline",
+        action="store_true",
+        help="read the retired static baseline for archive-only reporting",
+    )
+    parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--native", type=Path, required=True)
     parser.add_argument("--wasm", type=Path, required=True)
     parser.add_argument("--native-debug", type=Path)
@@ -500,25 +533,20 @@ def main() -> None:
     parser.add_argument("--require-complete-baseline", action="store_true")
     parser.add_argument("--report-only", action="store_true")
     args = parser.parse_args()
-    if args.baseline_report is not None:
-        baseline = json.loads(args.baseline_report.read_text(encoding="utf-8"))
-        if baseline.get("schema_version") != 1 or baseline.get("kind") != "same-run-merge-base":
-            raise ValueError("unsupported same-run artifact-size baseline report")
-        if baseline.get("platform") != args.platform:
-            raise ValueError(
-                f"same-run baseline platform {baseline.get('platform')!r} differs from {args.platform!r}"
-            )
-        native_baseline = baseline.get("native")
-        wasm_baseline = baseline.get("wasm1")
-        archive_baseline = baseline.get("archive")
-    else:
-        assert args.baseline is not None
-        baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
-        if baseline.get("schema_version") not in SUPPORTED_BASELINE_SCHEMAS:
-            raise ValueError("unsupported artifact-size baseline schema")
-        native_baseline = baseline.get("native", {}).get(args.platform)
-        wasm_baseline = baseline.get("wasm1")
-        archive_baseline = None
+    historical = args.baseline is not None
+    if historical and not args.historical_baseline:
+        raise ValueError("static baselines are retired; pass --historical-baseline for archive reporting")
+    baseline_path = args.baseline_report if args.baseline_report is not None else args.baseline
+    assert baseline_path is not None
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    validate_baseline_metadata(
+        baseline,
+        historical=historical,
+        platform_name=args.platform,
+    )
+    native_baseline = baseline.get("native")
+    wasm_baseline = baseline.get("wasm1")
+    archive_baseline = baseline.get("archive")
     if not isinstance(wasm_baseline, dict):
         raise ValueError("frozen wasm1 artifact baseline is missing")
     paths = [args.native, args.wasm, args.native_debug, args.wasm_debug, args.archive]
@@ -534,9 +562,10 @@ def main() -> None:
         "schema_version": SCHEMA_VERSION,
         "commit": args.source_commit or command_output(["git", "rev-parse", "HEAD"]),
         "platform": args.platform,
-        "baseline_commit": baseline.get("commit"),
-        "baseline_kind": baseline.get("kind", "frozen"),
+        "baseline_commit": baseline.get("source_commit", baseline.get("commit")),
+        "baseline_kind": "historical-baseline" if historical else baseline.get("kind", BASELINE_KIND),
         "moon": command_output(["moon", "version", "--all"]),
+        "dependency_set": [],
         "machine": {
             "platform": platform.platform(),
             "system": platform.system(),
@@ -549,8 +578,22 @@ def main() -> None:
         "native": artifact_record(args.native, analyze=True),
         "wasm1": artifact_record(args.wasm, analyze=True),
     }
+    if not historical:
+        moon_mod = args.repo.resolve() / "moon.mod"
+        latest_dependencies = dependency_fingerprint.latest_dependency_records(moon_mod)
+        dependency_fingerprint.assert_declares_dependency_set(
+            moon_mod, latest_dependencies,
+        )
+        record["dependency_set"] = latest_dependencies
+    record["dependency_fingerprint"] = (
+        dependency_fingerprint.dependency_fingerprint(record["dependency_set"])  # type: ignore[arg-type]
+        if not historical
+        else None
+    )
     if baseline.get("moon") and baseline["moon"] != record["moon"]:
         failures.append("same-run artifact baseline MoonBit toolchain differs")
+    if not historical and baseline.get("dependency_fingerprint") != record["dependency_fingerprint"]:
+        failures.append("dependency-normalized artifact baseline dependency set differs")
     if not isinstance(native_baseline, dict):
         missing.append(f"native/{args.platform}")
     else:
@@ -572,7 +615,7 @@ def main() -> None:
         record["archive"] = archive_record
         archive_frozen = (
             baseline_bytes(archive_baseline)
-            if args.baseline_report is not None and isinstance(archive_baseline, dict)
+            if isinstance(archive_baseline, dict)
             else baseline_bytes(native_baseline, archive=True)
             if isinstance(native_baseline, dict)
             else None

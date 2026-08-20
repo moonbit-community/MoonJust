@@ -93,6 +93,45 @@ class ArtifactSizeTest(unittest.TestCase):
         self.assertEqual([row["name"] for row in functions], ["f1", "f0"])
         self.assertEqual([row["bytes"] for row in functions], [4, 2])
 
+    def test_unavailable_normalized_baseline_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unavailable"):
+            artifact_size.validate_baseline_metadata(
+                {
+                    "schema_version": 2,
+                    "kind": "dependency-normalized-merge-base",
+                    "status": "infrastructure-invalid",
+                    "comparable_assets": False,
+                    "platform": "linux-x86_64",
+                },
+                historical=False,
+                platform_name="linux-x86_64",
+            )
+
+    def test_non_repeatable_normalized_baseline_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "not reproducible"):
+            artifact_size.validate_baseline_metadata(
+                {
+                    "schema_version": 2,
+                    "kind": "dependency-normalized-merge-base",
+                    "status": "passed",
+                    "comparable_assets": True,
+                    "platform": "linux-x86_64",
+                },
+                historical=False,
+                platform_name="linux-x86_64",
+            )
+
+    def test_old_static_baseline_is_not_a_normalized_baseline(self) -> None:
+        with self.assertRaisesRegex(ValueError, "dependency-normalized"):
+            artifact_size.validate_baseline_metadata(
+                {
+                    "schema_version": 2,
+                    "platform": "linux-x86_64",
+                },
+                historical=False,
+                platform_name="linux-x86_64",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

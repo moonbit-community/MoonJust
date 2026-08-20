@@ -16,6 +16,6 @@ description = "A MoonBit implementation of the just command runner"
 
 import {
   "moonbitlang/async@0.21.0",
-  "moonbitlang/x@0.4.50",
+  "moonbitlang/x@0.5.1",
   "moonbitlang/regexp@0.3.5",
 }

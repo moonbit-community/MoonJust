@@ -41,19 +41,9 @@ moon build --frozen --release --strip --target native cmd/just
 moon build --frozen --release --strip --target wasm cmd/just
 MOONJUST_NATIVE_CANDIDATE="$repo_root/_build/native/release/build/cmd/just/just.exe" \
 MOONJUST_WASM_CANDIDATE="$repo_root/_build/wasm/release/build/cmd/just/just.wasm" \
-  "$repo_root/tools/checks/compatibility.sh"
+"$repo_root/tools/checks/compatibility.sh"
 "$repo_root/tools/checks/coverage.sh"
 "$repo_root/tools/checks/performance.sh"
-python3 "$release_dir/check_artifact_size.py" \
-  --baseline "$repo_root/compat/artifact-size-baseline.json" \
-  --native "$repo_root/_build/native/release/build/cmd/just/just.exe" \
-  --wasm "$repo_root/_build/wasm/release/build/cmd/just/just.wasm" \
-  --output "$repo_root/_build/release/artifact-size.json"
-"$release_dir/rebuild_source_package.sh" "$source_archive"
-"$release_dir/check_repeatable_build.sh"
-
-"$release_dir/check_policies.sh"
-
 platform=$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
 case "$platform" in
   darwin-arm64) platform=macos-aarch64 ;;
@@ -62,6 +52,20 @@ case "$platform" in
   linux-x86_64) platform=linux-x86_64 ;;
   mingw*|msys*|cygwin*) platform=windows-x86_64 ;;
 esac
+python3 "$release_dir/build_size_baseline.py" \
+  --repo "$repo_root" --base-ref origin/main --platform "$platform" \
+  --output "$repo_root/_build/size-baseline.json"
+python3 "$release_dir/check_artifact_size.py" \
+  --baseline-report "$repo_root/_build/size-baseline.json" \
+  --repo "$repo_root" \
+  --native "$repo_root/_build/native/release/build/cmd/just/just.exe" \
+  --wasm "$repo_root/_build/wasm/release/build/cmd/just/just.wasm" \
+  --output "$repo_root/_build/release/artifact-size.json"
+"$release_dir/rebuild_source_package.sh" "$source_archive"
+"$release_dir/check_repeatable_build.sh"
+
+"$release_dir/check_policies.sh"
+
 archive=$(MOONJUST_RELEASE_PLATFORM="$platform" "$release_dir/build_artifacts.sh")
 python3 "$release_dir/verify_bundle.py" \
   --repo "$repo_root" --archive "$archive" --platform "$platform"
