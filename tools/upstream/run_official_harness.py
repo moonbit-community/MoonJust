@@ -100,6 +100,10 @@ EXCEPTION_CLASSIFICATIONS = {
     "excluded-completion",
     "not-applicable",
 }
+PLATFORM_HOST_CASES = {
+    "non_unicode::warn_for_non_unicode_invocation_directory",
+    "non_unicode::warn_for_non_unicode_justfile_path",
+}
 
 
 def rust_string_literal(value: str) -> str:
@@ -165,7 +169,13 @@ def load_exceptions(path: Path, tests: list[str]) -> dict[str, dict[str, object]
         reason = raw.get("reason")
         owner = raw.get("owner")
         targets = raw.get("targets")
-        if not isinstance(name, str) or name not in known:
+        if not isinstance(name, str) or (
+            name not in known
+            and not (
+                classification == "not-applicable"
+                and name in PLATFORM_HOST_CASES
+            )
+        ):
             fail(f"compatibility exception {index} has unknown exact test ID: {name!r}")
         if name in rules:
             fail(f"duplicate compatibility exception for {name}")
@@ -1150,6 +1160,7 @@ def main() -> int:
         for target_name, statuses in (("native", native), ("wasm1", wasm)):
             if (
                 target_name in rule["targets"]
+                and name in statuses
                 and statuses[name] != rule["classification"]
             ):
                 stale_diagnostics.append(

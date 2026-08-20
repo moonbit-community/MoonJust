@@ -104,6 +104,15 @@ class OfficialHarnessTest(unittest.TestCase):
             )
         )
 
+    def test_platform_host_cases_are_explicit(self) -> None:
+        self.assertEqual(
+            harness.PLATFORM_HOST_CASES,
+            {
+                "non_unicode::warn_for_non_unicode_invocation_directory",
+                "non_unicode::warn_for_non_unicode_justfile_path",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
