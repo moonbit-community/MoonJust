@@ -1270,7 +1270,11 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             "query-cli",
             "execution-context",
             "runtime-cache",
-        }:
+        } and not (
+            area == "execution-context"
+            and category == "config"
+            and name not in CONTRACT_SOURCE_PROVENANCE
+        ):
             test_anchor = anchor_dict(area, category, name)
             row.update(
                 disposition="verified-contract",

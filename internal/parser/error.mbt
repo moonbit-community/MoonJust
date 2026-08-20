@@ -81,7 +81,11 @@ pub fn ParserError::message(self : ParserError) -> String {
     UnexpectedToken(expected~, found~, ..) =>
       "expected " + expected + ", but found " + found.diagnostic_name()
     UnexpectedConstruct(expected~, found~, ..) =>
-      "expected " + expected + " but found " + found
+      if expected == "no parameters after variadic parameter" {
+        "parameter `" + found + "` follows variadic parameter"
+      } else {
+        "expected " + expected + " but found " + found
+      }
     InvalidEscapeSequence(character~, ..) =>
       "`\\" + character + "` is not a valid escape sequence"
     InvalidUnicodeEscape(reason~, ..) => reason

@@ -722,8 +722,8 @@ def validate() -> None:
                 },
                 "execution context exit has an invalid state",
             )
-            expect(manifest["evidence"]["native_tests"] == 211, "execution context Native evidence count changed")
-            expect(manifest["evidence"]["wasm_tests"] == 208, "execution context wasm evidence count changed")
+            expect(manifest["evidence"]["native_tests"] == 232, "execution context Native evidence count changed")
+            expect(manifest["evidence"]["wasm_tests"] == 229, "execution context wasm evidence count changed")
         else:
             expect(
                 manifest["plan_exit"]

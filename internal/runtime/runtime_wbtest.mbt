@@ -96,7 +96,7 @@ test "runtime host error details and cache paths are classified" {
   try cache_path(path, "bad\u{0000}path") catch {
     Execution(error=CacheFailure(message~), ..) =>
       assert_true(message.contains("invalid cache path"))
-    error => fail("unexpected cache path error: {Repr(error)}")
+    _error => fail("unexpected cache path error")
   } noraise {
     _ => fail("expected invalid cache path")
   }

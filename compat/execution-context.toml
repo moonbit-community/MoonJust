@@ -15,20 +15,20 @@ environment = "CLI variable overrides, shell selection, tempdir, platform rules,
 executor_boundary = "invocations and process configuration are validated without granting process execution"
 
 [target_matrix]
-native = "pass: 211 tests"
-wasm1 = "pass: 208 tests"
+native = "pass: 232 tests"
+wasm1 = "pass: 229 tests"
 native_platforms = "pass: Ubuntu/macOS/Windows on audited main run 31244990807"
 wasm_policy = "pass: writable transaction policy is isolated from the read-only inspect policy"
 
 [evidence]
-native_tests = 211
-wasm_tests = 208
+native_tests = 232
+wasm_tests = 229
 hostfs_gate = "tools/checks/hostfs.sh"
 dotenv_gate = "tools/checks/dotenv.sh"
 invocation_gate = "tools/checks/invocation.sh"
 working_directory_gate = "tools/checks/workdir.sh"
 environment_gate = "tools/checks/environment.sh"
 upstream_corpus = "tests/upstream/just-1.57.0/execution-context.toml"
-upstream_covered_registrations = 152
-upstream_unverified_registrations = 36
+upstream_covered_registrations = 173
+upstream_unverified_registrations = 15
 provenance = "tests/upstream/NOTICE.md"

@@ -69,6 +69,19 @@ CONFIG_CONTRACT_NAMES = {
     "arguments",
     "overrides",
     "overrides_empty",
+    "set_default",
+    "set_empty",
+    "set_one",
+    "set_override",
+    "set_two",
+    "shell_default",
+    "search_config_default",
+    "search_config_from_working_directory_and_justfile",
+    "search_config_justfile_long",
+    "search_config_justfile_short",
+    "search_config_justfile_stdin_long",
+    "search_config_justfile_stdin_short",
+    "search_config_justfile_stdin_with_working_directory",
 }
 
 
@@ -514,6 +527,21 @@ def config_case(source: str, name: str) -> tuple[int, dict[str, object]]:
             if "=" in argument and not argument.startswith("--"):
                 key, value = argument.split("=", 1)
                 overrides.append([key, value])
+    if name.startswith("set_"):
+        index = 0
+        while index < len(args):
+            if args[index] == "--set" and index + 2 < len(args):
+                overrides.append([args[index + 1], args[index + 2]])
+                index += 2
+            index += 1
+    if name == "search_config_from_working_directory_and_justfile":
+        values.update({"working-directory": "foo", "justfile": "bar"})
+    elif name in {"search_config_justfile_long", "search_config_justfile_short"}:
+        values["justfile"] = "foo"
+    elif name in {"search_config_justfile_stdin_long", "search_config_justfile_stdin_short"}:
+        values["justfile"] = "-"
+    elif name == "search_config_justfile_stdin_with_working_directory":
+        values.update({"justfile": "-", "working-directory": "foo"})
     return line, {
         "args": args,
         "flags": flags,
@@ -1249,7 +1277,7 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
     config_rows = [
         row
         for row in rows
-        if row["owner_area"] == "executor"
+        if row["owner_area"] in {"executor", "execution-context"}
         and row["scope"] == "compatibility"
         and str(row["upstream_name"]).startswith("config::tests::")
         and str(row["upstream_name"]).rsplit("::", 1)[-1] in CONFIG_CONTRACT_NAMES
@@ -1264,7 +1292,7 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
             "schema_version": 1,
             "case_id": row["id"],
             "upstream_name": row["upstream_name"],
-            "owner_area": "executor",
+            "owner_area": row["owner_area"],
             "test_name": test_name,
             "test_anchor": {"suite": CONFIG_SUITE, "test_name": test_name},
             "contract_case": f"MJ-CONTRACT::{row['id']}",

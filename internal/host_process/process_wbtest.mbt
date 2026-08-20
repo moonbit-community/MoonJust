@@ -61,7 +61,7 @@ async test "process output limits reject negative and oversized captures" {
   try run_process_with_output_limit(invalid, -1) catch {
     InvalidInput(message) =>
       assert_eq(message, "captured process output limit must be non-negative")
-    error => fail("unexpected output-limit error: {Repr(error)}")
+    _error => fail("unexpected output-limit error")
   } noraise {
     _ => fail("expected negative output limit to fail")
   }
@@ -72,7 +72,7 @@ async test "process output limits reject negative and oversized captures" {
   try run_process_with_output_limit(oversized, 3) catch {
     InvalidInput(message) =>
       assert_true(message.contains("exceeded the 3-byte"))
-    error => fail("unexpected capture-limit error: {Repr(error)}")
+    _error => fail("unexpected capture-limit error")
   } noraise {
     _ => fail("expected oversized capture to fail")
   }
