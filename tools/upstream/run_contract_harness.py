@@ -89,8 +89,7 @@ def main() -> int:
     if commit != UPSTREAM_COMMIT:
         raise ValueError(f"upstream source is {commit}, expected {UPSTREAM_COMMIT}")
 
-    results: list[dict[str, object]] = []
-    failed = False
+    batches: dict[tuple[str, str], list[dict[str, object]]] = {}
     for row in rows:
         verify_source(args.upstream_source, row)
         anchor = row["test_anchor"]
@@ -99,29 +98,52 @@ def main() -> int:
             target_name = "wasm1" if target == "wasm" else target
             if target_name not in row["targets"]:
                 continue
-            command = [
-                "moon",
-                "test",
-                "--frozen",
-                "--target",
-                target,
-                str(anchor["suite"]),
-                "--filter",
-                str(anchor["test_name"]),
-                "--no-parallelize",
-            ]
-            started = time.monotonic_ns()
-            result = subprocess.run(
-                command,
-                cwd=root(),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
-            elapsed_ms = (time.monotonic_ns() - started) / 1_000_000
-            passed = result.returncode == 0
-            failed = failed or not passed
+            batches.setdefault((target, str(anchor["suite"])), []).append(row)
+
+    results: list[dict[str, object]] = []
+    failed = False
+    for (target, suite), batch_rows in sorted(batches.items()):
+        target_name = "wasm1" if target == "wasm" else target
+        command = [
+            "moon",
+            "test",
+            "--frozen",
+            "--target",
+            target,
+            suite,
+            "--no-parallelize",
+        ]
+        started = time.monotonic_ns()
+        result = subprocess.run(
+            command,
+            cwd=root(),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        elapsed_ms = (time.monotonic_ns() - started) / 1_000_000
+        passed = result.returncode == 0
+        failed = failed or not passed
+        batch_id = f"{target_name}:{suite}"
+        detail = next(
+            (
+                line.strip()
+                for text in (result.stderr, result.stdout)
+                for line in text.splitlines()
+                if line.strip()
+            ),
+            "no diagnostic output",
+        )
+        status = "PASS" if passed else "FAIL"
+        print(
+            f"{status} batch {batch_id} cases={len(batch_rows)} "
+            f"exit={result.returncode}: {detail}",
+            file=sys.stdout if passed else sys.stderr,
+        )
+        for row in batch_rows:
+            anchor = row["test_anchor"]
+            assert isinstance(anchor, dict)
             record = {
                 "schema_version": SCHEMA_VERSION,
                 "case_id": row["id"],
@@ -132,32 +154,14 @@ def main() -> int:
                 "suite": anchor["suite"],
                 "test_name": anchor["test_name"],
                 "passed": passed,
-                "elapsed_ms": elapsed_ms,
+                "batch_id": batch_id,
+                "batch_case_count": len(batch_rows),
+                "batch_elapsed_ms": elapsed_ms,
                 "command": command,
                 "stdout": result.stdout,
                 "stderr": result.stderr,
             }
             results.append(record)
-            label = (
-                f"{row['id']} {target_name} "
-                f"{anchor['suite']}::{anchor['test_name']}"
-            )
-            if passed:
-                print(f"PASS {label}")
-            else:
-                detail = next(
-                    (
-                        line.strip()
-                        for text in (result.stderr, result.stdout)
-                        for line in text.splitlines()
-                        if line.strip()
-                    ),
-                    "no diagnostic output",
-                )
-                print(
-                    f"FAIL {label} exit={result.returncode}: {detail}",
-                    file=sys.stderr,
-                )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in results),

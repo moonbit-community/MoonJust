@@ -27,7 +27,7 @@ test "markdown tangle excludes nested, four-space, and commented fences" {
 }
 
 ///|
-test "markdown tangle accepts zero through three leading spaces" {
+test "markdown tangle selects only fences at the start of a line" {
   let source = @source.Source::from_text(
     @source.SourceId::new(38),
     "README.md",
@@ -38,11 +38,11 @@ test "markdown tangle accepts zero through three leading spaces" {
     "    ```just\nignored:\n    ```\n",
   )
   let result = @formatter.tangle(source)
-  assert_eq(result.selected_blocks(), 4)
+  assert_eq(result.selected_blocks(), 1)
   assert_true(result.source().text().contains("zero:"))
-  assert_true(result.source().text().contains("one:"))
-  assert_true(result.source().text().contains("two:"))
-  assert_true(result.source().text().contains("three:"))
+  assert_false(result.source().text().contains("one:"))
+  assert_false(result.source().text().contains("two:"))
+  assert_false(result.source().text().contains("three:"))
   assert_false(result.source().text().contains("ignored:"))
 }
 

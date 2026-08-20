@@ -125,6 +125,31 @@ test "default expression stops before exported plus variadic parameter" {
 }
 
 ///|
+test "recipe grammar rejects parameters after variadic parameters" {
+  for text in ["foo +a b:\n", "foo +a bbb:\n", "foo a=c+d e:\n"] {
+    try @parser.parse(justfile_source(text)) catch {
+      UnexpectedConstruct(span~, ..) => assert_true(span.length() > 0)
+      error => fail("unexpected variadic parameter error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected parameter-after-variadic error")
+    }
+  }
+}
+
+///|
+test "interpreter settings require a command expression" {
+  for name in ["shell", "script-interpreter", "windows-shell"] {
+    try @parser.parse(justfile_source("set " + name + " := []\n")) catch {
+      UnexpectedToken(expected="expression", found=BracketR, span~) =>
+        assert_eq(span.length(), 1)
+      error => fail("unexpected empty interpreter error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected empty interpreter error")
+    }
+  }
+}
+
+///|
 test "user function definitions retain parameters trailing comma and body" {
   let source = @source.Source::from_text(
     @source.SourceId::new(801),

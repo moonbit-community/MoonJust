@@ -263,6 +263,11 @@ pub fn tangle(
                 ignored_fence_length = length
                 append_line(output, source, line, false)
               }
+              (_, Some((character, length, _))) if indentation > 0 => {
+                ignored_fence_character = Some(character)
+                ignored_fence_length = length
+                append_line(output, source, line, false)
+              }
               (_, Some((character, length, info))) => {
                 fence_character = Some(character)
                 fence_length = length

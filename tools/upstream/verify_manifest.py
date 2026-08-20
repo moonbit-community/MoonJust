@@ -668,7 +668,7 @@ def validate() -> None:
     expect(lexer["area"] == "lexer", "lexer area changed")
     inventory = lexer["upstream_lexer_inventory"]
     expect(inventory["registrations"] == EXPECTED_LEXER_REGISTRATIONS, "lexer registration count changed")
-    expect(len(lexer["contract"]) == 5, "lexer contract count changed")
+    expect(len(lexer["contract"]) == 6, "lexer contract count changed")
     expect(
         all(c["status"] == "implemented" and c["native"] == "pass" and c["wasm1"] == "pass" for c in lexer["contract"]),
         "lexer contract evidence is incomplete",

@@ -62,3 +62,13 @@ native = "pass"
 wasm1 = "pass"
 black_box_tests = 6
 evidence = "100000 deterministic valid UTF-8 inputs, round-trip and span properties, source/token/nesting budgets, diagnostic codes, 21 upstream-derived oracle cases"
+
+[[contract]]
+id = "MJ-LEX-UPSTREAM-0001"
+name = "Pinned upstream lexer registrations"
+status = "implemented"
+package = "internal/lexer"
+native = "pass"
+wasm1 = "pass"
+black_box_tests = 92
+evidence = "one unique generated test per user-observable lexer registration with pinned input, expected outcome, error byte span, and upstream source digest"

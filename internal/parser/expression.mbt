@@ -93,19 +93,6 @@ fn Parser::parse_concatenation(
     )
   }
   let lhs = self.parse_value()
-  if self.parsing_parameter_default && self.peek_kind() == Plus {
-    let parameter_boundary = self.peek_kind_at(1) == Some(Dollar) ||
-      (
-        self.peek_kind_at(1) == Some(Identifier) &&
-        (
-          self.peek_kind_at(2) == Some(Equals) ||
-          self.peek_kind_at(2) == Some(Colon)
-        )
-      )
-    if parameter_boundary {
-      return lhs
-    }
-  }
   let operator : @syntax.BinaryOperator? = match self.peek_kind() {
     Plus => Some(Concat)
     PlusPlus => Some(ListConcat)

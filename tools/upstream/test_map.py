@@ -986,6 +986,21 @@ def anchor_dict(area: str, category: str, name: str | None = None) -> dict[str, 
 
 
 def build_rows(names: list[str]) -> list[dict[str, object]]:
+    generated_contract_path = (
+        repository_root()
+        / "tests/upstream/just-1.57.0/contract-cases.jsonl"
+    )
+    generated_contracts: dict[str, dict[str, object]] = {}
+    for case in map(
+        json.loads,
+        generated_contract_path.read_text(encoding="utf-8").splitlines(),
+    ):
+        case_id = case.get("case_id")
+        if not isinstance(case_id, str) or case_id in generated_contracts:
+            raise ValueError(f"generated contract has a duplicate or invalid id: {case_id}")
+        if case.get("schema_version") != 1:
+            raise ValueError(f"generated contract schema changed for {case_id}")
+        generated_contracts[case_id] = case
     differential_manifest = tomllib.loads(
         (repository_root() / "tests/differential/cases.toml").read_text(
             encoding="utf-8"
@@ -1034,6 +1049,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
         ):
             legacy_diagnostic_evidence.add(recorded["upstream_name"])
     rows = []
+    used_generated_contracts: set[str] = set()
     for index, name in enumerate(names, start=1):
         category = name.split("::", 1)[0]
         override = case_owner_override(name)
@@ -1311,7 +1327,38 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             row.pop("reason", None)
             row.pop("test_anchor", None)
             row.pop("contract_case", None)
+        generated_contract = generated_contracts.get(row["id"])
+        if generated_contract is not None:
+            used_generated_contracts.add(row["id"])
+            if (
+                row["scope"] != "compatibility"
+                or generated_contract.get("upstream_name") != name
+                or generated_contract.get("owner_area") != area
+            ):
+                raise ValueError(f"generated contract identity differs for {row['id']}")
+            test_anchor = generated_contract.get("test_anchor")
+            if not isinstance(test_anchor, dict):
+                raise ValueError(f"generated contract has no anchor for {row['id']}")
+            row.update(
+                disposition="verified-contract",
+                targets=["native", "wasm1"],
+                evidence=[
+                    "tests/upstream/just-1.57.0/contract-cases.jsonl",
+                    test_anchor["suite"],
+                    "tools/upstream/generate_contract_cases.py",
+                ],
+                tracking=generated_contract["contract_case"],
+                test_anchor=test_anchor,
+                contract_case=generated_contract["contract_case"],
+                upstream_source=generated_contract["upstream_source"],
+            )
+            row.pop("reason", None)
+            row.pop("evidence_case", None)
         rows.append(row)
+
+    if used_generated_contracts != set(generated_contracts):
+        unused = sorted(set(generated_contracts) - used_generated_contracts)
+        raise ValueError(f"generated contracts are not registered: {unused}")
 
     anchor_counts: dict[tuple[str, str], int] = {}
     for row in rows:
@@ -1338,6 +1385,8 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
             row.pop("contract_case", None)
     for row in rows:
         if row["disposition"] != "verified-contract":
+            continue
+        if row.get("upstream_source") is not None:
             continue
         provenance = CONTRACT_SOURCE_PROVENANCE.get(row["upstream_name"])
         if provenance is None:

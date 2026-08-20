@@ -65,7 +65,7 @@ fn Parser::parse_parameter_default(
   defer {
     self.parsing_parameter_default = false
   }
-  let expression = self.parse_expression_node()
+  let expression = self.parse_value()
   match self.unparenthesized_join_span(expression) {
     Some(span) =>
       raise UnexpectedToken(
@@ -301,9 +301,12 @@ fn Parser::parse_recipe(
   while self.peek_kind() == Identifier || self.peek_kind() == Dollar {
     parameters.push(self.parse_parameter(false))
   }
+  let mut variadic = false
   if self.accept(Plus) is Some(_) {
+    variadic = true
     parameters.push(self.parse_parameter(true))
   } else if self.accept(Asterisk) is Some(_) {
+    variadic = true
     let exported = self.accept(Dollar) is Some(_)
     let (name, token) = self.expect_identifier()
     let default_value = if self.accept(Equals) is Some(_) {
@@ -324,6 +327,14 @@ fn Parser::parse_recipe(
     )
   }
   while self.peek_kind() == Identifier || self.peek_kind() == Dollar {
+    if variadic {
+      let found = self.peek()
+      raise UnexpectedConstruct(
+        expected="no parameters after variadic parameter",
+        found=self.lexeme(found),
+        span=found.span(),
+      )
+    }
     parameters.push(self.parse_parameter(false))
   }
   if self.accept(Colon) is None {
@@ -470,6 +481,21 @@ fn Parser::parse_setting(
     }
   } else {
     self.expect(ColonEquals) |> ignore
+    if (
+        name == "shell" ||
+        name == "script-interpreter" ||
+        name == "windows-shell"
+      ) &&
+      self.peek_kind() == BracketL &&
+      self.peek_kind_at(1) == Some(BracketR) {
+      self.advance() |> ignore
+      let found = self.peek()
+      raise UnexpectedToken(
+        expected="expression",
+        found=found.kind(),
+        span=found.span(),
+      )
+    }
     Some(self.parse_expression_node())
   }
   let end_span = value
