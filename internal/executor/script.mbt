@@ -177,8 +177,7 @@ fn prepare_planned_script(
       lines,
       needs_bom(program),
       shebang is Some(_),
-      configuration.platform().operating_system() == Windows &&
-      inferred_extension(program) != "",
+      configuration.platform().operating_system() == Windows,
     ),
     shebang,
     cwd,

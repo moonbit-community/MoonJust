@@ -113,10 +113,9 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
   let status = try process.wait() catch {
     error => {
       let signal = caught_signal()
-      let signal_cancelled = take_signal_process_cancellation(pid)
       remove_signal_child(pid)
-      if @async.is_cancellation_error(error) && signal_cancelled {
-        return -(256 + signal.unwrap_or(2))
+      if @async.is_cancellation_error(error) && signal is Some(number) {
+        return -(256 + number)
       }
       raise error
     }
@@ -138,10 +137,7 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 fn ObservedProcess::cancel(self : ObservedProcess) -> Unit {
-  let Managed(process~, pid~) = self
-  if !@async.is_being_cancelled() {
-    mark_explicit_process_cancellation(pid)
-  }
+  let Managed(process~, ..) = self
   process.cancel()
 }
 
@@ -291,6 +287,25 @@ fn windows_batch_command(
 }
 
 ///|
+fn windows_batch_body(command : String) -> String {
+  guard command.trim().to_lower().has_prefix("for ") else { return command }
+  let mut variable : String? = None
+  if command.length() >= 2 {
+    for index in 0..<(command.length() - 1) {
+      if command.unsafe_get(index) == '%' &&
+        command.unsafe_get(index + 1) != '%' {
+        variable = Some(command[index:index + 2].to_owned())
+        break
+      }
+    }
+  }
+  match variable {
+    Some(value) => command.replace_all(old=value, new="%" + value)
+    None => command
+  }
+}
+
+///|
 fn process_random_suffix() -> String raise @host.HostError {
   guard @env.rand(12) is Some(bytes) else {
     raise CapabilityUnavailable(Random)
@@ -355,6 +370,7 @@ async fn materialize_windows_command(
       Regular => true
       _ => false
     })
+  let command_for_batch = windows_batch_body(command)
   let script = if is_batch {
     command
   } else if command_is_batch_path {
@@ -362,7 +378,7 @@ async fn materialize_windows_command(
     command.replace_all(old="\"", new="\"\"") +
     "\"\r\nexit /b %errorlevel%\r\n"
   } else {
-    "@echo off\r\n" + command + "\r\n"
+    "@" + command_for_batch + "\r\n"
   }
   let filename = ".moonjust-cmd-" + process_random_suffix() + ".cmd"
   let path = if cwd == "." || cwd.is_empty() {

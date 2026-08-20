@@ -1014,7 +1014,7 @@ async fn[
       .unwrap_or(cwd)
     let target_evaluation_directory = target_context.cwd().unwrap_or(target_cwd)
     let target_invocation_directory = target_context
-      .invocation_directory()
+      .invocation_directory_native()
       .unwrap_or(target_cwd)
     let target_environment = target.runtime
       .map(ProjectModuleRuntime::process_environment)
@@ -1340,7 +1340,7 @@ async fn[
       .unwrap_or(cwd)
     let target_evaluation_directory = target_context.cwd().unwrap_or(target_cwd)
     let target_invocation_directory = target_context
-      .invocation_directory()
+      .invocation_directory_native()
       .unwrap_or(target_cwd)
     let target_environment = target.runtime
       .map(ProjectModuleRuntime::process_environment)
@@ -1444,7 +1444,9 @@ pub async fn[
   let ran : Map[String, Int] = Map([])
   let mut root_fence : Array[Int] = []
   let evaluation_directory = context.cwd().unwrap_or(cwd)
-  let invocation_directory = context.invocation_directory().unwrap_or(cwd)
+  let invocation_directory = context
+    .invocation_directory_native()
+    .unwrap_or(cwd)
   for request in requests {
     let terminal = plan_graph_recipe_async(
       process,
@@ -1540,7 +1542,7 @@ pub async fn[
       runtime.shell(),
       cwd,
       context.cwd().unwrap_or(cwd),
-      context.invocation_directory().unwrap_or(cwd),
+      context.invocation_directory_native().unwrap_or(cwd),
       runtime.process_environment(),
       options.with_guards(compilation.settings().bool("guards")),
       runtime.configuration(),

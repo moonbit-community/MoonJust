@@ -1,6 +1,6 @@
 ///|
-fn native_short_path(path : String) -> String {
-  path
+fn native_current_dir() -> String {
+  ""
 }
 
 ///|
