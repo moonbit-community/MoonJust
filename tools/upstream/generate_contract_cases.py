@@ -34,6 +34,8 @@ TANGLE_SOURCE = "src/tangle.rs"
 TANGLE_SUITE = "internal/formatter/upstream_tangle_contract_test.mbt"
 CLEAN_SOURCE = "src/clean.rs"
 CLEAN_SUITE = "internal/path/upstream_clean_contract_test.mbt"
+LIST_SOURCE = "src/list.rs"
+LIST_SUITE = "internal/application/upstream_list_contract_wbtest.mbt"
 
 
 def root() -> Path:
@@ -266,6 +268,35 @@ def function_cases(source: str, name: str) -> tuple[int, list[tuple[str, str]]]:
     return line, cases
 
 
+def list_cases(source: str, name: str) -> tuple[int, list[dict[str, object]]]:
+    function = re.search(rf"(?m)^  fn {re.escape(name)}\(\) \{{", source)
+    if function is None:
+        raise ValueError(f"missing upstream list test function {name}")
+    line = source.count("\n", 0, function.start()) + 1
+    end = source.find("\n  }", function.end())
+    if end < 0:
+        raise ValueError(f"unterminated upstream list test function {name}")
+    body = source[function.end() : end]
+    results: list[dict[str, object]] = []
+    for match in re.finditer(
+        r'assert_eq!\s*\(\s*"([^"]*)"\s*,\s*List::(or|and)(_ticked)?\s*\(&\[([^]]*)\]',
+        body,
+        re.DOTALL,
+    ):
+        values = [value.strip() for value in match.group(4).split(",") if value.strip()]
+        results.append(
+            {
+                "values": values,
+                "conjunction": match.group(2),
+                "ticked": match.group(3) is not None,
+                "expected": match.group(1),
+            }
+        )
+    if not results:
+        raise ValueError(f"upstream list test function {name} has no cases")
+    return line, results
+
+
 def encoded(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -452,6 +483,46 @@ fn assert_clean_contract(input : String, expected : String) -> Unit raise {
     return header + "\n".join(tests)
 
 
+def render_list_tests(cases: list[dict[str, object]]) -> str:
+    header = '''///|
+fn assert_list_contract(
+  values : ArrayView[String],
+  conjunction : String,
+  ticked : Bool,
+  expected : String,
+) -> Unit raise {
+  assert_eq(format_test_list(values, conjunction, ticked), expected)
+}
+
+'''
+    tests: list[str] = []
+    for case in cases:
+        expectation = case["expected"]
+        assert isinstance(expectation, dict)
+        entries = expectation["cases"]
+        assert isinstance(entries, list)
+        assertions: list[str] = []
+        for entry in entries:
+            assert isinstance(entry, dict)
+            input_value = entry["input"]
+            assert isinstance(input_value, dict)
+            values = ", ".join(moon_string(str(value)) for value in input_value["values"])
+            assertions.append(
+                f"  assert_list_contract([{values}], "
+                f"{moon_string(str(input_value['conjunction']))}, "
+                f"{str(bool(input_value['ticked'])).lower()}, "
+                f"{moon_string(str(entry['value']))})"
+            )
+        tests.append(
+            "///|\n"
+            f'test "{case["test_name"]}" {{\n'
+            + "\n".join(assertions)
+            + "\n"
+            "}\n"
+        )
+    return header + "\n".join(tests)
+
+
 def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
     commit = subprocess.run(
         ["git", "-C", str(upstream), "rev-parse", "HEAD"],
@@ -617,6 +688,57 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
         rendered_clean_cases.append(case)
         generated.append(case)
     write_or_check(repo / CLEAN_SUITE, render_clean_tests(rendered_clean_cases), check)
+
+    list_path = upstream / LIST_SOURCE
+    list_source = list_path.read_text(encoding="utf-8")
+    list_rows = [
+        row
+        for row in rows
+        if row["owner_area"] == "platform-compatibility"
+        and row["scope"] == "compatibility"
+        and str(row["upstream_name"]).startswith("list::tests::")
+    ]
+    rendered_list_cases: list[dict[str, object]] = []
+    for row in list_rows:
+        leaf = str(row["upstream_name"]).rsplit("::", 1)[-1]
+        line, extracted_cases = list_cases(list_source, leaf)
+        inputs = [
+            {
+                "values": [str(value) for value in case["values"]],
+                "conjunction": case["conjunction"],
+                "ticked": case["ticked"],
+            }
+            for case in extracted_cases
+        ]
+        expected = {
+            "outcome": "success",
+            "cases": [
+                {"input": input_value, "value": case["expected"]}
+                for input_value, case in zip(inputs, extracted_cases)
+            ],
+        }
+        test_name = f"contract {row['id']} {row['upstream_name']}"
+        case = {
+            "schema_version": 1,
+            "case_id": row["id"],
+            "upstream_name": row["upstream_name"],
+            "owner_area": "platform-compatibility",
+            "test_name": test_name,
+            "test_anchor": {"suite": LIST_SUITE, "test_name": test_name},
+            "contract_case": f"MJ-CONTRACT::{row['id']}",
+            "upstream_source": {
+                "path": LIST_SOURCE,
+                "line": line,
+                "file_sha256": sha256(list_path),
+            },
+            "input": inputs,
+            "input_sha256": sha256_bytes(encoded(inputs).encode("utf-8")),
+            "expected": expected,
+            "expected_sha256": sha256_bytes(encoded(expected).encode("utf-8")),
+        }
+        rendered_list_cases.append(case)
+        generated.append(case)
+    write_or_check(repo / LIST_SUITE, render_list_tests(rendered_list_cases), check)
     write_or_check(
         output,
         "".join(
