@@ -588,6 +588,13 @@ fn inspect_json(
     }
   }
   unexports.sort_by(lexical_compare)
+  // just's JSON oracle keeps the lexical Windows temp path. macOS is the
+  // only platform where the upstream JSON tests canonicalize this field.
+  let source_path = if loaded.path().flavor() == Windows {
+    loaded.path()
+  } else {
+    loaded.canonical_path()
+  }
   let module_entries : Array[(String, Json)] = []
   match (project, graph) {
     (Some(project), Some(graph)) => {
@@ -666,7 +673,7 @@ fn inspect_json(
     ("aliases", json_object(alias_entries)),
     ("recipes", json_object(recipe_entries)),
     ("settings", settings_json(compilation.settings())),
-    ("source", Json::string(loaded.canonical_path().as_string())),
+    ("source", Json::string(source_path.as_string())),
     ("unexports", json_strings(unexports)),
     ("warnings", Json::array([])),
   ])

@@ -147,6 +147,48 @@ fn script_bytes(
 }
 
 ///|
+/// Windows shebang lines are metadata for the generated script file, but they
+/// remain part of the command text shown by dry-run and command echo output.
+fn execution_script_contents(
+  contents : Bytes,
+  has_shebang : Bool,
+  platform : @host.PlatformInfo,
+) -> Bytes {
+  guard platform.operating_system() == Windows && has_shebang else {
+    return contents
+  }
+  let bytes = contents[:]
+  let mut line_start = 0
+  if bytes.length() >= 3 &&
+    bytes[0] == b'\xef' &&
+    bytes[1] == b'\xbb' &&
+    bytes[2] == b'\xbf' {
+    line_start = 3
+  }
+  let mut newline : Int? = None
+  for index in line_start..<bytes.length() {
+    if bytes[index] == b'\n' {
+      newline = Some(index)
+      break
+    }
+  }
+  let output : Array[Byte] = []
+  for index in 0..<line_start {
+    output.push(bytes[index])
+  }
+  match newline {
+    Some(index) => {
+      output.push(b'\n')
+      for rest in (index + 1)..<bytes.length() {
+        output.push(bytes[rest])
+      }
+    }
+    None => output.push(b'\n')
+  }
+  Bytes::from_array(output)
+}
+
+///|
 fn prepare_planned_script(
   recipe : @syntax.Recipe,
   lines : Array[String],
@@ -172,13 +214,7 @@ fn prepare_planned_script(
   }
   PlannedScript::new(
     recipe.name(),
-    script_bytes(
-      recipe,
-      lines,
-      needs_bom(program),
-      shebang is Some(_),
-      configuration.platform().operating_system() == Windows,
-    ),
+    script_bytes(recipe, lines, needs_bom(program), shebang is Some(_), false),
     shebang,
     cwd,
     process_environment.to_owned(),
@@ -295,7 +331,11 @@ pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(
     configuration.temporary_directory(),
     planned.recipe,
     extension,
-    planned.contents,
+    execution_script_contents(
+      planned.contents,
+      planned.shebang is Some(_),
+      configuration.platform(),
+    ),
   ) catch {
     error => raise Host(error)
   }
@@ -362,7 +402,11 @@ pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(
     configuration.temporary_directory(),
     planned.recipe,
     extension,
-    planned.contents,
+    execution_script_contents(
+      planned.contents,
+      planned.shebang is Some(_),
+      configuration.platform(),
+    ),
     parsed is Some(_),
   ) catch {
     error => raise Host(error)
@@ -501,8 +545,12 @@ pub fn[T : @host.HostProcess + @host.HostScriptTemp + @host.HostExecutable] exec
     lines,
     needs_bom(program),
     shebang is Some(_),
-    configuration.platform().operating_system() == Windows &&
-    inferred_extension(program) != "",
+    false,
+  )
+  let contents = execution_script_contents(
+    contents,
+    shebang is Some(_),
+    configuration.platform(),
   )
   let path = @host.HostScriptTemp::create_script_temp(
     host,

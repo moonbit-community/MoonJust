@@ -306,6 +306,68 @@ fn windows_batch_body(command : String) -> String {
 }
 
 ///|
+/// A direct `cmd /c` command leaves an undefined `%NAME%` reference literal,
+/// while a batch file expands it to an empty string. Double the delimiters for
+/// undefined names so the temporary wrapper preserves command-line semantics.
+fn windows_environment_contains(
+  name : String,
+  environment : ArrayView[(String, String)],
+  inherit_environment : Bool,
+) -> Bool {
+  let normalized = name.to_lower()
+  for entry in environment {
+    if entry.0.to_lower() == normalized {
+      return true
+    }
+  }
+  inherit_environment && @env.get_env_var(name) is Some(_)
+}
+
+///|
+fn windows_escape_undefined_variables(
+  command : String,
+  environment : ArrayView[(String, String)],
+  inherit_environment : Bool,
+) -> String {
+  let characters = command.to_array()
+  let output = StringBuilder()
+  let mut index = 0
+  while index < characters.length() {
+    if characters[index] == '%' &&
+      index + 1 < characters.length() &&
+      characters[index + 1] != '%' {
+      let mut end = index + 1
+      while end < characters.length() && characters[end] != '%' {
+        end += 1
+      }
+      if end < characters.length() {
+        let name = String::from_array(characters[index + 1:end])
+        let mut valid = !name.is_empty()
+        for character in name {
+          if !character.is_ascii_alphabetic() &&
+            !character.is_ascii_digit() &&
+            character != '_' {
+            valid = false
+            break
+          }
+        }
+        if valid &&
+          !windows_environment_contains(name, environment, inherit_environment) {
+          output.write_string("%%")
+          output.write_string(name)
+          output.write_string("%%")
+          index = end + 1
+          continue
+        }
+      }
+    }
+    output.write_char(characters[index])
+    index += 1
+  }
+  output.to_string()
+}
+
+///|
 fn process_random_suffix() -> String raise @host.HostError {
   guard @env.rand(12) is Some(bytes) else {
     raise CapabilityUnavailable(Random)
@@ -324,6 +386,8 @@ async fn materialize_windows_command(
   program : String,
   arguments : ArrayView[String],
   cwd : String,
+  environment : ArrayView[(String, String)],
+  inherit_environment : Bool,
 ) -> (String, Array[String], String?) raise @host.HostError {
   if !windows_process_runtime() {
     return (program, arguments.to_owned(), None)
@@ -370,7 +434,11 @@ async fn materialize_windows_command(
       Regular => true
       _ => false
     })
-  let command_for_batch = windows_batch_body(command)
+  let command_for_batch = windows_escape_undefined_variables(
+    windows_batch_body(command),
+    environment,
+    inherit_environment,
+  )
   let script = if is_batch {
     command
   } else if command_is_batch_path {
@@ -644,6 +712,8 @@ async fn run_process_with_output_limit(
         resolved_program,
         command.arguments(),
         cwd,
+        command.environment(),
+        command.inherits_environment(),
       )
       match temporary_script {
         Some(path) => group.add_defer(() => remove_windows_command_script(path))
