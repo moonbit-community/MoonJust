@@ -40,6 +40,36 @@ VALUE_SOURCE = "src/value.rs"
 VALUE_SUITE = "internal/value/upstream_contract_test.mbt"
 UNINDENT_SOURCE = "src/unindent.rs"
 UNINDENT_SUITE = "internal/parser/upstream_unindent_contract_test.mbt"
+CONFIG_SOURCE = "src/config.rs"
+CONFIG_SUITE = "internal/cli/upstream_config_contract_test.mbt"
+CONFIG_CONTRACT_NAMES = {
+    "color_never",
+    "color_always",
+    "color_auto",
+    "dry_run_long",
+    "dry_run_short",
+    "highlight_yes",
+    "highlight_no",
+    "highlight_no_yes",
+    "highlight_no_yes_no",
+    "highlight_yes_no",
+    "no_cache",
+    "no_deps",
+    "no_dependencies",
+    "unsorted_long",
+    "unsorted_short",
+    "shell_set",
+    "shell_args_set_hyphen",
+    "shell_args_set_word",
+    "shell_args_set_multiple",
+    "shell_args_clear",
+    "shell_args_clear_and_set",
+    "shell_args_set_and_clear",
+    "shell_args_set_multiple_and_clear",
+    "arguments",
+    "overrides",
+    "overrides_empty",
+}
 
 
 def root() -> Path:
@@ -400,6 +430,72 @@ def unindent_cases(source: str, name: str) -> tuple[int, list[dict[str, object]]
     return line, cases
 
 
+def config_case(source: str, name: str) -> tuple[int, dict[str, object]]:
+    by_name = {
+        re.search(r"\bname:\s*([A-Za-z0-9_]+)", body).group(1): (line, body)
+        for _name, _macro, line, body in blocks(source)
+        if re.search(r"\bname:\s*([A-Za-z0-9_]+)", body)
+    }
+    if name not in by_name:
+        raise ValueError(f"missing upstream config test {name}")
+    line, body = by_name[name]
+    args_match = re.search(r"\bargs:\s*", body)
+    if args_match is None:
+        raise ValueError(f"config test {name} has no args")
+    args, _ = rust_string_array(body, args_match.end())
+    flags: dict[str, bool] = {}
+    values: dict[str, str] = {}
+    if name.startswith("color_"):
+        values["color"] = name.removeprefix("color_")
+    if name in {"dry_run_long", "dry_run_short"}:
+        flags["dry-run"] = True
+    if name.startswith("highlight_"):
+        enabled = True
+        for argument in args:
+            if argument == "--highlight":
+                enabled = True
+            elif argument == "--no-highlight":
+                enabled = False
+        flags["highlight"] = enabled
+        flags["no-highlight"] = not enabled
+    if name == "no_cache":
+        flags["no-cache"] = True
+    if name in {"no_deps", "no_dependencies"}:
+        flags["no-deps"] = True
+    if name in {"unsorted_long", "unsorted_short"}:
+        flags["unsorted"] = True
+    if name == "shell_set":
+        values["shell"] = "tclsh"
+    shell_arguments: list[str] | None = None
+    if name.startswith("shell_args_"):
+        shell_arguments = [] if "clear" in name else None
+        index = 0
+        while index < len(args):
+            if args[index] == "--clear-shell-args":
+                shell_arguments = []
+            elif args[index] == "--shell-arg":
+                if index + 1 >= len(args):
+                    raise ValueError(f"missing shell argument in {name}")
+                shell_arguments = (shell_arguments or []) + [args[index + 1]]
+                index += 1
+            index += 1
+    positional: list[str] = args if name == "arguments" else []
+    overrides: list[list[str]] = []
+    if name.startswith("overrides"):
+        for argument in args:
+            if "=" in argument and not argument.startswith("--"):
+                key, value = argument.split("=", 1)
+                overrides.append([key, value])
+    return line, {
+        "args": args,
+        "flags": flags,
+        "values": values,
+        "shell_arguments": shell_arguments,
+        "positional": positional,
+        "overrides": overrides,
+    }
+
+
 def encoded(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -707,6 +803,63 @@ fn assert_unindent_contract(input : String, expected : String) -> Unit raise {
             f'test "{case["test_name"]}" {{\n'
             + "\n".join(assertions)
             + "\n}\n"
+        )
+    return header + "\n".join(tests)
+
+
+def render_config_tests(cases: list[dict[str, object]]) -> str:
+    header = '''///|
+fn assert_config_contract(
+  args : ArrayView[String],
+  flags : ArrayView[(String, Bool)],
+  values : ArrayView[(String, String)],
+  shell_arguments : Array[String]?,
+  positional : ArrayView[String],
+  overrides : ArrayView[(String, String)],
+) -> Unit raise {
+  let parsed = @cli.parse_arguments(args, {})
+  assert_eq(parsed.command(), RunCommand)
+  for flag in flags {
+    assert_eq(parsed.flag(flag.0), flag.1)
+  }
+  for value in values {
+    assert_eq(parsed.value(value.0), Some(value.1))
+  }
+  assert_eq(parsed.shell_arguments(), shell_arguments)
+  assert_eq(parsed.positional(), positional)
+  assert_eq(parsed.variable_overrides(), overrides)
+}
+
+'''
+    tests: list[str] = []
+    for case in cases:
+        expectation = case["expected"]
+        assert isinstance(expectation, dict)
+        flags = ", ".join(
+            f"({moon_string(str(name))}, {str(bool(value)).lower()})"
+            for name, value in expectation["flags"].items()
+        )
+        values = ", ".join(
+            f"({moon_string(str(name))}, {moon_string(str(value))})"
+            for name, value in expectation["values"].items()
+        )
+        shell = expectation["shell_arguments"]
+        shell_text = (
+            "None"
+            if shell is None
+            else "Some([" + ", ".join(moon_string(str(value)) for value in shell) + "])")
+        positional = ", ".join(moon_string(str(value)) for value in expectation["positional"])
+        overrides = ", ".join(
+            f"({moon_string(str(pair[0]))}, {moon_string(str(pair[1]))})"
+            for pair in expectation["overrides"]
+        )
+        args = ", ".join(moon_string(str(value)) for value in expectation["args"])
+        tests.append(
+            "///|\n"
+            f'test "{case["test_name"]}" {{\n'
+            f"  assert_config_contract([{args}], [{flags}], [{values}], {shell_text}, "
+            f"[{positional}], [{overrides}])\n"
+            "}\n"
         )
     return header + "\n".join(tests)
 
@@ -1022,6 +1175,44 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
         rendered_unindent_cases.append(case)
         generated.append(case)
     write_or_check(repo / UNINDENT_SUITE, render_unindent_tests(rendered_unindent_cases), check)
+
+    config_path = upstream / CONFIG_SOURCE
+    config_source = config_path.read_text(encoding="utf-8")
+    config_rows = [
+        row
+        for row in rows
+        if row["owner_area"] == "executor"
+        and row["scope"] == "compatibility"
+        and str(row["upstream_name"]).startswith("config::tests::")
+        and str(row["upstream_name"]).rsplit("::", 1)[-1] in CONFIG_CONTRACT_NAMES
+    ]
+    rendered_config_cases: list[dict[str, object]] = []
+    for row in config_rows:
+        leaf = str(row["upstream_name"]).rsplit("::", 1)[-1]
+        line, extracted = config_case(config_source, leaf)
+        test_name = f"contract {row['id']} {row['upstream_name']}"
+        expected = {"outcome": "success", **extracted}
+        case = {
+            "schema_version": 1,
+            "case_id": row["id"],
+            "upstream_name": row["upstream_name"],
+            "owner_area": "executor",
+            "test_name": test_name,
+            "test_anchor": {"suite": CONFIG_SUITE, "test_name": test_name},
+            "contract_case": f"MJ-CONTRACT::{row['id']}",
+            "upstream_source": {
+                "path": CONFIG_SOURCE,
+                "line": line,
+                "file_sha256": sha256(config_path),
+            },
+            "input": extracted["args"],
+            "input_sha256": sha256_bytes(encoded(extracted["args"]).encode("utf-8")),
+            "expected": expected,
+            "expected_sha256": sha256_bytes(encoded(expected).encode("utf-8")),
+        }
+        rendered_config_cases.append(case)
+        generated.append(case)
+    write_or_check(repo / CONFIG_SUITE, render_config_tests(rendered_config_cases), check)
 
     write_or_check(
         output,
