@@ -22,6 +22,13 @@ non-Unicode host tests and omits the BSD/macOS-only SIGINFO registration. The
 harness selects the matching snapshot and rejects cross-platform or mixed-host
 oracle files before comparing result rows.
 
+The Linux wasm oracle records two explicit `not-applicable` rows for the
+non-Unicode host tests. MoonJust Native passes those upstream tests; the shared
+MoonX/`moonrun` host currently panics while handling the invalid host value, so
+the wasm rows are retained as a named host limitation rather than normalized to
+`exact`. The limitation is documented in
+[`docs/reports/PLATFORM_COMPATIBILITY.md`](../../docs/reports/PLATFORM_COMPATIBILITY.md).
+
 Future copied or adapted fixtures must append a row:
 
 | MoonJust path | Upstream path | Modification | Compatibility ID |

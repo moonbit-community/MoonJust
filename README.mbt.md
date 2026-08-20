@@ -9,7 +9,9 @@ the upstream Rust library API is not part of MoonJust's public API.
 >
 > MoonJust is working toward compatibility with the pinned `just 1.57.0`
 > command-line behavior on native and wasm/moonrun. Shell completion is the
-> sole feature exclusion. The official differential harness currently has zero
+> sole feature exclusion. The platform compatibility gate is closed for the
+> supported Linux, macOS, and Windows Native runners and their shared Ubuntu
+> wasm1 asset. The official differential harness currently has zero unapproved
 > failed cases, but the strict release-evidence gate still rejects 568 upstream
 > registrations without independent executable evidence. This repository does
 > not claim full compatibility or release readiness.
@@ -45,8 +47,19 @@ versioned, locked across processes and atomically published after output checks.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
 - Differential results are classified as exact, diagnostic-exact,
   diagnostic-semantic, product identity, excluded completion, upstream
-  ignored, or failed. Product identity and excluded/ignored cases never enter
-  the compatibility denominator.
+  ignored, not-applicable, or failed. Product identity, excluded/ignored, and
+  explicitly not-applicable cases never enter the compatibility denominator.
+- Current platform evidence covers Linux x86_64, macOS arm64, and Windows
+  x86_64 Native candidates plus one Ubuntu-built wasm1 asset downloaded by all
+  three Native jobs. The platform gate and official non-completion harness
+  pass on all six target combinations; the overall CI workflow can still be
+  red for independent coverage, contract, quality, or artifact-size gates.
+- Two Linux-only upstream tests for non-UTF-8 working directories are
+  `not-applicable` for wasm1. The `moonrun`/MoonX host environment boundary
+  currently panics on the invalid host value before producing a useful
+  MoonJust wasm result. Native passes both tests exactly. This is an accepted
+  host limitation outside MoonJust's platform scope; it is recorded in the
+  pinned exception manifest rather than hidden by normalization.
 - Unapproved differences fail by default. Updating the committed oracle
   requires the explicit audited command documented in
   [`tools/upstream/README.md`](tools/upstream/README.md).
@@ -60,16 +73,20 @@ The complete decision record is in the
 area contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
+The current platform-only closure, including CI evidence and the accepted
+MoonX host limitation, is documented in
+[`docs/reports/PLATFORM_COMPATIBILITY.md`](docs/reports/PLATFORM_COMPATIBILITY.md).
+
 ## Quick start
 
 ### Prerequisites
 
-The repository currently uses:
+Development uses the latest available MoonBit toolchain; every compatibility
+or release run records the resolved versions with `moon version --all`.
+The repository currently requires:
 
 ```text
-moon 0.1.20260803
-moonc 0.10.6+62c2592d1
-moonrun 0.1.20260803
+moon, moonc, and moonrun from the latest matching distribution
 ```
 
 Install the matching MoonBit toolchain, then enable the repository hook:
