@@ -35,3 +35,11 @@ else
     --async-root "$spike/.mooncakes/moonbitlang/async" \
     --output "$evidence"
 fi
+
+moon -C "$repo_root" build --target native cmd/just
+moonjust="$repo_root/_build/native/debug/build/cmd/just/just.exe"
+process_group_evidence="$repo_root/_build/host-async/moonjust-process-group.jsonl"
+python3 "$spike/check_moonjust_process_group.py" \
+  --executable "$moonjust" \
+  --output "$process_group_evidence" \
+  --repetitions 20
