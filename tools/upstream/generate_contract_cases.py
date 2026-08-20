@@ -36,6 +36,10 @@ CLEAN_SOURCE = "src/clean.rs"
 CLEAN_SUITE = "internal/path/upstream_clean_contract_test.mbt"
 LIST_SOURCE = "src/list.rs"
 LIST_SUITE = "internal/application/upstream_list_contract_wbtest.mbt"
+VALUE_SOURCE = "src/value.rs"
+VALUE_SUITE = "internal/value/upstream_contract_test.mbt"
+UNINDENT_SOURCE = "src/unindent.rs"
+UNINDENT_SUITE = "internal/parser/upstream_unindent_contract_test.mbt"
 
 
 def root() -> Path:
@@ -297,6 +301,105 @@ def list_cases(source: str, name: str) -> tuple[int, list[dict[str, object]]]:
     return line, results
 
 
+def rust_string_array(block: str, index: int) -> tuple[list[str], int]:
+    while index < len(block) and block[index].isspace():
+        index += 1
+    if block.startswith("&[", index):
+        index += 2
+    elif block.startswith("[", index):
+        index += 1
+    else:
+        raise ValueError("expected Rust string array")
+    values: list[str] = []
+    while index < len(block):
+        while index < len(block) and block[index].isspace():
+            index += 1
+        if index < len(block) and block[index] == "]":
+            return values, index + 1
+        value, index = rust_literal(block, index)
+        values.append(value)
+        while index < len(block) and block[index].isspace():
+            index += 1
+        if index < len(block) and block[index] == ",":
+            index += 1
+    raise ValueError("unterminated Rust string array")
+
+
+def value_function_cases(source: str, name: str) -> tuple[int, list[dict[str, object]]]:
+    function = re.search(rf"(?m)^  fn {re.escape(name)}\(\) \{{", source)
+    if function is None:
+        raise ValueError(f"missing upstream value test function {name}")
+    line = source.count("\n", 0, function.start()) + 1
+    end = source.find("\n  }", function.end())
+    if end < 0:
+        raise ValueError(f"unterminated upstream value test function {name}")
+    body = source[function.end() : end]
+    cases: list[dict[str, object]] = []
+    if name == "from_str":
+        for match in re.finditer(
+            r"Value::from\((?P<value>[^)]*)\)\.elements\(\),\s*(?P<expected>&?\[[^]]*\])",
+            body,
+            re.DOTALL,
+        ):
+            value_text = match.group("value").strip()
+            if value_text.startswith("String::from("):
+                value_text = value_text[len("String::from(") : -1]
+            value, _ = rust_literal(value_text, 0)
+            expected, _ = rust_string_array(match.group("expected"), 0)
+            cases.append({"values": [value], "expected": expected})
+        if re.search(r"Value::new\(\)\.elements\(\),\s*\[\]", body):
+            cases.append({"values": [], "expected": []})
+    else:
+        for call in re.finditer(r"\bcase\s*\(\s*(?=&\[)", body):
+            values, index = rust_string_array(body, call.end())
+            while index < len(body) and body[index].isspace():
+                index += 1
+            if index >= len(body) or body[index] != ",":
+                raise ValueError(f"malformed value case in {name}")
+            index += 1
+            while index < len(body) and body[index].isspace():
+                index += 1
+            if name == "is_truthy":
+                match = re.match(r"(true|false)\b", body[index:])
+                if match is None:
+                    raise ValueError(f"malformed truthiness expectation in {name}")
+                expected: object = match.group(1) == "true"
+            else:
+                expected, _ = rust_literal(body, index)
+            cases.append({"values": values, "expected": expected})
+    if not cases:
+        raise ValueError(f"upstream value test function {name} has no cases")
+    return line, cases
+
+
+def unindent_cases(source: str, name: str) -> tuple[int, list[dict[str, object]]]:
+    function = re.search(rf"(?m)^  fn {re.escape(name)}\(\) \{{", source)
+    if function is None:
+        raise ValueError(f"missing upstream unindent test function {name}")
+    line = source.count("\n", 0, function.start()) + 1
+    end = source.find("\n  }", function.end())
+    if end < 0:
+        raise ValueError(f"unterminated upstream unindent test function {name}")
+    body = source[function.end() : end]
+    cases: list[dict[str, object]] = []
+    for match in re.finditer(r"assert_eq!\s*\(\s*unindent\s*\(", body):
+        input_value, index = rust_literal(body, match.end())
+        while index < len(body) and body[index].isspace():
+            index += 1
+        if index >= len(body) or body[index] != ")":
+            raise ValueError(f"malformed unindent input in {name}")
+        index += 1
+        while index < len(body) and body[index].isspace():
+            index += 1
+        if index >= len(body) or body[index] != ",":
+            raise ValueError(f"malformed unindent expectation in {name}")
+        expected, _ = rust_literal(body, index + 1)
+        cases.append({"input": input_value, "expected": expected})
+    if not cases:
+        raise ValueError(f"upstream unindent test function {name} has no cases")
+    return line, cases
+
+
 def encoded(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -523,6 +626,91 @@ fn assert_list_contract(
     return header + "\n".join(tests)
 
 
+def render_value_tests(cases: list[dict[str, object]]) -> str:
+    header = '''///|
+fn value_from_strings(values : ArrayView[String]) -> Value {
+  List(values.map(fn(value) { String(value) }))
+}
+
+///|
+fn assert_value_contract(
+  kind : String,
+  values : ArrayView[String],
+  expected : String,
+) -> Unit raise {
+  let value = value_from_strings(values)
+  match kind {
+    "join" => assert_eq(value.join(" "), expected)
+    "display" => assert_eq(value.display(), expected)
+    _ => fail("unknown value contract")
+  }
+}
+
+'''
+    tests: list[str] = []
+    for case in cases:
+        expectation = case["expected"]
+        assert isinstance(expectation, dict)
+        entries = expectation["cases"]
+        assert isinstance(entries, list)
+        assertions: list[str] = []
+        for entry in entries:
+            assert isinstance(entry, dict)
+            input_value = entry["input"]
+            assert isinstance(input_value, dict)
+            values = ", ".join(moon_string(str(value)) for value in input_value["values"])
+            kind = str(input_value["kind"])
+            if kind == "is_truthy":
+                assertions.append(
+                    f"  assert_eq(value_from_strings([{values}]).truthy(), "
+                    f"{str(bool(entry['value'])).lower()})"
+                )
+            elif kind == "from_str":
+                assertions.append(
+                    f"  assert_eq(value_from_strings([{values}]).elements(), "
+                    f"[{', '.join(moon_string(str(value)) for value in entry['value'])}])"
+                )
+            else:
+                assertions.append(
+                    f"  assert_value_contract({moon_string(kind)}, [{values}], "
+                    f"{moon_string(str(entry['value']))})"
+                )
+        tests.append(
+            "///|\n"
+            f'test "{case["test_name"]}" {{\n'
+            + "\n".join(assertions)
+            + "\n}\n"
+        )
+    return header + "\n".join(tests)
+
+
+def render_unindent_tests(cases: list[dict[str, object]]) -> str:
+    header = '''///|
+fn assert_unindent_contract(input : String, expected : String) -> Unit raise {
+  assert_eq(unindent_string(input), expected)
+}
+
+'''
+    tests: list[str] = []
+    for case in cases:
+        expectation = case["expected"]
+        assert isinstance(expectation, dict)
+        entries = expectation["cases"]
+        assert isinstance(entries, list)
+        assertions = [
+            f"  assert_unindent_contract({moon_string(str(entry['input']))}, "
+            f"{moon_string(str(entry['value']))})"
+            for entry in entries
+        ]
+        tests.append(
+            "///|\n"
+            f'test "{case["test_name"]}" {{\n'
+            + "\n".join(assertions)
+            + "\n}\n"
+        )
+    return header + "\n".join(tests)
+
+
 def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
     commit = subprocess.run(
         ["git", "-C", str(upstream), "rev-parse", "HEAD"],
@@ -739,6 +927,102 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
         rendered_list_cases.append(case)
         generated.append(case)
     write_or_check(repo / LIST_SUITE, render_list_tests(rendered_list_cases), check)
+
+    value_path = upstream / VALUE_SOURCE
+    value_source = value_path.read_text(encoding="utf-8")
+    value_rows = [
+        row
+        for row in rows
+        if row["owner_area"] == "evaluator-builtins"
+        and row["scope"] == "compatibility"
+        and str(row["upstream_name"]).startswith("value::tests::")
+        and str(row["upstream_name"]).rsplit("::", 1)[-1]
+        in {"join", "display", "is_truthy", "from_str"}
+    ]
+    rendered_value_cases: list[dict[str, object]] = []
+    for row in value_rows:
+        leaf = str(row["upstream_name"]).rsplit("::", 1)[-1]
+        line, extracted_cases = value_function_cases(value_source, leaf)
+        inputs = [
+            {
+                "values": [str(value) for value in case["values"]],
+                "kind": leaf,
+            }
+            for case in extracted_cases
+        ]
+        expected = {
+            "outcome": "success",
+            "cases": [
+                {"input": input_value, "value": case["expected"]}
+                for input_value, case in zip(inputs, extracted_cases)
+            ],
+        }
+        test_name = f"contract {row['id']} {row['upstream_name']}"
+        case = {
+            "schema_version": 1,
+            "case_id": row["id"],
+            "upstream_name": row["upstream_name"],
+            "owner_area": "evaluator-builtins",
+            "test_name": test_name,
+            "test_anchor": {"suite": VALUE_SUITE, "test_name": test_name},
+            "contract_case": f"MJ-CONTRACT::{row['id']}",
+            "upstream_source": {
+                "path": VALUE_SOURCE,
+                "line": line,
+                "file_sha256": sha256(value_path),
+            },
+            "input": inputs,
+            "input_sha256": sha256_bytes(encoded(inputs).encode("utf-8")),
+            "expected": expected,
+            "expected_sha256": sha256_bytes(encoded(expected).encode("utf-8")),
+        }
+        rendered_value_cases.append(case)
+        generated.append(case)
+    write_or_check(repo / VALUE_SUITE, render_value_tests(rendered_value_cases), check)
+
+    unindent_path = upstream / UNINDENT_SOURCE
+    unindent_source = unindent_path.read_text(encoding="utf-8")
+    unindent_rows = [
+        row
+        for row in rows
+        if row["owner_area"] == "evaluator-builtins"
+        and row["scope"] == "compatibility"
+        and row["upstream_name"] == "unindent::tests::unindents"
+    ]
+    rendered_unindent_cases: list[dict[str, object]] = []
+    for row in unindent_rows:
+        line, extracted_cases = unindent_cases(unindent_source, "unindents")
+        inputs = [case["input"] for case in extracted_cases]
+        expected = {
+            "outcome": "success",
+            "cases": [
+                {"input": input_value, "value": case["expected"]}
+                for input_value, case in zip(inputs, extracted_cases)
+            ],
+        }
+        test_name = f"contract {row['id']} {row['upstream_name']}"
+        case = {
+            "schema_version": 1,
+            "case_id": row["id"],
+            "upstream_name": row["upstream_name"],
+            "owner_area": "evaluator-builtins",
+            "test_name": test_name,
+            "test_anchor": {"suite": UNINDENT_SUITE, "test_name": test_name},
+            "contract_case": f"MJ-CONTRACT::{row['id']}",
+            "upstream_source": {
+                "path": UNINDENT_SOURCE,
+                "line": line,
+                "file_sha256": sha256(unindent_path),
+            },
+            "input": inputs,
+            "input_sha256": sha256_bytes(encoded(inputs).encode("utf-8")),
+            "expected": expected,
+            "expected_sha256": sha256_bytes(encoded(expected).encode("utf-8")),
+        }
+        rendered_unindent_cases.append(case)
+        generated.append(case)
+    write_or_check(repo / UNINDENT_SUITE, render_unindent_tests(rendered_unindent_cases), check)
+
     write_or_check(
         output,
         "".join(
