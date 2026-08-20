@@ -600,7 +600,7 @@ test "PowerShell script selects ps1 and UTF-8 BOM" {
 ///|
 test "Windows cmd shebang is metadata rather than script input" {
   let (compilation, recipe) = compile_recipe(
-    "build:\n  #!cmd.exe /c\n  echo Hello-World\n",
+    "build:\n  #!cmd.exe /c\n  #!foo\n  echo Hello-World\n",
   )
   let environment = try! @evaluator.evaluate_compilation(compilation)
   let interpreter = try! @environment.ShellConfiguration::new(
@@ -621,7 +621,7 @@ test "Windows cmd shebang is metadata rather than script input" {
     "/c",
     materialized.path().as_string(),
   ])
-  assert_eq(host.script_temp_creations()[0].1, b"\n\necho Hello-World\n")
+  assert_eq(host.script_temp_creations()[0].1, b"\n\n\necho Hello-World\n")
 }
 
 ///|

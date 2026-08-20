@@ -149,6 +149,8 @@ fn script_bytes(
 ///|
 /// Windows shebang lines are metadata for the generated script file, but they
 /// remain part of the command text shown by dry-run and command echo output.
+/// Consecutive leading shebang lines are each replaced by an empty line so the
+/// generated script retains source line alignment.
 fn execution_script_contents(
   contents : Bytes,
   has_shebang : Bool,
@@ -165,25 +167,34 @@ fn execution_script_contents(
     bytes[2] == b'\xbf' {
     line_start = 3
   }
-  let mut newline : Int? = None
-  for index in line_start..<bytes.length() {
-    if bytes[index] == b'\n' {
-      newline = Some(index)
-      break
-    }
-  }
   let output : Array[Byte] = []
   for index in 0..<line_start {
     output.push(bytes[index])
   }
-  match newline {
-    Some(index) => {
-      output.push(b'\n')
-      for rest in (index + 1)..<bytes.length() {
-        output.push(bytes[rest])
+
+  let mut remaining = line_start
+  let mut stripping = true
+  while stripping &&
+        remaining + 1 < bytes.length() &&
+        bytes[remaining] == b'#' &&
+        bytes[remaining + 1] == b'!' {
+    let mut newline : Int? = None
+    for index in remaining..<bytes.length() {
+      if bytes[index] == b'\n' {
+        newline = Some(index)
+        break
       }
     }
-    None => output.push(b'\n')
+    match newline {
+      Some(index) => {
+        output.push(b'\n')
+        remaining = index + 1
+      }
+      None => stripping = false
+    }
+  }
+  for index in remaining..<bytes.length() {
+    output.push(bytes[index])
   }
   Bytes::from_array(output)
 }
