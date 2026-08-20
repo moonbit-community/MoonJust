@@ -22,6 +22,14 @@ let signal_runtime : Ref[SignalRuntime?] = Ref(None)
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+let explicit_process_cancellations : Ref[Map[Int, Bool]] = Ref(Map([]))
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+let signal_process_cancellations : Ref[Map[Int, Bool]] = Ref(Map([]))
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 extern "C" fn prepare_signal_forwarding_ffi() = "moonjust_prepare_signal_forwarding"
 
 ///|
@@ -161,13 +169,43 @@ fn caught_signal() -> Int? {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+fn mark_explicit_process_cancellation(pid : Int) -> Unit {
+  explicit_process_cancellations.val[pid] = true
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn take_explicit_process_cancellation(pid : Int) -> Bool {
+  guard explicit_process_cancellations.val.contains(pid) else { return false }
+  explicit_process_cancellations.val.remove(pid)
+  true
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn mark_signal_process_cancellation(pid : Int) -> Unit {
+  signal_process_cancellations.val[pid] = true
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn take_signal_process_cancellation(pid : Int) -> Bool {
+  guard signal_process_cancellations.val.contains(pid) else { return false }
+  signal_process_cancellations.val.remove(pid)
+  true
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async fn cancel_signal_child(pid : Int) -> Unit {
-  match caught_signal() {
-    Some(1) | Some(2) | Some(3) => ()
-    _ => {
-      let CancellationHandler(cancel) = @process.graceful_cancel(timeout=5000)
-      cancel(pid)
-    }
+  if take_explicit_process_cancellation(pid) {
+    let CancellationHandler(cancel) = @process.graceful_cancel(timeout=5000)
+    cancel(pid)
+  } else {
+    // A root signal cancellation must not add an implicit TERM. The async
+    // process task still waits and reaps the direct child; MoonJust's signal
+    // observer owns the explicit TERM forwarding policy.
+    mark_signal_process_cancellation(pid)
   }
 }
 

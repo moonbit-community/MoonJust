@@ -113,9 +113,10 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
   let status = try process.wait() catch {
     error => {
       let signal = caught_signal()
+      let signal_cancelled = take_signal_process_cancellation(pid)
       remove_signal_child(pid)
-      if @async.is_cancellation_error(error) && signal is Some(number) {
-        return -(256 + number)
+      if @async.is_cancellation_error(error) && signal_cancelled {
+        return -(256 + signal.unwrap_or(2))
       }
       raise error
     }
@@ -137,7 +138,10 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 fn ObservedProcess::cancel(self : ObservedProcess) -> Unit {
-  let Managed(process~, ..) = self
+  let Managed(process~, pid~) = self
+  if !@async.is_being_cancelled() {
+    mark_explicit_process_cancellation(pid)
+  }
   process.cancel()
 }
 
