@@ -22,6 +22,15 @@ SCHEMA_VERSION = 1
 SCENARIOS = ("direct", "shell-exec", "shell-foreground", "shell-descendant")
 OBSERVATION_ERRORS: list[str] = []
 
+# A foreground shell may receive the forwarded termination signal itself,
+# while direct and exec cases are expected to handle SIGTERM in the child.
+# Both outcomes still require the same wait, pipe, and cleanup evidence.
+EXPECTED_OBSERVE_RETURNCODES = {
+    "direct": {0},
+    "shell-exec": {0},
+    "shell-foreground": {0, -signal.SIGTERM},
+}
+
 
 def encode(record: dict[str, Any]) -> str:
     return json.dumps(record, sort_keys=True, separators=(",", ":"))
@@ -336,12 +345,17 @@ def validate_linux(records: list[dict[str, Any]]) -> None:
             for event in record["events"]
             if event["event"] == "parent-signal"
         ]
+        expected_returncodes = EXPECTED_OBSERVE_RETURNCODES[scenario]
         if (
             not record["alive_after_first_signal"]
             or record["timed_out"]
-            or record["returncode"] != 0
+            or record["returncode"] not in expected_returncodes
         ):
-            raise RuntimeError(f"observe/{scenario} did not wait then close cleanly")
+            raise RuntimeError(
+                f"observe/{scenario} did not wait then close cleanly "
+                f"(returncode={record['returncode']}, "
+                f"expected={sorted(expected_returncodes)})"
+            )
         if parent_signals != ["SIGINT", "SIGTERM"]:
             raise RuntimeError(f"observe/{scenario} signal order drifted")
         required_events = {
