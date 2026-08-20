@@ -42,6 +42,8 @@ UNINDENT_SOURCE = "src/unindent.rs"
 UNINDENT_SUITE = "internal/parser/upstream_unindent_contract_wbtest.mbt"
 CONFIG_SOURCE = "src/config.rs"
 CONFIG_SUITE = "internal/cli/upstream_config_contract_test.mbt"
+INVOCATION_SOURCE = "src/invocation_parser.rs"
+INVOCATION_SUITE = "internal/invocation/upstream_contract_test.mbt"
 CONFIG_CONTRACT_NAMES = {
     "color_never",
     "color_always",
@@ -62,6 +64,8 @@ CONFIG_CONTRACT_NAMES = {
     "shell_args_set_hyphen",
     "shell_args_set_word",
     "shell_args_set_multiple",
+    "shell_args_default",
+    "shell_args_set",
     "shell_args_clear",
     "shell_args_clear_and_set",
     "shell_args_set_and_clear",
@@ -82,6 +86,80 @@ CONFIG_CONTRACT_NAMES = {
     "search_config_justfile_stdin_long",
     "search_config_justfile_stdin_short",
     "search_config_justfile_stdin_with_working_directory",
+}
+INVOCATION_CONTRACTS = {
+    "complex_grouping": {
+        "source": "FOO A B='blarg':\n  echo foo: {{A}} {{B}}\n\nBAR X:\n  echo bar: {{X}}\n\nBAZ +Z:\n  echo baz: {{Z}}\n",
+        "args": ["BAR", "0", "FOO", "1", "2", "BAZ", "3", "4", "5"],
+        "recipes": ["BAR", "FOO", "BAZ"],
+        "values": [[ ["0"] ], [ ["1"], ["2"] ], [ ["3", "4", "5"] ]],
+    },
+    "default_recipe_requires_arguments": {
+        "source": "foo bar:",
+        "args": [],
+        "error_code": "MJ-INV-0002",
+        "error_message": "recipe `foo` cannot be used as default recipe since it requires at least 1 argument",
+    },
+    "long_argument": {
+        "source": "[arg('bar', long='bar')]\nfoo bar:\n",
+        "args": ["foo", "--bar", "baz"],
+        "recipes": ["foo"],
+        "values": [[["baz"]]],
+    },
+    "long_argument_terminator": {
+        "source": "[arg('bar', long='bar')]\nfoo baz qux='qux' bar='bar':\n",
+        "args": ["foo", "--", "--bar"],
+        "recipes": ["foo"],
+        "values": [[["--bar"], [], []]],
+    },
+    "long_argument_with_positional": {
+        "source": "[arg('bar', long='bar')]\nfoo baz bar:\n",
+        "args": ["foo", "qux", "--bar", "baz"],
+        "recipes": ["foo"],
+        "values": [[["qux"], ["baz"]]],
+    },
+    "multiple_unknown": {
+        "source": "foo:",
+        "args": ["bar", "baz"],
+        "error_code": "MJ-INV-0003",
+        "error_message": "justfile does not contain recipe `bar`",
+    },
+    "no_recipes": {
+        "source": "",
+        "args": [],
+        "error_code": "MJ-INV-0001",
+        "error_message": "justfile contains no recipes",
+    },
+    "repeatable_long_option": {
+        "source": "[arg('bar', long='bar')]\nfoo +bar:\n",
+        "args": ["foo", "--bar", "a", "--bar", "b"],
+        "recipes": ["foo"],
+        "values": [[["a", "b"]]],
+    },
+    "single_argument_count_mismatch": {
+        "source": "foo bar:",
+        "args": ["foo"],
+        "error_code": "MJ-INV-0012",
+        "error_message": "recipe `foo` got 0 positional arguments but takes 1\nusage:\n    just foo bar",
+    },
+    "single_no_arguments": {
+        "source": "foo:",
+        "args": ["foo"],
+        "recipes": ["foo"],
+        "values": [[]],
+    },
+    "single_unknown": {
+        "source": "foo:",
+        "args": ["bar"],
+        "error_code": "MJ-INV-0003",
+        "error_message": "justfile does not contain recipe `bar`",
+    },
+    "single_with_argument": {
+        "source": "foo bar:",
+        "args": ["foo", "baz"],
+        "recipes": ["foo"],
+        "values": [[["baz"]]],
+    },
 }
 
 
@@ -954,6 +1032,84 @@ fn assert_config_contract(
     return header + "\n".join(tests)
 
 
+def render_invocation_tests(cases: list[dict[str, object]]) -> str:
+    header = '''///|
+fn compile_invocation_contract(text : String) -> @semantic.Compilation raise {
+  @semantic.compile_source(
+    @source.Source::from_text(
+      @source.SourceId::new(1900),
+      "upstream-invocation-contract",
+      text,
+    ),
+    allow_unstable=true,
+  )
+}
+
+///|
+fn invocation_values(invocation : @invocation.Invocation) -> Array[Array[String]] {
+  invocation.arguments().map(fn(value) { value.elements().to_owned() })
+}
+
+///|
+fn assert_invocation_success(
+  source : String,
+  args : ArrayView[String],
+  recipes : ArrayView[String],
+  expected : ArrayView[Array[Array[String]]],
+) -> Unit raise {
+  let parsed = @invocation.parse_invocations(compile_invocation_contract(source), args)
+  assert_eq(parsed.length(), recipes.length())
+  for index, recipe in recipes {
+    assert_eq(parsed[index].recipe(), recipe)
+    assert_eq(invocation_values(parsed[index]), expected[index])
+  }
+}
+
+///|
+fn assert_invocation_error(
+  source : String,
+  args : ArrayView[String],
+  code : String,
+  message : String,
+) -> Unit raise {
+  let compilation = compile_invocation_contract(source)
+  try @invocation.parse_invocations(compilation, args) catch {
+    error => {
+      assert_eq(error.code(), code)
+      assert_eq(error.message(), message)
+    }
+  } noraise {
+    _ => fail("invocation contract unexpectedly succeeded")
+  }
+}
+
+'''
+    tests: list[str] = []
+    for case in cases:
+        test_name = str(case["test_name"])
+        args = ", ".join(moon_string(str(value)) for value in case["input"])
+        if case["expected"]["outcome"] == "error":
+            body = (
+                f"  assert_invocation_error({moon_string(str(case['source']))}, "
+                f"[{args}], {moon_string(str(case['expected']['code']))}, "
+                f"{moon_string(str(case['expected']['message']))})"
+            )
+        else:
+            recipes = ", ".join(moon_string(str(value)) for value in case["expected"]["recipes"])
+            def render_values(value: object) -> str:
+                if isinstance(value, list):
+                    return "[" + ", ".join(render_values(item) for item in value) + "]"
+                return moon_string(str(value))
+
+            values = render_values(case["expected"]["values"])
+            body = (
+                f"  assert_invocation_success({moon_string(str(case['source']))}, "
+                f"[{args}], [{recipes}], {values})"
+            )
+        tests.append("///|\n" f'test "{test_name}" {{\n' + body + "\n}\n")
+    return header + "\n".join(tests)
+
+
 def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
     commit = subprocess.run(
         ["git", "-C", str(upstream), "rev-parse", "HEAD"],
@@ -1309,6 +1465,64 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
         rendered_config_cases.append(case)
         generated.append(case)
     write_or_check(repo / CONFIG_SUITE, render_config_tests(rendered_config_cases), check)
+
+    invocation_path = upstream / INVOCATION_SOURCE
+    invocation_source = invocation_path.read_text(encoding="utf-8")
+    invocation_rows = [
+        row
+        for row in rows
+        if row["owner_area"] == "execution-context"
+        and row["scope"] == "compatibility"
+        and str(row["upstream_name"]).startswith("invocation_parser::tests::")
+        and str(row["upstream_name"]).rsplit("::", 1)[-1] in INVOCATION_CONTRACTS
+    ]
+    rendered_invocation_cases: list[dict[str, object]] = []
+    for row in invocation_rows:
+        leaf = str(row["upstream_name"]).rsplit("::", 1)[-1]
+        definition = INVOCATION_CONTRACTS[leaf]
+        match = re.search(rf"(?m)^\s*fn {re.escape(leaf)}\(\)", invocation_source)
+        if match is None:
+            raise ValueError(f"missing invocation source function {leaf}")
+        line = invocation_source.count("\n", 0, match.start()) + 1
+        test_name = f"contract {row['id']} {row['upstream_name']}"
+        if "error_code" in definition:
+            expected = {
+                "outcome": "error",
+                "code": definition["error_code"],
+                "message": definition["error_message"],
+            }
+        else:
+            expected = {
+                "outcome": "success",
+                "recipes": definition["recipes"],
+                "values": definition["values"],
+            }
+        case = {
+            "schema_version": 1,
+            "case_id": row["id"],
+            "upstream_name": row["upstream_name"],
+            "owner_area": "execution-context",
+            "test_name": test_name,
+            "test_anchor": {"suite": INVOCATION_SUITE, "test_name": test_name},
+            "contract_case": f"MJ-CONTRACT::{row['id']}",
+            "upstream_source": {
+                "path": INVOCATION_SOURCE,
+                "line": line,
+                "file_sha256": sha256(invocation_path),
+            },
+            "input": definition["args"],
+            "input_sha256": sha256_bytes(encoded(definition["args"]).encode("utf-8")),
+            "expected": expected,
+            "expected_sha256": sha256_bytes(encoded(expected).encode("utf-8")),
+            "source": definition["source"],
+        }
+        rendered_invocation_cases.append(case)
+        generated.append(case)
+    write_or_check(
+        repo / INVOCATION_SUITE,
+        render_invocation_tests(rendered_invocation_cases),
+        check,
+    )
 
     write_or_check(
         output,

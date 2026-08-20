@@ -286,6 +286,23 @@ test "contract JUST-1.57.0-0424 config::tests::shell_args_clear_and_set" {
 }
 
 ///|
+test "contract JUST-1.57.0-0425 config::tests::shell_args_default" {
+  assert_config_contract([], [], [], None, [], [])
+}
+
+///|
+test "contract JUST-1.57.0-0426 config::tests::shell_args_set" {
+  assert_config_contract(
+    ["--shell-arg", "hello"],
+    [],
+    [],
+    Some(["hello"]),
+    [],
+    [],
+  )
+}
+
+///|
 test "contract JUST-1.57.0-0427 config::tests::shell_args_set_and_clear" {
   assert_config_contract(
     ["--shell-arg", "bar", "--clear-shell-args"],

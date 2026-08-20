@@ -252,6 +252,7 @@ fn resolve_values_and_patterns(
   spec : RecipeSpec,
   groups : Array[Array[String]],
   global : @evaluator.Environment,
+  resolve_defaults? : Bool = true,
 ) -> Unit raise InvocationError {
   let scope = @evaluator.Environment::child(global)
   for index, parameter in spec.parameters {
@@ -280,7 +281,7 @@ fn resolve_values_and_patterns(
     }
     let binding = if groups[index].is_empty() {
       match recipe.parameters()[index].default_value() {
-        Some(expression) =>
+        Some(expression) if resolve_defaults =>
           try @evaluator.evaluate(expression, environment=scope) catch {
             EffectRequired(_) => bound_value(parameter, groups[index])
             error => raise Evaluation(error)
@@ -290,7 +291,7 @@ fn resolve_values_and_patterns(
               value
             }
           }
-        None => bound_value(parameter, groups[index])
+        _ => bound_value(parameter, groups[index])
       }
     } else {
       bound_value(parameter, groups[index])
@@ -337,10 +338,12 @@ fn parse_one(
   let mut positional_index = 0
   let mut positional_accepted = 0
   let mut end_of_options = !has_options
+  let mut saw_terminator = false
   while cursor < rest.length() {
     let argument = rest[cursor]
     if !end_of_options && argument == "--" {
       end_of_options = true
+      saw_terminator = true
       cursor += 1
       continue
     }
@@ -440,7 +443,13 @@ fn parse_one(
     )
   }
   if resolve_expressions {
-    resolve_values_and_patterns(recipe, spec, groups, global)
+    resolve_values_and_patterns(
+      recipe,
+      spec,
+      groups,
+      global,
+      resolve_defaults=!saw_terminator,
+    )
   }
   if resolve_expressions {
     for index, parameter in spec.parameters {
