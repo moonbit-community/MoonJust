@@ -73,8 +73,14 @@ archive_digest=$(release_sha256 "$archive")
 printf '%s  %s\n' "$archive_digest" "$(basename "$archive")" >"$archive.sha256"
 
 if [ -n "${MOONJUST_WASM_ASSET:-}" ]; then
-  case "$MOONJUST_WASM_ASSET" in
-    /*) wasm_source="$MOONJUST_WASM_ASSET" ;;
+  wasm_input=$MOONJUST_WASM_ASSET
+  case "$wasm_input" in
+    /*) wasm_source=$wasm_input ;;
+    [A-Za-z]:[\\/]* )
+      if ! command -v cygpath >/dev/null 2>&1; then
+        release_fail "cygpath is required to normalize a Windows wasm asset path"
+      fi
+      wasm_source=$(cygpath -u -- "$wasm_input") ;;
     *) release_fail "MOONJUST_WASM_ASSET must be an absolute path" ;;
   esac
   [ -f "$wasm_source" ] || release_fail "downloaded wasm1 release asset is missing"
