@@ -123,6 +123,10 @@ WINDOWS_ONLY_HARNESS_NAMES = {
     "windows_shell::windows_powershell_setting_uses_powershell_set_shell",
     "windows_shell::windows_shell_setting",
 }
+PLATFORM_HOST_CASES = {
+    "non_unicode::warn_for_non_unicode_invocation_directory",
+    "non_unicode::warn_for_non_unicode_justfile_path",
+}
 
 
 def root() -> Path:
@@ -288,6 +292,29 @@ def validate_harness_rows(
                 and "diagnostic-semantic" in target_statuses,
                 f"diagnostic-semantic result drifted for {name}",
             )
+        elif disposition == "not-applicable":
+            exception = harness_row.get("exception")
+            expect(
+                isinstance(exception, dict)
+                and exception.get("classification") == "not-applicable"
+                and set(exception.get("targets", [])) <= {"native", "wasm1"},
+                f"not-applicable result has invalid exception for {name}",
+            )
+            exception_targets = set(exception["targets"])
+            for target_name, target_status in zip(
+                ("native", "wasm1"),
+                (harness_row["native"], harness_row["wasm1"]),
+            ):
+                if target_name in exception_targets:
+                    expect(
+                        target_status == "not-applicable",
+                        f"not-applicable target drifted for {name}",
+                    )
+                else:
+                    expect(
+                        target_status in {"exact", "diagnostic-exact"},
+                        f"non-exception target drifted for {name}",
+                    )
         else:
             expect(
                 target_statuses == {disposition},
@@ -321,6 +348,7 @@ def validate_map() -> None:
     differential_cases = {case["id"]: case for case in differential["case"]}
     for expected_host, filename, expected_count in (
         ("darwin-arm64", "harness-results.jsonl", 1842),
+        ("linux-x86_64", "harness-results-linux.jsonl", 1843),
         ("windows-amd64", "harness-results-windows.jsonl", 1821),
     ):
         harness_rows = [
@@ -334,6 +362,8 @@ def validate_map() -> None:
             f"{expected_host} official integration harness result count changed",
         )
         known_names = set(names)
+        if expected_host == "linux-x86_64":
+            known_names |= PLATFORM_HOST_CASES
         if expected_host == "windows-amd64":
             known_names |= WINDOWS_ONLY_HARNESS_NAMES
         validate_harness_rows(harness_rows, expected_host, known_names)

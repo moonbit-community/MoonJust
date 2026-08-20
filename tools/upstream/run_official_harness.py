@@ -122,8 +122,12 @@ def repository_root() -> Path:
 
 
 def default_results_path(repo: Path) -> Path:
-    suffix = "-windows" if platform.system() == "Windows" else ""
-    return repo / f"tests/upstream/just-1.57.0/harness-results{suffix}.jsonl"
+    filename = {
+        "Darwin": "harness-results.jsonl",
+        "Linux": "harness-results-linux.jsonl",
+        "Windows": "harness-results-windows.jsonl",
+    }.get(platform.system(), "harness-results.jsonl")
+    return repo / "tests/upstream/just-1.57.0" / filename
 
 
 def fail(message: str) -> None:

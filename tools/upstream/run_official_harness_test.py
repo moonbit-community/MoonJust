@@ -7,6 +7,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -112,6 +113,23 @@ class OfficialHarnessTest(unittest.TestCase):
                 "non_unicode::warn_for_non_unicode_justfile_path",
             },
         )
+
+    def test_default_results_path_is_host_specific(self) -> None:
+        with mock.patch.object(harness.platform, "system", return_value="Darwin"):
+            self.assertEqual(
+                harness.default_results_path(Path("/repo")).name,
+                "harness-results.jsonl",
+            )
+        with mock.patch.object(harness.platform, "system", return_value="Linux"):
+            self.assertEqual(
+                harness.default_results_path(Path("/repo")).name,
+                "harness-results-linux.jsonl",
+            )
+        with mock.patch.object(harness.platform, "system", return_value="Windows"):
+            self.assertEqual(
+                harness.default_results_path(Path("/repo")).name,
+                "harness-results-windows.jsonl",
+            )
 
 
 if __name__ == "__main__":
