@@ -32,6 +32,8 @@ AREAS = {
 }
 TANGLE_SOURCE = "src/tangle.rs"
 TANGLE_SUITE = "internal/formatter/upstream_tangle_contract_test.mbt"
+CLEAN_SOURCE = "src/clean.rs"
+CLEAN_SUITE = "internal/path/upstream_clean_contract_test.mbt"
 
 
 def root() -> Path:
@@ -241,6 +243,29 @@ def tangle_cases(source: str, name: str) -> tuple[int, list[tuple[str, str]]]:
     return line, cases
 
 
+def function_cases(source: str, name: str) -> tuple[int, list[tuple[str, str]]]:
+    function = re.search(rf"(?m)^  fn {re.escape(name)}\(\) \{{", source)
+    if function is None:
+        raise ValueError(f"missing upstream test function {name}")
+    line = source.count("\n", 0, function.start()) + 1
+    end = source.find("\n  }", function.end())
+    if end < 0:
+        raise ValueError(f"unterminated upstream test function {name}")
+    body = source[function.end() : end]
+    cases: list[tuple[str, str]] = []
+    for call in re.finditer(r"\bcase\s*\(", body):
+        first, index = rust_literal(body, call.end())
+        while index < len(body) and body[index].isspace():
+            index += 1
+        if index >= len(body) or body[index] != ",":
+            raise ValueError(f"malformed first case argument in {name}")
+        second, _ = rust_literal(body, index + 1)
+        cases.append((first, second))
+    if not cases:
+        raise ValueError(f"upstream test function {name} has no cases")
+    return line, cases
+
+
 def encoded(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -405,6 +430,28 @@ fn assert_tangle_contract(text : String, expected : String, id : Int) -> Unit ra
     return header + "\n".join(tests)
 
 
+def render_clean_tests(cases: list[dict[str, object]]) -> str:
+    header = '''///|
+fn assert_clean_contract(input : String, expected : String) -> Unit raise {
+  let path = PathValue::new(input, Unix)
+  assert_eq(path.clean().as_string(), expected)
+}
+
+'''
+    tests: list[str] = []
+    for case in cases:
+        expectation = case["expected"]
+        assert isinstance(expectation, dict)
+        tests.append(
+            "///|\n"
+            f'test "{case["test_name"]}" {{\n'
+            f"  assert_clean_contract({moon_string(str(case['input']))}, "
+            f"{moon_string(str(expectation['value']))})\n"
+            "}\n"
+        )
+    return header + "\n".join(tests)
+
+
 def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
     commit = subprocess.run(
         ["git", "-C", str(upstream), "rev-parse", "HEAD"],
@@ -530,6 +577,46 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
         render_tangle_tests(rendered_tangle_cases),
         check,
     )
+
+    clean_path = upstream / CLEAN_SOURCE
+    clean_source = clean_path.read_text(encoding="utf-8")
+    clean_rows = [
+        row
+        for row in rows
+        if row["owner_area"] == "runtime-cache"
+        and row["scope"] == "compatibility"
+        and str(row["upstream_name"]).startswith("clean::tests::")
+    ]
+    rendered_clean_cases: list[dict[str, object]] = []
+    for row in clean_rows:
+        leaf = str(row["upstream_name"]).rsplit("::", 1)[-1]
+        line, extracted_cases = function_cases(clean_source, leaf)
+        if len(extracted_cases) != 1:
+            raise ValueError(f"clean test {leaf} must have exactly one case")
+        input_value, output_value = extracted_cases[0]
+        expected = {"outcome": "success", "value": output_value}
+        test_name = f"contract {row['id']} {row['upstream_name']}"
+        case = {
+            "schema_version": 1,
+            "case_id": row["id"],
+            "upstream_name": row["upstream_name"],
+            "owner_area": "runtime-cache",
+            "test_name": test_name,
+            "test_anchor": {"suite": CLEAN_SUITE, "test_name": test_name},
+            "contract_case": f"MJ-CONTRACT::{row['id']}",
+            "upstream_source": {
+                "path": CLEAN_SOURCE,
+                "line": line,
+                "file_sha256": sha256(clean_path),
+            },
+            "input": input_value,
+            "input_sha256": sha256_bytes(input_value.encode("utf-8")),
+            "expected": expected,
+            "expected_sha256": sha256_bytes(encoded(expected).encode("utf-8")),
+        }
+        rendered_clean_cases.append(case)
+        generated.append(case)
+    write_or_check(repo / CLEAN_SUITE, render_clean_tests(rendered_clean_cases), check)
     write_or_check(
         output,
         "".join(

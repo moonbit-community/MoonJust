@@ -29,7 +29,7 @@ status = "implemented"
 package = "internal/path"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 5
+black_box_tests = 25
 evidence = "clean, join, parent, extension, drive-relative, rooted, and UNC paths"
 
 [[contract]]
