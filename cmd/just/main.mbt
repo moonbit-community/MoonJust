@@ -36,11 +36,36 @@ const JUST_MAN_HEADER : String =
   #|[options] [recipe [arguments...]]
 
 ///|
-// Prevent the async event loop from installing its default global cancellation
-// signals before the MoonJust signal pipe is ready.
+// Preserve an early helper failure until the async main context can report it.
+#cfg(all(target="native", not(platform="windows")))
+let process_group_exec_error : Ref[Int?] = Ref(None)
+
+///|
 #cfg(all(target="native", not(platform="windows")))
 fn init {
-  @host_process.prepare_signal_forwarding()
+  if @host_process.process_group_exec_requested() {
+    // This path runs before async main initializes its event loop. The helper
+    // either execs the requested command or leaves a numeric errno for the
+    // normal MoonBit context to report below.
+    process_group_exec_error.val = Some(
+      @host_process.exec_process_group_from_args(),
+    )
+  } else {
+    @host_process.enable_process_group_boundary()
+    @host_process.prepare_signal_forwarding()
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn process_group_exec_error_value() -> Int? {
+  process_group_exec_error.val
+}
+
+///|
+#cfg(any(target="wasm", platform="windows"))
+fn process_group_exec_error_value() -> Int? {
+  None
 }
 
 ///|
@@ -464,43 +489,55 @@ async fn main {
   let signal_request = argv.length() == 2 &&
     argv[0] == "--request" &&
     argv[1] == "\"signal\""
-  @async.protect_from_cancel(() => {
-    @async.with_task_group() <| group => {
-      match @host_process.configure_signal_forwarding(group, !signal_request) {
-        Some(InvalidInput(message)) => {
-          @stdio.stderr.write(@utf8.encode(message + "\n"))
-          runtime_exit(1)
+  if process_group_exec_error_value() is Some(error) {
+    @stdio.stderr.write(
+      @utf8.encode(
+        "error: internal process-group exec failed (" +
+        error.to_string() +
+        ")\n",
+      ),
+    )
+    runtime_exit(127)
+  } else {
+    @async.protect_from_cancel(() => {
+      @async.with_task_group() <| group => {
+        match
+          @host_process.configure_signal_forwarding(group, !signal_request) {
+          Some(InvalidInput(message)) => {
+            @stdio.stderr.write(@utf8.encode(message + "\n"))
+            runtime_exit(1)
+          }
+          Some(_) => {
+            @stdio.stderr.write(
+              @utf8.encode("failed to initialize signal forwarding\n"),
+            )
+            runtime_exit(1)
+          }
+          None => ()
         }
-        Some(_) => {
-          @stdio.stderr.write(
-            @utf8.encode("failed to initialize signal forwarding\n"),
-          )
-          runtime_exit(1)
+        let environment_host = runtime_environment_host()
+        let parsed = try {
+          let environment = parse_environment(environment_host)
+          Some(@cli.parse_arguments(argv, environment))
+        } catch {
+          _ => None
         }
-        None => ()
-      }
-      let environment_host = runtime_environment_host()
-      let parsed = try {
-        let environment = parse_environment(environment_host)
-        Some(@cli.parse_arguments(argv, environment))
-      } catch {
-        _ => None
-      }
-      let stdin = if parsed is Some(arguments) &&
-        !arguments.flag("help") &&
-        !arguments.flag("version") &&
-        arguments.value("justfile") == Some("-") {
-        read_stdin_source_bounded(
-          @lexer.LexerLimits::default().max_source_bytes(),
-        ) catch {
-          _ => b""
+        let stdin = if parsed is Some(arguments) &&
+          !arguments.flag("help") &&
+          !arguments.flag("version") &&
+          arguments.value("justfile") == Some("-") {
+          read_stdin_source_bounded(
+            @lexer.LexerLimits::default().max_source_bytes(),
+          ) catch {
+            _ => b""
+          }
+        } else {
+          b""
         }
-      } else {
-        b""
+        emit_response(run_cli(runtime_host(), environment_host, argv, stdin)) catch {
+          _ => runtime_exit(1)
+        }
       }
-      emit_response(run_cli(runtime_host(), environment_host, argv, stdin)) catch {
-        _ => runtime_exit(1)
-      }
-    }
-  })
+    })
+  }
 }

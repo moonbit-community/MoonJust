@@ -161,6 +161,7 @@ int32_t moonjust_current_process_id(void) {
 
 MOONBIT_FFI_EXPORT
 int32_t moonjust_kind_of_fd(int32_t fd) {
+  if (isatty(fd)) return 2;
   struct stat info;
   return fstat(fd, &info) == 0 && S_ISREG(info.st_mode);
 }
