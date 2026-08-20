@@ -39,6 +39,26 @@ CONTRACT_SOURCE_PROVENANCE = {
         "line": 46,
         "file_sha256": "aecd29701b1a97434f3e2ef12f23dac7bac01871c8e3dd432f970c5bc1f3eb44",
     },
+    "parallel::dependents_block_on_running_dependencies": {
+        "path": "tests/parallel.rs",
+        "line": 108,
+        "file_sha256": "aecd29701b1a97434f3e2ef12f23dac7bac01871c8e3dd432f970c5bc1f3eb44",
+    },
+    "parallel::jobs_limits_concurrent_recipes": {
+        "path": "tests/parallel.rs",
+        "line": 143,
+        "file_sha256": "aecd29701b1a97434f3e2ef12f23dac7bac01871c8e3dd432f970c5bc1f3eb44",
+    },
+    "parallel::prior_dependencies_run_in_parallel": {
+        "path": "tests/parallel.rs",
+        "line": 6,
+        "file_sha256": "aecd29701b1a97434f3e2ef12f23dac7bac01871c8e3dd432f970c5bc1f3eb44",
+    },
+    "parallel::recipes_up_to_job_limit_run_in_parallel": {
+        "path": "tests/parallel.rs",
+        "line": 171,
+        "file_sha256": "aecd29701b1a97434f3e2ef12f23dac7bac01871c8e3dd432f970c5bc1f3eb44",
+    },
     "run::tests::run_can_be_called_more_than_once": {
         "path": "src/run.rs",
         "line": 41,
@@ -253,6 +273,22 @@ EXPLICIT_CONTRACT_EVIDENCE = {
     "global::not_macos": (
         "internal/application/application_test.mbt",
         "global context follows Linux XDG lookup and project root",
+    ),
+    "parallel::dependents_block_on_running_dependencies": (
+        "internal/runtime/runtime_test.mbt",
+        "contract runtime dependents block on running dependencies",
+    ),
+    "parallel::jobs_limits_concurrent_recipes": (
+        "internal/runtime/runtime_test.mbt",
+        "contract runtime jobs limits concurrent recipes",
+    ),
+    "parallel::prior_dependencies_run_in_parallel": (
+        "internal/runtime/runtime_test.mbt",
+        "contract runtime prior dependencies run in parallel",
+    ),
+    "parallel::recipes_up_to_job_limit_run_in_parallel": (
+        "internal/runtime/runtime_test.mbt",
+        "contract runtime recipes up to job limit run in parallel",
     ),
 }
 

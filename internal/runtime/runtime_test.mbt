@@ -515,3 +515,64 @@ async test "verbose cache diagnostics report stable hits and key material" {
   assert_true(stderr.has_suffix("===> cache hit, skipping invocation\n"))
   assert_true(stderr.contains("TOP_SECRET_VERBOSE_CACHE"))
 }
+
+///|
+async test "contract runtime dependents block on running dependencies" {
+  let plan = runtime_async_plan(
+    "set quiet\n[parallel]\nroot: b c\n  root\nb: x\n  b\nc: x\n  c\nx:\n  x\n",
+    2,
+  )
+  let process = ProbeProcess::new()
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  ignore(try! execute_plan(process, host, host, plan))
+  assert_eq(process.starts, ["x", "b", "c", "root"])
+  assert_true(process.peak <= 2)
+}
+
+///|
+async test "contract runtime jobs limits concurrent recipes" {
+  let plan = runtime_async_plan(
+    "set quiet\n[parallel]\nroot: a b\n  root\na:\n  a\nb:\n  b\n", 1,
+  )
+  let process = ProbeProcess::new()
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  ignore(try! execute_plan(process, host, host, plan))
+  assert_eq(process.peak, 1)
+  assert_eq(process.starts, ["a", "b", "root"])
+}
+
+///|
+async test "contract runtime prior dependencies run in parallel" {
+  let plan = runtime_async_plan(
+    "[parallel]\nroot: a b c\n  root\na:\n  a\nb:\n  b\nc:\n  c\n", 2,
+  )
+  let process = ProbeProcess::new()
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  ignore(try! execute_plan(process, host, host, plan))
+  assert_eq(process.starts, ["a", "b", "c", "root"])
+  assert_eq(process.peak, 2)
+}
+
+///|
+async test "contract runtime recipes up to job limit run in parallel" {
+  let plan = runtime_async_plan(
+    "[parallel]\nroot: a b\n  root\na:\n  a\nb:\n  b\n", 2,
+  )
+  let process = ProbeProcess::new()
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  ignore(try! execute_plan(process, host, host, plan))
+  assert_eq(process.starts, ["a", "b", "root"])
+  assert_eq(process.peak, 2)
+}
