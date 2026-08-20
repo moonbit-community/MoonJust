@@ -22,13 +22,13 @@ SCHEMA_VERSION = 1
 SCENARIOS = ("direct", "shell-exec", "shell-foreground", "shell-descendant")
 OBSERVATION_ERRORS: list[str] = []
 
-# A foreground shell may receive the forwarded termination signal itself,
-# while direct and exec cases are expected to handle SIGTERM in the child.
-# Both outcomes still require the same wait, pipe, and cleanup evidence.
+# Every observed shell must complete its wait and cleanup path normally. The
+# foreground-shell probe installs a trap so that SIGTERM is forwarded to the
+# child before the shell exits.
 EXPECTED_OBSERVE_RETURNCODES = {
     "direct": {0},
     "shell-exec": {0},
-    "shell-foreground": {0, -signal.SIGTERM},
+    "shell-foreground": {0},
 }
 
 

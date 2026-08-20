@@ -128,7 +128,14 @@ fn child_command(
   match scenario {
     "direct" => (executable, ["child"])
     "shell-exec" => ("/bin/sh", ["-cu", "exec \"$0\" child", executable])
-    "shell-foreground" => ("/bin/sh", ["-cu", "\"$0\" child", executable])
+    "shell-foreground" =>
+      (
+        "/bin/sh",
+        [
+          "-cu", "trap 'kill -TERM \"$child\" 2>/dev/null; wait \"$child\" 2>/dev/null; exit 0' TERM; \"$0\" child & child=$!; wait \"$child\"",
+          executable,
+        ],
+      )
     "shell-descendant" =>
       ("/bin/sh", ["-cu", "\"$0\" child & wait", executable])
     _ => abort("unknown lifecycle scenario")
