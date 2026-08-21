@@ -15,7 +15,6 @@ import statistics
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 from pathlib import Path
 from typing import Iterable
@@ -208,35 +207,6 @@ def command_prefix(cpu: int | None) -> list[str]:
     return []
 
 
-def process_tree_rss_kib(root_pid: int) -> int | None:
-    if platform.system() != "Linux":
-        return None
-    parent: dict[int, int] = {}
-    rss: dict[int, int] = {}
-    for entry in Path("/proc").iterdir():
-        if not entry.name.isdigit():
-            continue
-        try:
-            status = (entry / "status").read_text(encoding="utf-8")
-        except (OSError, UnicodeError):
-            continue
-        pid = int(entry.name)
-        for line in status.splitlines():
-            if line.startswith("PPid:"):
-                parent[pid] = int(line.split()[1])
-            elif line.startswith("VmRSS:"):
-                rss[pid] = int(line.split()[1])
-    descendants = {root_pid}
-    changed = True
-    while changed:
-        changed = False
-        for pid, ppid in parent.items():
-            if ppid in descendants and pid not in descendants:
-                descendants.add(pid)
-                changed = True
-    return sum(rss.get(pid, 0) for pid in descendants)
-
-
 def run_latency_sample(command: list[str], cwd: Path) -> float:
     started = time.perf_counter_ns()
     result = subprocess.run(
@@ -258,13 +228,17 @@ def run_latency_sample(command: list[str], cwd: Path) -> float:
 
 def memory_supported() -> bool:
     """Return whether this host exposes a trustworthy process RSS sampler."""
-    return platform.system() == "Linux" and Path("/proc").is_dir()
+    return platform.system() == "Linux" and Path("/usr/bin/time").is_file()
 
 
 def run_memory_sample(command: list[str], cwd: Path) -> int | None:
     if not memory_supported():
+        return None
+    with tempfile.NamedTemporaryFile(prefix="moonjust-rss-", delete=False) as stream:
+        output = Path(stream.name)
+    try:
         result = subprocess.run(
-            command,
+            ["/usr/bin/time", "-v", "-o", str(output), *command],
             cwd=cwd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -276,42 +250,12 @@ def run_memory_sample(command: list[str], cwd: Path) -> int | None:
                 f"benchmark command failed ({result.returncode}): {command!r}\n"
                 + result.stderr.decode(errors="replace")[:2000]
             )
-        return None
-    process = subprocess.Popen(
-        command,
-        cwd=cwd,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-    )
-    peak: int | None = None
-    stop = threading.Event()
-
-    def sample() -> None:
-        nonlocal peak
-        while not stop.is_set():
-            current = process_tree_rss_kib(process.pid)
-            if current is not None:
-                peak = max(peak or 0, current)
-            stop.wait(0.001)
-
-    sampler = threading.Thread(target=sample, daemon=True)
-    sampler.start()
-    try:
-        _, stderr = process.communicate(timeout=120)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait()
-        raise RuntimeError(f"benchmark timed out: {command!r}")
+        for line in output.read_text(encoding="utf-8").splitlines():
+            if "Maximum resident set size (kbytes):" in line:
+                return int(line.rsplit(":", 1)[1].strip())
+        raise RuntimeError("GNU time did not report maximum resident set size")
     finally:
-        stop.set()
-        sampler.join(timeout=1)
-    if process.returncode != 0:
-        raise RuntimeError(
-            f"benchmark command failed ({process.returncode}): {command!r}\n"
-            + stderr.decode(errors="replace")[:2000]
-        )
-    return peak
+        output.unlink(missing_ok=True)
 
 
 def percentile95(values: list[float]) -> float:
@@ -527,7 +471,7 @@ def collect_phase(
                     "exit_code": 0,
                     "toolchain": toolchain,
                     "artifact_sha256": artifact_hashes[kind],
-                    "sampler": "linux-proc-tree-rss" if phase == "memory" and memory_supported() else "elapsed-process",
+                    "sampler": "gnu-time-max-rss" if phase == "memory" else "elapsed-process",
                     field: value,
                 }
             )
@@ -653,11 +597,16 @@ def main() -> int:
                 args.seed + len(results) * 100, raw_rows, moon_toolchain,
                 {kind: sha256(path) for kind, path in artifacts.items()},
             )
-            memory, memory_duration, _ = collect_phase(
-                "memory", workload, commands, root, args.memory_warmups, args.memory_samples,
-                args.seed + len(results) * 100 + 50, raw_rows, moon_toolchain,
-                {kind: sha256(path) for kind, path in artifacts.items()},
-            )
+            if memory_supported():
+                memory, memory_duration, _ = collect_phase(
+                    "memory", workload, commands, root, args.memory_warmups,
+                    args.memory_samples, args.seed + len(results) * 100 + 50,
+                    raw_rows, moon_toolchain,
+                    {kind: sha256(path) for kind, path in artifacts.items()},
+                )
+            else:
+                memory = {kind: [] for kind in artifacts}
+                memory_duration = 0.0
             phase_durations["latency"] += latency_duration
             phase_durations["memory"] += memory_duration
             early_stops[workload] = latency_stopped

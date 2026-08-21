@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from collections import Counter
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).with_name("benchmark.py")
@@ -77,6 +78,12 @@ class BenchmarkTest(unittest.TestCase):
         changed = {"fixtures": {"startup": {"commands": {"native": ["just", "--version"]}}}}
         changed["workloads"] = {"startup": {"native": {"median_ms": 999}}}
         self.assertTrue(benchmark.shadow_result_sets_match(fixtures, changed))
+
+    def test_unsupported_memory_sampler_skips_command(self) -> None:
+        with mock.patch.object(benchmark, "memory_supported", return_value=False):
+            with mock.patch.object(benchmark.subprocess, "run") as run:
+                self.assertIsNone(benchmark.run_memory_sample(["unused"], Path(".")))
+                run.assert_not_called()
 
     def test_cpu_list_parser_handles_ranges(self) -> None:
         self.assertEqual(benchmark.parse_cpu_list("1-3,7,9-10"), {1, 2, 3, 7, 9, 10})
