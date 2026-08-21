@@ -247,7 +247,7 @@ def unindent(text: str) -> str:
 
 def blocks(source: str) -> list[tuple[str, str, int, str]]:
     found: list[tuple[str, str, int, str]] = []
-    for macro in ("test", "error"):
+    for macro in ("test", "error", "analysis_error"):
         for match in re.finditer(rf"{macro}!\s*\{{", source):
             index = match.end()
             depth = 1
@@ -1120,6 +1120,7 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
     if commit != UPSTREAM_COMMIT:
         raise ValueError(f"upstream source is {commit}, expected {UPSTREAM_COMMIT}")
     rows = load_rows(repo / "tests/upstream/just-1.57.0/test-map.jsonl")
+    prior_cases = load_rows(output) if output.is_file() else []
     generated: list[dict[str, object]] = []
     for area, (prefix, relative_source, suite) in AREAS.items():
         source_path = upstream / relative_source
@@ -1529,6 +1530,19 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
         "".join(
             json.dumps(case, sort_keys=True, separators=(",", ":")) + "\n"
             for case in generated
+            + [
+                case
+                for case in prior_cases
+                if isinstance(case.get("test_anchor"), dict)
+                and case["test_anchor"].get("suite")
+                in {
+                    "internal/semantic/remaining_contract_test.mbt",
+                    "internal/executor/remaining_contract_test.mbt",
+                    "internal/evaluator/remaining_contract_test.mbt",
+                    "internal/cli/remaining_contract_test.mbt",
+                    "internal/loader/remaining_contract_test.mbt",
+                }
+            ]
         ),
         check,
     )

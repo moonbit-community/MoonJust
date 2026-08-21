@@ -59,6 +59,21 @@ CONTRACT_SOURCE_PROVENANCE = {
         "line": 171,
         "file_sha256": "aecd29701b1a97434f3e2ef12f23dac7bac01871c8e3dd432f970c5bc1f3eb44",
     },
+    "version::tests::compare": {
+        "path": "src/version.rs",
+        "line": 61,
+        "file_sha256": "84caee7ffe71aaf98f18a9e14560a9885f3447bb72df5e2bd15a153c4e7c1da0",
+    },
+    "version::tests::current_version_is_valid": {
+        "path": "src/version.rs",
+        "line": 41,
+        "file_sha256": "84caee7ffe71aaf98f18a9e14560a9885f3447bb72df5e2bd15a153c4e7c1da0",
+    },
+    "version::tests::parse": {
+        "path": "src/version.rs",
+        "line": 45,
+        "file_sha256": "84caee7ffe71aaf98f18a9e14560a9885f3447bb72df5e2bd15a153c4e7c1da0",
+    },
     "run::tests::run_can_be_called_more_than_once": {
         "path": "src/run.rs",
         "line": 41,
@@ -289,6 +304,18 @@ EXPLICIT_CONTRACT_EVIDENCE = {
     "parallel::recipes_up_to_job_limit_run_in_parallel": (
         "internal/runtime/runtime_test.mbt",
         "contract runtime recipes up to job limit run in parallel",
+    ),
+    "version::tests::compare": (
+        "api/build_info_test.mbt",
+        "contract version comparison is numeric and lexicographic",
+    ),
+    "version::tests::current_version_is_valid": (
+        "api/build_info_test.mbt",
+        "contract current compatibility version is valid",
+    ),
+    "version::tests::parse": (
+        "api/build_info_test.mbt",
+        "contract version parser accepts pinned semver and rejects malformed input",
     ),
 }
 

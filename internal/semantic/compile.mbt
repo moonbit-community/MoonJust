@@ -271,6 +271,9 @@ fn validate_dependency_graph(
           span=semantic_name_span(dependency.span(), dependency.name()),
         )
       Some(next_recipe) => {
+        if states.get(target) == Some(1) {
+          raise DependencyCycle(name=recipe.name(), span=dependency.span())
+        }
         let parameters = next_recipe.parameters()
         let flag_parameters = recipe_flag_parameter_names(next_recipe)
         let mut required = 0

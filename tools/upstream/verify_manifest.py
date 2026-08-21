@@ -710,8 +710,8 @@ def validate() -> None:
                 },
                 "query CLI exit has an invalid state",
             )
-            expect(manifest["evidence"]["native_tests"] == 134, "query CLI Native evidence count changed")
-            expect(manifest["evidence"]["wasm_tests"] == 133, "query CLI wasm evidence count changed")
+            expect(manifest["evidence"]["native_tests"] == 137, "query CLI Native evidence count changed")
+            expect(manifest["evidence"]["wasm_tests"] == 136, "query CLI wasm evidence count changed")
         elif area == "execution-context":
             expect(
                 manifest["plan_exit"]

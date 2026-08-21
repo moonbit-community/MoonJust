@@ -14,14 +14,14 @@ serialization = "evaluate, dump, and schema-versioned stable JSON"
 wasm = "read-only HostFs, deny-by-default moonrun policy, exact stdout/stderr, and no process adapter"
 
 [target_matrix]
-native = "pass: 134 tests"
-wasm1 = "pass: 133 tests"
+native = "pass: 137 tests"
+wasm1 = "pass: 136 tests"
 wasm_policy = "pass: list succeeds; format write and effectful evaluate fail without mutation"
 native_platforms = "pass: Ubuntu/macOS/Windows on main run 31163576694"
 
 [evidence]
-native_tests = 134
-wasm_tests = 133
+native_tests = 137
+wasm_tests = 136
 cli_inventory = "compat/cli-options.toml"
 implemented_options = 14
 implemented_commands = 11
@@ -31,7 +31,7 @@ wasm_policy = "policies/inspect.toml"
 wasm_e2e = "tools/checks/inspect.sh"
 query_oracle = "tools/checks/query.sh"
 upstream_corpus = "tests/upstream/just-1.57.0/query-cli.toml"
-upstream_covered_registrations = 83
-upstream_unverified_registrations = 3
+upstream_covered_registrations = 86
+upstream_unverified_registrations = 0
 upstream_excluded_registrations = 35
 provenance = "tests/upstream/NOTICE.md"
