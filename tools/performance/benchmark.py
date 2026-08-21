@@ -581,12 +581,12 @@ def main() -> int:
         if value is not None:
             setattr(args, name, value.resolve())
     args.raw_output = (args.raw_output or args.output.with_suffix(".jsonl")).resolve()
-    if args.warmups < 0 or args.memory_warmups < 0:
-        raise RuntimeError("benchmark warmups must be non-negative")
+    if args.warmups != 5 or args.memory_warmups != 2:
+        raise RuntimeError("benchmark requires exactly 5 latency and 2 memory warmups")
     if args.samples < MIN_LATENCY_SAMPLES or args.samples > MAX_LATENCY_SAMPLES:
         raise RuntimeError("latency samples must be between 15 and 30")
-    if args.memory_samples < 1:
-        raise RuntimeError("memory samples must be positive")
+    if args.memory_samples != 10:
+        raise RuntimeError("memory samples must be exactly 10")
     if (args.baseline_native is None) != (args.baseline_wasm is None):
         raise RuntimeError("merge-base native and wasm artifacts must be supplied together")
     moonrun = shutil.which("moonrun")
