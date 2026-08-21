@@ -88,6 +88,35 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def normalize_native_asset(
+    repo: Path,
+    native: Path,
+    platform_name: str,
+    *,
+    environment: dict[str, str],
+    records: list[dict[str, object]] | None = None,
+    phase: str = "baseline-normalize-native",
+) -> None:
+    """Apply the same platform normalization used by candidate releases.
+
+    Windows PE/COFF timestamps are produced by the linker, so a
+    dependency-normalized baseline must pass through the exact same
+    normalizer before either repeatability or size evidence is computed.
+    """
+    if not platform_name.startswith("windows-"):
+        return
+    run(
+        [
+            "python3",
+            str(repo / "tools/release/normalize_pe_timestamp.py"),
+            str(native),
+        ],
+        env=environment,
+        records=records,
+        phase=phase,
+    )
+
+
 def load_artifact_size(repo: Path):
     path = repo / "tools/release/check_artifact_size.py"
     spec = importlib.util.spec_from_file_location("moonjust_artifact_size", path)
@@ -351,6 +380,14 @@ def main() -> int:
         wasm = wasm_dir / "wasm/release/build/cmd/just/just.wasm"
         if not native.is_file() or not wasm.is_file():
             raise RuntimeError("merge-base release artifacts are missing")
+        normalize_native_asset(
+            repo,
+            native,
+            args.platform,
+            environment=environment,
+            records=commands,
+            phase="baseline-normalize-native",
+        )
         archive_suffix = ".zip" if args.platform.startswith("windows-") else ".tar.gz"
         archive = work / f"moonjust-baseline{archive_suffix}"
         stage_archive(repo, work, native, args.platform, archive, records=commands)
@@ -380,6 +417,14 @@ def main() -> int:
             env=environment,
             records=commands,
             phase="baseline-build-repeat-native",
+        )
+        normalize_native_asset(
+            repo,
+            native,
+            args.platform,
+            environment=environment,
+            records=commands,
+            phase="baseline-normalize-repeat-native",
         )
         run(
             [

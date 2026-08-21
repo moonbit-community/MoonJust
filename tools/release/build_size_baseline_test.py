@@ -6,6 +6,7 @@ import importlib.util
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -53,6 +54,38 @@ class BuildSizeBaselineTest(unittest.TestCase):
             size_baseline.stage_archive(repo, source, native, "linux-x86_64", second)
             self.assertEqual(first.read_bytes(), second.read_bytes())
             self.assertEqual(size_baseline.sha256(first), size_baseline.sha256(second))
+
+    def test_windows_native_normalization_is_applied_to_baseline_builds(self) -> None:
+        records: list[dict[str, object]] = []
+        environment = {"SOURCE_DATE_EPOCH": "0"}
+        with mock.patch.object(size_baseline, "run") as command:
+            size_baseline.normalize_native_asset(
+                Path("/repo"),
+                Path("/repo/just.exe"),
+                "windows-x86_64",
+                environment=environment,
+                records=records,
+            )
+        command.assert_called_once_with(
+            [
+                "python3",
+                "/repo/tools/release/normalize_pe_timestamp.py",
+                "/repo/just.exe",
+            ],
+            env=environment,
+            records=records,
+            phase="baseline-normalize-native",
+        )
+
+    def test_non_windows_native_normalization_is_skipped(self) -> None:
+        with mock.patch.object(size_baseline, "run") as command:
+            size_baseline.normalize_native_asset(
+                Path("/repo"),
+                Path("/repo/just"),
+                "linux-x86_64",
+                environment={},
+            )
+        command.assert_not_called()
 
     def test_run_exposes_structured_command_failure(self) -> None:
         records: list[dict[str, object]] = []

@@ -6,6 +6,7 @@ import {
   "moonbit-community/MoonJust/internal/host_native",
   "moonbit-community/MoonJust/internal/host_process",
   "moonbit-community/MoonJust/internal/host_wasm",
+  "moonbit-community/MoonJust/internal/path",
   "moonbit-community/MoonJust/internal/lexer",
   "moonbit-community/MoonJust/internal/executor",
   "moonbit-community/MoonJust/internal/runtime",

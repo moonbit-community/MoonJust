@@ -541,3 +541,105 @@ async fn main {
     })
   }
 }
+
+///|
+fn test_host(windows : Bool) -> @host.FakeHost {
+  let flavor = if windows { @path.Windows } else { @path.Unix }
+  let operating_system = if windows { @host.Windows } else { @host.Linux }
+  @host.FakeHost::new(
+    try! @path.PathValue::new(
+      if windows {
+        "C:\\workspace"
+      } else {
+        "/workspace"
+      },
+      flavor,
+    ),
+    @host.PlatformInfo::new(operating_system, "test", flavor),
+  )
+}
+
+///|
+async test "cli renders help and release metadata without process access" {
+  let host = test_host(false)
+  host.deny(Process)
+  let help = run_cli(host, host, ["--help"], b"")
+  assert_eq(help.exit_code(), 0)
+  assert_true((try! @utf8.decode(help.stdout())).contains("Usage:"))
+  let version = run_cli(host, host, ["--version"], b"")
+  assert_eq(version.exit_code(), 0)
+  assert_eq(version.stdout(), @utf8.encode(@moonjust.version_line() + "\n"))
+  let changelog = run_cli(host, host, ["--changelog"], b"")
+  assert_eq(changelog.exit_code(), 0)
+  assert_true((try! @utf8.decode(changelog.stdout())).contains("MoonJust"))
+  let man = run_cli(host, host, ["--man"], b"")
+  assert_eq(man.exit_code(), 0)
+  assert_true((try! @utf8.decode(man.stdout())).contains(".TH just 1"))
+  assert_eq(host.process_calls().length(), 0)
+}
+
+///|
+async test "cli request returns platform encoded environment values" {
+  let unix = test_host(false)
+  unix.set_env("MOONJUST_TEST", "aé")
+  let unix_response = run_cli(
+    unix,
+    unix,
+    ["--request", "{\"environment-variable\":\"MOONJUST_TEST\"}"],
+    b"",
+  )
+  assert_eq(unix_response.exit_code(), 0)
+  assert_eq(
+    unix_response.stdout(),
+    b"{\"environment-variable\":{\"Unix\":[97,195,169]}}",
+  )
+
+  let windows = test_host(true)
+  windows.set_env("MOONJUST_TEST", "a😀")
+  let windows_response = run_cli(
+    windows,
+    windows,
+    ["--request", "{\"environment-variable\":\"MOONJUST_TEST\"}"],
+    b"",
+  )
+  assert_eq(windows_response.exit_code(), 0)
+  assert_eq(
+    windows_response.stdout(),
+    b"{\"environment-variable\":{\"Windows\":[97,55357,56832]}}",
+  )
+}
+
+///|
+async test "cli rejects malformed and unsupported requests" {
+  let host = test_host(false)
+  let malformed = run_cli(host, host, ["--request", "{"], b"")
+  assert_eq(malformed.exit_code(), 2)
+  assert_eq(malformed.stderr(), b"error: invalid request\n")
+  let unsupported = run_cli(host, host, ["--request", "[]"], b"")
+  assert_eq(unsupported.exit_code(), 2)
+  assert_eq(unsupported.stderr(), b"error: invalid request\n")
+  let missing = run_cli(
+    host,
+    host,
+    ["--request", "{\"environment-variable\":\"MISSING\"}"],
+    b"",
+  )
+  assert_eq(missing.exit_code(), 0)
+  assert_eq(missing.stdout(), b"{\"environment-variable\":null}")
+}
+
+///|
+test "response helpers preserve both output streams" {
+  let stdout : Array[Byte] = []
+  let stderr : Array[Byte] = []
+  append_response(
+    stdout,
+    stderr,
+    @cli.ApplicationResponse::new(b"out", b"err", 3),
+  )
+  assert_eq(Bytes::from_array(stdout), b"out")
+  assert_eq(Bytes::from_array(stderr), b"err")
+  let failed = failure("error: bad\n", 2)
+  assert_eq(failed.exit_code(), 2)
+  assert_eq(failed.stderr(), b"error: bad\n")
+}
