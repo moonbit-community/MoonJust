@@ -319,7 +319,13 @@ def evidence_result_set(value: dict[str, object]) -> set[tuple[str, str, tuple[s
             if isinstance(kind, str) and isinstance(value, list) and all(
                 isinstance(part, str) for part in value
             ):
-                result.add((str(workload), kind, tuple(value)))
+                normalized = tuple(
+                    f"<fixture>/{Path(part).name}"
+                    if "/moonjust-benchmark-" in part
+                    else part
+                    for part in value
+                )
+                result.add((str(workload), kind, normalized))
     return result
 
 

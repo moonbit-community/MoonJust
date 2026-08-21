@@ -74,8 +74,8 @@ class BenchmarkTest(unittest.TestCase):
             self.assertEqual(value["legacy_schema_version"], 2)
 
     def test_shadow_result_sets_ignore_measurement_values(self) -> None:
-        fixtures = {"fixtures": {"startup": {"commands": {"native": ["just", "--version"]}}}}
-        changed = {"fixtures": {"startup": {"commands": {"native": ["just", "--version"]}}}}
+        fixtures = {"fixtures": {"startup": {"commands": {"native": ["just", "--justfile", "/tmp/moonjust-benchmark-old/input.just"]}}}}
+        changed = {"fixtures": {"startup": {"commands": {"native": ["just", "--justfile", "/tmp/moonjust-benchmark-new/input.just"]}}}}
         changed["workloads"] = {"startup": {"native": {"median_ms": 999}}}
         self.assertTrue(benchmark.shadow_result_sets_match(fixtures, changed))
 
