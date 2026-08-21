@@ -193,10 +193,13 @@ pub fn Source::locate(
   self.check_boundary(offset)
   let line_index = self.line_index_for_offset(offset)
   let line_start = self.line_starts[line_index]
-  let prefix = try! @utf8.decode(self.bytes[line_start:offset])
   let mut scalar_column = 0
-  for _ in prefix {
-    scalar_column += 1
+  // The source was validated at construction, so every non-continuation
+  // byte in the requested prefix starts exactly one Unicode scalar.
+  for byte in self.bytes[line_start:offset] {
+    if !is_utf8_continuation(byte) {
+      scalar_column += 1
+    }
   }
   { line: line_index + 1, byte_column: offset - line_start, scalar_column }
 }
