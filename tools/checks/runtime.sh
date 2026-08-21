@@ -29,10 +29,10 @@ moon test --target wasm internal/runtime
 moon test --target wasm internal/host_wasm
 moon test --target wasm internal/host_process
 
-moon build cmd/just --target native >/dev/null
-moon build cmd/just --target wasm >/dev/null
-cli_native="$repo_root/_build/native/debug/build/cmd/just/just.exe"
-cli_wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
+if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build cmd/just --target native >/dev/null; fi
+if [ -z "${MOONJUST_WASM_CANDIDATE:-}" ]; then moon build cmd/just --target wasm >/dev/null; fi
+cli_native="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
+cli_wasm="${MOONJUST_WASM_CANDIDATE:-$repo_root/_build/wasm/debug/build/cmd/just/just.wasm}"
 
 mkdir "$work/native" "$work/wasm"
 cp "$fixture/justfile" "$work/native/justfile"

@@ -17,8 +17,8 @@ moon test --target native internal/host_process
 moon test --target native internal/environment
 moon test --target native internal/executor
 moon test --target native internal/application
-moon build cmd/just --target native >/dev/null
-cli="$repo_root/_build/native/debug/build/cmd/just/just.exe"
+if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build cmd/just --target native >/dev/null; fi
+cli="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
 [ -x "$cli" ] || [ -f "$cli" ] || fail "Native CLI artifact is missing"
 
 case "$(uname -s)" in

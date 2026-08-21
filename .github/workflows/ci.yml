@@ -341,8 +341,8 @@ jobs:
       - name: Enforce strict registration evidence
         run: python3 ./tools/upstream/verify_manifest.py --release
 
-  coverage:
-    name: Production coverage
+  coverage-native:
+    name: Production coverage (Native)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -353,11 +353,72 @@ jobs:
           version: latest
       - run: moon update
       - run: moon install
-      - name: Measure and enforce production coverage
+      - name: Measure Native coverage
+        run: ./tools/checks/coverage_target.sh native
+      - name: Upload Native coverage evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-coverage-native
+          path: |
+            _build/coverage/native.raw.xml
+            _build/coverage/native.metadata.json
+            _build/coverage/native/traces/**
+          if-no-files-found: error
+
+  coverage-wasm:
+    name: Production coverage (Wasm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: latest
+      - run: moon update
+      - run: moon install
+      - name: Measure Wasm coverage
+        run: ./tools/checks/coverage_target.sh wasm
+      - name: Upload Wasm coverage evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-coverage-wasm
+          path: |
+            _build/coverage/wasm.raw.xml
+            _build/coverage/wasm.metadata.json
+            _build/coverage/wasm/traces/**
+          if-no-files-found: error
+
+  coverage-merge:
+    name: Production coverage (Merge)
+    needs: [coverage-native, coverage-wasm]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        with:
+          name: moonjust-coverage-native
+          path: _build/coverage
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        with:
+          name: moonjust-coverage-wasm
+          path: _build/coverage
+      - name: Merge and enforce production coverage
         env:
           MOONJUST_COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: ./tools/checks/coverage.sh
-      - name: Upload coverage evidence
+        run: |
+          python3 ./tools/quality/merge_coverage.py \
+            _build/coverage/native.raw.xml _build/coverage/wasm.raw.xml \
+            --repo "$GITHUB_WORKSPACE" \
+            --cobertura _build/coverage/cobertura.xml \
+            --summary _build/coverage/summary.json \
+            --baseline "$GITHUB_WORKSPACE/compat/coverage-baseline.json"
+      - name: Upload merged coverage evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -392,7 +453,7 @@ jobs:
   release-evidence:
     name: Aggregate release evidence
     if: always()
-    needs: [quality, wasm1-shared, native-platforms, contract-evidence, coverage, performance-trend]
+    needs: [quality, wasm1-shared, native-platforms, contract-evidence, coverage-merge, performance-trend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -473,7 +534,7 @@ jobs:
             "${{ needs['wasm1-shared'].result }}" \
             "${{ needs['native-platforms'].result }}" \
             "${{ needs['contract-evidence'].result }}" \
-            "${{ needs.coverage.result }}" \
+            "${{ needs['coverage-merge'].result }}" \
             "${{ needs['performance-trend'].result }}"; do
             [ "$result" = success ] || exit 1
           done

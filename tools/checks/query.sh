@@ -4,9 +4,9 @@ set -eu
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 oracle_root="$repo_root/_build/upstream/just-1.57.0"
-oracle="$oracle_root/target/release/just"
-native="$repo_root/_build/native/debug/build/cmd/just/just.exe"
-wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
+oracle="${MOONJUST_ORACLE_CANDIDATE:-$oracle_root/target/release/just}"
+native="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
+wasm="${MOONJUST_WASM_CANDIDATE:-$repo_root/_build/wasm/debug/build/cmd/just/just.wasm}"
 policy="$repo_root/policies/inspect.toml"
 fixture="$repo_root/tests/fixtures/query/query.justfile"
 json_fixture="$repo_root/tests/fixtures/query/json-arg.justfile"
@@ -51,9 +51,9 @@ compare() {
     fail "$name wasm stderr differs"
 }
 
-"$repo_root/tools/upstream/build_oracle.sh" >/dev/null
-moon build --target native cmd/just
-moon build --target wasm cmd/just
+if [ -z "${MOONJUST_ORACLE_CANDIDATE:-}" ]; then "$repo_root/tools/upstream/build_oracle.sh" >/dev/null; fi
+if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build --target native cmd/just; fi
+if [ -z "${MOONJUST_WASM_CANDIDATE:-}" ]; then moon build --target wasm cmd/just; fi
 [ -x "$oracle" ] || fail "upstream oracle is missing"
 [ -x "$native" ] || fail "native CLI is missing"
 [ -f "$wasm" ] || fail "wasm CLI is missing"

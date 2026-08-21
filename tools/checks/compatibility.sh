@@ -26,7 +26,7 @@ moon test --target wasm internal/application
 moon test --target wasm internal/formatter
 moon test --target wasm internal/loader
 
-"$repo_root/tools/upstream/build_oracle.sh" >/dev/null
+if [ -z "${MOONJUST_ORACLE_CANDIDATE:-}" ]; then "$repo_root/tools/upstream/build_oracle.sh" >/dev/null; fi
 upstream="$repo_root/_build/upstream/just-1.57.0/source"
 CARGO_TARGET_DIR="$repo_root/_build/upstream/just-1.57.0/target" \
   cargo test --manifest-path "$upstream/Cargo.toml" --locked tangle::tests

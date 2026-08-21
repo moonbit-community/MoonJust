@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -31,6 +33,22 @@ class RunnerTest(unittest.TestCase):
             self.assertTrue(first[1])
             self.assertFalse(second[1])
             self.assertEqual(len(list(Path(raw).glob("*.json"))), 1)
+
+    def test_build_registry_reuses_only_matching_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            artifact = root / "artifact.bin"
+            command = (sys.executable, "-c", f"from pathlib import Path; Path({str(artifact)!r}).write_bytes(b'ok')")
+            registry = runner.BuildRegistry(root / "registry")
+            first = registry.ensure("abc", "native", "debug", command, artifact, root, "moon-test", True)
+            second = registry.ensure("abc", "native", "debug", command, artifact, root, "moon-test", True)
+            self.assertFalse(first["reused"])
+            self.assertTrue(second["reused"])
+            artifact.write_bytes(b"changed")
+            third = registry.ensure("abc", "native", "debug", command, artifact, root, "moon-test", True)
+            self.assertFalse(third["reused"])
+            marker = next((root / "registry").glob("*.json"))
+            self.assertEqual(json.loads(marker.read_text())["sha256"], runner.sha256(artifact))
 
 
 if __name__ == "__main__":

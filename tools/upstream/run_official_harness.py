@@ -1071,7 +1071,8 @@ def main() -> int:
     if args.approve_audit_write is not None and not args.audit_write:
         fail("--approve-audit-write is only valid with --audit-write")
 
-    run_shell_script(repo / "tools/upstream/build_oracle.sh", repo)
+    if not os.environ.get("MOONJUST_REUSE_BUILD"):
+        run_shell_script(repo / "tools/upstream/build_oracle.sh", repo)
     if args.native_candidate is None:
         subprocess.run(
             ["moon", "build", "--target", "native", "cmd/just"],

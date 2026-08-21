@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
-binary="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
+binary="${MOONJUST_WASM_CANDIDATE:-$repo_root/_build/wasm/debug/build/cmd/just/just.wasm}"
 policy="$repo_root/policies/inspect.toml"
 fixture="$repo_root/tests/fixtures/query/justfile"
 unformatted="$repo_root/tests/fixtures/query/unformatted.justfile"
@@ -25,7 +25,7 @@ fail() {
 grep -Eq '^write = \[\]$' "$policy" || fail "inspect policy grants filesystem writes"
 grep -Eq '^spawn = false$' "$policy" || fail "inspect policy grants process spawn"
 
-moon build --target wasm cmd/just
+if [ -z "${MOONJUST_WASM_CANDIDATE:-}" ]; then moon build --target wasm cmd/just; fi
 [ -f "$binary" ] || fail "wasm CLI artifact is missing"
 
 moonrun --policy "$policy" "$binary" \

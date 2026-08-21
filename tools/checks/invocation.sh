@@ -4,7 +4,7 @@ set -eu
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 oracle_root="$repo_root/_build/upstream/just-1.57.0"
-oracle="$oracle_root/target/release/just"
+oracle="${MOONJUST_ORACLE_CANDIDATE:-$oracle_root/target/release/just}"
 fixture="$repo_root/tests/fixtures/invocation/invocation.justfile"
 work=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-invocation.XXXXXX")
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
@@ -14,16 +14,16 @@ fail() {
   exit 1
 }
 
-"$repo_root/tools/upstream/build_oracle.sh" >/dev/null
+if [ -z "${MOONJUST_ORACLE_CANDIDATE:-}" ]; then "$repo_root/tools/upstream/build_oracle.sh" >/dev/null; fi
 moon build --quiet --target native tools/probes/invocation_probe
 probe="$repo_root/_build/native/debug/build/tools/probes/invocation_probe/invocation_probe.exe"
-native="$repo_root/_build/native/debug/build/cmd/just/just.exe"
-wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
+native="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
+wasm="${MOONJUST_WASM_CANDIDATE:-$repo_root/_build/wasm/debug/build/cmd/just/just.wasm}"
 policy="$repo_root/policies/inspect.toml"
 [ -x "$oracle" ] || fail "upstream oracle is missing"
 [ -x "$probe" ] || fail "candidate probe is missing"
-moon build --quiet --target native cmd/just
-moon build --quiet --target wasm cmd/just
+if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build --quiet --target native cmd/just; fi
+if [ -z "${MOONJUST_WASM_CANDIDATE:-}" ]; then moon build --quiet --target wasm cmd/just; fi
 [ -x "$native" ] || fail "Native CLI is missing"
 [ -f "$wasm" ] || fail "Wasm CLI is missing"
 

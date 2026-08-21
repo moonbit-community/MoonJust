@@ -16,7 +16,7 @@ fail() {
   exit 1
 }
 
-"$repo_root/tools/upstream/build_oracle.sh" >/dev/null
+if [ -z "${MOONJUST_ORACLE_CANDIDATE:-}" ]; then "$repo_root/tools/upstream/build_oracle.sh" >/dev/null; fi
 moon build --quiet --target native tools/probes/environment_probe
 probe="$repo_root/_build/native/debug/build/tools/probes/environment_probe/environment_probe.exe"
 [ -x "$oracle" ] || fail "upstream oracle is missing"

@@ -13,12 +13,9 @@ elif [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-moon clean --quiet
 mkdir -p "$out"
-python3 "$repo_root/tools/quality/collect_coverage.py" \
-  --repo "$repo_root" --target native --output "$out"
-python3 "$repo_root/tools/quality/collect_coverage.py" \
-  --repo "$repo_root" --target wasm --output "$out"
+"$repo_root/tools/checks/coverage_target.sh" native
+"$repo_root/tools/checks/coverage_target.sh" wasm
 python3 "$repo_root/tools/quality/merge_coverage.py" \
   "$out/native.raw.xml" "$out/wasm.raw.xml" \
   --repo "$repo_root" \
