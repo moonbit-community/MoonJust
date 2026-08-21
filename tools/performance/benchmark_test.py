@@ -60,6 +60,24 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(summary["memory_observations"], 0)
         self.assertIsNone(summary["rss_cv"])
 
+    def test_stability_policy_requires_three_stable_windows(self) -> None:
+        self.assertTrue(benchmark.stable_window([100.0] * 5))
+        self.assertFalse(benchmark.stable_window([90.0, 100.0, 110.0, 100.0, 100.0]))
+
+    def test_evidence_reader_migrates_legacy_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "legacy.json"
+            path.write_text('{"schema_version": 2, "status": "passed"}\n')
+            value = benchmark.read_evidence(path)
+            self.assertEqual(value["schema_version"], 3)
+            self.assertEqual(value["legacy_schema_version"], 2)
+
+    def test_shadow_result_sets_ignore_measurement_values(self) -> None:
+        fixtures = {"fixtures": {"startup": {"commands": {"native": ["just", "--version"]}}}}
+        changed = {"fixtures": {"startup": {"commands": {"native": ["just", "--version"]}}}}
+        changed["workloads"] = {"startup": {"native": {"median_ms": 999}}}
+        self.assertTrue(benchmark.shadow_result_sets_match(fixtures, changed))
+
     def test_cpu_list_parser_handles_ranges(self) -> None:
         self.assertEqual(benchmark.parse_cpu_list("1-3,7,9-10"), {1, 2, 3, 7, 9, 10})
 

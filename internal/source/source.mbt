@@ -109,13 +109,21 @@ fn Source::check_offset(self : Source, offset : Int) -> Unit raise SourceError {
 }
 
 ///|
+/// A validated UTF-8 source can reject an interior byte boundary by looking
+/// only at the byte immediately following the boundary. Continuation bytes
+/// are never valid starts of a scalar, so this keeps boundary checks O(1).
+fn is_utf8_continuation(byte : Byte) -> Bool {
+  byte >= 0x80 && byte <= 0xBF
+}
+
+///|
 fn Source::check_boundary(
   self : Source,
   offset : Int,
 ) -> Unit raise SourceError {
   self.check_offset(offset)
-  (@utf8.decode(self.bytes[:offset]) |> ignore) catch {
-    Malformed(_) => raise InvalidUtf8Boundary(offset~)
+  if offset < self.bytes.length() && is_utf8_continuation(self.bytes[offset]) {
+    raise InvalidUtf8Boundary(offset~)
   }
 }
 

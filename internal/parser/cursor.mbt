@@ -1,7 +1,7 @@
 ///|
 priv struct Parser {
   source : @source.Source
-  tokens : Array[@lexer.Token]
+  tokens : ArrayView[@lexer.Token]
   mut index : Int
   limits : ParserLimits
   environment : Array[(String, String)]
@@ -19,7 +19,7 @@ fn Parser::new(
 ) -> Parser {
   {
     source,
-    tokens: stream.tokens().to_owned(),
+    tokens: stream.tokens(),
     index: 0,
     limits,
     environment: environment.to_owned(),

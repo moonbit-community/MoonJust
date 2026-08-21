@@ -189,3 +189,34 @@ test "invalid line, offset, and slice boundaries remain typed" {
     _ => fail("expected invalid slice boundary")
   }
 }
+
+///|
+test "boundary checks cover every UTF-8 width and requested scale" {
+  let id = @source.SourceId::new(12)
+  let units = ["a", "é", "中", "🙂"]
+  let mut text = ""
+  for size in [10, 100, 1000, 5000] {
+    text = ""
+    for index in 0..<size {
+      text = text + units[index % units.length()]
+    }
+    let source = @source.Source::from_text(id, "scaled", text)
+    let bytes = source.bytes().to_owned()
+    let mut offset = 0
+    while offset < bytes.length() {
+      let next = bytes[offset]
+      source.locate(offset) |> ignore
+      if next < 0x80 {
+        offset += 1
+      } else if next < 0xE0 {
+        offset += 2
+      } else if next < 0xF0 {
+        offset += 3
+      } else {
+        offset += 4
+      }
+    }
+    assert_eq(source.length(), bytes.length())
+    assert_eq(source.locate(source.length()).byte_column(), source.length())
+  }
+}

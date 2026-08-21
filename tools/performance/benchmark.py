@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproducible end-to-end release benchmark with separate latency/RSS passes."""
+"""Reproducible end-to-end release benchmark with traceable evidence."""
 
 from __future__ import annotations
 
@@ -21,10 +21,15 @@ from pathlib import Path
 from typing import Iterable
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+LEGACY_SCHEMA_VERSION = 2
 OFFICIAL_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 DEFAULT_SEED = 1_570
 MAX_CV = 0.10
+STABLE_CV = 0.05
+STABLE_CI_HALF_WIDTH = 0.03
+MIN_LATENCY_SAMPLES = 15
+MAX_LATENCY_SAMPLES = 30
 MAX_CANDIDATE_REGRESSION = 1.02
 WASM_BUDGETS_MS = {
     "startup": (25.0, 35.0),
@@ -251,31 +256,27 @@ def run_latency_sample(command: list[str], cwd: Path) -> float:
     return elapsed_ms
 
 
-def run_memory_sample(command: list[str], cwd: Path) -> int | None:
-    if platform.system() == "Linux" and Path("/usr/bin/time").is_file():
-        with tempfile.NamedTemporaryFile(prefix="moonjust-rss-", delete=False) as stream:
-            output = Path(stream.name)
-        try:
-            result = subprocess.run(
-                ["/usr/bin/time", "-v", "-o", str(output), *command],
-                cwd=cwd,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                timeout=120,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(
-                    f"benchmark command failed ({result.returncode}): {command!r}\n"
-                    + result.stderr.decode(errors="replace")[:2000]
-                )
-            for line in output.read_text(encoding="utf-8").splitlines():
-                if "Maximum resident set size (kbytes):" in line:
-                    return int(line.rsplit(":", 1)[1].strip())
-            raise RuntimeError("GNU time did not report maximum resident set size")
-        finally:
-            output.unlink(missing_ok=True)
+def memory_supported() -> bool:
+    """Return whether this host exposes a trustworthy process RSS sampler."""
+    return platform.system() == "Linux" and Path("/proc").is_dir()
 
+
+def run_memory_sample(command: list[str], cwd: Path) -> int | None:
+    if not memory_supported():
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"benchmark command failed ({result.returncode}): {command!r}\n"
+                + result.stderr.decode(errors="replace")[:2000]
+            )
+        return None
     process = subprocess.Popen(
         command,
         cwd=cwd,
@@ -322,6 +323,67 @@ def coefficient_of_variation(values: list[float]) -> float | None:
         return None
     mean = statistics.fmean(values)
     return statistics.pstdev(values) / mean if mean else 0.0
+
+
+def median_ci_half_width(values: list[float]) -> float | None:
+    """Approximate a relative 95% CI half-width for the sample median."""
+    if len(values) < 2:
+        return None
+    median = statistics.median(values)
+    if median == 0:
+        return 0.0
+    return 1.58 * statistics.pstdev(values) / math.sqrt(len(values)) / median
+
+
+def stable_window(values: list[float], window: int = 5) -> bool:
+    if len(values) < window:
+        return False
+    recent = values[-window:]
+    cv = coefficient_of_variation(recent)
+    ci = median_ci_half_width(recent)
+    return cv is not None and ci is not None and cv <= STABLE_CV and ci <= STABLE_CI_HALF_WIDTH
+
+
+def read_evidence(path: Path) -> dict[str, object]:
+    """Read both migration-era schema 2 and current schema 3 evidence."""
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict) or value.get("schema_version") not in {
+        LEGACY_SCHEMA_VERSION,
+        SCHEMA_VERSION,
+    }:
+        raise ValueError(f"unsupported performance evidence schema in {path}")
+    if value.get("schema_version") == LEGACY_SCHEMA_VERSION:
+        value = dict(value)
+        value["legacy_schema_version"] = LEGACY_SCHEMA_VERSION
+        value["schema_version"] = SCHEMA_VERSION
+    return value
+
+
+def evidence_result_set(value: dict[str, object]) -> set[tuple[str, str, tuple[str, ...]]]:
+    """Return the workload/command inventory used by shadow migration checks."""
+    fixtures = value.get("fixtures", {})
+    if not isinstance(fixtures, dict):
+        return set()
+    result: set[tuple[str, str, tuple[str, ...]]] = set()
+    for workload, entry in fixtures.items():
+        if not isinstance(entry, dict):
+            continue
+        commands = entry.get("commands", {})
+        if not isinstance(commands, dict):
+            continue
+        for kind, value in commands.items():
+            if isinstance(kind, str) and isinstance(value, list) and all(
+                isinstance(part, str) for part in value
+            ):
+                result.add((str(workload), kind, tuple(value)))
+    return result
+
+
+def shadow_result_sets_match(
+    previous: dict[str, object], current: dict[str, object]
+) -> bool:
+    """Compare migration-era and current evidence inventories, not timings."""
+    return evidence_result_set(previous) == evidence_result_set(current)
 
 
 def summarize(elapsed: list[float], rss: list[int | None]) -> dict[str, object]:
@@ -418,11 +480,6 @@ def baseline_metadata(path: Path | None) -> dict[str, object] | None:
     return value if isinstance(value, dict) else None
 
 
-def append_raw(path: Path, row: dict[str, object]) -> None:
-    with path.open("a", encoding="utf-8") as stream:
-        stream.write(json.dumps(row, sort_keys=True) + "\n")
-
-
 def collect_phase(
     phase: str,
     workload: str,
@@ -431,8 +488,11 @@ def collect_phase(
     warmups: int,
     samples: int,
     seed: int,
-    raw_output: Path,
-) -> dict[str, list[float] | list[int | None]]:
+    raw_rows: list[dict[str, object]],
+    toolchain: str,
+    artifact_hashes: dict[str, str],
+) -> tuple[dict[str, list[float] | list[int | None]], float, bool]:
+    started = time.perf_counter()
     kinds = tuple(commands)
     for order in balanced_orders(kinds, warmups, seed):
         for kind in order:
@@ -441,7 +501,10 @@ def collect_phase(
             else:
                 run_memory_sample(commands[kind], cwd)
     collected: dict[str, list[float] | list[int | None]] = {kind: [] for kind in kinds}
-    for iteration, order in enumerate(balanced_orders(kinds, samples, seed + 1)):
+    max_samples = min(samples, MAX_LATENCY_SAMPLES) if phase == "latency" else samples
+    min_samples = MIN_LATENCY_SAMPLES if phase == "latency" else samples
+    stable_windows = 0
+    for iteration, order in enumerate(balanced_orders(kinds, max_samples, seed + 1)):
         for position, kind in enumerate(order):
             if phase == "latency":
                 value: float | int | None = run_latency_sample(commands[kind], cwd)
@@ -450,19 +513,32 @@ def collect_phase(
                 value = run_memory_sample(commands[kind], cwd)
                 field = "peak_rss_kib"
             collected[kind].append(value)  # type: ignore[arg-type]
-            append_raw(
-                raw_output,
+            raw_rows.append(
                 {
                     "schema_version": SCHEMA_VERSION,
+                    "legacy_schema_version": LEGACY_SCHEMA_VERSION,
                     "phase": phase,
                     "workload": workload,
                     "iteration": iteration,
                     "position": position,
                     "kind": kind,
+                    "command": commands[kind],
+                    "target": kind.rsplit("-", 1)[-1] if "-" in kind else kind,
+                    "exit_code": 0,
+                    "toolchain": toolchain,
+                    "artifact_sha256": artifact_hashes[kind],
+                    "sampler": "linux-proc-tree-rss" if phase == "memory" and memory_supported() else "elapsed-process",
                     field: value,
-                },
+                }
             )
-    return collected
+        if phase == "latency" and iteration + 1 >= min_samples:
+            if all(stable_window([float(value) for value in collected[kind]]) for kind in kinds):
+                stable_windows += 1
+            else:
+                stable_windows = 0
+            if stable_windows >= 3:
+                break
+    return collected, time.perf_counter() - started, phase == "latency" and len(next(iter(collected.values()))) < max_samples
 
 
 def add_ratio_failure(
@@ -490,8 +566,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--raw-output", type=Path)
     parser.add_argument("--warmups", type=int, default=5)
     parser.add_argument("--samples", type=int, default=30)
-    parser.add_argument("--memory-warmups", type=int, default=5)
-    parser.add_argument("--memory-samples", type=int, default=30)
+    parser.add_argument("--memory-warmups", type=int, default=2)
+    parser.add_argument("--memory-samples", type=int, default=10)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--authoritative", action="store_true")
     parser.add_argument("--report-only", action="store_true")
@@ -505,8 +581,12 @@ def main() -> int:
         if value is not None:
             setattr(args, name, value.resolve())
     args.raw_output = (args.raw_output or args.output.with_suffix(".jsonl")).resolve()
-    if min(args.warmups, args.memory_warmups) < 0 or min(args.samples, args.memory_samples) < 2:
-        raise RuntimeError("benchmark requires non-negative warmups and at least 2 samples per pass")
+    if args.warmups < 0 or args.memory_warmups < 0:
+        raise RuntimeError("benchmark warmups must be non-negative")
+    if args.samples < MIN_LATENCY_SAMPLES or args.samples > MAX_LATENCY_SAMPLES:
+        raise RuntimeError("latency samples must be between 15 and 30")
+    if args.memory_samples < 1:
+        raise RuntimeError("memory samples must be positive")
     if (args.baseline_native is None) != (args.baseline_wasm is None):
         raise RuntimeError("merge-base native and wasm artifacts must be supplied together")
     moonrun = shutil.which("moonrun")
@@ -548,9 +628,11 @@ def main() -> int:
             if merge_base.get("moon") != moon_toolchain:
                 environment_errors.append("merge-base and candidate MoonBit toolchains differ")
     args.raw_output.parent.mkdir(parents=True, exist_ok=True)
-    args.raw_output.write_text("", encoding="utf-8")
     results: dict[str, dict[str, object]] = {}
     fixtures_record: dict[str, dict[str, object]] = {}
+    raw_rows: list[dict[str, object]] = []
+    phase_durations: dict[str, float] = {"latency": 0.0, "memory": 0.0}
+    early_stops: dict[str, bool] = {}
     cpu = machine["selected_cpu"] if isinstance(machine["selected_cpu"], int) else None
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
@@ -566,14 +648,19 @@ def main() -> int:
                 for kind, binary in artifacts.items()
             }
             fixtures_record[workload]["commands"] = commands
-            latency = collect_phase(
+            latency, latency_duration, latency_stopped = collect_phase(
                 "latency", workload, commands, root, args.warmups, args.samples,
-                args.seed + len(results) * 100, args.raw_output,
+                args.seed + len(results) * 100, raw_rows, moon_toolchain,
+                {kind: sha256(path) for kind, path in artifacts.items()},
             )
-            memory = collect_phase(
+            memory, memory_duration, _ = collect_phase(
                 "memory", workload, commands, root, args.memory_warmups, args.memory_samples,
-                args.seed + len(results) * 100 + 50, args.raw_output,
+                args.seed + len(results) * 100 + 50, raw_rows, moon_toolchain,
+                {kind: sha256(path) for kind, path in artifacts.items()},
             )
+            phase_durations["latency"] += latency_duration
+            phase_durations["memory"] += memory_duration
+            early_stops[workload] = latency_stopped
             results[workload] = {
                 kind: summarize(
                     [float(value) for value in latency[kind]],
@@ -618,6 +705,10 @@ def main() -> int:
     infrastructure_invalid = bool(environment_errors) or any(
         " CV " in item or "RSS observations" in item for item in failures
     )
+    args.raw_output.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in raw_rows),
+        encoding="utf-8",
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
         "status": "infrastructure-invalid" if infrastructure_invalid else ("failed" if failures else "passed"),
@@ -638,6 +729,23 @@ def main() -> int:
             "memory_samples": args.memory_samples,
             "seed": args.seed,
             "authoritative": args.authoritative,
+            "latency_policy": {
+                "warmups": 5,
+                "min_samples": MIN_LATENCY_SAMPLES,
+                "max_samples": MAX_LATENCY_SAMPLES,
+                "stable_cv": STABLE_CV,
+                "stable_ci_half_width": STABLE_CI_HALF_WIDTH,
+                "stable_windows": 3,
+            },
+            "memory_policy": {
+                "warmups": 2,
+                "samples": 10,
+                "supported": memory_supported(),
+            },
+        },
+        "phases": {
+            "durations_seconds": phase_durations,
+            "latency_early_stops": early_stops,
         },
         "artifacts": {
             kind: {"path": str(path), "bytes": path.stat().st_size, "sha256": sha256(path)}

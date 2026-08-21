@@ -19,7 +19,7 @@ for file in "$repo_root/tools"/*; do
   esac
 done
 
-for directory in checks differential oracles performance probes quality release spikes upstream; do
+for directory in checks differential oracles performance probes quality release spikes upstream verification; do
   [ -d "$repo_root/tools/$directory" ] || \
     fail "missing tools/$directory directory"
 done

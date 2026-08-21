@@ -350,7 +350,7 @@ def performance_summary(
     value = load_json(path)
     configuration = value.get("configuration", {})
     machine = value.get("machine", {})
-    if value.get("schema_version") != 2:
+    if value.get("schema_version") not in {2, 3}:
         failures.append("performance report schema changed")
     if require_authoritative and value.get("status") != "passed":
         failures.append(f"authoritative performance status is {value.get('status')!r}")

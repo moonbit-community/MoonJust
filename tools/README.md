@@ -15,6 +15,7 @@ always invokes it explicitly.
 | `release/` | artifact construction, verification, supply chain, and rollback tooling |
 | `spikes/` | retained ecosystem and host capability qualification checks |
 | `upstream/` | pinned `just` inventory, oracle, manifest, and harness tooling |
+| `verification/` | layered fast/verify/compat/release runner and build-key registry |
 
 Keep specialized gates separate instead of growing `check.sh` into a single
 opaque script. Generated build output and language caches belong under ignored

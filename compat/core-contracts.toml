@@ -9,7 +9,7 @@ status = "implemented"
 package = "internal/source"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 9
+black_box_tests = 10
 evidence = "ASCII, multibyte UTF-8, CRLF, invalid UTF-8, EOF, source-map errors"
 
 [[contract]]
