@@ -791,6 +791,30 @@ async test "cli dispatch matrix preserves parse and application failures" {
 }
 
 ///|
+#cfg(platform="windows")
+fn successful_command_argv() -> Array[String] {
+  ["--command", "cmd.exe", "/d", "/c", "exit", "/b", "0"]
+}
+
+///|
+#cfg(not(platform="windows"))
+fn successful_command_argv() -> Array[String] {
+  ["--command", "/usr/bin/true"]
+}
+
+///|
+#cfg(platform="windows")
+fn failed_command_argv() -> Array[String] {
+  ["--command", "cmd.exe", "/d", "/c", "exit", "/b", "1"]
+}
+
+///|
+#cfg(not(platform="windows"))
+fn failed_command_argv() -> Array[String] {
+  ["--command", "/usr/bin/false"]
+}
+
+///|
 async test "cli dispatch covers successful run initialization and arbitrary commands" {
   let run_host = test_host(false)
   run_host.put_file(
@@ -823,18 +847,13 @@ async test "cli dispatch covers successful run initialization and arbitrary comm
   let command = run_cli(
     command_host,
     command_host,
-    ["--command", "/usr/bin/true"],
+    successful_command_argv(),
     b"",
   )
   if command.exit_code() != 0 {
     fail("unexpected command failure: \{Repr(command.stderr().to_owned())}")
   }
-  let failed = run_cli(
-    command_host,
-    command_host,
-    ["--command", "/usr/bin/false"],
-    b"",
-  )
+  let failed = run_cli(command_host, command_host, failed_command_argv(), b"")
   assert_true(failed.exit_code() != 0)
   assert_true((try! @utf8.decode(failed.stderr())).contains("command"))
 }
