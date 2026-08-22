@@ -26,13 +26,14 @@ windows_runner=0
 case "$runner_os" in
   MINGW*|MSYS*|CYGWIN*) windows_runner=1 ;;
 esac
+probe_timeout=10
 
 run_cli() {
   local label=$1
   shift
   if [ "$windows_runner" -eq 1 ]; then
     python3 "$repo_root/tools/verification/probe.py" \
-      --cwd "$PWD" --label "$label" --timeout 60 -- "$cli" "$@"
+      --cwd "$PWD" --label "$label" --timeout "$probe_timeout" -- "$cli" "$@"
   else
     echo "platform probe: $label" >&2
     "$cli" "$@"
@@ -145,9 +146,13 @@ EOF
 Write-Output platform-direct-file
 EOF
     echo "Direct PowerShell execution:" >&2
-    powershell.exe -NoLogo -NoProfile -Command \
+    python3 "$repo_root/tools/verification/probe.py" \
+      --cwd "$work" --label direct-powershell-command --timeout "$probe_timeout" -- \
+      powershell.exe -NoLogo -NoProfile -Command \
       'Write-Output platform-direct-command' >&2 || true
-    powershell.exe -NoLogo -NoProfile -File "$work/direct.ps1" >&2 || true
+    python3 "$repo_root/tools/verification/probe.py" \
+      --cwd "$work" --label direct-powershell-file --timeout "$probe_timeout" -- \
+      powershell.exe -NoLogo -NoProfile -File "$work/direct.ps1" >&2 || true
     echo "Windows executable resolution:" >&2
     for executable in cmd.exe powershell.exe sh.exe bash.exe; do
       where.exe "$executable" >&2 || true
