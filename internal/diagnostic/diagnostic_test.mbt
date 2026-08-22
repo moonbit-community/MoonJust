@@ -222,7 +222,7 @@ test "ANSI escapes cannot enter diagnostic IR" {
   )
   related.add_related(@source.Span::new(width_id, 0, 1))
   assert_true(
-    @diagnostic.render_text(related, sources).contains("first defined"),
+    @diagnostic.render_text(related, width_sources).contains("first defined"),
   )
   let malformed = @diagnostic.Diagnostic::new(
     "MJ-SEM-0030",
