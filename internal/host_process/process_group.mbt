@@ -57,16 +57,23 @@ fn process_group_payload(args : ArrayView[String]) -> Bytes {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-pub fn exec_process_group_from_args() -> Int {
-  let args = @env.args()
-  guard args.length() >= 3 && args[1] == PROCESS_GROUP_FLAG else { return 22 }
-  guard args[2] != "" else { return 22 }
+fn process_group_exec_payload(args : ArrayView[String]) -> Bytes? {
+  guard args.length() >= 3 && args[1] == PROCESS_GROUP_FLAG else { return None }
+  guard args[2] != "" else { return None }
   for argument in args[2:] {
     if argument.contains("\u{0000}") {
-      return 22
+      return None
     }
   }
-  let payload = process_group_payload(args[2:])
+  Some(process_group_payload(args[2:]))
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+pub fn exec_process_group_from_args() -> Int {
+  guard process_group_exec_payload(@env.args()) is Some(payload) else {
+    return 22
+  }
   @env.unset_env_var(PROCESS_GROUP_ENV)
   process_group_exec_ffi(payload, payload.length())
 }

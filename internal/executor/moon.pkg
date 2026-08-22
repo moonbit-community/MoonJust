@@ -15,10 +15,10 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/set",
   "moonbitlang/x/time",
+  "moonbitlang/async",
 }
 
 import {
   "moonbit-community/MoonJust/internal/parser",
-  "moonbitlang/async",
   "moonbitlang/core/bench",
 } for "test"

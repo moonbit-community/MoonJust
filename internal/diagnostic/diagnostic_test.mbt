@@ -154,4 +154,96 @@ test "ANSI escapes cannot enter diagnostic IR" {
   } noraise {
     _ => fail("expected ANSI rejection")
   }
+  let sources = @source.SourceMap::new()
+  let context_id = @source.SourceId::new(6)
+  sources.add(
+    @source.Source::from_text(context_id, "context.just", "one\ntwo\nthree\n"),
+  )
+  let cases = [
+    ("MJ-SEM-0001", "recipe `build` is redefined"),
+    ("MJ-SEM-0014", "function `f` is redefined"),
+    ("MJ-SEM-0030", "recipe `build` is redefined as a alias"),
+    ("MJ-SEM-0009", "`a` is incompatible with `b`"),
+    ("MJ-SEM-0037", "attribute `private` is duplicated"),
+    ("MJ-SEM-0038", "group attribute is duplicated"),
+    ("MJ-INV-0020", "argument `x` is duplicated"),
+  ]
+  for index, item in cases {
+    let diagnostic = @diagnostic.Diagnostic::new(
+      item.0,
+      Error,
+      item.1,
+      @source.Span::new(context_id, 5, 6),
+      "label",
+    )
+    diagnostic.add_related(@source.Span::new(context_id, 0, 1))
+    let rendered = @diagnostic.render_text(diagnostic, sources)
+    assert_true(rendered.length() > index)
+  }
+  let fallback = @diagnostic.Diagnostic::new(
+    "MJ-OTHER",
+    Error,
+    "plain message",
+    @source.Span::new(context_id, 0, 1),
+    "",
+  )
+  fallback.add_related(@source.Span::new(context_id, 5, 6))
+  assert_true(
+    @diagnostic.render_text(fallback, sources).contains("plain message"),
+  )
+  let width_sources = @source.SourceMap::new()
+  let width_id = @source.SourceId::new(17)
+  width_sources.add(
+    @source.Source::from_text(
+      width_id, "widths.just", "é\t中😀tail\nnext\n",
+    ),
+  )
+  let wide = @diagnostic.Diagnostic::new(
+    "MJ-WIDTH",
+    Info,
+    "wide label",
+    @source.Span::new(width_id, 0, 13),
+    "wide",
+  )
+  wide.add_secondary(@source.Span::new(width_id, 3, 4), "secondary")
+  wide.add_trailer("trailer without newline")
+  wide.add_trailer("trailer with newline\n")
+  let rendered = @diagnostic.render_text(wide, width_sources)
+  assert_true(rendered.contains("continues") == false)
+  assert_true(rendered.contains("trailer without newline\n"))
+  assert_true(rendered.contains("trailer with newline\n"))
+
+  let related = @diagnostic.Diagnostic::new(
+    "MJ-SEM-0030",
+    Error,
+    "recipe `build` is redefined as a recipe",
+    @source.Span::new(width_id, 14, 15),
+    "duplicate",
+  )
+  related.add_related(@source.Span::new(width_id, 0, 1))
+  assert_true(
+    @diagnostic.render_text(related, sources).contains("first defined"),
+  )
+  let malformed = @diagnostic.Diagnostic::new(
+    "MJ-SEM-0030",
+    Error,
+    "malformed is redefined as a value with extra is redefined as text",
+    @source.Span::new(width_id, 14, 15),
+    "duplicate",
+  )
+  malformed.add_related(@source.Span::new(width_id, 0, 1))
+  assert_true(
+    @diagnostic.render_text(malformed, width_sources).contains("malformed"),
+  )
+  let incompatible = @diagnostic.Diagnostic::new(
+    "MJ-SEM-0009",
+    Error,
+    "`only-one` is incompatible",
+    @source.Span::new(width_id, 14, 15),
+    "incompatible",
+  )
+  incompatible.add_related(@source.Span::new(width_id, 0, 1))
+  assert_true(
+    @diagnostic.render_text(incompatible, width_sources).contains("only-one"),
+  )
 }

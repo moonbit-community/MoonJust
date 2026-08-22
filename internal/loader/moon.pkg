@@ -9,9 +9,9 @@ import {
   "moonbit-community/MoonJust/internal/source",
   "moonbit-community/MoonJust/internal/semantic",
   "moonbit-community/MoonJust/internal/syntax",
+  "moonbitlang/async",
 }
 
 import {
-  "moonbitlang/async",
   "moonbitlang/core/encoding/utf8",
 } for "test"

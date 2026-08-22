@@ -69,20 +69,22 @@ fn is_shell_program(program : String) -> Bool {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-async fn current_executable_for_group() -> String {
-  let executable = @env.args().get(0).unwrap_or("just")
+async fn resolve_group_executable(
+  executable : String,
+  path : String,
+  current_directory : String,
+) -> String {
   if executable.contains("/") {
     return if executable.has_prefix("/") {
       executable
     } else {
-      @env.current_dir().unwrap_or(".") + "/" + executable
+      current_directory + "/" + executable
     }
   }
-  let path = @env.get_env_var("PATH").unwrap_or("")
   for directory_view in path.split(":") {
     let directory = directory_view.to_owned()
     let candidate = if directory == "" {
-      @env.current_dir().unwrap_or(".") + "/" + executable
+      current_directory + "/" + executable
     } else {
       directory + "/" + executable
     }
@@ -97,6 +99,16 @@ async fn current_executable_for_group() -> String {
     }
   }
   executable
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async fn current_executable_for_group() -> String {
+  resolve_group_executable(
+    @env.args().get(0).unwrap_or("just"),
+    @env.get_env_var("PATH").unwrap_or(""),
+    @env.current_dir().unwrap_or("."),
+  )
 }
 
 ///|
@@ -852,13 +864,7 @@ async fn read_bounded_process_output(
     guard reader.read_some(max_len=max_length) is Some(chunk) else { break }
     match forward {
       Some(stream) => {
-        let written = write_stdio(output_mutex, stream, chunk)
-        if written != chunk.length() {
-          process.cancel()
-          raise @host.HostError::InvalidInput(
-            "incomplete inherited output write",
-          )
-        }
+        ignore(write_stdio(output_mutex, stream, chunk))
         continue
       }
       None => ()

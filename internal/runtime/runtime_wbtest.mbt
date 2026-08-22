@@ -49,6 +49,7 @@ test "runtime errors expose stable messages and output" {
   )
   assert_eq(live.commands(), 4)
   assert_false(live.show_message())
+  assert_true(live.message().length() > 0)
   assert_eq(live.exit_code(), 1)
   let live_spec_value = live_spec(command)
   assert_true(live_spec_value.inherits_stdin())
@@ -99,5 +100,90 @@ test "runtime host error details and cache paths are classified" {
     _error => fail("unexpected cache path error")
   } noraise {
     _ => fail("expected invalid cache path")
+  }
+}
+
+///|
+test "runtime helper diagnostics cover exit-message and host classifications" {
+  let failed = @executor.ExecutionError::command_failed("build", 2, 7)
+  let hidden = live_failure(failed, 3, show_message=false)
+  let shown = hidden.with_recipe_exit_message(true)
+  assert_true(shown.show_message())
+  assert_eq(shown.commands(), 3)
+  let host = live_failure(
+    @executor.ExecutionError::host(InvalidInput("bad")),
+    1,
+  )
+  assert_true(host.with_recipe_exit_message(false).show_message())
+  assert_eq(
+    process_error_detail(
+      ProcessMismatch(
+        expected=try! @host.CommandSpec::new("expected", []),
+        actual=try! @host.CommandSpec::new("actual", []),
+      ),
+    ),
+    "unexpected process invocation",
+  )
+  assert_eq(
+    process_error_detail(PermissionDenied(FsWrite, detail="write denied")),
+    "write denied",
+  )
+  assert_eq(
+    process_error_detail(CapabilityUnavailable(Clock)),
+    "capability unavailable: Clock",
+  )
+  assert_true(@executor.confirmation_answer_is_yes("Y"))
+  assert_true(@executor.confirmation_answer_is_yes(" yes "))
+  assert_false(@executor.confirmation_answer_is_yes("no"))
+}
+
+///|
+priv enum CoverageOutputMode {
+  Full
+  Short
+  Fail
+}
+
+///|
+priv struct CoverageOutput {
+  mode : CoverageOutputMode
+}
+
+///|
+impl @host.HostAsyncOutput for CoverageOutput with fn write_output(
+  self : CoverageOutput,
+  _stream : @host.OutputStream,
+  bytes : Bytes,
+) -> Int raise @host.HostError {
+  match self.mode {
+    Full => bytes.length()
+    Short => Int::max(0, bytes.length() - 1)
+    Fail => raise InvalidInput("injected output failure")
+  }
+}
+
+///|
+async test "runtime live output helpers reject short and failed writes" {
+  assert_eq(emit_live(CoverageOutput::{ mode: Full }, Stderr, b"ok", 2), 2)
+  assert_eq(emit_live(CoverageOutput::{ mode: Full }, Stderr, b"", 2), 0)
+  try emit_live(CoverageOutput::{ mode: Short }, Stdout, b"short", 3) catch {
+    LiveExecution(
+      error=@executor.ExecutionError::Host(InvalidInput(message)),
+      commands=3,
+      ..
+    ) => assert_true(message.contains("incomplete"))
+    error => fail("unexpected short output error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected short output error")
+  }
+  try emit_live(CoverageOutput::{ mode: Fail }, Stdout, b"failed", 4) catch {
+    LiveExecution(
+      error=@executor.ExecutionError::Host(InvalidInput(message)),
+      commands=4,
+      ..
+    ) => assert_true(message.contains("failed to write"))
+    error => fail("unexpected failed output error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected failed output error")
   }
 }

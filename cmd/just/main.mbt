@@ -643,3 +643,119 @@ test "response helpers preserve both output streams" {
   assert_eq(failed.exit_code(), 2)
   assert_eq(failed.stderr(), b"error: bad\n")
 }
+
+///|
+async test "cli dispatch matrix covers file query inspect and cache commands" {
+  let host = test_host(false)
+  host.put_file(
+    try! @path.PathValue::new("/workspace/justfile", Unix),
+    b"value := 'ci'\n[group('build')]\nroot:\n",
+  )
+  let cases = [
+    (["--fmt", "--check"], ""),
+    (["--fmt", "--dry-run"], ""),
+    (["--list"], "root"),
+    (["--summary"], "root"),
+    (["--variables"], "value"),
+    (["--groups"], "build"),
+    (["--show", "root"], "root"),
+    (["--usage", "root"], "Usage"),
+    (["--json"], "recipes"),
+    (["--dump"], "value"),
+    (["--evaluate", "value"], "ci"),
+    (["--clean"], ""),
+  ]
+  for row in cases {
+    let response = run_cli(host, host, row.0, b"")
+    assert_eq(response.exit_code(), 0)
+    if !row.1.is_empty() {
+      assert_true((try! @utf8.decode(response.stdout())).contains(row.1))
+    }
+  }
+
+  let stdin = run_cli(
+    host,
+    host,
+    ["--justfile", "-", "--list"],
+    b"stdin-recipe:\n",
+  )
+  assert_eq(stdin.exit_code(), 0)
+  assert_true((try! @utf8.decode(stdin.stdout())).contains("stdin-recipe"))
+}
+
+///|
+async test "cli dispatch matrix preserves parse and application failures" {
+  let host = test_host(false)
+  host.put_file(
+    try! @path.PathValue::new("/workspace/justfile", Unix),
+    b"root:\n",
+  )
+  let invalid = run_cli(host, host, ["--definitely-invalid"], b"")
+  assert_eq(invalid.exit_code(), 2)
+  assert_true(invalid.stderr().length() > 0)
+
+  let missing = run_cli(host, host, ["missing"], b"")
+  assert_true(missing.exit_code() != 0)
+  assert_true((try! @utf8.decode(missing.stderr())).contains("missing"))
+  let quiet = run_cli(host, host, ["--quiet", "missing"], b"")
+  assert_true(quiet.exit_code() != 0)
+  assert_eq(quiet.stderr(), b"")
+
+  let malformed = test_host(false)
+  malformed.put_file(
+    try! @path.PathValue::new("/workspace/justfile", Unix),
+    b"root:\n not-indented\n",
+  )
+  let checked = run_cli(malformed, malformed, ["--fmt", "--check"], b"")
+  assert_true(checked.exit_code() != 0)
+  assert_true(checked.stderr().length() > 0)
+}
+
+///|
+async test "cli dispatch covers successful run initialization and arbitrary commands" {
+  let run_host = test_host(false)
+  run_host.put_file(
+    try! @path.PathValue::new("/workspace/justfile", Unix),
+    b"root:\n",
+  )
+  let run = run_cli(run_host, run_host, ["root"], b"")
+  assert_eq(run.exit_code(), 0)
+  assert_eq(run.stderr(), b"")
+
+  let init_host = test_host(false)
+  let initialized = run_cli(init_host, init_host, ["--init"], b"")
+  assert_eq(initialized.exit_code(), 0)
+  assert_true(
+    @host.HostFs::file_exists(
+      init_host,
+      try! @path.PathValue::new("/workspace/justfile", Unix),
+    ),
+  )
+
+  let current = @env.current_dir().unwrap_or(".")
+  let command_host = @host.FakeHost::new(
+    try! @path.PathValue::new(current, Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  command_host.put_file(
+    try! @path.PathValue::new(current + "/justfile", Unix),
+    b"export TOKEN := 'coverage'\n",
+  )
+  let command = run_cli(
+    command_host,
+    command_host,
+    ["--command", "/usr/bin/true"],
+    b"",
+  )
+  if command.exit_code() != 0 {
+    fail("unexpected command failure: \{Repr(command.stderr().to_owned())}")
+  }
+  let failed = run_cli(
+    command_host,
+    command_host,
+    ["--command", "/usr/bin/false"],
+    b"",
+  )
+  assert_true(failed.exit_code() != 0)
+  assert_true((try! @utf8.decode(failed.stderr())).contains("command"))
+}

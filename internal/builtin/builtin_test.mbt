@@ -284,3 +284,103 @@ test "canonical string and list builtins are deterministic" {
   )
   assert_eq(call("kebabcase", [String("HelloWorld")]), String("hello-world"))
 }
+
+///|
+test "pure builtin matrix covers path case display and trimming contracts" {
+  let cases : Array[(String, Array[@value.Value], @value.Value)] = [
+    ("absolute_path", [String("a/../b")], String("b")),
+    ("canonicalize", [String("a/../b")], String("b")),
+    ("clean", [String("a/../b")], String("b")),
+    ("bool", [Bool(false)], Bool(false)),
+    ("bool", [String("value")], Bool(true)),
+    ("capitalize", [String("hello")], String("Hello")),
+    ("encode_uri_component", [String("a b/c?")], String("a%20b%2Fc%3F")),
+    ("file_stem", [String("dir/archive.tar")], String("archive")),
+    (
+      "join_list",
+      [List([String("a"), String("b")]), String(",")],
+      String("a,b"),
+    ),
+    ("snakecase", [String("HelloWorld")], String("hello_world")),
+    ("shoutykebabcase", [String("HelloWorld")], String("HELLO-WORLD")),
+    ("shoutysnakecase", [String("HelloWorld")], String("HELLO_WORLD")),
+    ("titlecase", [String("hello_world")], String("Hello World")),
+    ("lowercamelcase", [String("hello_world")], String("helloWorld")),
+    ("uppercamelcase", [String("hello_world")], String("HelloWorld")),
+    ("len", [String("abc")], String("1")),
+    ("len", [List([String("a"), String("b")])], String("2")),
+    ("parent_directory", [String("dir/file")], String("dir")),
+    ("parent_directory", [String("file")], String(".")),
+    ("split", [String("ab"), String("")], List([String("a"), String("b")])),
+    ("show", [String("a\nb")], String("\"a\\nb\"")),
+    ("style", [String("bold"), String("value")], String("value")),
+    ("trim_end", [String(" x \n")], String(" x")),
+    ("trim_start", [String("\n x ")], String("x ")),
+    ("trim_end_match", [String("value.txt"), String(".txt")], String("value")),
+    (
+      "trim_start_match",
+      [String("prefix-value"), String("prefix-")],
+      String("value"),
+    ),
+    ("trim_end_matches", [String("value..."), String(".")], String("value")),
+    ("trim_start_matches", [String("///value"), String("/")], String("value")),
+    ("trim_end_match", [String("value"), String("")], String("value")),
+    ("replace", [String("ab"), String(""), String("-")], String("-a-b-")),
+    ("lowercase", [String("MOON")], String("moon")),
+    ("quote", [String("a'b")], String("'a'\\''b'")),
+    ("file_name", [String("dir/file.txt")], String("file.txt")),
+    ("extension", [String("dir/file.txt")], String("txt")),
+    ("without_extension", [String("dir/file.txt")], String("dir/file")),
+    ("replace_regex", [String("abc"), String("z+")], Bool(false)),
+    ("replace_regex", [String("abc"), String("z+"), String("x")], String("abc")),
+  ]
+  for case in cases {
+    assert_eq(call(case.0, case.1), case.2)
+  }
+}
+
+///|
+test "pure builtin failures retain typed errors and stable messages" {
+  let errors : Array[BuiltinError] = [
+    Unknown(name="missing"),
+    Arity(name="join", expected="at least 2", actual=1),
+    Type(name="append", expected="list", actual=String("value")),
+    InvalidPath(value="bad"),
+    InvalidRequirement(value="bad"),
+    InvalidPattern(value="(", detail="bad pattern"),
+    Unsupported(name="shell"),
+    Failure(message="failed"),
+  ]
+  for error in errors {
+    assert_true(error.message().length() > 0)
+  }
+  let invocations : Array[(String, Array[@value.Value])] = [
+    ("missing", []),
+    ("style", []),
+    ("join", [String("one")]),
+    ("replace", [String("one")]),
+    ("replace_regex", [String("one")]),
+    ("append", [String("x"), String("not-list")]),
+    ("prepend", [String("x"), String("not-list")]),
+    ("parent_directory", [String("")]),
+    ("file_stem", [String("")]),
+    ("file_name", [String("")]),
+    ("extension", [String("file")]),
+    ("without_extension", [String("")]),
+  ]
+  for invocation in invocations {
+    try call(invocation.0, invocation.1) catch {
+      error => assert_true(error.message().length() > 0)
+    } noraise {
+      _ => fail("expected builtin failure for \{invocation.0}")
+    }
+  }
+  for pattern in ["(", "\\", "*", ")", "[", "a{2,1}"] {
+    try call("replace_regex", [String("value"), String(pattern)]) catch {
+      InvalidPattern(detail~, ..) => assert_true(detail.contains("error"))
+      error => fail("unexpected regex error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid regex pattern")
+    }
+  }
+}

@@ -48,6 +48,46 @@ async test "process adapter maps nonzero exit termination" {
 
 ///|
 #cfg(not(platform="windows"))
+async test "process adapter maps temporary Windows wrapper failures" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
+  let previous = @env.get_env_var("MOONJUST_OS")
+  @env.set_env_var("MOONJUST_OS", "windows")
+  defer (match previous {
+    Some(value) => @env.set_env_var("MOONJUST_OS", value)
+    None => @env.unset_env_var("MOONJUST_OS")
+  })
+  let command = try! @host.CommandSpec::new("cmd.exe", ["/c", "echo ok"])
+  command.set_cwd(unix_path("/moonjust-coverage-no-such-directory"))
+  try
+    @host.HostAsyncProcess::run_process_async(ProcessAdapter::new(), command)
+  catch {
+    InvalidInput(message) => assert_true(message.length() > 0)
+    error => fail("unexpected wrapper failure: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected temporary wrapper failure")
+  }
+}
+
+///|
+#cfg(not(platform="windows"))
+async test "process adapter tolerates an early child stdin close" {
+  process_test_mutex.acquire()
+  defer process_test_mutex.release()
+  let command = try! @host.CommandSpec::new("/bin/sh", ["-c", "exit 0"])
+  command.set_inherit_stdin(false)
+  command.set_stdin(@utf8.encode("x".repeat(1024 * 1024)))
+  command.set_stdout(Capture)
+  command.set_stderr(Capture)
+  let result = try! @host.HostAsyncProcess::run_process_async(
+    ProcessAdapter::new(),
+    command,
+  )
+  assert_eq(result.termination(), Exited(0))
+}
+
+///|
+#cfg(not(platform="windows"))
 async test "process adapter suppresses shell signal notices" {
   process_test_mutex.acquire()
   defer process_test_mutex.release()

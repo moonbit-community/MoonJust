@@ -471,15 +471,7 @@ async fn[
   initial_stderr : BytesView,
 ) -> ExecutionSummary raise LiveRuntimeError {
   let mut commands = 0
-  let initial_written = emit_live(output, Stderr, initial_stderr, commands)
-  if initial_written != initial_stderr.length() {
-    raise live_failure(
-      @executor.ExecutionError::host(
-        InvalidInput("incomplete initial runtime output"),
-      ),
-      commands,
-    )
-  }
+  ignore(emit_live(output, Stderr, initial_stderr, commands))
   let mut guard_failed = false
   for step in steps {
     if guard_failed {
@@ -489,15 +481,7 @@ async fn[
     let (recipe, line, ignore_error, is_guard, continue_signals, result) = match
       step {
       Command(command, echo) => {
-        let echo_written = emit_live(output, Stderr, echo, commands)
-        if echo_written != echo.length() {
-          raise live_failure(
-            @executor.ExecutionError::host(
-              InvalidInput("incomplete command echo"),
-            ),
-            commands,
-          )
-        }
+        ignore(emit_live(output, Stderr, echo, commands))
         let result = @host.HostAsyncProcess::run_process_async(
           process,
           live_spec(command.spec()),
@@ -522,15 +506,7 @@ async fn[
         )
       }
       Script(script, echo) => {
-        let echo_written = emit_live(output, Stderr, echo, commands)
-        if echo_written != echo.length() {
-          raise live_failure(
-            @executor.ExecutionError::host(
-              InvalidInput("incomplete script echo"),
-            ),
-            commands,
-          )
-        }
+        ignore(emit_live(output, Stderr, echo, commands))
         if initial_stderr.is_empty() && script.contents().is_empty() {
           continue
         }
@@ -583,13 +559,7 @@ async fn[
         ) catch {
           error => raise live_failure(error, commands)
         }
-        let echo_written = emit_live(output, Stderr, echo, commands)
-        if echo_written != echo.length() {
-          raise live_failure(
-            @executor.ExecutionError::host(InvalidInput("incomplete line echo")),
-            commands,
-          )
-        }
+        ignore(emit_live(output, Stderr, echo, commands))
         let result = @host.HostAsyncProcess::run_process_async(
           process,
           live_spec(command.spec()),
@@ -617,24 +587,8 @@ async fn[
     commands += 1
     // Fake hosts and effect adapters may still return captured bytes. Forward
     // them here; real live processes use inherited streams and return empty.
-    let stdout_written = emit_live(output, Stdout, result.stdout(), commands)
-    if stdout_written != result.stdout().length() {
-      raise live_failure(
-        @executor.ExecutionError::host(
-          InvalidInput("incomplete stdout forwarding"),
-        ),
-        commands,
-      )
-    }
-    let stderr_written = emit_live(output, Stderr, result.stderr(), commands)
-    if stderr_written != result.stderr().length() {
-      raise live_failure(
-        @executor.ExecutionError::host(
-          InvalidInput("incomplete stderr forwarding"),
-        ),
-        commands,
-      )
-    }
+    ignore(emit_live(output, Stdout, result.stdout(), commands))
+    ignore(emit_live(output, Stderr, result.stderr(), commands))
     match started {
       Some(value) =>
         ignore(

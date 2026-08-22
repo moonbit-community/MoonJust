@@ -165,4 +165,5 @@ test "invalid budgets and diagnostic conversion remain stable" {
       _ => fail("expected invisible lexical diagnostic")
     }
   }
+  lexer_coverage_exercises()
 }

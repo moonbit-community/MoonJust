@@ -333,3 +333,144 @@ async test "cache store serializes leases commits atomically and cleans manifest
     _ => ()
   }
 }
+
+///|
+async test "native adapter covers bounded failures temporary lifecycles and host facts" {
+  let host = NativeFs::new()
+  let directory = try! @path.PathValue::new(
+    "_build/native-host-lifecycle-test",
+    Unix,
+  )
+  try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
+  @async_fs.mkdir(directory.as_string(), recursive=true)
+  let source = try! directory.join(try! @path.PathValue::new("source", Unix))
+  @host.HostFs::write_file(host, source, b"0123456789")
+  assert_eq(@host.HostFs::read_file_range(host, source, 2L, 4), b"2345")
+  assert_eq(@host.HostFs::read_file_range(host, source, 10L, 0), b"")
+  for range in [(-1L, 1), (0L, -1)] {
+    let (offset, length) = range
+    try @host.HostFs::read_file_range(host, source, offset, length) catch {
+      InvalidInput(_) => ()
+      error => fail("unexpected native range error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid native range rejection")
+    }
+  }
+  for limit in [-1, 0x7fff_ffff] {
+    try @host.HostSourceReader::read_source(host, source, limit) catch {
+      InvalidInput(_) => ()
+      error => fail("unexpected source limit error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid source limit rejection")
+    }
+  }
+  let missing = try! directory.join(try! @path.PathValue::new("missing", Unix))
+  assert_false(@host.HostFs::file_exists(host, missing))
+  try @host.HostFs::read_dir(host, missing) catch {
+    NotFound(path) => assert_eq(path, missing)
+    error => fail("unexpected missing directory error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected missing directory rejection")
+  }
+  try @host.HostFs::canonicalize(host, missing) catch {
+    NotFound(path) => assert_eq(path, missing)
+    error => fail("unexpected missing canonical error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected missing canonical rejection")
+  }
+  try @host.HostFs::metadata(host, missing) catch {
+    NotFound(path) => assert_eq(path, missing)
+    InvalidInput(_) => ()
+    error => fail("unexpected missing metadata error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected missing metadata rejection")
+  }
+  let temporary = @host.HostTemp::create_temp_file(
+    host, directory, ".temporary.", b"temporary",
+  )
+  assert_eq(@host.HostFs::read_file(host, temporary), b"temporary")
+  let destination = try! directory.join(
+    try! @path.PathValue::new("destination", Unix),
+  )
+  @host.HostFs::persist_temp_file(host, temporary, destination, false)
+  assert_eq(@host.HostFs::read_file(host, destination), b"temporary")
+  for prefix in ["", "bad/name", "bad\\name"] {
+    try
+      @host.HostTemp::create_temp_file(host, directory, prefix, b"denied")
+    catch {
+      InvalidInput(_) => ()
+      error => fail("unexpected temp prefix error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid temp prefix rejection")
+    }
+  }
+  let first_script = @host.HostScriptTemp::create_script_temp(
+    host, directory, "runner", ".sh", b"first",
+  )
+  let second_script = @host.HostScriptTemp::create_script_temp(
+    host, directory, "runner", ".sh", b"second",
+  )
+  assert_true(first_script != second_script)
+  @host.HostExecutable::set_executable(host, first_script)
+  @host.HostScriptTemp::remove_script_temp(host, first_script)
+  @host.HostScriptTemp::remove_script_temp(host, second_script)
+  for name in [("", ".sh"), ("bad/name", ".sh"), ("ok", "/bad")] {
+    let (stem, extension) = name
+    try
+      @host.HostScriptTemp::create_script_temp(
+        host, directory, stem, extension, b"denied",
+      )
+    catch {
+      InvalidInput(_) => ()
+      error => fail("unexpected script name error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid script name rejection")
+    }
+  }
+  let plain = @host.HostAsyncScriptTemp::create_script_temp_async(
+    host, directory, "async", ".txt", b"plain", false,
+  )
+  assert_eq(@host.HostFs::read_file(host, plain), b"plain")
+  @host.HostAsyncScriptTemp::remove_script_temp_async(host, plain)
+  let executable = @host.HostAsyncScriptTemp::create_script_temp_async(
+    host, directory, "async", ".sh", b"executable", true,
+  )
+  assert_eq(@host.HostFs::read_file(host, executable), b"executable")
+  @host.HostAsyncScriptTemp::remove_script_temp_async(host, executable)
+  try
+    @host.HostAsyncScriptTemp::create_script_temp_async(
+      host, missing, "async", ".sh", b"denied", false,
+    )
+  catch {
+    InvalidInput(_) => ()
+    error => fail("unexpected missing async directory error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected missing async directory rejection")
+  }
+  assert_true(@host.HostClock::now_millis(host) > 0L)
+  assert_eq(@host.HostRandom::random_bytes(host, 0), b"")
+  assert_eq(@host.HostRandom::random_bytes(host, 8).length(), 8)
+  try @host.HostRandom::random_bytes(host, -1) catch {
+    InvalidInput(_) => ()
+    error => fail("unexpected random count error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected negative random count rejection")
+  }
+  assert_eq(
+    @host.HostEnv::env_get(host, "MOONJUST_TEST_ENV_MISSING_71DB"),
+    None,
+  )
+  let platform = @host.HostPlatform::platform_info(host)
+  assert_true(platform.pid().unwrap_or(0) > 0)
+  assert_true(platform.num_cpus().unwrap_or(0) > 0)
+  assert_true(platform.executable() is Some(_))
+  try @async_fs.rmdir(directory.as_string(), recursive=true) catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
+}

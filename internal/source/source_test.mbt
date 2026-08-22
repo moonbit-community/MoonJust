@@ -219,4 +219,24 @@ test "boundary checks cover every UTF-8 width and requested scale" {
     assert_eq(source.length(), bytes.length())
     assert_eq(source.locate(source.length()).byte_column(), source.length())
   }
+  let no_newline = @source.Source::from_text(
+    @source.SourceId::new(13),
+    "no-newline",
+    "tail",
+  )
+  let eof = no_newline.locate_terminal_eof()
+  assert_eq(eof.line(), 1)
+  assert_eq(eof.byte_column(), 4)
+  let empty = @source.Source::from_text(@source.SourceId::new(14), "empty", "")
+  let empty_eof = empty.locate_terminal_eof()
+  assert_eq(empty_eof.line(), 1)
+  assert_eq(empty_eof.byte_column(), 0)
+  let first = @source.Span::new(@source.SourceId::new(15), 0, 1)
+  let other = @source.Span::new(@source.SourceId::new(16), 0, 1)
+  try first.cover(other) catch {
+    WrongSource(..) => ()
+    error => fail("unexpected cover error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected wrong source error")
+  }
 }
