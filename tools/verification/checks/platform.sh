@@ -21,7 +21,24 @@ if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build cmd/just --target na
 cli="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
 [ -x "$cli" ] || [ -f "$cli" ] || fail "Native CLI artifact is missing"
 
-case "$(uname -s)" in
+runner_os=$(uname -s)
+windows_runner=0
+case "$runner_os" in
+  MINGW*|MSYS*|CYGWIN*) windows_runner=1 ;;
+esac
+
+run_cli() {
+  local label=$1
+  shift
+  echo "platform probe: $label" >&2
+  if [ "$windows_runner" -eq 1 ]; then
+    timeout --foreground 60s "$cli" "$@"
+  else
+    "$cli" "$@"
+  fi
+}
+
+case "$runner_os" in
   MINGW*|MSYS*|CYGWIN*)
     expected_os=windows
     cat >"$work/justfile" <<'EOF'
@@ -99,7 +116,7 @@ EOF
 esac
 
 set +e
-(cd "$work" && "$cli" platform >platform.stdout 2>platform.stderr)
+(cd "$work" && run_cli platform platform >platform.stdout 2>platform.stderr)
 platform_status=$?
 set -e
 if [ "$platform_status" -ne 0 ]; then
@@ -108,16 +125,16 @@ if [ "$platform_status" -ne 0 ]; then
   echo "Platform stderr:" >&2
   cat "$work/platform.stderr" >&2
   echo "Platform configuration:" >&2
-  (cd "$work" && "$cli" --dump) >&2 || true
+  (cd "$work" && run_cli dump --dump) >&2 || true
   echo "Platform dry-run:" >&2
-  (cd "$work" && "$cli" --verbose --dry-run platform) >&2 || true
+  (cd "$work" && run_cli dry-run --verbose --dry-run platform) >&2 || true
   if [ "$expected_os" = windows ]; then
     echo "Windows cmd recipe execution:" >&2
-    (cd "$work" && "$cli" --verbose cmd-probe) >&2 || true
+    (cd "$work" && run_cli cmd-probe --verbose cmd-probe) >&2 || true
     echo "Platform verbose execution:" >&2
-    (cd "$work" && "$cli" --verbose platform) >&2 || true
+    (cd "$work" && run_cli verbose-platform --verbose platform) >&2 || true
     echo "Static script execution:" >&2
-    (cd "$work" && "$cli" --verbose script) >&2 || true
+    (cd "$work" && run_cli verbose-script --verbose script) >&2 || true
     cat >"$work/justfile-absolute" <<'EOF'
 set script-interpreter := ['C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', '-NoLogo', '-NoProfile', '-File']
 
@@ -126,7 +143,7 @@ platform:
   Write-Output platform-absolute
 EOF
     echo "Absolute PowerShell recipe execution:" >&2
-    (cd "$work" && "$cli" --verbose --justfile justfile-absolute platform) >&2 || true
+    (cd "$work" && run_cli absolute-platform --verbose --justfile justfile-absolute platform) >&2 || true
     cat >"$work/direct.ps1" <<'EOF'
 Write-Output platform-direct-file
 EOF
@@ -146,58 +163,58 @@ actual_os=$(sed -n '1p' "$work/platform.stdout" | tr -d '\r')
 actual_arch=$(sed -n '2p' "$work/platform.stdout" | tr -d '\r')
 [ -n "$actual_arch" ] && [ "$actual_arch" != unknown ] || fail "reported architecture is empty or unknown"
 
-(cd "$work" && printf 'yes\n' | "$cli" confirm >confirm.stdout 2>confirm.stderr)
+(cd "$work" && printf 'yes\n' | run_cli confirm-yes confirm >confirm.stdout 2>confirm.stderr)
 tr -d '\r' <"$work/confirm.stdout" | grep -qx 'platform-confirm' || fail "affirmative confirmation did not execute"
 grep -q 'Run platform?' "$work/confirm.stderr" || fail "confirmation prompt was not written to stderr"
 
-if (cd "$work" && printf 'no\n' | "$cli" confirm >deny.stdout 2>deny.stderr); then
+if (cd "$work" && printf 'no\n' | run_cli confirm-no confirm >deny.stdout 2>deny.stderr); then
   fail "negative confirmation executed"
 fi
 [ ! -s "$work/deny.stdout" ] || fail "negative confirmation produced recipe output"
 grep -q 'was not confirmed' "$work/deny.stderr" || fail "negative confirmation lacks a typed error"
 
-if (cd "$work" && "$cli" confirm </dev/null >eof.stdout 2>eof.stderr); then
+if (cd "$work" && run_cli confirm-eof confirm </dev/null >eof.stdout 2>eof.stderr); then
   fail "confirmation EOF was accepted"
 fi
 grep -q 'was not confirmed' "$work/eof.stderr" || fail "confirmation EOF did not terminate predictably"
 
-(cd "$work" && "$cli" --yes confirm >yes.stdout 2>yes.stderr)
+(cd "$work" && run_cli yes --yes confirm >yes.stdout 2>yes.stderr)
 tr -d '\r' <"$work/yes.stdout" | grep -qx 'platform-confirm' || fail "--yes did not bypass the prompt"
 ! grep -q 'Run platform?' "$work/yes.stderr" || fail "--yes still emitted a prompt"
 
-(cd "$work" && JUST_YES=1 "$cli" confirm </dev/null >env-yes.stdout 2>env-yes.stderr)
+(cd "$work" && JUST_YES=1 run_cli env-yes confirm </dev/null >env-yes.stdout 2>env-yes.stderr)
 tr -d '\r' <"$work/env-yes.stdout" | grep -qx 'platform-confirm' || fail "JUST_YES did not bypass the prompt"
 ! grep -q 'Run platform?' "$work/env-yes.stderr" || fail "JUST_YES still emitted a prompt"
 
-printf 'stdin-env:\n  echo platform-stdin-env\n' | (cd "$work" && JUST_JUSTFILE=- "$cli" stdin-env >env-stdin.stdout 2>env-stdin.stderr)
+printf 'stdin-env:\n  echo platform-stdin-env\n' | (cd "$work" && JUST_JUSTFILE=- run_cli stdin-env stdin-env >env-stdin.stdout 2>env-stdin.stderr)
 tr -d '\r' <"$work/env-stdin.stdout" | grep -qx 'platform-stdin-env' || fail "JUST_JUSTFILE=- did not read stdin"
 
-(cd "$work" && JUST_JUSTFILE=- "$cli" --justfile justfile alpha </dev/null >env-override.stdout 2>env-override.stderr)
+(cd "$work" && JUST_JUSTFILE=- run_cli env-override --justfile justfile alpha </dev/null >env-override.stdout 2>env-override.stderr)
 tr -d '\r' <"$work/env-override.stdout" | grep -qx 'platform-choice' || fail "argv justfile did not override JUST_JUSTFILE"
-(cd "$work" && JUST_ALLOW_MISSING=1 JUST_DRY_RUN=1 JUST_QUIET=1 "$cli" --version </dev/null >env-version.stdout 2>env-version.stderr)
+(cd "$work" && JUST_ALLOW_MISSING=1 JUST_DRY_RUN=1 JUST_QUIET=1 run_cli env-version --version </dev/null >env-version.stdout 2>env-version.stderr)
 grep -q '^moonjust 0.7.0-alpha.1' "$work/env-version.stdout" || fail "--version did not override unsupported environment diagnostics"
 
-(cd "$work" && "$cli" script >script.stdout 2>script.stderr)
+(cd "$work" && run_cli script script >script.stdout 2>script.stderr)
 tr -d '\r' <"$work/script.stdout" | grep -qx 'platform-script' || fail "platform script did not execute"
 
-(cd "$work" && NO_COLOR=1 TERM=xterm-256color "$cli" --list --color auto >auto.stdout)
+(cd "$work" && NO_COLOR=1 TERM=xterm-256color run_cli list-auto --list --color auto >auto.stdout)
 if LC_ALL=C grep -q $'\033' "$work/auto.stdout"; then
   fail "NO_COLOR/non-TTY list output contains ANSI escapes"
 fi
-(cd "$work" && "$cli" --list --color always >always.stdout)
+(cd "$work" && run_cli list-always --list --color always >always.stdout)
 LC_ALL=C grep -q $'\033' "$work/always.stdout" || fail "forced-color list output lacks ANSI escapes"
 
 if [ "$expected_os" = windows ]; then
-  (cd "$work" && "$cli" cmd-probe >cmd.stdout 2>cmd.stderr)
+  (cd "$work" && run_cli cmd-probe-final cmd-probe >cmd.stdout 2>cmd.stderr)
   tr -d '\r' <"$work/cmd.stdout" | grep -qx 'platform-cmd' || fail "cmd.exe recipe did not execute"
   set +e
-  (cd "$work" && "$cli" fail >fail.stdout 2>fail.stderr)
+  (cd "$work" && run_cli fail fail >fail.stdout 2>fail.stderr)
   status=$?
   set -e
   [ "$status" -eq 7 ] || fail "PowerShell exit status was $status instead of 7"
 else
-  (cd "$work" && VISUAL=true "$cli" --edit)
-  (cd "$work" && "$cli" --choose --chooser "sed -n '1p'" >choose.stdout 2>choose.stderr)
+  (cd "$work" && VISUAL=true run_cli edit --edit)
+  (cd "$work" && run_cli choose --choose --chooser "sed -n '1p'" >choose.stdout 2>choose.stderr)
   grep -qx 'platform-choice' "$work/choose.stdout" || fail "chooser selection was not executed independently"
 fi
 
