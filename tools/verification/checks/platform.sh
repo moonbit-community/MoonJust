@@ -43,7 +43,7 @@ case "$runner_os" in
     expected_os=windows
     cat >"$work/justfile" <<'EOF'
 set windows-shell := ['cmd.exe', '/D', '/C']
-set script-interpreter := ['powershell.exe', '-NoLogo', '-NoProfile', '-File']
+set script-interpreter := ['cmd.exe', '/D', '/C']
 
 [confirm('Run platform?')]
 confirm:
@@ -58,16 +58,16 @@ cmd-probe:
 # `platform` platform probe
 [script]
 platform:
-  Write-Output {{os()}}
-  Write-Output {{arch()}}
+  echo {{os()}}
+  echo {{arch()}}
 
 [script]
 fail:
-  exit 7
+  exit /B 7
 
 [script]
 script:
-  Write-Output platform-script
+  echo platform-script
 EOF
     ;;
   Darwin)
