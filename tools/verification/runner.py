@@ -427,6 +427,13 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
     compat = verify + (
         task("compatibility", "./tools/verification/checks/compatibility.sh", depends_on=("native-tests", "wasm-tests"), stage="compat"),
         task("platform", "./tools/verification/checks/platform.sh", depends_on=("native-tests",), stage="compat"),
+        task(
+            "wasm-platform",
+            sys.executable,
+            "tools/verification/checks/wasm_platform.py",
+            depends_on=("wasm-tests",),
+            stage="compat",
+        ),
         task("query", "./tools/verification/checks/query.sh", depends_on=("native-tests", "wasm-tests"), stage="compat"),
         task("hostfs", "./tools/verification/checks/hostfs.sh", depends_on=("wasm-tests",), stage="compat"),
         task("dotenv", "./tools/verification/checks/dotenv.sh", depends_on=("native-tests",), stage="compat"),
