@@ -176,6 +176,22 @@ test "process group request follows the enabled boundary policy" {
 }
 
 ///|
+#cfg(all(target="native", not(platform="windows")))
+test "literal shell noops do not need a process-group trampoline" {
+  process_group_boundary_enabled.val = false
+  assert_false(process_group_requested_for(false, "/bin/sh", ["-cu", ":"]))
+  enable_process_group_boundary()
+  defer {
+    process_group_boundary_enabled.val = false
+  }
+  assert_false(process_group_requested_for(false, "/bin/sh", ["-cu", ":"]))
+  assert_true(
+    process_group_requested_for(false, "/bin/sh", ["-cu", "printf ok"]),
+  )
+  assert_true(process_group_requested_for(false, "/bin/sh", ["-c", ":"]))
+}
+
+///|
 #cfg(not(target="wasm"))
 test "native observable command leaves programs unchanged" {
   assert_eq(observable_process_command("echo", ["ok"]), ("echo", ["ok"], false))

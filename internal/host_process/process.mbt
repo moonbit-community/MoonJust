@@ -44,6 +44,38 @@ fn process_group_requested(inherit_stdin : Bool) -> Bool {
 }
 
 ///|
+#cfg(all(target="native", not(platform="windows")))
+/// A literal POSIX shell `:` cannot create a child process. It still runs in
+/// the real shell below, but does not need the executable trampoline used to
+/// establish an owned process group for cancellation of descendants.
+fn process_group_requested_for(
+  inherit_stdin : Bool,
+  program : String,
+  arguments : ArrayView[String],
+) -> Bool {
+  if !process_group_requested(inherit_stdin) {
+    return false
+  }
+  if is_shell_program(program) &&
+    arguments.length() == 2 &&
+    arguments[0] == "-cu" &&
+    arguments[1] == ":" {
+    return false
+  }
+  true
+}
+
+///|
+#cfg(any(target="wasm", platform="windows"))
+fn process_group_requested_for(
+  inherit_stdin : Bool,
+  _program : String,
+  _arguments : ArrayView[String],
+) -> Bool {
+  process_group_requested(inherit_stdin)
+}
+
+///|
 #cfg(any(target="wasm", platform="windows"))
 fn process_group_requested(_inherit_stdin : Bool) -> Bool {
   false
@@ -968,7 +1000,11 @@ async fn run_process_with_output_limit(
       let merge_regular = stdout_regular &&
         stderr_regular &&
         @stdio.stdout.fd() == @stdio.stderr.fd()
-      let group_process = process_group_requested(command.inherits_stdin())
+      let group_process = process_group_requested_for(
+        command.inherits_stdin(),
+        program,
+        arguments,
+      )
       let child_stdin = if command.inherits_stdin() {
         None
       } else {
