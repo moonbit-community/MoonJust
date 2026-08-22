@@ -97,10 +97,9 @@ class RunnerTest(unittest.TestCase):
 
     def test_windows_shell_probes_use_bash(self) -> None:
         with mock.patch.object(runner.platform, "system", return_value="Windows"):
-            self.assertEqual(
-                runner.executable_command(("./tools/verification/checks/platform.sh",)),
-                ("bash", "./tools/verification/checks/platform.sh"),
-            )
+            command = runner.executable_command(("./tools/verification/checks/platform.sh",))
+            self.assertTrue(command[0].lower().endswith(("bash", "bash.exe")))
+            self.assertEqual(command[1], "./tools/verification/checks/platform.sh")
 
 
 if __name__ == "__main__":

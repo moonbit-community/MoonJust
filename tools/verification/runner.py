@@ -140,7 +140,8 @@ def relative_command(repo: Path, argv: Sequence[str]) -> list[str]:
 def executable_command(argv: Command) -> Command:
     """Run shell probes through Git Bash on Windows, preserving direct exec elsewhere."""
     if platform.system() == "Windows" and argv and argv[0].lower().endswith(".sh"):
-        return ("bash", *argv)
+        git_bash = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git" / "bin" / "bash.exe"
+        return (str(git_bash) if git_bash.is_file() else "bash", *argv)
     return argv
 
 
