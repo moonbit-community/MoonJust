@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).with_name("runner.py")
@@ -93,6 +94,13 @@ class RunnerTest(unittest.TestCase):
             )
             with self.assertRaises(ValueError):
                 runner.validate_evidence(path, "c" * 40)
+
+    def test_windows_shell_probes_use_bash(self) -> None:
+        with mock.patch.object(runner.platform, "system", return_value="Windows"):
+            self.assertEqual(
+                runner.executable_command(("./tools/verification/checks/platform.sh",)),
+                ("bash", "./tools/verification/checks/platform.sh"),
+            )
 
 
 if __name__ == "__main__":

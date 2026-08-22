@@ -137,6 +137,13 @@ def relative_command(repo: Path, argv: Sequence[str]) -> list[str]:
     return result
 
 
+def executable_command(argv: Command) -> Command:
+    """Run shell probes through Git Bash on Windows, preserving direct exec elsewhere."""
+    if platform.system() == "Windows" and argv and argv[0].lower().endswith(".sh"):
+        return ("bash", *argv)
+    return argv
+
+
 def artifact_record(path: Path, repo: Path) -> dict[str, object]:
     record: dict[str, object] = {"path": str(path), "exists": path.is_file()}
     if path.is_file():
@@ -564,8 +571,9 @@ def prepare_measurement_builds(repo: Path, execute: bool = True) -> list[dict[st
 
 def run_task(task_item: Task, repo: Path, env: dict[str, str]) -> dict[str, object]:
     started = time.perf_counter_ns()
+    argv = executable_command(task_item.command)
     result = subprocess.run(
-        task_item.command,
+        argv,
         cwd=repo,
         env=env,
         capture_output=True,
@@ -583,7 +591,7 @@ def run_task(task_item: Task, repo: Path, env: dict[str, str]) -> dict[str, obje
         "name": task_item.name,
         "stage": task_item.stage,
         "command": {
-            "argv": relative_command(repo, task_item.command),
+            "argv": relative_command(repo, argv),
             "cwd": ".",
             "env_digest": environment_digest(env),
         },
