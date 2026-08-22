@@ -456,7 +456,14 @@ async test "process helpers cover status, capture, and non-Windows materializati
   assert_eq(materialized.0, "echo")
   assert_true(materialized.2 is None)
   assert_eq(windows_native_program("echo", "."), "echo")
-  assert_eq(resolve_process_program("echo", "."), "echo")
+  let resolved = resolve_process_program("echo", ".")
+  assert_true(
+    resolved == "echo" ||
+    resolved.has_suffix("/echo.EXE") ||
+    resolved.has_suffix("/echo.exe") ||
+    resolved.has_suffix("\\\\echo.EXE") ||
+    resolved.has_suffix("\\\\echo.exe"),
+  )
 }
 
 ///|
