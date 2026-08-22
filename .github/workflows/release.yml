@@ -152,6 +152,8 @@ jobs:
           if len(sidecar) != 2 or sidecar[0] != actual or sidecar[1] != "just.wasm":
               raise SystemExit("shared wasm1 checksum mismatch")
           PY
+      - name: Build platform Native debug artifact through registry
+        run: python3 tools/runner.py build --target native --profile debug
       - name: Verify native and shared wasm1 behavior
         shell: bash
         run: |

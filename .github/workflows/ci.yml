@@ -204,6 +204,9 @@ jobs:
               raise SystemExit("shared wasm1 checksum mismatch")
           PY
 
+      - name: Build platform Native debug artifact through registry
+        run: python3 tools/runner.py build --target native --profile debug
+
       - name: Run Native verification tier
         run: python3 tools/runner.py run --mode verify --no-build --task native-tests --task native-version --evidence _build/verification/platform-verify.json
 
