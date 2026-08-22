@@ -14,6 +14,14 @@ elif [ "$#" -ne 0 ]; then
 fi
 
 mkdir -p "$out"
+coverage_base="${MOONJUST_COVERAGE_BASE:-}"
+if [ -z "$coverage_base" ] && [ -f "$repo_root/compat/stage0-coverage-baseline.sha" ]; then
+  coverage_base=$(tr -d '[:space:]' < "$repo_root/compat/stage0-coverage-baseline.sha")
+fi
+base_args=()
+if [ -n "$coverage_base" ]; then
+  base_args+=(--base "$coverage_base")
+fi
 "$repo_root/tools/checks/coverage_target.sh" native
 "$repo_root/tools/checks/coverage_target.sh" wasm
 python3 "$repo_root/tools/quality/merge_coverage.py" \
@@ -22,4 +30,5 @@ python3 "$repo_root/tools/quality/merge_coverage.py" \
   --cobertura "$out/cobertura.xml" \
   --summary "$out/summary.json" \
   --baseline "$repo_root/compat/coverage-baseline.json" \
+  "${base_args[@]}" \
   $report_only

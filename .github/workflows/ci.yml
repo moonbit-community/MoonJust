@@ -409,15 +409,15 @@ jobs:
           name: moonjust-coverage-wasm
           path: _build/coverage
       - name: Merge and enforce production coverage
-        env:
-          MOONJUST_COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
+          coverage_base=$(tr -d '[:space:]' < compat/stage0-coverage-baseline.sha)
           python3 ./tools/quality/merge_coverage.py \
             _build/coverage/native.raw.xml _build/coverage/wasm.raw.xml \
             --repo "$GITHUB_WORKSPACE" \
             --cobertura _build/coverage/cobertura.xml \
             --summary _build/coverage/summary.json \
-            --baseline "$GITHUB_WORKSPACE/compat/coverage-baseline.json"
+            --baseline "$GITHUB_WORKSPACE/compat/coverage-baseline.json" \
+            --base "$coverage_base"
       - name: Upload merged coverage evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
