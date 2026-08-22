@@ -793,7 +793,7 @@ async test "cli dispatch matrix preserves parse and application failures" {
 ///|
 #cfg(platform="windows")
 fn successful_command_argv() -> Array[String] {
-  ["--command", "powershell.exe", "-NoProfile", "-Command", "exit 0"]
+  ["--command", "cmd.exe", "/d", "/c", "exit 0"]
 }
 
 ///|
@@ -805,7 +805,7 @@ fn successful_command_argv() -> Array[String] {
 ///|
 #cfg(platform="windows")
 fn failed_command_argv() -> Array[String] {
-  ["--command", "powershell.exe", "-NoProfile", "-Command", "exit 1"]
+  ["--command", "cmd.exe", "/d", "/c", "exit 1"]
 }
 
 ///|
