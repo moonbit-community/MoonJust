@@ -145,6 +145,16 @@ def executable_command(argv: Command) -> Command:
     return argv
 
 
+def write_process_output(value: str, stream: object) -> None:
+    encoded = value.encode("utf-8", errors="replace")
+    buffer = getattr(stream, "buffer", None)
+    if buffer is not None:
+        buffer.write(encoded)
+        buffer.flush()
+    else:
+        stream.write(encoded.decode("utf-8", errors="replace"))  # type: ignore[attr-defined]
+
+
 def artifact_record(path: Path, repo: Path) -> dict[str, object]:
     record: dict[str, object] = {"path": str(path), "exists": path.is_file()}
     if path.is_file():
@@ -585,9 +595,9 @@ def run_task(task_item: Task, repo: Path, env: dict[str, str]) -> dict[str, obje
     stdout = result.stdout.encode("utf-8")
     stderr = result.stderr.encode("utf-8")
     if result.stdout:
-        print(result.stdout, end="")
+        write_process_output(result.stdout, sys.stdout)
     if result.stderr:
-        print(result.stderr, end="", file=sys.stderr)
+        write_process_output(result.stderr, sys.stderr)
     return {
         "name": task_item.name,
         "stage": task_item.stage,
