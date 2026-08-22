@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import subprocess
 import sys
 import tempfile
@@ -18,11 +19,37 @@ def fail(message: str) -> int:
     return 1
 
 
-def run(command: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+def host_runtime_env() -> dict[str, str]:
+    """Tell portable MoonJust which host owns the shared Wasm process."""
+    system = platform.system().lower()
+    operating_system = {
+        "darwin": "macos",
+        "windows": "windows",
+        "linux": "linux",
+    }.get(system, system)
+    machine = platform.machine().lower()
+    architecture = {
+        "amd64": "amd64",
+        "x86_64": "amd64",
+        "arm64": "arm64",
+        "aarch64": "arm64",
+    }.get(machine, machine)
+    environment = os.environ.copy()
+    environment["MOONJUST_OS"] = operating_system
+    environment["MOONJUST_ARCH"] = architecture
+    return environment
+
+
+def run(
+    command: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
             command,
             cwd=cwd,
+            env=env,
             check=False,
             capture_output=True,
             text=True,
@@ -42,8 +69,9 @@ def main() -> int:
     if not policy.is_file():
         return fail(f"execution policy is missing: {policy}")
     base = ["moonrun", "--policy", str(policy), str(candidate)]
+    environment = host_runtime_env()
 
-    version = run([*base, "--", "--version"])
+    version = run([*base, "--", "--version"], env=environment)
     if version.returncode != 0 or version.stdout.strip() != EXPECTED_VERSION:
         return fail(f"--version returned {version.returncode}: {version.stdout!r} {version.stderr!r}")
 
@@ -54,10 +82,14 @@ def main() -> int:
             windows_shell + "hello:\n  echo shared-wasm-gate\n",
             encoding="utf-8",
         )
-        listed = run([*base, "--", "--list", "--color", "never"], cwd=work)
+        listed = run(
+            [*base, "--", "--list", "--color", "never"],
+            cwd=work,
+            env=environment,
+        )
         if listed.returncode != 0 or not any(line.strip() == "hello" for line in listed.stdout.splitlines()):
             return fail(f"--list returned {listed.returncode}: {listed.stdout!r} {listed.stderr!r}")
-        executed = run([*base, "--", "hello"], cwd=work)
+        executed = run([*base, "--", "hello"], cwd=work, env=environment)
         if executed.returncode != 0 or executed.stdout.strip() != "shared-wasm-gate":
             return fail(f"recipe returned {executed.returncode}: {executed.stdout!r} {executed.stderr!r}")
 
