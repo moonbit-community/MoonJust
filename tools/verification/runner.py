@@ -922,10 +922,10 @@ def run_coverage(repo: Path, target: str, base: str | None = None) -> int:
             "tools/verification/checks/coverage_target.sh",
             target,
         )
-    # coverage_target.sh is executable shell despite its .sh suffix; invoke it
-    # through the platform shell to keep Windows Git Bash behavior explicit.
+    # coverage_target.sh uses Bash options (including pipefail); invoke Bash
+    # explicitly so Ubuntu's dash does not silently reject the runner.
     if target != "merge":
-        command_line = ("sh", *command_line[1:])
+        command_line = ("bash", *command_line[1:])
     return subprocess.run(command_line, cwd=repo, check=False).returncode
 
 
