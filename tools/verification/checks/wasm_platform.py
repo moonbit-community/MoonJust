@@ -49,8 +49,9 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="moonjust-wasm-gate-") as directory:
         work = Path(directory)
+        windows_shell = "set windows-shell := ['cmd.exe', '/D', '/C']\n\n" if os.name == "nt" else ""
         (work / "justfile").write_text(
-            "hello:\n  echo shared-wasm-gate\n",
+            windows_shell + "hello:\n  echo shared-wasm-gate\n",
             encoding="utf-8",
         )
         listed = run([*base, "--", "--list", "--color", "never"], cwd=work)
