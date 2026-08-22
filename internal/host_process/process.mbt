@@ -969,65 +969,8 @@ async fn run_process_with_output_limit(
         stderr_regular &&
         @stdio.stdout.fd() == @stdio.stderr.fd()
       let group_process = process_group_requested(command.inherits_stdin())
-      let process = if command.inherits_stdin() {
-        match (pipe_stdout, pipe_stderr) {
-          (false, false) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              @stdio.stdin,
-              @stdio.stdout,
-              @stdio.stderr,
-              cwd,
-            )
-          (false, true) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              @stdio.stdin,
-              @stdio.stdout,
-              stderr_target,
-              cwd,
-            )
-          (true, false) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              @stdio.stdin,
-              stdout_target,
-              @stdio.stderr,
-              cwd,
-            )
-          (true, true) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              @stdio.stdin,
-              stdout_target,
-              if merge_regular {
-                stdout_target
-              } else {
-                stderr_target
-              },
-              cwd,
-            )
-        }
+      let child_stdin = if command.inherits_stdin() {
+        None
       } else {
         let (child_stdin, writer) = @process.write_to_process()
         group.spawn_bg(() => {
@@ -1040,64 +983,43 @@ async fn run_process_with_output_limit(
             }
           }
         })
-        match (pipe_stdout, pipe_stderr) {
-          (false, false) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              child_stdin,
-              @stdio.stdout,
-              @stdio.stderr,
-              cwd,
-            )
-          (false, true) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              child_stdin,
-              @stdio.stdout,
-              stderr_target,
-              cwd,
-            )
-          (true, false) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              child_stdin,
-              stdout_target,
-              @stdio.stderr,
-              cwd,
-            )
-          (true, true) =>
-            spawn_observed_process(
-              group,
-              program,
-              arguments,
-              group_process,
-              environment_map(command),
-              command.inherits_environment(),
-              child_stdin,
-              stdout_target,
-              if merge_regular {
-                stdout_target
-              } else {
-                stderr_target
-              },
-              cwd,
-            )
-        }
+        Some(child_stdin)
+      }
+      let child_stdout = if pipe_stdout { stdout_target } else { @stdio.stdout }
+      let child_stderr = if merge_regular {
+        stdout_target
+      } else if pipe_stderr {
+        stderr_target
+      } else {
+        @stdio.stderr
+      }
+      let environment = environment_map(command)
+      let process = if command.inherits_stdin() {
+        spawn_observed_process(
+          group,
+          program,
+          arguments,
+          group_process,
+          environment,
+          command.inherits_environment(),
+          @stdio.stdin,
+          child_stdout,
+          child_stderr,
+          cwd,
+        )
+      } else {
+        spawn_observed_process(
+          group,
+          program,
+          arguments,
+          group_process,
+          environment,
+          command.inherits_environment(),
+          child_stdin.unwrap(),
+          child_stdout,
+          child_stderr,
+          cwd,
+        )
       }
       let stdout_task = if !pipe_stdout {
         stdout_reader.close()

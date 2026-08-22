@@ -195,6 +195,98 @@ async fn confirm_execution(
 }
 
 ///|
+// Target-specific adapters keep native-only synchronous commands out of the
+// async state-machine graph while wasm retains bounded async I/O.
+#cfg(target="native")
+fn[
+  F : @host.HostFs,
+  T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
+] dispatch_default_list(
+  host : F,
+  terminal_host : T,
+  arguments : @cli.CliArguments,
+  context : @application.ApplicationContext,
+) -> @cli.ApplicationResponse? raise @application.ApplicationError {
+  @application.execute_default_list_command(
+    host, terminal_host, arguments, context,
+  )
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+async fn[
+  F : @host.HostFs + @host.HostSourceReader,
+  T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
+] dispatch_default_list(
+  host : F,
+  terminal_host : T,
+  arguments : @cli.CliArguments,
+  context : @application.ApplicationContext,
+) -> @cli.ApplicationResponse? raise @application.ApplicationError {
+  @application.execute_default_list_command_async(
+    host, terminal_host, arguments, context,
+  )
+}
+
+///|
+#cfg(target="native")
+fn[F : @host.HostFs] dispatch_inspect(
+  host : F,
+  arguments : @cli.CliArguments,
+  context : @application.ApplicationContext,
+  environment : ArrayView[(String, String)],
+) -> @cli.ApplicationResponse raise @application.ApplicationError {
+  @application.execute_inspect_command(host, arguments, context, environment~)
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+async fn[F : @host.HostFs + @host.HostSourceReader] dispatch_inspect(
+  host : F,
+  arguments : @cli.CliArguments,
+  context : @application.ApplicationContext,
+  environment : ArrayView[(String, String)],
+) -> @cli.ApplicationResponse raise @application.ApplicationError {
+  @application.execute_inspect_command_async(
+    host,
+    arguments,
+    context,
+    environment~,
+  )
+}
+
+///|
+#cfg(target="native")
+fn[
+  F : @host.HostFs,
+  T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
+] dispatch_query(
+  host : F,
+  terminal_host : T,
+  arguments : @cli.CliArguments,
+  context : @application.ApplicationContext,
+) -> @cli.ApplicationResponse raise @application.ApplicationError {
+  ignore(host)
+  @application.execute_query_command(terminal_host, arguments, context)
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+async fn[
+  F : @host.HostFs + @host.HostSourceReader,
+  T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
+] dispatch_query(
+  host : F,
+  terminal_host : T,
+  arguments : @cli.CliArguments,
+  context : @application.ApplicationContext,
+) -> @cli.ApplicationResponse raise @application.ApplicationError {
+  @application.execute_query_command_with_terminal_async(
+    host, terminal_host, arguments, context,
+  )
+}
+
+///|
 async fn[
   F : @host.HostFs + @host.HostSourceReader + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
@@ -344,9 +436,7 @@ async fn[
   let process = @host_process.ProcessAdapter::new()
   if arguments.command() == RunCommand {
     let default_list = try
-      @application.execute_default_list_command_async(
-        host, environment_host, arguments, context,
-      )
+      dispatch_default_list(host, environment_host, arguments, context)
     catch {
       error => return application_failure(host, arguments, context, error)
     } noraise {
@@ -446,24 +536,13 @@ async fn[
     } noraise {
       value => value
     }
-    try
-      @application.execute_inspect_command_async(
-        host,
-        arguments,
-        context,
-        environment=inspect_environment,
-      )
-    catch {
+    try dispatch_inspect(host, arguments, context, inspect_environment) catch {
       error => application_failure(host, arguments, context, error)
     } noraise {
       response => response
     }
   } else {
-    try
-      @application.execute_query_command_with_terminal_async(
-        host, environment_host, arguments, context,
-      )
-    catch {
+    try dispatch_query(host, environment_host, arguments, context) catch {
       error => application_failure(host, arguments, context, error)
     } noraise {
       response => response
