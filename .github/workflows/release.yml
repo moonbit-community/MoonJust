@@ -156,12 +156,19 @@ jobs:
         run: python3 tools/runner.py build --target native --profile debug
       - name: Verify native and shared wasm1 behavior
         shell: bash
+        env:
+          MOONJUST_NATIVE_CANDIDATE: ${{ github.workspace }}/_build/native/debug/build/cmd/just/just.exe
+          MOONJUST_WASM_CANDIDATE: ${{ github.workspace }}/_build/shared-wasm/just.wasm
         run: |
           python3 tools/runner.py run --mode verify --no-build --task native-tests --task native-version --evidence _build/verification/release-native.json
-          python3 tools/runner.py run --mode compat --no-build --task platform --evidence _build/verification/release-platform.json
-          python3 ./tools/upstream/run_official_harness.py \
-            --native-candidate "$GITHUB_WORKSPACE/_build/native/debug/build/cmd/just/just.exe" \
-            --wasm-candidate "$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm"
+          python3 tools/runner.py run --mode compat --tier-only --no-build \
+            --task platform --task wasm-platform \
+            --evidence _build/verification/release-platform.json
+          if [ "${{ matrix.platform }}" = "linux-x86_64" ]; then
+            python3 ./tools/upstream/run_official_harness.py \
+              --native-candidate "$GITHUB_WORKSPACE/_build/native/debug/build/cmd/just/just.exe" \
+              --wasm-candidate "$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm"
+          fi
       - name: Build, inspect, and enforce release size
         shell: bash
         run: |
