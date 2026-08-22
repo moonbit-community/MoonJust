@@ -24,5 +24,6 @@ import {
 
 import {
   "moonbit-community/MoonJust/internal/cache",
+  "moonbitlang/core/bench",
   "moonbitlang/async",
 } for "test"

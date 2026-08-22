@@ -1227,30 +1227,6 @@ async fn[F : @host.HostFs + @host.HostSourceReader, P : @host.HostAsyncProcess] 
 }
 
 ///|
-fn merge_dotenv_entries(
-  environment : Array[(String, String)],
-  dotenv : ArrayView[(String, String)],
-  override_environment : Bool,
-) -> Array[(String, String)] {
-  for entry in dotenv {
-    let mut found = false
-    for index, existing in environment {
-      if existing.0 == entry.0 {
-        if override_environment {
-          environment[index] = entry
-        }
-        found = true
-        break
-      }
-    }
-    if !found {
-      environment.push(entry)
-    }
-  }
-  environment
-}
-
-///|
 /// Validate and plan a run command without granting process capability.
 pub fn[F : @host.HostFs, E : @host.HostEnv + @host.HostTerminal] plan_run_command(
   host : F,

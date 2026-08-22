@@ -1022,10 +1022,10 @@ async fn[
 }
 
 ///|
-/// Execute a prevalidated recipe DAG through a bounded FIFO semaphore. Task
-/// output and failure selection are merged by stable plan order, never by
-/// completion timing. Structured cancellation terminates child processes and
-/// runs temporary-script cleanup before the task group exits.
+/// Execute a prevalidated recipe DAG through the shared deterministic
+/// coordinator. Task output and failure selection are merged by stable plan
+/// order, never by completion timing. Structured cancellation terminates child
+/// processes and runs temporary-script cleanup before the task group exits.
 pub async fn[
   P : @host.HostAsyncProcess,
   S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
@@ -1050,57 +1050,42 @@ pub async fn[
   if jobs <= 0 {
     raise invalid_plan("execution plan jobs must be positive")
   }
-  let specs : Array[@scheduler.TaskSpec] = []
-  for index, task in plan.tasks() {
-    if task.id() != index {
-      raise invalid_plan("execution task ids must be dense and ordered")
-    }
-    for dependency in task.dependencies() {
-      if dependency >= task.id() {
-        raise invalid_plan("execution task dependencies must precede the task")
-      }
-    }
-    specs.push(
-      @scheduler.TaskSpec::new(
-        task.id(),
-        task.order(),
-        dependencies=task.dependencies().to_owned(),
-      ),
-    )
-  }
-  let schedule = @scheduler.build_schedule(specs, jobs) catch {
-    _ => raise invalid_plan("invalid execution task graph")
+  let coordinator = match execution_coordinator(plan.tasks(), jobs) {
+    Some(value) => value
+    None => raise invalid_plan("invalid execution task graph")
   }
   let outcomes = try
     @async.with_task_group() <| group => {
-      let semaphore = @async.Semaphore(jobs)
-      let handles : Array[@async.Task[TaskOutcome]] = []
-      for task in plan.tasks() {
-        let dependencies : Array[@async.Task[TaskOutcome]] = []
-        for dependency in task.dependencies() {
-          dependencies.push(handles[dependency])
-        }
-        handles.push(
-          group.spawn(() => {
-            for dependency in dependencies {
-              match dependency.wait() {
-                Completed(_) => ()
-                Failed(_) | Blocked => return Blocked
+      let result : Array[TaskOutcome] = []
+      for _ in plan.tasks() {
+        result.push(Blocked)
+      }
+      for _ in 0..<jobs {
+        group.spawn(() => {
+          while true {
+            guard coordinator.next() is Some((id, is_blocked)) else { break }
+            let outcome = if is_blocked {
+              Blocked
+            } else {
+              try
+                execute_task(process, scripts, effects, plan.tasks()[id], plan)
+              catch {
+                error => Failed(error)
+              } noraise {
+                report => Completed(report)
               }
             }
-            semaphore.acquire()
-            defer semaphore.release()
-            try execute_task(process, scripts, effects, task, plan) catch {
-              error => Failed(error)
-            } noraise {
-              report => Completed(report)
-            }
-          }),
-        )
-      }
-      let result : Array[TaskOutcome] = []
-      for handle in handles {
-        result.push(handle.wait())
+            result[id] = outcome
+            coordinator.finish(
+              id,
+              match outcome {
+                Failed(_) | Blocked => true
+                Completed(_) => false
+              },
+            )
+          }
+        })
+        |> ignore
       }
       result
     }
@@ -1116,7 +1101,7 @@ pub async fn[
     stderr.push(byte)
   }
   let mut commands = 0
-  for id in schedule.order() {
+  for id in coordinator.output_order() {
     match outcomes[id] {
       Completed(report) => commands += append_report(stdout, stderr, report)
       Failed(failure) => {
@@ -1496,61 +1481,49 @@ pub async fn[
   if jobs <= 0 {
     raise live_cache_failure("execution plan jobs must be positive")
   }
-  let specs : Array[@scheduler.TaskSpec] = []
-  for index, task in plan.tasks() {
-    if task.id() != index {
-      raise live_cache_failure("execution task ids must be dense and ordered")
-    }
-    for dependency in task.dependencies() {
-      if dependency >= task.id() {
-        raise live_cache_failure(
-          "execution task dependencies must precede the task",
-        )
-      }
-    }
-    specs.push(
-      @scheduler.TaskSpec::new(
-        task.id(),
-        task.order(),
-        dependencies=task.dependencies().to_owned(),
-      ),
-    )
-  }
-  let schedule = @scheduler.build_schedule(specs, jobs) catch {
-    _ => raise live_cache_failure("invalid execution task graph")
+  let coordinator = match execution_coordinator(plan.tasks(), jobs) {
+    Some(value) => value
+    None => raise live_cache_failure("invalid execution task graph")
   }
   let outcomes = try
     @async.with_task_group() <| group => {
-      let semaphore = @async.Semaphore(jobs)
-      let handles : Array[@async.Task[LiveTaskOutcome]] = []
-      for task in plan.tasks() {
-        let dependencies : Array[@async.Task[LiveTaskOutcome]] = []
-        for dependency in task.dependencies() {
-          dependencies.push(handles[dependency])
-        }
-        handles.push(
-          group.spawn(() => {
-            for dependency in dependencies {
-              match dependency.wait() {
-                LiveCompleted(_) => ()
-                LiveFailed(_) | LiveBlocked => return LiveBlocked
+      let result : Array[LiveTaskOutcome] = []
+      for _ in plan.tasks() {
+        result.push(LiveBlocked)
+      }
+      for _ in 0..<jobs {
+        group.spawn(() => {
+          while true {
+            guard coordinator.next() is Some((id, is_blocked)) else { break }
+            let outcome = if is_blocked {
+              LiveBlocked
+            } else {
+              try
+                execute_live_task(
+                  process,
+                  output,
+                  scripts,
+                  effects,
+                  plan.tasks()[id],
+                  plan,
+                )
+              catch {
+                error => LiveFailed(error)
+              } noraise {
+                summary => LiveCompleted(summary)
               }
             }
-            semaphore.acquire()
-            defer semaphore.release()
-            try
-              execute_live_task(process, output, scripts, effects, task, plan)
-            catch {
-              error => LiveFailed(error)
-            } noraise {
-              summary => LiveCompleted(summary)
-            }
-          }),
-        )
-      }
-      let result : Array[LiveTaskOutcome] = []
-      for handle in handles {
-        result.push(handle.wait())
+            result[id] = outcome
+            coordinator.finish(
+              id,
+              match outcome {
+                LiveFailed(_) | LiveBlocked => true
+                LiveCompleted(_) => false
+              },
+            )
+          }
+        })
+        |> ignore
       }
       result
     }
@@ -1561,7 +1534,7 @@ pub async fn[
     value => value
   }
   let mut commands = 0
-  for id in schedule.order() {
+  for id in coordinator.output_order() {
     match outcomes[id] {
       LiveCompleted(summary) => commands += summary.commands()
       LiveFailed(failure) =>
