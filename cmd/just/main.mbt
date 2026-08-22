@@ -815,6 +815,26 @@ fn failed_command_argv() -> Array[String] {
 }
 
 ///|
+#cfg(platform="windows")
+fn command_test_host() -> @host.FakeHost {
+  let current = @env.current_dir().unwrap_or(".")
+  @host.FakeHost::new(
+    try! @path.PathValue::new(current, Windows),
+    @host.PlatformInfo::new(Windows, "test", Windows),
+  )
+}
+
+///|
+#cfg(not(platform="windows"))
+fn command_test_host() -> @host.FakeHost {
+  let current = @env.current_dir().unwrap_or(".")
+  @host.FakeHost::new(
+    try! @path.PathValue::new(current, Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+}
+
+///|
 async test "cli dispatch covers successful run initialization and arbitrary commands" {
   let run_host = test_host(false)
   run_host.put_file(
@@ -835,11 +855,8 @@ async test "cli dispatch covers successful run initialization and arbitrary comm
     ),
   )
 
+  let command_host = command_test_host()
   let current = @env.current_dir().unwrap_or(".")
-  let command_host = @host.FakeHost::new(
-    try! @path.PathValue::new(current, Unix),
-    @host.PlatformInfo::new(Linux, "test", Unix),
-  )
   command_host.put_file(
     try! @path.PathValue::new(current + "/justfile", Unix),
     b"export TOKEN := 'coverage'\n",
