@@ -215,6 +215,7 @@ jobs:
           MOONJUST_NATIVE_CANDIDATE: ${{ github.workspace }}/_build/native/debug/build/cmd/just/just.exe
           MOONJUST_WASM_CANDIDATE: ${{ github.workspace }}/_build/shared-wasm/just.wasm
           MOONJUST_PLATFORM_SKIP_TESTS: "1"
+        shell: bash
         run: |
           tasks=(--task platform --task wasm-platform)
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
