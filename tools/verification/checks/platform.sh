@@ -30,10 +30,11 @@ esac
 run_cli() {
   local label=$1
   shift
-  echo "platform probe: $label" >&2
   if [ "$windows_runner" -eq 1 ]; then
-    timeout --foreground 60s "$cli" "$@"
+    python3 "$repo_root/tools/verification/probe.py" \
+      --cwd "$PWD" --label "$label" --timeout 60 -- "$cli" "$@"
   else
+    echo "platform probe: $label" >&2
     "$cli" "$@"
   fi
 }
