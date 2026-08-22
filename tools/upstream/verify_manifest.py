@@ -20,6 +20,7 @@ EXPECTED_LEXER_REGISTRATIONS = 93
 EXPECTED_TEST_LIST_SHA256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
 MAP_SCHEMA_VERSION = 4
 HARNESS_SCHEMA_VERSION = 4
+CONTRACT_SCHEMA_VERSIONS = {1, 2}
 VERIFIED_DISPOSITIONS = {"verified-differential", "verified-contract"}
 OWNER_AREAS = {
     "lexer",
@@ -629,7 +630,7 @@ def validate() -> None:
         "HostEnv::env_entries(environment_host)" in main_source,
         "production CLI does not pass the HostEnv snapshot to argparse",
     )
-    platform_gate = (repo / "tools/checks/platform.sh").read_text(encoding="utf-8")
+    platform_gate = (repo / "tools/verification/checks/platform.sh").read_text(encoding="utf-8")
     for required_probe in ("JUST_YES=1", "JUST_JUSTFILE=-"):
         expect(
             required_probe in platform_gate,
@@ -933,13 +934,18 @@ def validate_release(contract_results: Path) -> None:
     actual_executions = {(row.get("case_id"), row.get("target")) for row in executions}
     expect(actual_executions == expected_executions, "contract execution target matrix differs")
     contract_by_id = {row["id"]: row for row in contract_rows}
+    candidate_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
     for execution in executions:
         row = contract_by_id[execution["case_id"]]
-        expect(execution.get("schema_version") == 1, f"contract result schema changed for {row['id']}")
+        expect(execution.get("schema_version") in CONTRACT_SCHEMA_VERSIONS, f"contract result schema changed for {row['id']}")
         expect(execution.get("passed") is True, f"contract execution failed for {row['id']}")
         expect(execution.get("upstream_commit") == EXPECTED_COMMIT, f"contract source commit changed for {row['id']}")
         expect(execution.get("upstream_name") == row["upstream_name"], f"contract upstream name changed for {row['id']}")
         expect(execution.get("upstream_source") == row["upstream_source"], f"contract source provenance changed for {row['id']}")
+        if execution.get("schema_version") == 2:
+            expect(execution.get("commit_sha") == candidate_commit, f"contract candidate commit changed for {row['id']}")
     expect(
         not incomplete,
         incomplete_release_message(incomplete),

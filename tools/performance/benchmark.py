@@ -369,8 +369,12 @@ def balanced_orders(kinds: Iterable[str], count: int, seed: int) -> list[tuple[s
 def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
     recipes10 = root / "recipes-10.just"
     recipes10.write_text("".join(f"r{index:04d}:\n" for index in range(10)))
+    recipes100 = root / "recipes-100.just"
+    recipes100.write_text("".join(f"r{index:04d}:\n" for index in range(100)))
     recipes1000 = root / "recipes-1000.just"
     recipes1000.write_text("".join(f"r{index:04d}:\n" for index in range(1000)))
+    recipes5000 = root / "recipes-5000.just"
+    recipes5000.write_text("".join(f"r{index:04d}:\n" for index in range(5000)))
     dag = root / "dag-1000.just"
     dag.write_text(
         "root: " + " ".join(f"node{index:04d}" for index in range(999)) + "\n"
@@ -384,7 +388,9 @@ def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
     return {
         "startup": (recipes10, ["--version"]),
         "recipes-10": (recipes10, ["--summary"]),
+        "recipes-100": (recipes100, ["--summary"]),
         "recipes-1000": (recipes1000, ["--summary"]),
+        "recipes-5000": (recipes5000, ["--summary"]),
         "check": (recipes1000, ["--fmt", "--check"]),
         "format": (recipes1000, ["--fmt"]),
         "dag-1000": (dag, ["--dry-run", "root"]),
@@ -521,6 +527,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--authoritative", action="store_true")
     parser.add_argument("--report-only", action="store_true")
+    parser.add_argument("--workload")
     return parser.parse_args()
 
 
@@ -587,7 +594,12 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
         fixtures = write_fixtures(root)
-        for workload, (fixture, arguments) in fixtures.items():
+        selected_fixtures = fixtures
+        if args.workload:
+            if args.workload not in fixtures:
+                raise RuntimeError(f"unknown benchmark workload: {args.workload}")
+            selected_fixtures = {args.workload: fixtures[args.workload]}
+        for workload, (fixture, arguments) in selected_fixtures.items():
             fixtures_record[workload] = {
                 "sha256": sha256(fixture),
                 "bytes": fixture.stat().st_size,

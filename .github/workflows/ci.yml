@@ -13,14 +13,43 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  MOONJUST_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
-  quality:
-    name: Quality gates
+  fast:
+    name: Fast gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
+          fetch-depth: 0
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: latest
+      - run: moon update
+      - name: Run fast tier
+        run: python3 tools/runner.py run --mode fast --evidence _build/verification/fast.json
+      - name: Validate exact-head evidence
+        run: python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/fast.json
+      - name: Upload fast evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-verification-fast
+          path: _build/verification/fast.json
+          if-no-files-found: error
+
+  verify:
+    name: Verify gate
+    needs: fast
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
 
       - name: Install MoonBit
@@ -40,31 +69,6 @@ jobs:
           moon -C spikes/host-async update
           moon -C spikes/ecosystem update
 
-      - name: Check formatting
-        run: moon fmt --check
-
-      - name: Verify architecture boundaries
-        run: ./tools/checks/architecture.sh
-
-      - name: Verify compatibility snapshot
-        run: ./tools/upstream/verify_snapshot.sh
-
-      - name: Test differential harness
-        run: ./tools/differential/self_test.sh
-
-      - name: Test release and measurement tooling
-        shell: bash
-        run: |
-          for test in tools/performance/*_test.py tools/quality/*_test.py tools/release/*_test.py tools/upstream/*_test.py; do
-            python3 "$test"
-          done
-
-      - name: Verify async Host capability spike
-        run: ./tools/spikes/check_host_async.sh
-
-      - name: Verify parser ecosystem spike
-        run: ./tools/spikes/check_ecosystem.sh
-
       - name: Cache pinned upstream oracle
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -74,58 +78,20 @@ jobs:
             _build/upstream/just-1.57.0
           key: just-1.57.0-e01a6bd7-907adacb
 
-      - name: Test real upstream differential smoke
-        run: ./tools/differential/real_smoke.sh
+      - name: Run unified verify runner
+        run: python3 tools/runner.py run --mode verify --tier-only --evidence _build/verification/verify.json
 
-      - name: Verify Evaluator builtin oracle
-        run: python3 ./tools/upstream/evaluator_oracle.py --upstream ./_build/upstream/just-1.57.0/target/release/just
-
-      - name: Check all stable backends
-        run: moon check --target all --warn-list +73
-
-      - name: Verify Wasm inspect policy
-        run: ./tools/checks/inspect.sh
-
-      - name: Verify HostFs policies
-        run: ./tools/checks/hostfs.sh
-
-      - name: Verify Dotenv differential
-        run: ./tools/checks/dotenv.sh
-
-      - name: Verify Invocation differential
-        run: ./tools/checks/invocation.sh
-
-      - name: Verify Working-directory differential
-        run: ./tools/checks/workdir.sh
-
-      - name: Verify Environment composition differential
-        run: ./tools/checks/environment.sh
-
-      - name: Verify Executor
-        run: ./tools/checks/executor.sh
-
-      - name: Verify Scheduler and cache runtime
-        run: ./tools/checks/runtime.sh
-
-      - name: Verify Query compatibility
-        run: ./tools/checks/query.sh
-
-      - name: Verify public interfaces
-        run: |
-          moon info
-          git diff --exit-code
-
-      - name: Test Native
-        run: ./tools/checks/test_target.sh native
-
-      - name: Test wasm1
-        run: ./tools/checks/test_target.sh wasm
-
-      - name: Smoke-test Native CLI
-        run: moon run --target native cmd/just -- --version
-
-      - name: Smoke-test wasm1 CLI
-        run: moon run --target wasm cmd/just -- --version
+      - name: Validate exact-head evidence
+        run: python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/verify.json
+      - name: Upload verify evidence and registry
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-verification-verify
+          path: |
+            _build/verification/verify.json
+            _build/verification/registry/*.json
+          if-no-files-found: error
 
       - name: Upload async lifecycle evidence
         if: always()
@@ -143,6 +109,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
@@ -193,6 +161,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
 
       - name: Install MoonBit
@@ -235,24 +204,22 @@ jobs:
               raise SystemExit("shared wasm1 checksum mismatch")
           PY
 
-      - name: Test Native
-        run: ./tools/checks/test_target.sh native
+      - name: Run Native verification tier
+        run: python3 tools/runner.py run --mode verify --no-build --task native-tests --task native-version --evidence _build/verification/platform-verify.json
 
-      - name: Smoke-test Native CLI
-        run: moon run --target native cmd/just -- --version
+      - name: Run platform compatibility tier
+        env:
+          MOONJUST_NATIVE_CANDIDATE: ${{ github.workspace }}/_build/native/debug/build/cmd/just/just.exe
+          MOONJUST_WASM_CANDIDATE: ${{ github.workspace }}/_build/shared-wasm/just.wasm
+        run: python3 tools/runner.py run --mode compat --tier-only --no-build --task platform --task official-harness --evidence _build/verification/platform-compat.json
 
-      - name: Verify Native platform behavior
-        shell: bash
-        run: ./tools/checks/platform.sh
-
-      - name: Verify Native and shared wasm1 against the pinned official suite
-        shell: bash
+      - name: Validate platform evidence
         run: |
-          python3 ./tools/upstream/run_official_harness.py \
-            --native-candidate "$GITHUB_WORKSPACE/_build/native/debug/build/cmd/just/just.exe" \
-            --wasm-candidate "$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm"
+          python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/platform-verify.json
+          python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/platform-compat.json
 
       - name: Build and verify Release artifact
+        if: github.event_name != 'pull_request'
         shell: bash
         env:
           MOONJUST_BUILDER_ID: https://github.com/moonbit-community/MoonJust/.github/workflows/ci.yml
@@ -300,7 +267,7 @@ jobs:
             --output "_build/release/artifact-size-$platform.json"
 
       - name: Upload Release artifact
-        if: always()
+        if: github.event_name != 'pull_request' && always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-ci-${{ matrix.platform }}
@@ -310,6 +277,7 @@ jobs:
             _build/release/build-*.json
             _build/release/artifact-size-*.json
             _build/release/repeatability-*.json
+            _build/verification/*.json
             _build/size-baseline.json
             _build/release/build/native/release/build/cmd/just/just.exe
             _build/upstream-harness/**
@@ -321,32 +289,48 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - run: moon update
       - run: moon install
-      - name: Build pinned official source
-        run: ./tools/upstream/build_oracle.sh
       - name: Execute every unique contract on native and wasm1
-        run: python3 ./tools/upstream/run_contract_harness.py
+        run: python3 tools/runner.py run --mode release --tier-only --task contracts --evidence _build/verification/contracts.json
       - name: Upload contract results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-contract-evidence
-          path: _build/upstream-contracts/results.jsonl
+          path: |
+            _build/upstream-contracts/results.jsonl
+            _build/upstream-contracts/batches.jsonl
+            _build/verification/contracts.json
           if-no-files-found: error
       - name: Enforce strict registration evidence
         run: python3 ./tools/upstream/verify_manifest.py --release
 
+  compat:
+    name: Compatibility gate
+    if: always()
+    needs: [verify, native-platforms, contract-evidence]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce compatibility prerequisites
+        run: |
+          test "${{ needs.verify.result }}" = success
+          test "${{ needs['native-platforms'].result }}" = success
+          test "${{ needs['contract-evidence'].result }}" = success
+
   coverage-native:
     name: Production coverage (Native)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
@@ -354,7 +338,7 @@ jobs:
       - run: moon update
       - run: moon install
       - name: Measure Native coverage
-        run: ./tools/checks/coverage_target.sh native
+        run: python3 tools/runner.py coverage --target native
       - name: Upload Native coverage evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -368,10 +352,12 @@ jobs:
 
   coverage-wasm:
     name: Production coverage (Wasm)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
@@ -379,7 +365,7 @@ jobs:
       - run: moon update
       - run: moon install
       - name: Measure Wasm coverage
-        run: ./tools/checks/coverage_target.sh wasm
+        run: python3 tools/runner.py coverage --target wasm
       - name: Upload Wasm coverage evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -394,11 +380,12 @@ jobs:
   coverage-merge:
     name: Production coverage (Merge)
     needs: [coverage-native, coverage-wasm]
-    if: always()
+    if: github.event_name != 'pull_request' && always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
         with:
@@ -411,13 +398,7 @@ jobs:
       - name: Merge and enforce production coverage
         run: |
           coverage_base=$(tr -d '[:space:]' < compat/stage0-coverage-baseline.sha)
-          python3 ./tools/quality/merge_coverage.py \
-            _build/coverage/native.raw.xml _build/coverage/wasm.raw.xml \
-            --repo "$GITHUB_WORKSPACE" \
-            --cobertura _build/coverage/cobertura.xml \
-            --summary _build/coverage/summary.json \
-            --baseline "$GITHUB_WORKSPACE/compat/coverage-baseline.json" \
-            --base "$coverage_base"
+          python3 tools/runner.py coverage --target merge --base "$coverage_base"
       - name: Upload merged coverage evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -428,10 +409,12 @@ jobs:
 
   performance-trend:
     name: Hosted Linux performance trend
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
@@ -441,7 +424,7 @@ jobs:
           moon update
           moon install
       - name: Run non-authoritative interleaved benchmark
-        run: ./tools/checks/performance.sh --report-only
+        run: python3 tools/runner.py measure --report-only --output _build/performance/results.json
       - name: Upload trend evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -452,12 +435,13 @@ jobs:
 
   release-evidence:
     name: Aggregate release evidence
-    if: always()
-    needs: [quality, wasm1-shared, native-platforms, contract-evidence, coverage-merge, performance-trend]
+    if: github.event_name != 'pull_request' && always()
+    needs: [fast, verify, compat, wasm1-shared, native-platforms, contract-evidence, coverage-merge, performance-trend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
         continue-on-error: true
@@ -530,7 +514,9 @@ jobs:
         shell: bash
         run: |
           for result in \
-            "${{ needs.quality.result }}" \
+            "${{ needs.fast.result }}" \
+            "${{ needs.verify.result }}" \
+            "${{ needs.compat.result }}" \
             "${{ needs['wasm1-shared'].result }}" \
             "${{ needs['native-platforms'].result }}" \
             "${{ needs['contract-evidence'].result }}" \

@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 release_dir="$repo_root/tools/release"
 manifest="$repo_root/compat/release-readiness.toml"
 version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' "$repo_root/moon.mod")
@@ -37,13 +37,12 @@ source_archive="$repo_root/_build/package/moonbit-community-MoonJust-$version.zi
 [ -f "$source_archive" ] || source_archive="$repo_root/_build/publish/moonbit-community-MoonJust-$version.zip"
 [ -f "$source_archive" ] || fail "moon package archive is missing"
 python3 "$release_dir/verify_source_package.py" --archive "$source_archive"
-moon build --frozen --release --strip --target native cmd/just
-moon build --frozen --release --strip --target wasm cmd/just
+python3 "$repo_root/tools/runner.py" build --target native --profile release
+python3 "$repo_root/tools/runner.py" build --target wasm1 --profile release
 MOONJUST_NATIVE_CANDIDATE="$repo_root/_build/native/release/build/cmd/just/just.exe" \
 MOONJUST_WASM_CANDIDATE="$repo_root/_build/wasm/release/build/cmd/just/just.wasm" \
-"$repo_root/tools/checks/compatibility.sh"
-"$repo_root/tools/checks/coverage.sh"
-"$repo_root/tools/checks/performance.sh"
+"$repo_root/tools/verification/checks/compatibility.sh"
+"$repo_root/tools/verification/checks/coverage.sh"
 platform=$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
 case "$platform" in
   darwin-arm64) platform=macos-aarch64 ;;

@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 oracle_root="$repo_root/_build/upstream/just-1.57.0"
 oracle="${MOONJUST_ORACLE_CANDIDATE:-$oracle_root/target/release/just}"
 native="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"

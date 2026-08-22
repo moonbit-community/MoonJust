@@ -8,6 +8,7 @@ permissions:
 
 env:
   MOONJUST_BUILDER_ID: https://github.com/moonbit-community/MoonJust/.github/workflows/release.yml
+  MOONJUST_EXPECTED_HEAD_SHA: ${{ github.sha }}
 
 jobs:
   correctness:
@@ -16,6 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
           persist-credentials: false
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
@@ -31,23 +33,15 @@ jobs:
       - run: moon update
       - run: moon install
       - name: Verify source and generated interfaces
-        shell: bash
-        run: |
-          moon fmt --check
-          ./tools/checks/architecture.sh
-          ./tools/upstream/verify_snapshot.sh
-          ./tools/differential/self_test.sh
-          moon check --target all --warn-list +73
-          ./tools/checks/test_target.sh native
-          ./tools/checks/test_target.sh wasm
-          moon info
-          git diff --exit-code
+        run: python3 tools/runner.py run --mode verify --evidence _build/verification/release-correctness.json
       - name: Verify measurement tooling
         shell: bash
         run: |
-          for test in tools/performance/*_test.py tools/quality/*_test.py tools/release/*_test.py tools/upstream/*_test.py; do
+          for test in tools/performance/*_test.py tools/quality/*_test.py tools/release/*_test.py tools/upstream/*_test.py tools/verification/*_test.py; do
             python3 "$test"
           done
+      - name: Validate exact-head evidence
+        run: python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/release-correctness.json
 
   wasm-asset:
     name: Ubuntu MoonX wasm1 asset
@@ -59,6 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           persist-credentials: false
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
@@ -124,6 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
           persist-credentials: false
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
@@ -159,8 +155,8 @@ jobs:
       - name: Verify native and shared wasm1 behavior
         shell: bash
         run: |
-          ./tools/checks/test_target.sh native
-          ./tools/checks/platform.sh
+          python3 tools/runner.py run --mode verify --no-build --task native-tests --task native-version --evidence _build/verification/release-native.json
+          python3 tools/runner.py run --mode compat --no-build --task platform --evidence _build/verification/release-platform.json
           python3 ./tools/upstream/run_official_harness.py \
             --native-candidate "$GITHUB_WORKSPACE/_build/native/debug/build/cmd/just/just.exe" \
             --wasm-candidate "$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm"
@@ -235,6 +231,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
@@ -259,13 +256,14 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - run: moon update
       - run: moon install
-      - run: ./tools/checks/coverage_target.sh native
+      - run: python3 tools/runner.py coverage --target native
       - name: Upload Native coverage report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -283,13 +281,14 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - run: moon update
       - run: moon install
-      - run: ./tools/checks/coverage_target.sh wasm
+      - run: python3 tools/runner.py coverage --target wasm
       - name: Upload Wasm coverage report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -309,6 +308,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
         with:
@@ -343,6 +343,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
@@ -353,19 +354,24 @@ jobs:
       - name: Build frozen comparison pair
         env:
           MOONJUST_PERF_BASE: d0038b0
-        run: ./tools/performance/build_merge_base.sh
+        run: ./tools/verification/benchmarks/build_merge_base.sh
       - name: Capture Linux CPU profiles
         run: |
-          ./tools/performance/profile.sh recipes-1000
-          ./tools/performance/profile.sh check
-          ./tools/performance/profile.sh format
-          ./tools/performance/profile.sh dag-1000
+          ./tools/verification/benchmarks/profile.sh recipes-1000
+          ./tools/verification/benchmarks/profile.sh check
+          ./tools/verification/benchmarks/profile.sh format
+          ./tools/verification/benchmarks/profile.sh dag-1000
       - name: Run authoritative interleaved benchmark
         env:
           MOONJUST_PERF_AUTHORITATIVE: "1"
           MOONJUST_BASELINE_NATIVE: ${{ github.workspace }}/_build/performance/merge-base/just-native
           MOONJUST_BASELINE_WASM: ${{ github.workspace }}/_build/performance/merge-base/just.wasm
-        run: ./tools/checks/performance.sh
+        run: |
+          python3 tools/runner.py measure \
+            --authoritative \
+            --baseline-native "$MOONJUST_BASELINE_NATIVE" \
+            --baseline-wasm "$MOONJUST_BASELINE_WASM" \
+            --output _build/performance/results.json
       - name: Upload performance report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -382,6 +388,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
         continue-on-error: true

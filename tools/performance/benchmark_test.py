@@ -36,7 +36,9 @@ class BenchmarkTest(unittest.TestCase):
                 [
                     "startup",
                     "recipes-10",
+                    "recipes-100",
                     "recipes-1000",
+                    "recipes-5000",
                     "check",
                     "format",
                     "dag-1000",

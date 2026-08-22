@@ -9,7 +9,7 @@ acceptance tests are explicit.
 
 1. Install the toolchain versions listed in `README.mbt.md`.
 2. Enable the repository hook with `git config core.hooksPath .githooks`.
-3. Run `./tools/check.sh` before opening a pull request.
+3. Run `python3 tools/runner.py run --mode verify` before opening a pull request.
 
 ## Pull requests
 

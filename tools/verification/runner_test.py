@@ -22,7 +22,7 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(runner.mode_commands("fast")[0], ("moon", "fmt", "--check"))
         self.assertLess(len(runner.mode_commands("fast")), len(runner.mode_commands("verify")))
         self.assertEqual(runner.mode_commands("verify"), runner.mode_commands("verify"))
-        self.assertIn(("./tools/checks/compatibility.sh",), runner.mode_commands("compat"))
+        self.assertIn(("./tools/verification/checks/compatibility.sh",), runner.mode_commands("compat"))
 
     def test_build_registry_claims_a_key_once(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -49,6 +49,50 @@ class RunnerTest(unittest.TestCase):
             self.assertFalse(third["reused"])
             marker = next((root / "registry").glob("*.json"))
             self.assertEqual(json.loads(marker.read_text())["sha256"], runner.sha256(artifact))
+
+    def test_build_key_requires_full_provenance(self) -> None:
+        with self.assertRaises(ValueError):
+            runner.build_key({"commit_sha": "abc"})
+
+    def test_build_spec_is_target_and_profile_specific(self) -> None:
+        command, artifact, flags = runner.build_spec(Path("/repo"), "wasm1", "release")
+        self.assertEqual(command[:3], ("moon", "build", "--frozen"))
+        self.assertIn("--target", command)
+        self.assertEqual(command[command.index("--target") + 1], "wasm")
+        self.assertTrue(str(artifact).endswith("_build/wasm/release/build/cmd/just/just.wasm"))
+        self.assertIn("--strip", flags)
+
+    def test_evidence_validation_rejects_wrong_head(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "evidence.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "run_id": "run",
+                        "stage": "fast",
+                        "mode": "fast",
+                        "commit_sha": "a" * 40,
+                        "tree_sha": "b" * 40,
+                        "baseline_sha": None,
+                        "host": {},
+                        "target": "all",
+                        "profile": "debug",
+                        "toolchain": {},
+                        "dependencies": {},
+                        "registry_refs": [],
+                        "artifact_hashes": {},
+                        "started_at": 0,
+                        "duration_ms": 0,
+                        "exit_code": 0,
+                        "status": "passed",
+                        "classification": "correctness",
+                        "measurements": {"tasks": []},
+                    }
+                )
+            )
+            with self.assertRaises(ValueError):
+                runner.validate_evidence(path, "c" * 40)
 
 
 if __name__ == "__main__":

@@ -116,7 +116,7 @@ moonrun --policy policies/inspect.toml \
 ### Run the release gate
 
 ```bash
-./tools/check.sh
+python3 tools/runner.py run --mode release
 ```
 
 The gate checks architecture boundaries, pinned upstream metadata, the
@@ -201,7 +201,7 @@ moon test --target native
 moon test --target wasm
 moon info
 moon fmt
-./tools/check.sh
+python3 tools/runner.py run --mode verify
 ```
 
 Before opening a PR, review generated `.mbti` diffs, run the applicable

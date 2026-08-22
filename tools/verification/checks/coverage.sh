@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 cd "$repo_root"
 out="$repo_root/_build/coverage"
 report_only=
@@ -22,8 +22,8 @@ base_args=()
 if [ -n "$coverage_base" ]; then
   base_args+=(--base "$coverage_base")
 fi
-"$repo_root/tools/checks/coverage_target.sh" native
-"$repo_root/tools/checks/coverage_target.sh" wasm
+"$repo_root/tools/verification/checks/coverage_target.sh" native
+"$repo_root/tools/verification/checks/coverage_target.sh" wasm
 python3 "$repo_root/tools/quality/merge_coverage.py" \
   "$out/native.raw.xml" "$out/wasm.raw.xml" \
   --repo "$repo_root" \

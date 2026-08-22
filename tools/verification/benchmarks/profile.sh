@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 workload=${1:-recipes-1000}
 out="$repo_root/_build/performance/profile-$workload"
 fixture="$out/justfile"

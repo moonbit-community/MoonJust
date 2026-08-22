@@ -15,5 +15,5 @@ To use this pre-commit hook:
    git config core.hooksPath .githooks
    ```
 
-2. Commit normally. The hook invokes `./tools/check.sh` and stops the commit on
+2. Commit normally. The hook invokes `python3 tools/runner.py run --mode fast` and stops the commit on
    formatting, type-checking, test, or CLI smoke failures.

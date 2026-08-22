@@ -37,7 +37,7 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
 - Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10-11 已于 2026-08-13 完成本地实现、远端 CI、二次严格复核、合并和 protected-main CI。Phase 11 的非发布候选制品与 OIDC 证明工作流亦已通过。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。
-- pre-commit 与 GitHub Actions 共用 `tools/check.sh` 的确定性质量门禁，并增加三平台 Native smoke。
+- pre-commit 与 GitHub Actions 共用 `python3 tools/runner.py run --mode verify` 的确定性质量门禁，并增加三平台 Native smoke。
 - 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
 
 ### 2.2 工具链

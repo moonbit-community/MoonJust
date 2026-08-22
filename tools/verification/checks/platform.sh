@@ -2,7 +2,7 @@
 set -euo pipefail
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 work=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-platform.XXXXXX")
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
 

@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 base_ref=${MOONJUST_PERF_BASE:-HEAD^}
 out=${MOONJUST_PERF_BASE_OUT:-"$repo_root/_build/performance/merge-base"}
 if [ "$base_ref" = "0000000000000000000000000000000000000000" ]; then

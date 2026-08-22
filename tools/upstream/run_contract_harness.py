@@ -6,13 +6,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import platform
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 
 
@@ -26,6 +29,11 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def digest(value: object) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def contracts(path: Path) -> list[dict[str, object]]:
@@ -73,6 +81,7 @@ def main() -> int:
         type=Path,
         default=root() / "_build/upstream-contracts/results.jsonl",
     )
+    parser.add_argument("--batch-output", type=Path)
     args = parser.parse_args()
     rows = contracts(args.map.resolve())
     if args.case is not None:
@@ -88,6 +97,21 @@ def main() -> int:
     ).stdout.strip()
     if commit != UPSTREAM_COMMIT:
         raise ValueError(f"upstream source is {commit}, expected {UPSTREAM_COMMIT}")
+    moonjust_commit = subprocess.run(
+        ["git", "-C", str(root()), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    moonjust_tree = subprocess.run(
+        ["git", "-C", str(root()), "rev-parse", "HEAD^{tree}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    toolchain = subprocess.run(
+        ["moon", "version", "--all"], cwd=root(), check=True, capture_output=True, text=True
+    ).stdout.strip()
 
     batches: dict[tuple[str, str], list[dict[str, object]]] = {}
     for row in rows:
@@ -101,6 +125,7 @@ def main() -> int:
             batches.setdefault((target, str(anchor["suite"])), []).append(row)
 
     results: list[dict[str, object]] = []
+    batches_output: list[dict[str, object]] = []
     failed = False
     for (target, suite), batch_rows in sorted(batches.items()):
         target_name = "wasm1" if target == "wasm" else target
@@ -114,6 +139,7 @@ def main() -> int:
             "--no-parallelize",
         ]
         started = time.monotonic_ns()
+        started_at = time.time()
         result = subprocess.run(
             command,
             cwd=root(),
@@ -141,11 +167,75 @@ def main() -> int:
             f"exit={result.returncode}: {detail}",
             file=sys.stdout if passed else sys.stderr,
         )
+        command_record = {
+            "argv": command,
+            "cwd": ".",
+            "env_digest": digest({key: os.environ[key] for key in ("CI", "GITHUB_ACTIONS") if key in os.environ}),
+        }
+        batch_run_id = f"{moonjust_commit[:12]}-{uuid.uuid4().hex[:12]}"
+        batches_output.append(
+            {
+                "schema_version": 2,
+                "runner_version": "2.0",
+                "run_id": batch_run_id,
+                "stage": "compat",
+                "mode": "contract",
+                "commit_sha": moonjust_commit,
+                "tree_sha": moonjust_tree,
+                "baseline_sha": None,
+                "host": {"system": platform.system(), "machine": platform.machine()},
+                "profile": "debug",
+                "toolchain": {"value": toolchain, "digest": digest(toolchain)},
+                "dependencies": {"digest": digest({}), "manifests": []},
+                "registry_refs": [],
+                "artifact_hashes": {},
+                "started_at": started_at,
+                "batch_id": batch_id,
+                "target": target_name,
+                "suite": suite,
+                "case_ids": [row["id"] for row in batch_rows],
+                "case_count": len(batch_rows),
+                "command": command_record,
+                "started_at_ns": started,
+                "duration_ms": elapsed_ms,
+                "exit_code": result.returncode,
+                "status": "passed" if passed else "failed",
+                "classification": "correctness",
+                "measurements": {
+                    "case_ids": [row["id"] for row in batch_rows],
+                    "stdout_sha256": hashlib.sha256(result.stdout.encode("utf-8")).hexdigest(),
+                    "stderr_sha256": hashlib.sha256(result.stderr.encode("utf-8")).hexdigest(),
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                },
+            }
+        )
+        stdout_digest = hashlib.sha256(result.stdout.encode("utf-8")).hexdigest()
+        stderr_digest = hashlib.sha256(result.stderr.encode("utf-8")).hexdigest()
         for row in batch_rows:
             anchor = row["test_anchor"]
             assert isinstance(anchor, dict)
             record = {
                 "schema_version": SCHEMA_VERSION,
+                "runner_version": "2.0",
+                "run_id": f"{moonjust_commit[:12]}-{uuid.uuid4().hex[:12]}",
+                "stage": "compat",
+                "mode": "contract",
+                "commit_sha": moonjust_commit,
+                "tree_sha": moonjust_tree,
+                "baseline_sha": None,
+                "host": {
+                    "system": platform.system(),
+                    "machine": platform.machine(),
+                },
+                "profile": "debug",
+                "toolchain": {"value": toolchain, "digest": digest(toolchain)},
+                "dependencies": {"digest": digest({}), "manifests": []},
+                "registry_refs": [],
+                "artifact_hashes": {},
+                "started_at": started_at,
+                "duration_ms": elapsed_ms,
+                "exit_code": result.returncode,
                 "case_id": row["id"],
                 "upstream_name": row["upstream_name"],
                 "upstream_commit": UPSTREAM_COMMIT,
@@ -154,17 +244,32 @@ def main() -> int:
                 "suite": anchor["suite"],
                 "test_name": anchor["test_name"],
                 "passed": passed,
+                "status": "passed" if passed else "failed",
+                "classification": "correctness",
                 "batch_id": batch_id,
                 "batch_case_count": len(batch_rows),
                 "batch_elapsed_ms": elapsed_ms,
-                "command": command,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
+                "command": command_record,
+                "batch_evidence": "batches.jsonl",
+                "stdout_sha256": stdout_digest,
+                "stderr_sha256": stderr_digest,
+                "measurements": {
+                    "case_id": row["id"],
+                    "input_digest": digest({"upstream_name": row["upstream_name"], "anchor": anchor}),
+                    "expected_result": {"passed": True, "target": target_name},
+                    "batch_id": batch_id,
+                },
             }
             results.append(record)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in results),
+        encoding="utf-8",
+    )
+    batch_output = args.batch_output or args.output.with_name("batches.jsonl")
+    batch_output.parent.mkdir(parents=True, exist_ok=True)
+    batch_output.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in batches_output),
         encoding="utf-8",
     )
     print(f"contract results written to {args.output}")

@@ -186,6 +186,8 @@ def toolchain_summary(
         if isinstance(entry, dict) and isinstance(entry.get("toolchain"), str):
             sources[f"coverage/{target}"] = str(entry["toolchain"])
     performance_value = performance.get("summary", {})
+    if isinstance(performance_value, dict) and isinstance(performance_value.get("measurements"), dict):
+        performance_value = performance_value["measurements"].get("report", performance_value)
     if isinstance(performance_value, dict):
         identity = moon_toolchain_identity(performance_value.get("moon"))
         if identity is not None:
@@ -300,7 +302,7 @@ def contract_summary(
     for execution in executions:
         case_id = str(execution.get("case_id"))
         registration = registrations_by_id.get(case_id)
-        if execution.get("schema_version") != 1:
+        if execution.get("schema_version") not in {1, 2}:
             failures.append(f"contract result schema changed for {case_id}")
         if execution.get("passed") is not True:
             failures.append(f"contract execution failed for {case_id}")
@@ -348,12 +350,17 @@ def performance_summary(
     require_authoritative: bool,
 ) -> dict[str, object]:
     value = load_json(path)
-    configuration = value.get("configuration", {})
-    machine = value.get("machine", {})
+    report = value
+    if value.get("schema_version") == 2 and isinstance(value.get("measurements"), dict):
+        nested = value["measurements"].get("report")
+        if isinstance(nested, dict):
+            report = nested
+    configuration = report.get("configuration", {})
+    machine = report.get("machine", {})
     if value.get("schema_version") not in {2, 3}:
         failures.append("performance report schema changed")
-    if require_authoritative and value.get("status") != "passed":
-        failures.append(f"authoritative performance status is {value.get('status')!r}")
+    if require_authoritative and report.get("status") != "passed":
+        failures.append(f"authoritative performance status is {report.get('status')!r}")
     if require_authoritative and (
         not isinstance(configuration, dict)
         or configuration.get("authoritative") is not True

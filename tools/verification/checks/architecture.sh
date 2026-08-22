@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 core_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation workdir scheduler cache executor application"
 async_packages="loader evaluator executor application"
 
@@ -14,15 +14,16 @@ fail() {
 for file in "$repo_root/tools"/*; do
   [ -f "$file" ] || continue
   case "$(basename "$file")" in
-    check.sh|README.md) ;;
+    README.md|runner.py) ;;
     *) fail "unexpected file at tools root: $(basename "$file")" ;;
   esac
 done
 
-for directory in checks differential oracles performance probes quality release spikes upstream verification; do
-  [ -d "$repo_root/tools/$directory" ] || \
-    fail "missing tools/$directory directory"
+for directory in differential oracles probes quality release spikes upstream verification; do
+  [ -d "$repo_root/tools/$directory" ] || fail "missing tools/$directory directory"
 done
+[ -d "$repo_root/tools/verification/checks" ] || fail "missing tools/verification/checks directory"
+[ -d "$repo_root/tools/verification/benchmarks" ] || fail "missing tools/verification/benchmarks directory"
 
 for file in "$repo_root"/*.mbt "$repo_root"/*.mbti "$repo_root/moon.pkg"; do
   [ -e "$file" ] || continue

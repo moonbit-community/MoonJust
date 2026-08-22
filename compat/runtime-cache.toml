@@ -25,7 +25,7 @@ wasm1 = "local pass: 261 tests plus scheduler/cache/runtime/store, bounded proce
 remote_ci = "pass: PR #38 run 31480537856 and post-merge main run 31480779327"
 
 [evidence]
-runtime_gate = "tools/checks/runtime.sh"
+runtime_gate = "tools/verification/checks/runtime.sh"
 case_manifest = "tests/upstream/just-1.57.0/runtime-cache-cases.jsonl"
 security_adr = "docs/adr/0008-cache-format-locking-and-hashing.md"
 completion_report = "docs/reports/PHASE_9_REPORT.md"

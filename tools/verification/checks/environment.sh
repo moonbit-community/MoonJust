@@ -2,7 +2,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
+repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 oracle="$repo_root/_build/upstream/just-1.57.0/target/release/just"
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/moonjust-environment.XXXXXX")
 trap 'rm -rf -- "$scratch"' EXIT HUP INT TERM

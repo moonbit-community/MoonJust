@@ -26,7 +26,7 @@ sources = ["src/justfile.rs", "src/expression.rs", "src/settings.rs"]
 
 [wasm]
 policy = "policies/inspect.toml"
-e2e = "tools/checks/inspect.sh"
-oracle = "tools/checks/query.sh"
+e2e = "tools/verification/checks/inspect.sh"
+oracle = "tools/verification/checks/query.sh"
 fs_write = false
 process_spawn = false
