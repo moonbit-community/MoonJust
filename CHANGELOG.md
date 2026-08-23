@@ -5,6 +5,29 @@ All notable changes to MoonJust will be documented here. The project follows
 
 ## Unreleased
 
+### MoonJust feature branch review
+
+- Replaced the former verification fan-out with the unified `tools/runner.py`
+  DAG, exact-head build registry, reusable Native/wasm artifacts and shared
+  evidence schema. Contract suites now emit one executable suite record with
+  independent case IDs and provenance.
+- Added hosted cloud-trend measurements with explicit cold/warm rounds and
+  removed the self-hosted machine as an authoritative performance gate.
+- Reduced CLI dispatch, planner/runtime coordination, source loading and
+  process-spawn duplication while preserving deterministic scheduling,
+  cancellation, cache leases, cleanup and Native/wasm behavior.
+- Closed the final macOS arm64 shared-wasm compatibility gap by normalizing
+  launcher architecture aliases to Rust-compatible `aarch64`/`x86_64` names.
+- Completed the upstream registration inventory: 2,417 rows are classified,
+  with no incomplete compatibility registration; completion and the two
+  documented Linux MoonX invalid-cwd cases remain explicit scope exclusions.
+- Completed the warning audit and added regression coverage for the portable
+  architecture boundary. The public API interface remains byte-identical.
+
+The release artifact-size gate remains a known independent exception while
+the current candidates stay around 1.1x of the frozen baseline; this does not
+change compatibility or functional claims.
+
 ### Added
 
 - Release-candidate engineering for Linux x86_64, macOS x86_64 and

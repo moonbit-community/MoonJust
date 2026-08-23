@@ -7,14 +7,12 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> MoonJust is working toward compatibility with the pinned `just 1.57.0`
-> command-line behavior on native and wasm/moonrun. Shell completion is the
-> sole feature exclusion. The platform compatibility gate is closed for the
-> supported Linux, macOS, and Windows Native runners and their shared Ubuntu
-> wasm1 asset. The official differential harness currently has zero unapproved
-> failed cases, but the strict release-evidence gate still rejects 568 upstream
-> registrations without independent executable evidence. This repository does
-> not claim full compatibility or release readiness.
+> MoonJust is compatible with the pinned `just 1.57.0` compatibility inventory
+> on supported Native and wasm1/moonrun hosts. Completion remains excluded.
+> Linux, macOS and Windows Native gates, the shared Ubuntu wasm1 asset, and the
+> official non-completion differential harness pass. Release artifacts remain
+> subject to a strict size baseline gate; publication, tagging and GitHub
+> Release creation are not automatic.
 
 ## What is delivered
 
@@ -49,6 +47,10 @@ versioned, locked across processes and atomically published after output checks.
   diagnostic-semantic, product identity, excluded completion, upstream
   ignored, not-applicable, or failed. Product identity, excluded/ignored, and
   explicitly not-applicable cases never enter the compatibility denominator.
+- The pinned inventory contains 2,417 rows: 1,792 verified differential cases,
+  580 verified contract cases, 35 excluded completion cases, and 10 explicit
+  product/upstream-internal not-applicable cases. No compatibility row remains
+  incomplete or unregistered.
 - Current platform evidence covers Linux x86_64, macOS arm64, and Windows
   x86_64 Native candidates plus one Ubuntu-built wasm1 asset downloaded by all
   three Native jobs. The platform gate and official non-completion harness
@@ -65,6 +67,12 @@ versioned, locked across processes and atomically published after output checks.
   [`tools/upstream/README.md`](tools/upstream/README.md).
 - Native signal qualification activates the pinned ignored signal suite,
   including forwarding and SIGINFO where the host supports it.
+- Hosted cloud-trend benchmarks cover Linux x86_64, macOS arm64 and Windows
+  x86_64 with three cold/warm rounds. They are comparable trend evidence, not
+  machine-independent absolute timing claims. The current release candidates
+  are approximately 1.06x–1.12x the frozen artifact-size baseline; the strict
+  size gate is intentionally reported separately from compatibility and
+  performance gates.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 
@@ -76,6 +84,9 @@ is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 The current platform-only closure, including CI evidence and the accepted
 MoonX host limitation, is documented in
 [`docs/reports/PLATFORM_COMPATIBILITY.md`](docs/reports/PLATFORM_COMPATIBILITY.md).
+
+The final pre-release review checklist and exact evidence coordinates are in
+[`docs/reports/FINAL_RELEASE_REVIEW.md`](docs/reports/FINAL_RELEASE_REVIEW.md).
 
 ## Quick start
 
