@@ -1,5 +1,5 @@
 schema_version = 2
 
 [total]
-native = 1103
-wasm1 = 1079
+native = 1106
+wasm1 = 1082
