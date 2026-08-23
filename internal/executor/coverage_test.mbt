@@ -129,6 +129,104 @@ test "executor coverage visits graph planning and command materialization" {
 }
 
 ///|
+test "executor graph reports unknown recipes and invalid dependency arguments" {
+  let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  for
+    text in [
+      "root: missing\n", "root: dep('missing')\ndep:\n", "root: dep(1 / 0)\ndep:\n",
+      "root arg:\n",
+    ] {
+    let compilation = try
+      @semantic.compile_source(
+        @source.Source::from_text(
+          @source.SourceId::new(9420),
+          "graph-errors",
+          text,
+        ),
+      )
+    catch {
+      _ => continue
+    } noraise {
+      _ => continue
+    }
+    let environment = try! @evaluator.evaluate_compilation(compilation)
+    try
+      ignore(
+        execute_recipe_graph(
+          host,
+          compilation,
+          [RecipeRequest::new("root")],
+          environment,
+          shell,
+          cwd,
+        ),
+      )
+    catch {
+      UnknownRecipe(_) | Evaluation(_) => ()
+      error => fail("unexpected graph error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected graph error")
+    }
+  }
+  let simple = try! @semantic.compile_source(
+    @source.Source::from_text(
+      @source.SourceId::new(9421),
+      "graph-unknown-request",
+      "root:\n",
+    ),
+  )
+  let simple_environment = try! @evaluator.evaluate_compilation(simple)
+  try
+    ignore(
+      execute_recipe_graph(
+        host,
+        simple,
+        [RecipeRequest::new("missing")],
+        simple_environment,
+        shell,
+        cwd,
+      ),
+    )
+  catch {
+    UnknownRecipe(_) => ()
+    error => fail("unexpected unknown recipe error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unknown recipe error")
+  }
+
+  let required = try! @semantic.compile_source(
+    @source.Source::from_text(
+      @source.SourceId::new(9423),
+      "graph-required-argument",
+      "root first:\n  echo ok\n",
+    ),
+  )
+  let required_environment = try! @evaluator.evaluate_compilation(required)
+  try
+    ignore(
+      execute_recipe_graph(
+        host,
+        required,
+        [RecipeRequest::new("root")],
+        required_environment,
+        shell,
+        cwd,
+      ),
+    )
+  catch {
+    Evaluation(_) => ()
+    error => fail("unexpected required argument error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected required argument error")
+  }
+}
+
+///|
 test "executor coverage exercises output formatting and script planning" {
   let colors : Array[CommandColor] = [
     Bold,

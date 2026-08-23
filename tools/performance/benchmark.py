@@ -870,6 +870,8 @@ def main() -> int:
             "memory_samples": args.memory_samples,
             "seed": args.seed,
             "authoritative": args.authoritative,
+            "authority": os.environ.get("MOONJUST_PERF_AUTHORITY", "local"),
+            "timing_gates": args.authoritative,
             "latency_policy": {
                 "warmups": 5,
                 "min_samples": MIN_LATENCY_SAMPLES,

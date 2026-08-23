@@ -67,6 +67,52 @@ class ReleaseEvidenceTest(unittest.TestCase):
             evidence.performance_summary(path, failures, True)
             self.assertIn("authoritative performance report is missing cold/warm validation", failures)
 
+    def test_cloud_performance_requires_all_exact_head_platform_reports(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "performance.json"
+            commit = "a" * 40
+            workloads = {}
+            for workload in ("project-modules", "project-parameters", "project-execution"):
+                workloads[workload] = {
+                    kind: {
+                        condition: {"latency_samples": 3, "median_ms": 1.0}
+                        for condition in ("cold", "warm")
+                    }
+                    for kind in ("official", "candidate-native", "candidate-wasm")
+                }
+            reports = {}
+            for platform_name in evidence.REQUIRED_PLATFORMS:
+                reports[platform_name] = {
+                    "commit_sha": commit,
+                    "report": {
+                        "cold_warm": {
+                            "enabled": True,
+                            "rounds": 3,
+                            "warmups_per_round": 5,
+                            "workloads": workloads,
+                        }
+                    },
+                }
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 3,
+                        "status": "passed",
+                        "commit": commit,
+                        "configuration": {
+                            "authoritative": False,
+                            "authority": "cloud-trend",
+                            "timing_gates": False,
+                        },
+                        "platform_reports": reports,
+                    }
+                )
+            )
+            failures: list[str] = []
+            summary = evidence.performance_summary(path, failures, False, True, commit)
+            self.assertEqual(summary["authority"], "cloud-trend")
+            self.assertEqual(failures, [])
+
     def test_moon_toolchain_identity_ignores_install_paths(self) -> None:
         first = "moon 1 (abc) /home/runner/.moon/bin/moon\nmoonc 2 C:\\\\moon\\\\moonc"
         second = "moon 1 (abc) /Users/example/.moon/bin/moon\nmoonc 2 /opt/moon/moonc"

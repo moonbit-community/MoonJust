@@ -38,6 +38,45 @@ test "executor output formatting covers color and timestamp directives" {
 }
 
 ///|
+test "executor coverage closes formatting and script boundary branches" {
+  assert_true(parse_shebang("#!/bin/sh ").unwrap().argument is None)
+  let no_argument = parse_shebang("#!/bin/sh \t").unwrap()
+  assert_eq(no_argument.interpreter, "/bin/sh")
+  assert_true(no_argument.argument is None)
+  assert_eq(format_timestamp(1_000L, "%"), "%")
+  assert_eq(format_timestamp(1_000L, "%1"), "%1")
+  assert_eq(format_timestamp(1_000L, "%q"), "%q")
+  assert_true(format_timestamp(9_223_372_036_854_775_807L, "%s").length() > 0)
+
+  let empty_source = @source.Source::from_text(
+    @source.SourceId::new(9925),
+    "executor.empty-script",
+    "run:\n",
+  )
+  let empty_compilation = try! @semantic.compile_source(empty_source)
+  let empty_recipe = empty_compilation.recipe("run").unwrap()
+  assert_eq(positioned_script_lines(empty_recipe, [], false), [])
+  assert_eq(script_bytes(empty_recipe, [], true, false, true), b"\xef\xbb\xbf")
+  let windows = @host.PlatformInfo::new(Windows, "x86_64", Windows)
+  assert_eq(
+    execution_script_contents(b"echo ok\n", false, windows),
+    b"echo ok\n",
+  )
+
+  let source = @source.Source::from_text(
+    @source.SourceId::new(9926),
+    "executor.script-boundaries",
+    "run:\n  #!/bin/sh\n  echo ok\n",
+  )
+  let compilation = try! @semantic.compile_source(source)
+  let recipe = compilation.recipe("run").unwrap()
+  let lines = ["#!/bin/sh", "echo ok"]
+  let positioned = positioned_script_lines(recipe, lines, true)
+  assert_true(positioned.length() >= 2)
+  assert_true(script_bytes(recipe, lines, false, true, true).length() > 0)
+}
+
+///|
 test "executor script and line helpers preserve source alignment" {
   let recipe = executor_coverage_recipe(
     "[script]\nrun:\n  #!/bin/sh\n  echo ok\n",
@@ -128,6 +167,26 @@ test "executor whitebox coverage visits planning helpers and environment exports
     @value.String("scalar"),
   ])
   assert_eq(scalar_expanded.length(), 1)
+}
+
+///|
+test "executor whitebox coverage reports dependency evaluation errors" {
+  let span = @source.Span::new(@source.SourceId::new(9927), 0, 1)
+  let dependency = @syntax.Dependency::new(
+    "run",
+    span,
+    [Variable(name="missing", span~)],
+    false,
+    span,
+  )
+  try
+    ignore(dependency_arguments(dependency, @evaluator.Environment::new()))
+  catch {
+    Evaluation(_) => ()
+    error => fail("unexpected dependency error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected dependency evaluation error")
+  }
 }
 
 ///|

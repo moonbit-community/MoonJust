@@ -532,6 +532,19 @@ def build_spec(repo: Path, target: str, profile: str) -> tuple[Command, Path, st
     return command_line, artifact, flags
 
 
+def official_artifact(repo: Path) -> Path:
+    """Return the platform-native path emitted by the pinned Cargo oracle."""
+    suffix = ".exe" if platform.system() == "Windows" else ""
+    return repo / f"_build/upstream/just-1.57.0/target/release/just{suffix}"
+
+
+def oracle_build_command() -> Command:
+    """Run the POSIX oracle builder through Git Bash on Windows hosts."""
+    if platform.system() == "Windows":
+        return ("bash", "./tools/upstream/build_oracle.sh")
+    return ("./tools/upstream/build_oracle.sh",)
+
+
 def ensure_build(
     repo: Path,
     target: str,
@@ -549,11 +562,11 @@ def prepare_builds(repo: Path, execute: bool = True) -> tuple[dict[str, str], li
     registry = BuildRegistry(repo / "_build" / "verification" / "registry", repo)
     base = _base_build_fields(repo)
     builds: list[dict[str, object]] = []
-    oracle = repo / "_build/upstream/just-1.57.0/target/release/just"
+    oracle = official_artifact(repo)
     native = repo / "_build/native/debug/build/cmd/just/just.exe"
     wasm = repo / "_build/wasm/debug/build/cmd/just/just.wasm"
     specs = (
-        ("official", "release", ("./tools/upstream/build_oracle.sh",), oracle, "official"),
+        ("official", "release", oracle_build_command(), oracle, "official"),
         ("native", "debug", ("moon", "build", "--target", "native", "cmd/just"), native, "native"),
         ("wasm1", "debug", ("moon", "build", "--target", "wasm", "cmd/just"), wasm, "wasm"),
     )
@@ -571,12 +584,12 @@ def prepare_measurement_builds(repo: Path, execute: bool = True) -> list[dict[st
     """Build the exact release comparison set through the provenance registry."""
     registry = BuildRegistry(repo / "_build" / "verification" / "registry", repo)
     base = _base_build_fields(repo)
-    official = repo / "_build/upstream/just-1.57.0/target/release/just"
+    official = official_artifact(repo)
     official_fields = _build_fields(repo, "official", "release", base=base)
     builds = [
         registry.ensure(
             official_fields,
-            ("./tools/upstream/build_oracle.sh",),
+            oracle_build_command(),
             official,
             repo,
             execute=execute,

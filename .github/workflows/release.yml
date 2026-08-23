@@ -344,11 +344,21 @@ jobs:
           if-no-files-found: error
 
   performance:
-    name: Release authoritative performance
-    runs-on: [self-hosted, linux, x64, moonjust-perf]
+    name: Release cloud performance (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-aarch64
+          - os: windows-latest
+            platform: windows-x86_64
+    runs-on: ${{ matrix.os }}
     concurrency:
-      group: moonjust-authoritative-performance
-      cancel-in-progress: false
+      group: moonjust-cloud-performance-${{ matrix.platform }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -357,36 +367,31 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
-      - run: ./tools/release/ensure_moonx.sh
+      - name: Add Git Bash to Windows PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\usr\bin'
+      - name: Ensure MoonX entry point
+        shell: bash
+        run: ./tools/release/ensure_moonx.sh
       - run: moon update
       - run: moon install
-      - name: Build frozen comparison pair
+      - name: Run hosted cloud trend benchmark
+        shell: bash
         env:
-          MOONJUST_PERF_BASE: d0038b0
-        run: ./tools/verification/benchmarks/build_merge_base.sh
-      - name: Capture Linux CPU profiles
-        run: |
-          ./tools/verification/benchmarks/profile.sh recipes-1000
-          ./tools/verification/benchmarks/profile.sh check
-          ./tools/verification/benchmarks/profile.sh format
-          ./tools/verification/benchmarks/profile.sh dag-1000
-      - name: Run authoritative interleaved benchmark
-        env:
-          MOONJUST_PERF_AUTHORITATIVE: "1"
-          MOONJUST_BASELINE_NATIVE: ${{ github.workspace }}/_build/performance/merge-base/just-native
-          MOONJUST_BASELINE_WASM: ${{ github.workspace }}/_build/performance/merge-base/just.wasm
+          MOONJUST_PERF_AUTHORITY: cloud-trend
         run: |
           python3 tools/runner.py measure \
-            --authoritative \
+            --report-only \
             --cold-warm \
-            --baseline-native "$MOONJUST_BASELINE_NATIVE" \
-            --baseline-wasm "$MOONJUST_BASELINE_WASM" \
             --output _build/performance/results.json
       - name: Upload performance report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: moonjust-release-performance
+          name: moonjust-release-performance-${{ matrix.platform }}
           path: _build/performance/**
           if-no-files-found: error
 
@@ -433,8 +438,28 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
         continue-on-error: true
         with:
-          name: moonjust-release-performance
-          path: evidence/performance
+          name: moonjust-release-performance-linux-x86_64
+          path: evidence/performance/linux-x86_64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-release-performance-macos-aarch64
+          path: evidence/performance/macos-aarch64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        continue-on-error: true
+        with:
+          name: moonjust-release-performance-windows-x86_64
+          path: evidence/performance/windows-x86_64
+      - name: Aggregate cloud performance trend
+        if: always()
+        shell: bash
+        run: |
+          python3 tools/performance/aggregate_cloud.py \
+            --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" \
+            --report linux-x86_64=evidence/performance/linux-x86_64/results.json \
+            --report macos-aarch64=evidence/performance/macos-aarch64/results.json \
+            --report windows-x86_64=evidence/performance/windows-x86_64/results.json \
+            --output evidence/performance/results.json
       - name: Validate and aggregate evidence
         if: always()
         shell: bash

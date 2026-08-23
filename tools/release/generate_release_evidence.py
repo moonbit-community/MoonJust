@@ -349,6 +349,8 @@ def performance_summary(
     path: Path,
     failures: list[str],
     require_authoritative: bool,
+    require_cloud: bool = False,
+    expected_commit: str | None = None,
 ) -> dict[str, object]:
     value = load_json(path)
     report = value
@@ -360,6 +362,64 @@ def performance_summary(
     machine = report.get("machine", {})
     if value.get("schema_version") not in {2, 3}:
         failures.append("performance report schema changed")
+    if expected_commit is not None:
+        observed_commit = value.get("commit_sha", value.get("commit"))
+        if observed_commit != expected_commit:
+            failures.append("performance report commit differs from exact head")
+    if require_cloud:
+        if report.get("status") != "passed":
+            failures.append(f"cloud performance aggregation status is {report.get('status')!r}")
+        if (
+            not isinstance(configuration, dict)
+            or configuration.get("authoritative") is not False
+            or configuration.get("authority") != "cloud-trend"
+            or configuration.get("timing_gates") is not False
+        ):
+            failures.append("performance report is not a non-blocking cloud trend")
+        platform_reports = report.get("platform_reports", {})
+        if not isinstance(platform_reports, dict) or set(platform_reports) != REQUIRED_PLATFORMS:
+            failures.append("cloud performance report does not cover all release platforms")
+        else:
+            required_workloads = {
+                "project-modules",
+                "project-parameters",
+                "project-execution",
+            }
+            for platform_name in sorted(REQUIRED_PLATFORMS):
+                entry = platform_reports.get(platform_name)
+                nested = entry.get("report") if isinstance(entry, dict) else None
+                if not isinstance(entry, dict) or entry.get("commit_sha") != expected_commit:
+                    failures.append(f"cloud performance evidence has an invalid head for {platform_name}")
+                if not isinstance(nested, dict):
+                    failures.append(f"cloud performance report is missing for {platform_name}")
+                    continue
+                cold_warm = nested.get("cold_warm", {})
+                workloads = cold_warm.get("workloads", {}) if isinstance(cold_warm, dict) else {}
+                if (
+                    not isinstance(cold_warm, dict)
+                    or cold_warm.get("enabled") is not True
+                    or cold_warm.get("rounds") != 3
+                    or cold_warm.get("warmups_per_round") != 5
+                    or not isinstance(workloads, dict)
+                    or set(workloads) != required_workloads
+                ):
+                    failures.append(f"cloud cold/warm evidence is incomplete for {platform_name}")
+                    continue
+                for workload in sorted(required_workloads):
+                    entries = workloads.get(workload)
+                    for kind in ("official", "candidate-native", "candidate-wasm"):
+                        conditions = entries.get(kind) if isinstance(entries, dict) else None
+                        for condition in ("cold", "warm"):
+                            summary = conditions.get(condition) if isinstance(conditions, dict) else None
+                            if (
+                                not isinstance(summary, dict)
+                                or summary.get("latency_samples") != 3
+                                or not isinstance(summary.get("median_ms"), (int, float))
+                                or not math.isfinite(float(summary["median_ms"]))
+                            ):
+                                failures.append(
+                                    f"cloud cold/warm evidence is invalid for {platform_name}/{workload}/{kind}/{condition}"
+                                )
     if require_authoritative and report.get("status") != "passed":
         failures.append(f"authoritative performance status is {report.get('status')!r}")
     if require_authoritative and (
@@ -407,7 +467,7 @@ def performance_summary(
                                 failures.append(
                                     f"cold/warm evidence is invalid for {workload}/{kind}/{condition}"
                                 )
-    if not require_authoritative and (
+    if not require_authoritative and not require_cloud and (
         not isinstance(configuration, dict)
         or configuration.get("authoritative") is not False
     ):
@@ -415,7 +475,7 @@ def performance_summary(
     return {
         "path": str(path),
         "sha256": sha256(path),
-        "authority": "authoritative" if require_authoritative else "trend",
+        "authority": "authoritative" if require_authoritative else "cloud-trend" if require_cloud else "trend",
         "summary": value,
     }
 
@@ -575,7 +635,9 @@ def main() -> int:
         performance_summary(
             args.performance,
             failures,
-            require_authoritative=args.mode == "release",
+            require_authoritative=False,
+            require_cloud=args.mode == "release",
+            expected_commit=moonjust_commit,
         )
         if args.performance.is_file()
         else {"path": str(args.performance), "missing": True}
