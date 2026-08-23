@@ -282,7 +282,7 @@ fn compile_loaded_graph(
       ast,
       platform~,
       allow_unstable~,
-      defer_recipe_linking=files.length() != 1,
+      defer_recipe_linking=true,
     ) catch {
       error => raise Semantic(error)
     }
@@ -365,9 +365,6 @@ fn compile_loaded_graph(
   }
   let project = @semantic.ProjectCompilation::new(entries, absent_modules~) catch {
     error => raise Project(error)
-  }
-  if files.length() == 1 && absent_modules.is_empty() {
-    return project
   }
   @semantic.validate_project_compilation(project) catch {
     error => raise Semantic(error)
