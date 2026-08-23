@@ -843,9 +843,12 @@ def run_measurement(
     """Run the existing statistically strict sampler through the unified CLI."""
     started_at = time.time()
     builds = prepare_measurement_builds(repo)
-    native = repo / "_build/native/release/build/cmd/just/just.exe"
-    wasm = repo / "_build/wasm/release/build/cmd/just/just.wasm"
-    official = repo / "_build/upstream/just-1.57.0/target/release/just"
+    # Keep measurement paths in lockstep with the registry build specs.  The
+    # pinned Cargo oracle carries a `.exe` suffix on Windows, while Moon's
+    # native target uses `just.exe` on every host.
+    _, native, _ = build_spec(repo, "native", "release")
+    _, wasm, _ = build_spec(repo, "wasm1", "release")
+    official = official_artifact(repo)
     policy = repo / "policies/execute.toml"
     if not all(path.is_file() for path in (native, wasm, official, policy)):
         raise RuntimeError("release measurement requires official, Native, Wasm, and policy artifacts")

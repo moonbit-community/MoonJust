@@ -108,6 +108,11 @@ class RunnerTest(unittest.TestCase):
                 (r"C:\Program Files\Git\bin\bash.exe", "./tools/upstream/build_oracle.sh"),
             )
 
+    def test_windows_oracle_artifact_uses_exe_suffix(self) -> None:
+        with mock.patch.object(runner.platform, "system", return_value="Windows"):
+            artifact = runner.official_artifact(Path("/repo"))
+            self.assertTrue(str(artifact).endswith("target/release/just.exe"))
+
 
 if __name__ == "__main__":
     unittest.main()
