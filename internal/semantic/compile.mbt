@@ -928,6 +928,9 @@ pub fn compile(
   let variables : Array[@syntax.Assignment] = []
   let functions : Array[@syntax.FunctionDefinition] = []
   let recipes : Array[@syntax.Recipe] = []
+  // Keep the validated attributes aligned with recipes so later semantic
+  // passes do not reparse the same attribute list.
+  let recipe_attributes : Array[RecipeAttributes] = []
   let aliases : Array[@syntax.Alias] = []
   let unexports : Array[String] = []
   let symbols : Array[Symbol] = []
@@ -1114,6 +1117,7 @@ pub fn compile(
         }
         validate_parameters(value)
         recipes.push(value)
+        recipe_attributes.push(attributes)
         symbols.push(
           Symbol::new(name, Recipe, semantic_name_span(value.span(), name)),
         )
@@ -1234,12 +1238,8 @@ pub fn compile(
     }
   }
   let mut saw_default_recipe = false
-  for recipe in recipes {
-    let attributes = compile_attributes(
-      recipe.attributes(),
-      recipe_name=recipe.name(),
-      recipe_span=recipe.span(),
-    )
+  for index, recipe in recipes {
+    let attributes = recipe_attributes[index]
     if attributes.names().contains("default") {
       if saw_default_recipe {
         raise DuplicateDefaultAttribute(
@@ -1374,12 +1374,8 @@ pub fn compile(
     }
   }
   let attribute_map : Map[String, RecipeAttributes] = Map([])
-  for recipe in recipes {
-    attribute_map[recipe.name()] = compile_attributes(
-      recipe.attributes(),
-      recipe_name=recipe.name(),
-      recipe_span=recipe.span(),
-    )
+  for index, recipe in recipes {
+    attribute_map[recipe.name()] = recipe_attributes[index]
   }
   let ordered_variable_names : Array[String] = []
   let variable_map : Map[String, @syntax.Assignment] = Map([])
