@@ -677,6 +677,103 @@ async fn[
 }
 
 ///|
+/// Build the common static fan-out shape without entering the async evaluator.
+/// This is deliberately narrow: aliases, mapped arguments, attributes,
+/// parameters, recipe lines, and subsequent dependencies all opt out.
+fn plan_plain_empty_fanout(
+  compilation : @semantic.Compilation,
+  recipe : @syntax.Recipe,
+  attributes : @semantic.RecipeAttributes?,
+  name : String,
+  display_name : String,
+  module_path : @modulepath.ModulePath,
+  entry_dependencies : ArrayView[Int],
+  tasks : Array[ExecutionTask],
+  ran : Map[String, Int],
+  options : ExecutionOptions,
+) -> Int? {
+  if options.no_dependencies() ||
+    options.explain() ||
+    !recipe.parameters().is_empty() ||
+    !recipe.lines().is_empty() ||
+    !recipe.subsequent_dependencies().is_empty() ||
+    !attributes.map(fn(value) { value.names().is_empty() }).unwrap_or(false) {
+    return None
+  }
+  let child_names : Array[String] = []
+  for dependency in recipe.dependencies() {
+    if dependency.starred() ||
+      !dependency.arguments().is_empty() ||
+      compilation.alias_target(dependency.name()) is Some(_) {
+      return None
+    }
+    guard compilation.recipe(dependency.name()) is Some(child) else {
+      return None
+    }
+    guard compilation.recipe_attributes(dependency.name())
+      is Some(child_attributes) else {
+      return None
+    }
+    if !child.parameters().is_empty() ||
+      !child.lines().is_empty() ||
+      !child.dependencies().is_empty() ||
+      !child.subsequent_dependencies().is_empty() ||
+      !child_attributes.names().is_empty() {
+      return None
+    }
+    child_names.push(dependency.name())
+  }
+  if child_names.is_empty() {
+    return None
+  }
+  let module_name = module_path.as_string()
+  let print_exit_message = !compilation.settings().bool("no-exit-message")
+  let mut fence = entry_dependencies.to_owned()
+  for child_name in child_names {
+    let key = module_name + "\u{0000}" + execution_key(child_name, [])
+    match ran.get(key) {
+      Some(value) => {
+        fence = [value]
+        continue
+      }
+      None => ()
+    }
+    let task_id = tasks.length()
+    let child_display = if module_path.is_root() {
+      child_name
+    } else {
+      module_name + "::" + child_name
+    }
+    tasks.push(
+      ExecutionTask::new(
+        task_id,
+        task_id,
+        child_display,
+        [],
+        fence,
+        print_exit_message~,
+      ),
+    )
+    ran[key] = task_id
+    fence = [task_id]
+  }
+  let key = module_name + "\u{0000}" + execution_key(name, [])
+  let task_id = tasks.length()
+  tasks.push(
+    ExecutionTask::new(
+      task_id,
+      task_id,
+      display_name,
+      [],
+      fence,
+      print_exit_message~,
+    ),
+  )
+  ran[key] = task_id
+  Some(task_id)
+}
+
+///|
 async fn[
   P : @host.HostAsyncProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
@@ -932,16 +1029,22 @@ async fn[
     let target_options = options.with_guards(
       target.compilation.settings().bool("guards"),
     )
-    let values = async_dependency_arguments(
-      process, host, dependency, scope, recipe_context, recipe_shell,
-    )
-    for mapped_values in expanded_dependency_argument_sets(dependency, values) {
+    // Empty dependency arguments are common in large static DAGs. Avoid
+    // constructing an effect shell and evaluating an empty expression list.
+    let values = if dependency.arguments().is_empty() {
+      []
+    } else {
+      async_dependency_arguments(
+        process, host, dependency, scope, recipe_context, recipe_shell,
+      )
+    }
+    if !dependency.starred() {
       let terminal = plan_graph_recipe_async(
         process,
         host,
         target.compilation,
         target.name,
-        mapped_values,
+        values,
         target_global,
         target_context,
         target_shell,
@@ -971,6 +1074,45 @@ async fn[
       }
       if !parallel {
         serial_fence = [terminal]
+      }
+    } else {
+      for mapped_values in expanded_dependency_argument_sets(dependency, values) {
+        let terminal = plan_graph_recipe_async(
+          process,
+          host,
+          target.compilation,
+          target.name,
+          mapped_values,
+          target_global,
+          target_context,
+          target_shell,
+          target_cwd,
+          target_evaluation_directory,
+          target_invocation_directory,
+          target_environment,
+          target_options,
+          target_configuration,
+          ran,
+          stack,
+          if parallel {
+            entry_dependencies.to_owned()
+          } else {
+            serial_fence.copy()
+          },
+          tasks,
+          stderr,
+          confirmations,
+          true,
+          project?,
+          module_path=target.module_path,
+          project_runtimes~,
+        )
+        if !terminals.contains(terminal) {
+          terminals.push(terminal)
+        }
+        if !parallel {
+          serial_fence = [terminal]
+        }
       }
     }
   }
@@ -1015,20 +1157,82 @@ async fn[
   } else {
     module_path.as_string() + "::" + name
   }
-  guard ran.get(key) is None else { return ran.get(key).unwrap() }
+  match ran.get(key) {
+    Some(value) => return value
+    None => ()
+  }
   if stack.contains(key) {
     raise DependencyCycle(stack=[name, name])
   }
   guard compilation.recipe(name) is Some(recipe) else {
     raise UnknownRecipe(recipe=name)
   }
-  let definition_context = context.for_source(recipe.span().source_id())
   @invocation.validate_recipe_argument_values(
     compilation, name, arguments, global,
   ) catch {
     error => raise Invocation(error)
   }
   let attributes = compilation.recipe_attributes(name)
+
+  match
+    plan_plain_empty_fanout(
+      compilation, recipe, attributes, name, display_name, module_path, entry_dependencies,
+      tasks, ran, options,
+    ) {
+    Some(value) => return value
+    None => ()
+  }
+
+  // Empty, attribute-free recipes are graph nodes with no evaluation work.
+  // Keep their task and dependency edges, but avoid constructing evaluator
+  // scopes and host effect shells for every node in a large static DAG.
+  let no_dependencies = options.no_dependencies()
+  let plain_empty = recipe.parameters().is_empty() &&
+    recipe.lines().is_empty() &&
+    attributes.map(fn(value) { value.names().is_empty() }).unwrap_or(false) &&
+    (no_dependencies || recipe.dependencies().is_empty()) &&
+    (no_dependencies || recipe.subsequent_dependencies().is_empty())
+  if plain_empty {
+    stack.push(key)
+    let task_dependencies : Array[Int] = []
+    for dependency in entry_dependencies {
+      if !task_dependencies.contains(dependency) {
+        task_dependencies.push(dependency)
+      }
+    }
+    let task_id = tasks.length()
+    let print_exit_message = !compilation.settings().bool("no-exit-message")
+    let preamble = if options.explain() {
+      match compilation.recipe_doc(name) {
+        Some(doc) => {
+          let text = "#### " + doc
+          if options.color_enabled() {
+            @utf8.encode("\u{001b}[1;36m" + text + "\u{001b}[0m\n")
+          } else {
+            @utf8.encode(text + "\n")
+          }
+        }
+        None => b""
+      }
+    } else {
+      b""
+    }
+    tasks.push(
+      ExecutionTask::new(
+        task_id,
+        task_id,
+        display_name,
+        [],
+        task_dependencies,
+        print_exit_message~,
+        preamble~,
+      ),
+    )
+    ignore(stack.pop())
+    ran[key] = task_id
+    return task_id
+  }
+  let definition_context = context.for_source(recipe.span().source_id())
   let continue_signals = planned_continue_signals(attributes)
   let attribute_environment = recipe_process_environment(
     process, host, attributes, global, definition_context, shell, process_environment,

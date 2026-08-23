@@ -567,6 +567,52 @@ fn validate_project_recipe(
   defer ignore(stack.pop())
   let compilation = project.module_compilation(address.module_path()).unwrap()
   let recipe = compilation.recipe(address.recipe_name()).unwrap()
+  if recipe.parameters().is_empty() &&
+    recipe.lines().is_empty() &&
+    recipe.attributes().is_empty() &&
+    recipe.subsequent_dependencies().is_empty() &&
+    !recipe.dependencies().is_empty() {
+    let mut plain = true
+    let child_keys : Array[String] = []
+    for dependency in recipe.dependencies() {
+      if dependency.starred() ||
+        !dependency.arguments().is_empty() ||
+        compilation.alias_target(dependency.name()) is Some(_) {
+        plain = false
+        break
+      }
+      guard compilation.recipe(dependency.name()) is Some(child) else {
+        plain = false
+        break
+      }
+      if !child.parameters().is_empty() ||
+        !child.lines().is_empty() ||
+        !child.dependencies().is_empty() ||
+        !child.subsequent_dependencies().is_empty() ||
+        !child.attributes().is_empty() {
+        plain = false
+        break
+      }
+      child_keys.push(
+        project_recipe_key({
+          module_path: address.module_path(),
+          recipe_name: dependency.name(),
+        }),
+      )
+    }
+    if plain {
+      for child_key in child_keys {
+        states[child_key] = 2
+      }
+      states[key] = 2
+      return
+    }
+  }
+  if recipe.dependencies().is_empty() &&
+    recipe.subsequent_dependencies().is_empty() {
+    states[key] = 2
+    return
+  }
   for dependency in recipe_dependencies(recipe) {
     guard project.resolve_recipe(address.module_path(), dependency.name())
       is Some(target) else {
@@ -616,37 +662,48 @@ fn validate_project_recipe(
       .module_compilation(target.module_path())
       .unwrap()
     let target_recipe = target_compilation.recipe(target.recipe_name()).unwrap()
-    let parameters = target_recipe.parameters()
-    let flag_parameters = recipe_flag_parameter_names(target_recipe)
-    let mut required = 0
-    let mut maximum = 0
-    for parameter in parameters {
-      if flag_parameters.contains(parameter.name()) {
-        continue
-      }
-      maximum += 1
-      if parameter.variadic() {
-        required += parameter.variadic_minimum()
-      } else if parameter.default_value() is None {
-        required += 1
-      }
-    }
     let actual = dependency.arguments().length()
-    let has_variadic = parameters.any(fn(parameter) { parameter.variadic() })
-    let lists = target_compilation.settings().bool("lists")
-    if actual < required || (actual > maximum && (!has_variadic || lists)) {
-      raise InvalidDependencyArguments(
-        name=dependency.name(),
-        expected=if required == maximum && !has_variadic {
-          required.to_string()
-        } else if actual > maximum {
-          "at most " + maximum.to_string()
-        } else {
-          "at least " + required.to_string()
-        },
-        actual~,
-        span=project_dependency_name_span(dependency),
-      )
+    let parameters = target_recipe.parameters()
+    if parameters.is_empty() {
+      if actual != 0 {
+        raise InvalidDependencyArguments(
+          name=dependency.name(),
+          expected="0",
+          actual~,
+          span=project_dependency_name_span(dependency),
+        )
+      }
+    } else {
+      let flag_parameters = recipe_flag_parameter_names(target_recipe)
+      let mut required = 0
+      let mut maximum = 0
+      for parameter in parameters {
+        if flag_parameters.contains(parameter.name()) {
+          continue
+        }
+        maximum += 1
+        if parameter.variadic() {
+          required += parameter.variadic_minimum()
+        } else if parameter.default_value() is None {
+          required += 1
+        }
+      }
+      let has_variadic = parameters.any(fn(parameter) { parameter.variadic() })
+      let lists = target_compilation.settings().bool("lists")
+      if actual < required || (actual > maximum && (!has_variadic || lists)) {
+        raise InvalidDependencyArguments(
+          name=dependency.name(),
+          expected=if required == maximum && !has_variadic {
+            required.to_string()
+          } else if actual > maximum {
+            "at most " + maximum.to_string()
+          } else {
+            "at least " + required.to_string()
+          },
+          actual~,
+          span=project_dependency_name_span(dependency),
+        )
+      }
     }
   }
   states[key] = 2

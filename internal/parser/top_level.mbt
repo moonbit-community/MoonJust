@@ -3,6 +3,9 @@ fn Parser::parse_namepath(
   self : Parser,
 ) -> (String, @source.Span) raise ParserError {
   let (first, first_token) = self.expect_identifier()
+  if self.peek_kind() != ColonColon {
+    return (first, first_token.span())
+  }
   let builder = StringBuilder()
   builder.write_string(first)
   let mut last = first_token.span()

@@ -253,15 +253,22 @@ fn validate_dependency_graph(
     _ => ()
   }
   states[name] = 1
+  if recipe.dependencies().is_empty() &&
+    recipe.subsequent_dependencies().is_empty() {
+    states[name] = 2
+    return
+  }
   for dependency in recipe_dependencies(recipe) {
     let mut target = dependency.name()
-    let alias_seen : Set[String] = Set([])
-    while aliases.get(target) is Some(next) {
-      if alias_seen.contains(target) {
-        raise AliasCycle(name=target, span=dependency.span())
+    if !aliases.is_empty() {
+      let alias_seen : Set[String] = Set([])
+      while aliases.get(target) is Some(next) {
+        if alias_seen.contains(target) {
+          raise AliasCycle(name=target, span=dependency.span())
+        }
+        alias_seen.add(target)
+        target = next
       }
-      alias_seen.add(target)
-      target = next
     }
     match recipes.get(target) {
       None =>
@@ -274,37 +281,50 @@ fn validate_dependency_graph(
         if states.get(target) == Some(1) {
           raise DependencyCycle(name=recipe.name(), span=dependency.span())
         }
-        let parameters = next_recipe.parameters()
-        let flag_parameters = recipe_flag_parameter_names(next_recipe)
-        let mut required = 0
-        let mut maximum = 0
-        for parameter in parameters {
-          if flag_parameters.contains(parameter.name()) {
-            continue
-          }
-          maximum += 1
-          if parameter.variadic() {
-            required += parameter.variadic_minimum()
-          } else if parameter.default_value() is None {
-            required += 1
-          }
-        }
         let actual = dependency.arguments().length()
-        let has_variadic = parameters.any(fn(parameter) { parameter.variadic() })
-        if actual < required || (actual > maximum && (!has_variadic || lists)) {
-          let expected = if required == maximum && !has_variadic {
-            required.to_string()
-          } else if actual > maximum {
-            "at most " + maximum.to_string()
-          } else {
-            "at least " + required.to_string()
+        let parameters = next_recipe.parameters()
+        if parameters.is_empty() {
+          if actual != 0 {
+            raise InvalidDependencyArguments(
+              name=target,
+              expected="0",
+              actual~,
+              span=dependency.name_span(),
+            )
           }
-          raise InvalidDependencyArguments(
-            name=target,
-            expected~,
-            actual~,
-            span=dependency.name_span(),
-          )
+        } else {
+          let flag_parameters = recipe_flag_parameter_names(next_recipe)
+          let mut required = 0
+          let mut maximum = 0
+          for parameter in parameters {
+            if flag_parameters.contains(parameter.name()) {
+              continue
+            }
+            maximum += 1
+            if parameter.variadic() {
+              required += parameter.variadic_minimum()
+            } else if parameter.default_value() is None {
+              required += 1
+            }
+          }
+          let has_variadic = parameters.any(fn(parameter) {
+            parameter.variadic()
+          })
+          if actual < required || (actual > maximum && (!has_variadic || lists)) {
+            let expected = if required == maximum && !has_variadic {
+              required.to_string()
+            } else if actual > maximum {
+              "at most " + maximum.to_string()
+            } else {
+              "at least " + required.to_string()
+            }
+            raise InvalidDependencyArguments(
+              name=target,
+              expected~,
+              actual~,
+              span=dependency.name_span(),
+            )
+          }
         }
         validate_dependency_graph(next_recipe, recipes, aliases, states, lists)
       }
@@ -972,7 +992,8 @@ pub fn compile(
           ["private"],
           semantic_name_span(value.span(), value.name()),
         )
-        if !compile_attributes(value.attributes()).matches(platform) {
+        if !value.attributes().is_empty() &&
+          !compile_attributes(value.attributes()).matches(platform) {
           continue
         }
         let name = value.name()
@@ -1002,7 +1023,8 @@ pub fn compile(
           [],
           semantic_name_span(value.span(), value.name()),
         )
-        if !compile_attributes(value.attributes()).matches(platform) {
+        if !value.attributes().is_empty() &&
+          !compile_attributes(value.attributes()).matches(platform) {
           continue
         }
         let name = value.name()
@@ -1039,7 +1061,8 @@ pub fn compile(
           ["private"],
           semantic_name_span(value.span(), value.name(), offset=6),
         )
-        if !compile_attributes(value.attributes()).matches(platform) {
+        if !value.attributes().is_empty() &&
+          !compile_attributes(value.attributes()).matches(platform) {
           continue
         }
         match recipe_spans.get(value.name()) {
@@ -1080,12 +1103,16 @@ pub fn compile(
           recipe_docs[name] = pending_docs.join(" ")
         }
         pending_docs = []
-        let attributes = compile_attributes(
-          value.attributes(),
-          recipe_name=value.name(),
-          recipe_span=value.span(),
-        ) catch {
-          error => raise error
+        let attributes = if value.attributes().is_empty() {
+          empty_recipe_attributes()
+        } else {
+          compile_attributes(
+            value.attributes(),
+            recipe_name=value.name(),
+            recipe_span=value.span(),
+          ) catch {
+            error => raise error
+          }
         }
         if !attributes.matches(platform) {
           pending_attributes = []
@@ -1339,6 +1366,13 @@ pub fn compile(
     }
   }
   for recipe in recipes {
+    if recipe.parameters().is_empty() &&
+      recipe.dependencies().is_empty() &&
+      recipe.subsequent_dependencies().is_empty() &&
+      recipe.lines().is_empty() &&
+      recipe.attributes().is_empty() {
+      continue
+    }
     validate_recipe_sigils(
       recipe,
       settings.bool("guards"),
@@ -1364,13 +1398,18 @@ pub fn compile(
   if !defer_recipe_linking {
     let states : Map[String, Int] = Map([])
     for recipe in recipes {
-      validate_dependency_graph(
-        recipe,
-        recipe_map,
-        alias_names,
-        states,
-        settings.bool("lists"),
-      )
+      if recipe.dependencies().is_empty() &&
+        recipe.subsequent_dependencies().is_empty() {
+        states[recipe.name()] = 2
+      } else {
+        validate_dependency_graph(
+          recipe,
+          recipe_map,
+          alias_names,
+          states,
+          settings.bool("lists"),
+        )
+      }
     }
   }
   let attribute_map : Map[String, RecipeAttributes] = Map([])

@@ -1477,6 +1477,15 @@ pub async fn[
       b""[:],
     )
   }
+  // Dry-run planning already materializes every command echo into plan.stderr
+  // and deliberately leaves task steps empty. Skip the coordinator and worker
+  // pool for this common path while preserving explain preambles.
+  if plan.options().dry_run() && plan.steps().is_empty() {
+    for task in plan.tasks() {
+      ignore(emit_live(output, Stderr, task.preamble(), 0))
+    }
+    return ExecutionSummary::{ commands: 0 }
+  }
   let jobs = plan.options().jobs()
   if jobs <= 0 {
     raise live_cache_failure("execution plan jobs must be positive")

@@ -87,6 +87,15 @@ fn apply_import_overrides(
   owner : @loader.LoadedSource,
   items : ArrayView[@syntax.Item],
 ) -> Array[@syntax.Item] {
+  // A source-local compilation cannot have import shadowing. Avoid the
+  // quadratic override scan for the overwhelmingly common single-source
+  // graph while retaining the full path for imported definitions.
+  if items.length() > 1 {
+    let source_id = items[0].span().source_id()
+    if items.all(fn(item) { item.span().source_id() == source_id }) {
+      return items.to_owned()
+    }
+  }
   let result : Array[@syntax.Item] = []
   let included : Array[Bool] = []
   for item in items {
@@ -273,7 +282,7 @@ fn compile_loaded_graph(
       ast,
       platform~,
       allow_unstable~,
-      defer_recipe_linking=true,
+      defer_recipe_linking=files.length() != 1,
     ) catch {
       error => raise Semantic(error)
     }
@@ -356,6 +365,9 @@ fn compile_loaded_graph(
   }
   let project = @semantic.ProjectCompilation::new(entries, absent_modules~) catch {
     error => raise Project(error)
+  }
+  if files.length() == 1 && absent_modules.is_empty() {
+    return project
   }
   @semantic.validate_project_compilation(project) catch {
     error => raise Semantic(error)
@@ -2026,7 +2038,7 @@ fn[
   let output = query_project_text(graph, project, arguments, color)
   let stderr = if arguments.command() == SummaryCommand &&
     !arguments.flag("quiet") &&
-    project_summary_text(project, arguments) == "\n" {
+    output == "\n" {
     b"justfile contains no recipes\n"
   } else {
     b""
@@ -2090,7 +2102,7 @@ pub async fn[
   let output = query_project_text(graph, project, arguments, color)
   let stderr = if arguments.command() == SummaryCommand &&
     !arguments.flag("quiet") &&
-    project_summary_text(project, arguments) == "\n" {
+    output == "\n" {
     b"justfile contains no recipes\n"
   } else {
     b""
