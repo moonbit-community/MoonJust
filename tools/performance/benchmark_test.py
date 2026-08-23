@@ -49,6 +49,7 @@ class BenchmarkTest(unittest.TestCase):
                 ],
             )
             self.assertEqual(fixtures["recipes-1000"][0].stat().st_size, 7000)
+            self.assertNotIn(b"\r", fixtures["recipes-1000"][0].read_bytes())
             self.assertEqual(fixtures["dag-1000"][0].read_text().count("node"), 1998)
             self.assertEqual(benchmark.fixture_profile("project-modules"), "real-project")
             self.assertEqual(len(benchmark.fixture_files("project-modules", fixtures["project-modules"][0])), 2)

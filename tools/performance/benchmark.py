@@ -403,27 +403,35 @@ def fixture_files(workload: str, fixture: Path) -> list[Path]:
     return files
 
 
+def write_fixture(path: Path, contents: str) -> None:
+    """Write platform-neutral UTF-8 bytes without Windows newline translation."""
+    path.write_bytes(contents.encode("utf-8"))
+
+
 def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
     recipes10 = root / "recipes-10.just"
-    recipes10.write_text("".join(f"r{index:04d}:\n" for index in range(10)))
+    write_fixture(recipes10, "".join(f"r{index:04d}:\n" for index in range(10)))
     recipes100 = root / "recipes-100.just"
-    recipes100.write_text("".join(f"r{index:04d}:\n" for index in range(100)))
+    write_fixture(recipes100, "".join(f"r{index:04d}:\n" for index in range(100)))
     recipes1000 = root / "recipes-1000.just"
-    recipes1000.write_text("".join(f"r{index:04d}:\n" for index in range(1000)))
+    write_fixture(recipes1000, "".join(f"r{index:04d}:\n" for index in range(1000)))
     recipes5000 = root / "recipes-5000.just"
-    recipes5000.write_text("".join(f"r{index:04d}:\n" for index in range(5000)))
+    write_fixture(recipes5000, "".join(f"r{index:04d}:\n" for index in range(5000)))
     dag = root / "dag-1000.just"
-    dag.write_text(
+    write_fixture(
+        dag,
         "root: " + " ".join(f"node{index:04d}" for index in range(999)) + "\n"
         + "".join(f"node{index:04d}:\n" for index in range(999))
     )
     noops = root / "noops-100.just"
-    noops.write_text(
+    write_fixture(
+        noops,
         "all: " + " ".join(f"noop{index:03d}" for index in range(100)) + "\n"
         + "".join(f"noop{index:03d}:\n  @:\n" for index in range(100))
     )
     project_modules = root / "project-modules.just"
-    project_modules.write_text(
+    write_fixture(
+        project_modules,
         "set shell := [\"sh\", \"-cu\"]\n"
         "project := \"moonjust\"\n"
         "mod tools\n\n"
@@ -433,7 +441,8 @@ def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
     )
     tools = root / "tools"
     tools.mkdir()
-    (tools / "mod.just").write_text(
+    write_fixture(
+        tools / "mod.just",
         "set shell := [\"sh\", \"-cu\"]\n"
         "prepare:\n"
         "  @:\n"
@@ -441,7 +450,8 @@ def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
         "  @:\n"
     )
     project_parameters = root / "project-parameters.just"
-    project_parameters.write_text(
+    write_fixture(
+        project_parameters,
         "set shell := [\"sh\", \"-cu\"]\n"
         "set positional-arguments\n"
         "project := \"moonjust\"\n"
@@ -456,7 +466,8 @@ def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
         "  @:\n"
     )
     project_execution = root / "project-execution.just"
-    project_execution.write_text(
+    write_fixture(
+        project_execution,
         "set shell := [\"sh\", \"-cu\"]\n"
         "export BUILD_MODE := \"release\"\n\n"
         "all: lint test package\n"
