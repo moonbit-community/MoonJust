@@ -67,7 +67,7 @@ result is hidden by this exception.
 
 - PR CI run `32637581499` passed at exact head
   `aa1c1040ffdbd011ec8dceed07757005968c54aa`.
-- Release Candidate run `32638224814` passed correctness, contract, coverage,
+- Release Candidate run `32639532630` passed correctness, contract, coverage,
   repeatability and all three cloud-trend performance jobs at that exact head.
 - The same RC reports the independent artifact-size exception described above;
   its aggregate release job is expected to remain red until a separate size
