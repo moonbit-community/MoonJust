@@ -101,6 +101,13 @@ class RunnerTest(unittest.TestCase):
             self.assertTrue(command[0].lower().endswith(("bash", "bash.exe")))
             self.assertEqual(command[1], "./tools/verification/checks/platform.sh")
 
+    def test_windows_oracle_uses_git_bash_not_wsl(self) -> None:
+        with mock.patch.object(runner.platform, "system", return_value="Windows"):
+            self.assertEqual(
+                runner.oracle_build_command(),
+                (r"C:\Program Files\Git\bin\bash.exe", "./tools/upstream/build_oracle.sh"),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

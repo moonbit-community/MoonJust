@@ -541,7 +541,9 @@ def official_artifact(repo: Path) -> Path:
 def oracle_build_command() -> Command:
     """Run the POSIX oracle builder through Git Bash on Windows hosts."""
     if platform.system() == "Windows":
-        return ("bash", "./tools/upstream/build_oracle.sh")
+        # System32 also provides a `bash.exe` shim for WSL. Use Git Bash
+        # explicitly so hosted Windows runners do not require a WSL distro.
+        return (r"C:\Program Files\Git\bin\bash.exe", "./tools/upstream/build_oracle.sh")
     return ("./tools/upstream/build_oracle.sh",)
 
 
