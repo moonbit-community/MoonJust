@@ -793,6 +793,7 @@ async test "cli dispatch matrix preserves parse and application failures" {
 }
 
 ///|
+#coverage.skip
 #cfg(platform="windows")
 fn successful_command_argv() -> Array[String] {
   ["--command", "cmd.exe", "/d", "/c", "exit 0"]
@@ -805,6 +806,7 @@ fn successful_command_argv() -> Array[String] {
 }
 
 ///|
+#coverage.skip
 #cfg(platform="windows")
 fn failed_command_argv() -> Array[String] {
   ["--command", "cmd.exe", "/d", "/c", "exit 1"]
@@ -817,6 +819,7 @@ fn failed_command_argv() -> Array[String] {
 }
 
 ///|
+#coverage.skip
 #cfg(platform="windows")
 fn command_test_host() -> @host.FakeHost {
   let current = @env.current_dir().unwrap_or(".")
@@ -837,6 +840,7 @@ fn command_test_host() -> @host.FakeHost {
 }
 
 ///|
+#coverage.skip
 #cfg(platform="windows")
 fn command_test_justfile_path(current : String) -> @path.PathValue {
   try! @path.PathValue::new(current, Windows).join(

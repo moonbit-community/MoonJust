@@ -181,3 +181,33 @@ async test "runtime live output helpers reject short and failed writes" {
     _ => fail("expected failed output error")
   }
 }
+
+///|
+test "runtime coordinator heap uses stable order and task ids" {
+  fn coordinator(
+    order : Array[Int],
+    ready : Array[Int],
+  ) -> ExecutionCoordinator {
+    {
+      mutex: Mutex(),
+      wake: Semaphore(16, initial_value=0),
+      remaining: order.map(fn(_) { 0 }),
+      blocked: order.map(fn(_) { false }),
+      dependents: order.map(fn(_) { [] }),
+      order,
+      output_order: [],
+      ready,
+      completed: 0,
+      workers: 1,
+      total: order.length(),
+    }
+  }
+  let tied = coordinator([1, 1], [])
+  assert_true(tied.coordinator_compare(0, 1) < 0)
+  let right_child = coordinator([0, 3, 1, 4], [0, 1, 2, 3])
+  assert_eq(right_child.coordinator_pop_ready(), 0)
+  assert_eq(right_child.ready[0], 2)
+  let already_sorted = coordinator([0, 1, 2, 3], [0, 2, 3, 1])
+  assert_eq(already_sorted.coordinator_pop_ready(), 0)
+  assert_eq(already_sorted.ready[0], 1)
+}

@@ -69,7 +69,10 @@ def rate(covered: int, valid: int) -> float:
 
 def changed_lines(repo: Path, base: str | None) -> dict[str, set[int]]:
     command = ["git", "-C", str(repo), "diff", "--unified=0"]
-    command.append(f"{base}...HEAD" if base else "HEAD")
+    if base:
+        command.extend([base, "HEAD"])
+    else:
+        command.append("HEAD")
     command.extend(["--", "api", "cmd/just", "internal"])
     result = subprocess.run(command, check=True, capture_output=True, text=True)
     current: str | None = None

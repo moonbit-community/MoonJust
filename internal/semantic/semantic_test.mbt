@@ -320,6 +320,7 @@ test "platform attributes select non-recipe definitions before duplicate checks"
     source(
       "[unix]\nx := 'unix'\n\n[windows]\nx := 'windows'\n\n" +
       "[unix]\nf() := 'unix'\n\n[windows]\nf() := 'windows'\n\n" +
+      "[unix]\nalias selected := foo\n\n[windows]\nalias skipped := foo\n\n" +
       "foo:\n  @echo {{ x }} {{ f() }}\n",
     ),
   )
@@ -330,6 +331,8 @@ test "platform attributes select non-recipe definitions before duplicate checks"
   )
   assert_eq(compiled.variable_names(), ["x"])
   assert_eq(compiled.function_names(), ["f"])
+  assert_eq(compiled.alias_target("selected"), Some("foo"))
+  assert_eq(compiled.alias_target("skipped"), None)
   let copied_items : Array[@syntax.Item] = []
   for item in ast.items() {
     copied_items.push(item)
@@ -341,4 +344,19 @@ test "platform attributes select non-recipe definitions before duplicate checks"
   )
   assert_eq(copied.variable_names(), ["x"])
   assert_eq(copied.function_names(), ["f"])
+}
+
+///|
+test "semantic dependency validation reports alias cycles and exact arity" {
+  for
+    fixture in [
+      "alias a := b\nalias b := a\nroot: a\n", "root: (child 'extra')\nchild:\n",
+    ] {
+    try compile(try! @parser.parse(source(fixture))) catch {
+      AliasCycle(..) | InvalidDependencyArguments(..) => ()
+      error => fail("unexpected dependency validation error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected dependency validation failure")
+    }
+  }
 }
