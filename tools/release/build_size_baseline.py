@@ -134,7 +134,13 @@ def extract_commit(repo: Path, commit: str, destination: Path) -> None:
         capture_output=True,
     ).stdout
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as source:
-        source.extractall(destination)
+        # Python 3.14 warns about the legacy unrestricted extraction API.
+        # Git's archive contains only repository paths, so use the standard
+        # data filter where available while retaining the older-runtime path.
+        if sys.version_info >= (3, 12):
+            source.extractall(destination, filter="data")
+        else:
+            source.extractall(destination)
 
 
 def stage_archive(
