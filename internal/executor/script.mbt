@@ -364,24 +364,22 @@ pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(
       _ => ()
     }
   }
-  let spec = script_command(
-    path,
-    planned.cwd,
-    planned.environment,
-    configuration.interpreter(),
-    parsed,
-    configuration.platform(),
-    planned.quiet,
-    positional=planned.positional,
-  ) catch {
-    error => {
-      try @host.HostScriptTemp::remove_script_temp(host, path) catch {
-        _ => ()
-      } noraise {
-        _ => ()
-      }
-      raise error
-    }
+  let spec = {
+    errdefer (try @host.HostScriptTemp::remove_script_temp(host, path) catch {
+      _ => ()
+    } noraise {
+      _ => ()
+    })
+    script_command(
+      path,
+      planned.cwd,
+      planned.environment,
+      configuration.interpreter(),
+      parsed,
+      configuration.platform(),
+      planned.quiet,
+      positional=planned.positional,
+    )
   }
   MaterializedScript::new(path, spec)
 }
@@ -422,26 +420,24 @@ pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(
   ) catch {
     error => raise Host(error)
   }
-  let spec = script_command(
-    path,
-    planned.cwd,
-    planned.environment,
-    configuration.interpreter(),
-    parsed,
-    configuration.platform(),
-    planned.quiet,
-    positional=planned.positional,
-  ) catch {
-    error => {
-      try
-        @host.HostAsyncScriptTemp::remove_script_temp_async(host, path)
-      catch {
-        _ => ()
-      } noraise {
-        _ => ()
-      }
-      raise error
-    }
+  let spec = {
+    errdefer (try
+      @host.HostAsyncScriptTemp::remove_script_temp_async(host, path)
+    catch {
+      _ => ()
+    } noraise {
+      _ => ()
+    })
+    script_command(
+      path,
+      planned.cwd,
+      planned.environment,
+      configuration.interpreter(),
+      parsed,
+      configuration.platform(),
+      planned.quiet,
+      positional=planned.positional,
+    )
   }
   MaterializedScript::new(path, spec)
 }
@@ -586,35 +582,33 @@ pub fn[T : @host.HostProcess + @host.HostScriptTemp + @host.HostExecutable] exec
       _ => ()
     }
   }
-  let spec = script_command(
-    path,
-    cwd,
-    process_environment,
-    configuration.interpreter(),
-    shebang,
-    configuration.platform(),
-    options.quiet(),
-  ) catch {
-    error => {
-      try cleanup_script(host, path) catch {
-        _ => ()
-      } noraise {
-        _ => ()
-      }
-      raise error
-    }
+  let spec = {
+    errdefer (try cleanup_script(host, path) catch {
+      _ => ()
+    } noraise {
+      _ => ()
+    })
+    script_command(
+      path,
+      cwd,
+      process_environment,
+      configuration.interpreter(),
+      shebang,
+      configuration.platform(),
+      options.quiet(),
+    )
   }
-  let result = try @host.HostProcess::run_process(host, spec) catch {
-    error => {
+  let result = {
+    errdefer ignore(
       try cleanup_script(host, path) catch {
         _ => ()
       } noraise {
         _ => ()
-      }
-      raise Host(error)
+      },
+    )
+    @host.HostProcess::run_process(host, spec) catch {
+      error => raise Host(error)
     }
-  } noraise {
-    value => value
   }
   cleanup_script(host, path)
   match result.termination() {

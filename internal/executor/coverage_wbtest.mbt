@@ -121,11 +121,8 @@ test "executor whitebox coverage visits planning helpers and environment exports
   assert_eq(planned_continue_signals(None), [])
   assert_eq(planned_continue_signals(attributes), [Interrupt, OtherSignal(3)])
   let environment = @evaluator.Environment::new()
-  environment.set("a", @value.String("one"))
-  environment.set(
-    "rest",
-    @value.List([@value.String("two"), @value.String("three")]),
-  )
+  environment.set("a", String("one"))
+  environment.set("rest", List([String("two"), String("three")]))
   environment.mark_exported("a")
   environment.mark_exported("rest")
   assert_eq(positional_values(recipe, environment), ["one", "two", "three"])
@@ -159,12 +156,12 @@ test "executor whitebox coverage visits planning helpers and environment exports
     starred_arguments=[0],
   )
   let expanded = expanded_dependency_argument_sets(dependency, [
-    @value.List([@value.String("a"), @value.String("b")]),
+    List([String("a"), String("b")]),
   ])
   assert_eq(expanded.length(), 2)
-  assert_eq(expanded[0], [@value.String("a")])
+  assert_eq(expanded[0], [String("a")])
   let scalar_expanded = expanded_dependency_argument_sets(dependency, [
-    @value.String("scalar"),
+    String("scalar"),
   ])
   assert_eq(scalar_expanded.length(), 1)
 }
@@ -311,7 +308,7 @@ async test "executor whitebox coverage evaluates recipe shell, interpreter, cwd,
     environment,
     context,
     shell,
-    [@value.String("arg")],
+    [String("arg")],
     script,
     "run",
   )

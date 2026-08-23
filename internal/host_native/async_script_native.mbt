@@ -29,40 +29,30 @@ pub impl @host.HostAsyncScriptTemp for NativeFs with fn create_script_temp_async
     } noraise {
       _ => ()
     }
-    let path = try
+    let path = {
+      errdefer (try @async_fs.rmdir(temporary_directory.as_string()) catch {
+        _ => ()
+      } noraise {
+        _ => ()
+      })
       @host.HostScriptTemp::create_script_temp(
         self, temporary_directory, stem, extension, contents,
       )
-    catch {
-      error => {
+    }
+    if executable {
+      errdefer {
+        try @host.HostScriptTemp::remove_script_temp(self, path) catch {
+          _ => ()
+        } noraise {
+          _ => ()
+        }
         try @async_fs.rmdir(temporary_directory.as_string()) catch {
           _ => ()
         } noraise {
           _ => ()
         }
-        raise error
       }
-    } noraise {
-      value => value
-    }
-    if executable {
-      try @host.HostExecutable::set_executable(self, path) catch {
-        error => {
-          try @host.HostScriptTemp::remove_script_temp(self, path) catch {
-            _ => ()
-          } noraise {
-            _ => ()
-          }
-          try @async_fs.rmdir(temporary_directory.as_string()) catch {
-            _ => ()
-          } noraise {
-            _ => ()
-          }
-          raise error
-        }
-      } noraise {
-        _ => ()
-      }
+      @host.HostExecutable::set_executable(self, path)
     }
     return path
   }

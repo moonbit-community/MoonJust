@@ -1110,9 +1110,7 @@ pub fn compile(
             value.attributes(),
             recipe_name=value.name(),
             recipe_span=value.span(),
-          ) catch {
-            error => raise error
-          }
+          )
         }
         if !attributes.matches(platform) {
           pending_attributes = []

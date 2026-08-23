@@ -258,7 +258,7 @@ async fn[F : @host.HostFs + @host.HostSourceReader] dispatch_inspect(
 ///|
 #cfg(target="native")
 fn[
-  F : @host.HostFs,
+  F,
   T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] dispatch_query(
   host : F,
@@ -287,6 +287,7 @@ async fn[
 }
 
 ///|
+#warnings("-unused_trait_bound")
 async fn[
   F : @host.HostFs + @host.HostSourceReader + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
@@ -357,8 +358,9 @@ fn append_response(
 }
 
 ///|
+#warnings("-unused_trait_bound")
 async fn[
-  F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAsyncScriptTemp + @host.HostCacheStore + @host.HostAtomicFs,
+  F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAtomicFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] run_cli(
   host : F,
@@ -623,8 +625,8 @@ async fn main {
 
 ///|
 fn test_host(windows : Bool) -> @host.FakeHost {
-  let flavor = if windows { @path.Windows } else { @path.Unix }
-  let operating_system = if windows { @host.Windows } else { @host.Linux }
+  let flavor = if windows { @path.Windows } else { Unix }
+  let operating_system = if windows { @host.Windows } else { Linux }
   @host.FakeHost::new(
     try! @path.PathValue::new(
       if windows {

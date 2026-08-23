@@ -1484,7 +1484,7 @@ pub async fn[
     for task in plan.tasks() {
       ignore(emit_live(output, Stderr, task.preamble(), 0))
     }
-    return ExecutionSummary::{ commands: 0 }
+    return { commands: 0 }
   }
   let jobs = plan.options().jobs()
   if jobs <= 0 {

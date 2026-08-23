@@ -8,9 +8,9 @@ test "evaluator coverage exercises typed error messages and diagnostics" {
     VariableCycle(name="x", stack=["x", "x"], span~),
     VariableCycle(name="x", stack=["x", "y", "x"], span~),
     TypeMismatch(expected="string", actual="list", span~),
-    Builtin(@builtin.BuiltinError::Unknown(name="missing"), span~),
+    Builtin(Unknown(name="missing"), span~),
     EffectRequired(effect="process", span~),
-    Host(@host.HostError::InvalidInput("host"), span~),
+    Host(InvalidInput("host"), span~),
     ProcessFailure(code=7, span~),
     BacktickFailure(code=8, span~),
     ProcessSignaled(signal=Terminate, span~),
@@ -63,7 +63,7 @@ async test "evaluator async effects cover shell, lazy assignments, and lookup" {
       context,
       shell,
     ),
-    @value.Value::String("async"),
+    String("async"),
   )
 
   let compilation = try! @semantic.compile_source(
@@ -91,8 +91,8 @@ async test "evaluator async effects cover shell, lazy assignments, and lookup" {
     ["value"],
     overrides=[("base", "override")],
   )
-  assert_eq(environment.get("base"), Some(@value.Value::String("override")))
-  assert_eq(environment.get("value"), Some(@value.Value::String("override-x")))
+  assert_eq(environment.get("base"), Some(String("override")))
+  assert_eq(environment.get("value"), Some(String("override-x")))
   assert_true(environment.is_exported("base"))
 
   let lookup = try! @path.PathValue::new("/usr/bin/tool", Unix)
@@ -106,7 +106,7 @@ async test "evaluator async effects cover shell, lazy assignments, and lookup" {
       context,
       shell,
     ),
-    @value.Value::List([@value.Value::String("/usr/bin/tool")]),
+    List([String("/usr/bin/tool")]),
   )
   assert_eq(host.pending_process_expectations(), 0)
 
@@ -118,7 +118,7 @@ async test "evaluator async effects cover shell, lazy assignments, and lookup" {
     shell,
     dry_run=true,
   )
-  assert_eq(dry, @value.Value::String("`printf dry`"))
+  assert_eq(dry, String("`printf dry`"))
 
   let recipe_compilation = try! @semantic.compile_source(
     @source.Source::from_text(
@@ -138,8 +138,8 @@ async test "evaluator async effects cover shell, lazy assignments, and lookup" {
     context,
     shell,
   )
-  assert_eq(bound.get("value"), Some(@value.Value::String("default")))
-  assert_eq(bound.get("rest"), Some(@value.Value::List([])))
+  assert_eq(bound.get("value"), Some(String("default")))
+  assert_eq(bound.get("rest"), Some(List([])))
   assert_eq(host.pending_process_expectations(), 0)
 
   try
@@ -151,10 +151,8 @@ async test "evaluator async effects cover shell, lazy assignments, and lookup" {
       shell,
     )
   catch {
-    @evaluator.EvaluationError::Builtin(
-      @builtin.BuiltinError::Failure(message~),
-      ..
-    ) => assert_true(message.contains("requires `set lists`"))
+    Builtin(Failure(message~), ..) =>
+      assert_true(message.contains("requires `set lists`"))
     error => fail("unexpected async list-mode error: \{Repr(error)}")
   } noraise {
     _ => fail("expected async list-mode error")
@@ -172,7 +170,7 @@ async test "evaluator async expression state machine covers values operators and
   let context = @evaluator.EvaluationContext::new(cwd~, lists=true)
   let shell = @evaluator.EffectShell::new("sh", ["-cu"])
   let environment = @evaluator.Environment::new()
-  environment.set("known", @value.Value::String("value"))
+  environment.set("known", String("value"))
   let compilation = try! @semantic.compile_source(
     @source.Source::from_text(
       @source.SourceId::new(9914),
@@ -184,30 +182,24 @@ async test "evaluator async expression state machine covers values operators and
   let functions = @evaluator.FunctionEnvironment::from_compilation(compilation)
   let cases = [
     ("'text'", @value.Value::String("text")),
-    ("true", @value.Value::Bool(true)),
-    ("known", @value.Value::String("value")),
-    ("decorate('x')", @value.Value::String("x-ok")),
-    (
-      "['a', 'b']",
-      @value.Value::List([@value.Value::String("a"), @value.Value::String("b")]),
-    ),
-    ("!false", @value.Value::Bool(true)),
-    ("'a' == 'a'", @value.Value::Bool(true)),
-    ("'a' != 'b'", @value.Value::Bool(true)),
-    ("'abc' =~ 'b'", @value.Value::Bool(true)),
-    ("'abc' !~ 'z'", @value.Value::Bool(true)),
-    (
-      "['a'] ++ ['b']",
-      @value.Value::List([@value.Value::String("a"), @value.Value::String("b")]),
-    ),
-    ("'a' + 'b'", @value.Value::String("ab")),
-    ("'a' / 'b'", @value.Value::String("a/b")),
-    ("true || error('unused')", @value.Value::Bool(true)),
-    ("false && error('unused')", @value.Value::List([])),
-    ("if false { 'no' } else { 'yes' }", @value.Value::String("yes")),
-    ("if false { 'no' }", @value.Value::List([])),
-    ("f'prefix {{known}} suffix'", @value.Value::String("prefix value suffix")),
-    ("(known)", @value.Value::String("value")),
+    ("true", Bool(true)),
+    ("known", String("value")),
+    ("decorate('x')", String("x-ok")),
+    ("['a', 'b']", List([String("a"), String("b")])),
+    ("!false", Bool(true)),
+    ("'a' == 'a'", Bool(true)),
+    ("'a' != 'b'", Bool(true)),
+    ("'abc' =~ 'b'", Bool(true)),
+    ("'abc' !~ 'z'", Bool(true)),
+    ("['a'] ++ ['b']", List([String("a"), String("b")])),
+    ("'a' + 'b'", String("ab")),
+    ("'a' / 'b'", String("a/b")),
+    ("true || error('unused')", Bool(true)),
+    ("false && error('unused')", List([])),
+    ("if false { 'no' } else { 'yes' }", String("yes")),
+    ("if false { 'no' }", List([])),
+    ("f'prefix {{known}} suffix'", String("prefix value suffix")),
+    ("(known)", String("value")),
   ]
   for row in cases {
     let actual = try! @evaluator.evaluate_with_async_effects(
@@ -254,7 +246,7 @@ async test "evaluator async expression state machine covers values operators and
       limits=@evaluator.EvaluationLimits::new(2, 100, 100),
     )
   catch {
-    @evaluator.EvaluationError::RecursionLimitExceeded(..) => ()
+    RecursionLimitExceeded(..) => ()
     error => fail("unexpected async recursion limit: \{Repr(error)}")
   } noraise {
     _ => fail("expected async recursion limit")
@@ -269,7 +261,7 @@ async test "evaluator async expression state machine covers values operators and
       limits=@evaluator.EvaluationLimits::new(128, 1, 100),
     )
   catch {
-    @evaluator.EvaluationError::NodeLimitExceeded(..) => ()
+    NodeLimitExceeded(..) => ()
     error => fail("unexpected async node limit: \{Repr(error)}")
   } noraise {
     _ => fail("expected async node limit")
@@ -284,7 +276,7 @@ async test "evaluator async expression state machine covers values operators and
       limits=@evaluator.EvaluationLimits::new(128, 100, 4),
     )
   catch {
-    @evaluator.EvaluationError::OutputLimitExceeded(..) => ()
+    OutputLimitExceeded(..) => ()
     error => fail("unexpected async output limit: \{Repr(error)}")
   } noraise {
     _ => fail("expected async output limit")
@@ -345,7 +337,7 @@ async test "evaluator async non-process effects use explicit host context" {
       context,
       shell,
     ),
-    @value.Value::String("true"),
+    String("true"),
   )
   assert_true(
     (try! @evaluator.evaluate_with_async_effects(
@@ -362,11 +354,11 @@ async test "evaluator async non-process effects use explicit host context" {
   let written = try! @evaluator.call_non_process_effect_with_context(
     host,
     "write",
-    [@value.Value::String("output"), @value.Value::String("data")],
+    [String("output"), String("data")],
     context,
     @source.Span::origin(@source.SourceId::new(9915)),
   )
-  assert_eq(written, @value.Value::String(""))
+  assert_eq(written, String(""))
   assert_eq(
     try! @host.HostFs::read_file(
       host,
@@ -382,7 +374,7 @@ test "evaluator synchronous state machine covers list algebra and assertions" {
   let lists = @evaluator.EvaluationContext::new(cwd~, lists=true)
   let plain = @evaluator.EvaluationContext::new(cwd~)
   let environment = @evaluator.Environment::new()
-  environment.set("known", @value.Value::String("value"))
+  environment.set("known", String("value"))
   let compilation = try! @semantic.compile_source(
     @source.Source::from_text(
       @source.SourceId::new(9916),
@@ -394,31 +386,13 @@ test "evaluator synchronous state machine covers list algebra and assertions" {
   let functions = @evaluator.FunctionEnvironment::from_compilation(compilation)
   let cases = [
     ("known", @value.Value::String("value")),
-    ("decorate('x')", @value.Value::String("x-ok")),
-    (
-      "['a'] + ['b', 'c']",
-      @value.Value::List([
-        @value.Value::String("ab"),
-        @value.Value::String("ac"),
-      ]),
-    ),
-    (
-      "['a', 'b'] + ['c']",
-      @value.Value::List([
-        @value.Value::String("ac"),
-        @value.Value::String("bc"),
-      ]),
-    ),
-    (
-      "['a', 'b'] + ['c', 'd']",
-      @value.Value::List([
-        @value.Value::String("ac"),
-        @value.Value::String("bd"),
-      ]),
-    ),
-    ("true || false", @value.Value::Bool(true)),
-    ("true && true", @value.Value::Bool(true)),
-    ("if true { 'yes' } else { 'no' }", @value.Value::String("yes")),
+    ("decorate('x')", String("x-ok")),
+    ("['a'] + ['b', 'c']", List([String("ab"), String("ac")])),
+    ("['a', 'b'] + ['c']", List([String("ac"), String("bc")])),
+    ("['a', 'b'] + ['c', 'd']", List([String("ac"), String("bd")])),
+    ("true || false", Bool(true)),
+    ("true && true", Bool(true)),
+    ("if true { 'yes' } else { 'no' }", String("yes")),
   ]
   for row in cases {
     assert_eq(
@@ -428,18 +402,18 @@ test "evaluator synchronous state machine covers list algebra and assertions" {
   }
   assert_eq(
     try! @evaluator.evaluate_with_context(expression("assert(true)"), lists),
-    @value.Value::Bool(true),
+    Bool(true),
   )
   assert_eq(
     try! @evaluator.evaluate_with_context(expression("assert(true)"), plain),
-    @value.Value::String(""),
+    String(""),
   )
   for
     invalid in [
       "[] + ['a']", "assert(false)", "assert(false, 'custom')", "assert()", "assert(true, 'a', 'b')",
     ] {
     try @evaluator.evaluate_with_context(expression(invalid), lists) catch {
-      @evaluator.EvaluationError::Builtin(_, ..) => ()
+      Builtin(_, ..) => ()
       error => fail("unexpected sync expression error: \{Repr(error)}")
     } noraise {
       _ => fail("expected sync expression failure for \{invalid}")
@@ -447,7 +421,7 @@ test "evaluator synchronous state machine covers list algebra and assertions" {
   }
   for invalid in ["true || false", "['a'] ++ ['b']", "['a']", "!true"] {
     try @evaluator.evaluate_with_context(expression(invalid), plain) catch {
-      @evaluator.EvaluationError::Builtin(_, ..) => ()
+      Builtin(_, ..) => ()
       error => fail("unexpected list-mode error: \{Repr(error)}")
     } noraise {
       _ => fail("expected list-mode failure for \{invalid}")
@@ -457,7 +431,7 @@ test "evaluator synchronous state machine covers list algebra and assertions" {
     try
       @evaluator.evaluate_with_context(expression(expression_text), lists)
     catch {
-      @evaluator.EvaluationError::EffectRequired(..) => ()
+      EffectRequired(..) => ()
       error => fail("unexpected effect requirement: \{Repr(error)}")
     } noraise {
       _ => fail("expected effect requirement for \{expression_text}")
@@ -470,7 +444,7 @@ test "evaluator synchronous state machine covers list algebra and assertions" {
       functions~,
     )
   catch {
-    @evaluator.EvaluationError::FunctionArgumentCount(..) => ()
+    FunctionArgumentCount(..) => ()
     error => fail("unexpected function arity error: \{Repr(error)}")
   } noraise {
     _ => fail("expected function arity failure")
@@ -483,6 +457,6 @@ test "evaluator synchronous state machine covers list algebra and assertions" {
         "'source' + '-value'",
       ),
     ),
-    @value.Value::String("source-value"),
+    String("source-value"),
   )
 }

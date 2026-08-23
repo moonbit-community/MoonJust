@@ -167,21 +167,15 @@ async test "runtime live output helpers reject short and failed writes" {
   assert_eq(emit_live(CoverageOutput::{ mode: Full }, Stderr, b"ok", 2), 2)
   assert_eq(emit_live(CoverageOutput::{ mode: Full }, Stderr, b"", 2), 0)
   try emit_live(CoverageOutput::{ mode: Short }, Stdout, b"short", 3) catch {
-    LiveExecution(
-      error=@executor.ExecutionError::Host(InvalidInput(message)),
-      commands=3,
-      ..
-    ) => assert_true(message.contains("incomplete"))
+    LiveExecution(error=Host(InvalidInput(message)), commands=3, ..) =>
+      assert_true(message.contains("incomplete"))
     error => fail("unexpected short output error: \{Repr(error)}")
   } noraise {
     _ => fail("expected short output error")
   }
   try emit_live(CoverageOutput::{ mode: Fail }, Stdout, b"failed", 4) catch {
-    LiveExecution(
-      error=@executor.ExecutionError::Host(InvalidInput(message)),
-      commands=4,
-      ..
-    ) => assert_true(message.contains("failed to write"))
+    LiveExecution(error=Host(InvalidInput(message)), commands=4, ..) =>
+      assert_true(message.contains("failed to write"))
     error => fail("unexpected failed output error: \{Repr(error)}")
   } noraise {
     _ => fail("expected failed output error")

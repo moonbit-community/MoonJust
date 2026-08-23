@@ -32,7 +32,7 @@ test "parser whitebox coverage visits attribute and cursor branches" {
   let _ = parser.peek_kind()
   assert_true(parser.peek_kind_at(0) is Some(_))
   assert_true(parser.peek_kind_at(100) is None)
-  assert_false(parser.peek_keyword(@lexer.Keyword::Set))
+  assert_false(parser.peek_keyword(Set))
   let token = parser.advance()
   assert_eq(token.kind(), Identifier)
   let _ = parser.advance()
@@ -78,12 +78,12 @@ test "parser whitebox coverage visits top-level grammar predicates" {
   for
     kind in [
       @lexer.TokenKind::At,
-      @lexer.TokenKind::Asterisk,
-      @lexer.TokenKind::Dollar,
-      @lexer.TokenKind::ParenL,
-      @lexer.TokenKind::BracketL,
-      @lexer.TokenKind::StringToken,
-      @lexer.TokenKind::Identifier,
+      Asterisk,
+      Dollar,
+      ParenL,
+      BracketL,
+      StringToken,
+      Identifier,
     ] {
     let _ = mapped_argument_start(kind)
   }

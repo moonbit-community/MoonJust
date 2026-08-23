@@ -119,8 +119,8 @@ fn execution_coordinator(
     output_order.push(id)
   }
   let coordinator = {
-    mutex: @async.Mutex(),
-    wake: @async.Semaphore(total + workers + 1, initial_value=0),
+    mutex: Mutex(),
+    wake: Semaphore(total + workers + 1, initial_value=0),
     remaining,
     blocked,
     dependents,

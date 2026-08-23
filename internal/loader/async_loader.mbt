@@ -1,6 +1,8 @@
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 fn source_read_limit() -> Int {
-  @lexer.LexerLimits::default().max_source_bytes()
+  // Keep this aligned with LexerLimits::default().max_source_bytes().
+  16 * 1024 * 1024
 }
 
 ///|
@@ -240,7 +242,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
 
 ///|
 #cfg(target="native")
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
+pub fn[T : @host.HostFs] load_async(
   host : T,
   path : @path.PathValue,
   source_id : @source.SourceId,
@@ -251,7 +253,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
 
 ///|
 #cfg(target="native")
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
+pub fn[T : @host.HostFs] load_graph_async(
   host : T,
   root : @path.PathValue,
   source_id : @source.SourceId,
@@ -267,7 +269,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
 
 ///|
 #cfg(target="native")
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
+pub fn[T : @host.HostFs] load_stdin_graph_async(
   host : T,
   bytes : Bytes,
   source_id : @source.SourceId,

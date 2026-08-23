@@ -272,6 +272,7 @@ fn decode_chooser_selections(
 ///|
 /// Run the configured chooser and return one independent recipe invocation per
 /// selected output line. Exit status 130 is the chooser cancellation contract.
+#warnings("-unused_trait_bound")
 pub async fn[
   F : @host.HostFs + @host.HostSourceReader,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,

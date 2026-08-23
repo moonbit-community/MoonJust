@@ -22,6 +22,11 @@ pkgtype(kind: "executable")
 
 supported_targets = "-all+native+wasm"
 
+// The native runtime adapter is imported for runtime_native.mbt only; the
+// portable target intentionally does not reference that package.
+
+warnings = "-29"
+
 options(
   targets: {
     "runtime_native.mbt": [ "native", "llvm" ],

@@ -381,7 +381,8 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] exe
 /// async API at this boundary preserves the CLI dispatcher while removing the
 /// native-only I/O state machines.
 #cfg(target="native")
-pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostTemp] execute_file_command_async(
+#warnings("-unused_async")
+pub async fn[T : @host.HostFs + @host.HostTemp] execute_file_command_async(
   host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,

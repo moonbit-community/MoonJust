@@ -28,9 +28,7 @@ test "invocation diagnostics cover every structured error shape" {
     DisabledRecipe(name="build", modules=["a"], is_alias=false),
     DisabledRecipe(name="build", modules=["a", "b"], is_alias=true),
     OptionalModuleAbsent(module_path="optional.just"),
-    Evaluation(
-      @evaluator.EvaluationError::UndefinedVariable(name="x", span=first),
-    ),
+    Evaluation(UndefinedVariable(name="x", span=first)),
     InvalidArgumentAttribute(recipe="run", detail="bad", span=Some(first)),
     InvalidArgumentPattern(
       recipe="run",

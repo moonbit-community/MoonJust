@@ -10,8 +10,8 @@ test "loader coverage exercises limits, source provenance, and diagnostics" {
     AmbiguousJustfile(directory=path, found=["justfile", ".justfile"]),
     ExplicitFileMissing(path~),
     ImportFileMissing(span~),
-    Host(@host.HostError::InvalidInput("bad host")),
-    InvalidSource(@source.SourceError::InvalidUtf8(offset=2)),
+    Host(InvalidInput("bad host")),
+    InvalidSource(InvalidUtf8(offset=2)),
     Parse(parser_error),
     ParseSource(parser_error, source_name="broken.just", source_bytes=b"x"),
     ImportCycle(path~, chain=[path, other], span=Some(span)),
@@ -293,7 +293,7 @@ test "loader coverage rejects invalid bytes and preserves graph provenance" {
       "bad.just",
     )
   catch {
-    InvalidSource(@source.SourceError::InvalidUtf8(offset=0)) => ()
+    InvalidSource(InvalidUtf8(offset=0)) => ()
     error => fail("unexpected utf8 error: \{Repr(error)}")
   } noraise {
     _ => fail("expected invalid UTF-8")

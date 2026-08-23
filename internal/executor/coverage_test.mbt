@@ -8,13 +8,11 @@ test "executor coverage exercises execution error families" {
   let command = try! @host.CommandSpec::new("echo", [])
   let errors : Array[ExecutionError] = [
     Evaluation(evaluation),
-    Evaluation(@evaluator.EvaluationError::ProcessFailure(code=23, span~)),
-    Evaluation(@evaluator.EvaluationError::BacktickFailure(code=24, span~)),
-    Evaluation(
-      @evaluator.EvaluationError::ProcessSignaled(signal=Terminate, span~),
-    ),
-    Invocation(@invocation.InvocationError::NoRecipes),
-    Host(@host.HostError::InvalidInput("host")),
+    Evaluation(ProcessFailure(code=23, span~)),
+    Evaluation(BacktickFailure(code=24, span~)),
+    Evaluation(ProcessSignaled(signal=Terminate, span~)),
+    Invocation(NoRecipes),
+    Host(InvalidInput("host")),
     ShellNotFound(recipe="build", shell="sh", detail="missing"),
     InvalidShebang(recipe="build", shebang="#!bad"),
     UnknownRecipe(recipe="missing"),

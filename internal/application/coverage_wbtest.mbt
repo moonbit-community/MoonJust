@@ -162,32 +162,23 @@ test "application whitebox coverage exercises inspect JSON and query renderers" 
     value in [
       Some(
         @syntax.Expression::String(
-          @syntax.StringLiteral::new(
-            "'7'",
-            "7",
-            @syntax.StringKind::Cooked,
-            source.full_span(),
-          ),
+          @syntax.StringLiteral::new("'7'", "7", Cooked, source.full_span()),
         ),
       ),
-      Some(@syntax.Expression::Boolean(value=true, span=source.full_span())),
+      Some(Boolean(value=true, span=source.full_span())),
       None,
     ] {
     assert_true(unsigned_json(value).stringify().length() > 0)
   }
   assert_true(pattern_json(None).stringify().length() > 0)
   assert_true(
-    pattern_json(
-      Some(@syntax.Expression::List(elements=[], span=source.full_span())),
-    )
+    pattern_json(Some(List(elements=[], span=source.full_span())))
     .stringify()
     .length() >
     0,
   )
   assert_true(
-    attribute_plain_json(
-      @syntax.Expression::List(elements=[], span=source.full_span()),
-    )
+    attribute_plain_json(List(elements=[], span=source.full_span()))
     .stringify()
     .length() >
     0,
@@ -274,11 +265,9 @@ test "application whitebox coverage exercises query and evaluation edge branches
   let environment = try! @evaluator.evaluate_compilation(compilation)
 
   assert_eq(shell_escape("!\"$\\`"), "\\!\\\"\\$\\\\\\`")
-  assert_eq(joined_value(@value.Value::String("value")), "value")
-  assert_true(just_value(@value.Value::String("value")).contains("value"))
-  assert_true(
-    colored_just_value(@value.Value::String("a\\nb")).contains("\u{001b}["),
-  )
+  assert_eq(joined_value(String("value")), "value")
+  assert_true(just_value(String("value")).contains("value"))
+  assert_true(colored_just_value(String("a\\nb")).contains("\u{001b}["))
   assert_eq(
     evaluate_text(
       compilation,
@@ -558,12 +547,12 @@ test "application whitebox coverage exercises planning selections" {
   for
     row in [
       ("black", @executor.Black),
-      ("red", @executor.Red),
-      ("green", @executor.Green),
-      ("yellow", @executor.Yellow),
-      ("blue", @executor.Blue),
-      ("purple", @executor.Magenta),
-      ("cyan", @executor.Cyan),
+      ("red", Red),
+      ("green", Green),
+      ("yellow", Yellow),
+      ("blue", Blue),
+      ("purple", Magenta),
+      ("cyan", Cyan),
     ] {
     let name = row.0
     let expected = row.1
@@ -598,7 +587,7 @@ test "application whitebox coverage exercises planning selections" {
       {},
     ),
     Some("12:00"),
-    Some(@executor.Cyan),
+    Some(Cyan),
     true,
   )
   assert_true(options.dry_run())
@@ -736,11 +725,9 @@ test "application whitebox coverage preserves process and evaluation exit contra
     None => @env.unset_env_var("MOONJUST_OS")
   })
   let errors : Array[ApplicationError] = [
-    Evaluation(@evaluator.EvaluationError::ProcessFailure(code=17, span~)),
-    Evaluation(@evaluator.EvaluationError::BacktickFailure(code=18, span~)),
-    Evaluation(
-      @evaluator.EvaluationError::ProcessSignaled(signal=Terminate, span~),
-    ),
+    Evaluation(ProcessFailure(code=17, span~)),
+    Evaluation(BacktickFailure(code=18, span~)),
+    Evaluation(ProcessSignaled(signal=Terminate, span~)),
     InteractiveProcess(
       kind="command",
       command="tool",
@@ -782,11 +769,7 @@ test "application whitebox coverage preserves process and evaluation exit contra
   assert_true(stable_application_error_message(errors[0]).contains("MJ-EVAL"))
   assert_true(
     stable_application_error_message(
-      Executor(
-        @executor.ExecutionError::Evaluation(
-          @evaluator.EvaluationError::UndefinedVariable(name="x", span~),
-        ),
-      ),
+      Executor(Evaluation(UndefinedVariable(name="x", span~))),
     ).contains("MJ-EVAL"),
   )
 }

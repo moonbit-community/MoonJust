@@ -129,18 +129,12 @@ pub fn[T : HostFs + HostTemp] write_file_atomic(
   let temporary = HostTemp::create_temp_file(
     host, directory, ".moonjust.tmp.", contents,
   )
-  try HostFs::persist_temp_file(host, temporary, path, overwrite) catch {
-    error => {
-      try HostTemp::remove_temp_file(host, temporary) catch {
-        _ => ()
-      } noraise {
-        _ => ()
-      }
-      raise error
-    }
+  errdefer (try HostTemp::remove_temp_file(host, temporary) catch {
+    _ => ()
   } noraise {
     _ => ()
-  }
+  })
+  HostFs::persist_temp_file(host, temporary, path, overwrite)
 }
 
 ///|

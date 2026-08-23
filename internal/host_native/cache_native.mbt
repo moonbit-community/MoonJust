@@ -126,14 +126,12 @@ pub impl @host.HostCacheStore for NativeFs with fn acquire_cache_lease(
   } noraise {
     _ => ()
   }
-  try clean_native_cache_temporary(directory, digest) catch {
-    error => {
+  {
+    errdefer {
       file.unlock()
       file.close()
-      raise error
     }
-  } noraise {
-    _ => ()
+    clean_native_cache_temporary(directory, digest)
   }
   let token = next_native_cache_token()
   native_cache_locks[token] = file

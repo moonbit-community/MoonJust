@@ -321,13 +321,14 @@ async fn[X] spawn_observed_process(
     quoted.join(" ")
   add_signal_child(pid, description)
   let process_group = if grouped {
-    try wait_for_process_group(process, pid) catch {
-      error => {
-        remove_signal_child(pid)
-        raise error
-      }
-    } noraise {
-      ready => if ready { Some(pid) } else { None }
+    let ready = {
+      errdefer remove_signal_child(pid)
+      wait_for_process_group(process, pid)
+    }
+    if ready {
+      Some(pid)
+    } else {
+      None
     }
   } else {
     None
@@ -368,23 +369,28 @@ async fn[X] spawn_observed_process(
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+#warnings("-fragile_catch_all")
 async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
   let Managed(process~, pid~, process_group~) = self
   defer remove_signal_child(pid)
-  let status = try process.wait() catch {
-    error => {
-      match process_group {
-        Some(group) => cleanup_process_group_protected(group)
-        None => ()
+  let status = {
+    errdefer (match process_group {
+      Some(group) => cleanup_process_group_protected(group)
+      None => ()
+    })
+    process.wait() catch {
+      error => {
+        let signal = caught_signal()
+        if @async.is_cancellation_error(error) && signal is Some(number) {
+          match process_group {
+            Some(group) => cleanup_process_group_protected(group)
+            None => ()
+          }
+          return -(256 + number)
+        }
+        raise error
       }
-      let signal = caught_signal()
-      if @async.is_cancellation_error(error) && signal is Some(number) {
-        return -(256 + number)
-      }
-      raise error
     }
-  } noraise {
-    value => value
   }
   match process_group {
     Some(group) => cleanup_process_group_protected(group)

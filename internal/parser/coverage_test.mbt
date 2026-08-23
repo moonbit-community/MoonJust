@@ -26,9 +26,9 @@ test "parser coverage exercises recovery limits and diagnostic variants" {
   }
 
   let span = coverage_parser_source("x").full_span()
-  let token = @lexer.Token::new(@lexer.TokenKind::Identifier, span)
+  let token = @lexer.Token::new(Identifier, span)
   let errors : Array[@parser.ParserError] = [
-    LexerFailure(@lexer.UnexpectedCharacter(expected="x", found="y", span~)),
+    LexerFailure(UnexpectedCharacter(expected="x", found="y", span~)),
     UnexpectedToken(expected="identifier", found=Eof, span~),
     UnexpectedConstruct(expected="expression", found="item", span~),
     InvalidEscapeSequence(character="q", span~),
@@ -64,11 +64,11 @@ test "parser coverage exercises recovery limits and diagnostic variants" {
   for
     kind in [
       @lexer.TokenKind::ByteOrderMark,
-      @lexer.TokenKind::Eol,
-      @lexer.TokenKind::FormatStringContinue,
-      @lexer.TokenKind::FormatStringEnd,
-      @lexer.TokenKind::FormatStringStart,
-      @lexer.TokenKind::Colon,
+      Eol,
+      FormatStringContinue,
+      FormatStringEnd,
+      FormatStringStart,
+      Colon,
     ] {
     let error : @parser.ParserError = UnexpectedToken(
       expected="item",

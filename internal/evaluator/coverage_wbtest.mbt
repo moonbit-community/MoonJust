@@ -52,18 +52,11 @@ test "evaluator whitebox coverage exercises context conversions" {
     Some([("X", "Y")]),
   )
   assert_eq(split_ascii_whitespace(" a  b\t c "), ["a", "b", "c"])
-  assert_eq(context_boolean(context, true), @value.Value::String("true"))
-  assert_eq(context_boolean(context, false), @value.Value::List([]))
+  assert_eq(context_boolean(context, true), String("true"))
+  assert_eq(context_boolean(context, false), List([]))
   assert_eq(
-    map_context_paths(
-      @value.Value::List([@value.Value::String("a"), @value.Value::String("b")]),
-      context,
-      span,
-    ),
-    @value.Value::List([
-      @value.Value::String("/workspace/a"),
-      @value.Value::String("/workspace/b"),
-    ]),
+    map_context_paths(List([String("a"), String("b")]), context, span),
+    List([String("/workspace/a"), String("/workspace/b")]),
   )
   assert_eq(
     context_parent("cwd", Some(cwd), span),
@@ -99,30 +92,11 @@ test "evaluator whitebox coverage exercises builtin context branches" {
   for
     row in [
       ("bool", [@value.Value::String("")], @value.Value::List([])),
-      ("bool", [@value.Value::String("1")], @value.Value::String("true")),
-      (
-        "bool",
-        [@value.Value::List([@value.Value::String("false")])],
-        @value.Value::List([]),
-      ),
-      (
-        "append",
-        [@value.Value::String("!"), @value.Value::String("a b")],
-        @value.Value::List([@value.Value::String("a b!")]),
-      ),
-      (
-        "prepend",
-        [
-          @value.Value::String("x"),
-          @value.Value::List([@value.Value::String("a")]),
-        ],
-        @value.Value::List([@value.Value::String("xa")]),
-      ),
-      (
-        "show",
-        [@value.Value::List([@value.Value::String("a")])],
-        @value.Value::String("\"a\""),
-      ),
+      ("bool", [String("1")], String("true")),
+      ("bool", [List([String("false")])], List([])),
+      ("append", [String("!"), String("a b")], List([String("a b!")])),
+      ("prepend", [String("x"), List([String("a")])], List([String("xa")])),
+      ("show", [List([String("a")])], String("\"a\"")),
     ] {
     let name = row.0
     let args = row.1
@@ -132,30 +106,24 @@ test "evaluator whitebox coverage exercises builtin context branches" {
   }
   let appended = try! context_builtin(
     "append",
-    [@value.Value::String("!"), @value.Value::String("a b")],
+    [String("!"), String("a b")],
     plain,
     span,
   )
-  assert_eq(appended, Some(@value.Value::String("a! b!")))
-  try
-    context_builtin("bool", [@value.Value::String("maybe")], scalar, span)
-  catch {
+  assert_eq(appended, Some(String("a! b!")))
+  try context_builtin("bool", [String("maybe")], scalar, span) catch {
     Builtin(Failure(..), ..) => ()
     _ => fail("unexpected bool error")
   } noraise {
     _ => fail("expected bool error")
   }
-  try
-    context_builtin("bool", [@value.Value::String("true")], plain, span)
-  catch {
+  try context_builtin("bool", [String("true")], plain, span) catch {
     Builtin(Failure(..), ..) => ()
     _ => fail("unexpected list-mode error")
   } noraise {
     _ => fail("expected list-mode error")
   }
-  try
-    context_builtin("append", [@value.Value::String("x")], scalar, span)
-  catch {
+  try context_builtin("append", [String("x")], scalar, span) catch {
     _ => fail("wrong arity should fall through")
   } noraise {
     None => ()
@@ -253,12 +221,12 @@ test "evaluator whitebox coverage exercises datetime and reference traversal" {
   for
     day in [
       @time.Weekday::Monday,
-      @time.Weekday::Tuesday,
-      @time.Weekday::Wednesday,
-      @time.Weekday::Thursday,
-      @time.Weekday::Friday,
-      @time.Weekday::Saturday,
-      @time.Weekday::Sunday,
+      Tuesday,
+      Wednesday,
+      Thursday,
+      Friday,
+      Saturday,
+      Sunday,
     ] {
     assert_true(weekday_names(day).1.length() > 0)
   }
@@ -372,53 +340,38 @@ test "evaluator context accessors and builtins expose every invocation fact" {
   assert_eq(
     context_builtin(
       "env",
-      [
-        @value.Value::List([
-          @value.Value::String("MISSING"),
-          @value.Value::String("MODE"),
-        ]),
-      ],
+      [List([String("MISSING"), String("MODE")])],
       context,
       span,
     ),
-    Some(@value.Value::String("test")),
+    Some(String("test")),
   )
   assert_eq(
     context_builtin(
       "env_var_or_default",
-      [@value.Value::String("MISSING"), @value.Value::String("fallback")],
+      [String("MISSING"), String("fallback")],
       context,
       span,
     ),
-    Some(@value.Value::String("fallback")),
+    Some(String("fallback")),
   )
   assert_eq(
     context_builtin(
       "quote",
-      [
-        @value.Value::List([
-          @value.Value::String("a b"),
-          @value.Value::String("c"),
-        ]),
-      ],
+      [List([String("a b"), String("c")])],
       context,
       span,
     ),
-    Some(
-      @value.Value::List([
-        @value.Value::String("'a b'"),
-        @value.Value::String("'c'"),
-      ]),
-    ),
+    Some(List([String("'a b'"), String("'c'")])),
   )
   assert_eq(
     context_builtin(
       "semver_matches",
-      [@value.Value::String("1.2.3"), @value.Value::String(">=1")],
+      [String("1.2.3"), String(">=1")],
       context,
       span,
     ),
-    Some(@value.Value::String("true")),
+    Some(String("true")),
   )
 }
 
@@ -452,26 +405,17 @@ test "evaluator helper failures preserve typed boundaries" {
   } noraise {
     _ => fail("expected missing string")
   }
-  try expect_string("test", [@value.Value::Bool(true)], 0, span) catch {
+  try expect_string("test", [Bool(true)], 0, span) catch {
     TypeMismatch(actual="boolean", ..) => ()
     error => fail("unexpected string type error: \{Repr(error)}")
   } noraise {
     _ => fail("expected string type mismatch")
   }
-  assert_eq(value_strings("test", @value.Value::String("x"), span), ["x"])
-  assert_eq(
-    value_strings(
-      "test",
-      @value.Value::List([@value.Value::String("x"), @value.Value::String("y")]),
-      span,
-    ),
-    ["x", "y"],
-  )
-  for
-    invalid in [
-      @value.Value::Bool(true),
-      @value.Value::List([@value.Value::Bool(true)]),
-    ] {
+  assert_eq(value_strings("test", String("x"), span), ["x"])
+  assert_eq(value_strings("test", List([String("x"), String("y")]), span), [
+    "x", "y",
+  ])
+  for invalid in [@value.Value::Bool(true), List([Bool(true)])] {
     try value_strings("test", invalid, span) catch {
       TypeMismatch(_) => ()
       error => fail("unexpected value list error: \{Repr(error)}")
@@ -484,31 +428,22 @@ test "evaluator helper failures preserve typed boundaries" {
     env_value(
       host,
       "env",
-      @value.Value::List([
-        @value.Value::String("FIRST"),
-        @value.Value::String("SECOND"),
-      ]),
+      List([String("FIRST"), String("SECOND")]),
       None,
       span,
     ),
-    @value.Value::String("found"),
+    String("found"),
   )
   assert_eq(
-    env_value(
-      host,
-      "env",
-      @value.Value::String("MISSING"),
-      Some(@value.Value::String("fallback")),
-      span,
-    ),
-    @value.Value::String("fallback"),
+    env_value(host, "env", String("MISSING"), Some(String("fallback")), span),
+    String("fallback"),
   )
   for
     arguments in [
-      [@value.Value::String("bad"), @value.Value::String("abc")],
-      [@value.Value::String("-1"), @value.Value::String("abc")],
-      [@value.Value::String("1"), @value.Value::String("")],
-      [@value.Value::String("1"), @value.Value::String("aba")],
+      [@value.Value::String("bad"), String("abc")],
+      [String("-1"), String("abc")],
+      [String("1"), String("")],
+      [String("1"), String("aba")],
     ] {
     try choose_value(host, arguments, span) catch {
       Builtin(Failure(..), ..) => ()
@@ -533,24 +468,12 @@ test "evaluator context failures cover missing and list-specific facts" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let lists = EvaluationContext::new(cwd~, lists=true, environment=[])
   let plain = EvaluationContext::new(cwd~, environment=[])
-  assert_eq(
-    context_builtin("bool", [@value.Value::List([])], lists, span),
-    Some(@value.Value::List([])),
-  )
+  assert_eq(context_builtin("bool", [List([])], lists, span), Some(List([])))
   for
     row in [
-      (
-        "bool",
-        [
-          @value.Value::List([
-            @value.Value::String("true"),
-            @value.Value::String("false"),
-          ]),
-        ],
-        lists,
-      ),
-      ("show", [@value.Value::String("value")], plain),
-      ("join_list", [@value.Value::List([])], plain),
+      ("bool", [@value.Value::List([String("true"), String("false")])], lists),
+      ("show", [String("value")], plain),
+      ("join_list", [List([])], plain),
       ("num_jobs", [], plain),
       ("runtime_directory", [], lists),
       ("executable_directory", [], lists),
@@ -565,23 +488,15 @@ test "evaluator context failures cover missing and list-specific facts" {
     }
   }
   assert_eq(
-    context_builtin("quote", [@value.Value::String("a b")], plain, span),
-    Some(@value.Value::String("'a b'")),
+    context_builtin("quote", [String("a b")], plain, span),
+    Some(String("'a b'")),
   )
   assert_eq(
-    context_builtin(
-      "quote",
-      [@value.Value::List([@value.Value::String("a b")])],
-      lists,
-      span,
-    ),
-    Some(@value.Value::String("'a b'")),
+    context_builtin("quote", [List([String("a b")])], lists, span),
+    Some(String("'a b'")),
   )
   assert_eq(context_builtin("join", [], lists, span), None)
-  assert_eq(
-    context_builtin("num_jobs", [], lists, span),
-    Some(@value.Value::List([])),
-  )
+  assert_eq(context_builtin("num_jobs", [], lists, span), Some(List([])))
   try
     context_parent("root", Some(try! @path.PathValue::new("/", Unix)), span)
   catch {
@@ -593,11 +508,8 @@ test "evaluator context failures cover missing and list-specific facts" {
   for
     argument in [
       @value.Value::List([]),
-      @value.Value::String("MISSING"),
-      @value.Value::List([
-        @value.Value::String("FIRST"),
-        @value.Value::String("SECOND"),
-      ]),
+      String("MISSING"),
+      List([String("FIRST"), String("SECOND")]),
     ] {
     try context_builtin("env_var", [argument], lists, span) catch {
       Builtin(Failure(message~), ..) =>
@@ -630,65 +542,39 @@ test "non-process effects cover deterministic filesystem and host facts" {
   let call = fn(name : String, arguments : Array[@value.Value]) raise {
     call_non_process_effect_with_context(host, name, arguments, context, span)
   }
-  assert_eq(call("arch", []), @value.Value::String("x86_64"))
-  assert_eq(call("os", []), @value.Value::String("linux"))
-  assert_eq(call("os_family", []), @value.Value::String("unix"))
-  assert_eq(
-    call("env", [@value.Value::String("MODE")]),
-    @value.Value::String("test"),
-  )
-  assert_eq(
-    call("read", [@value.Value::String("input.txt")]),
-    @value.Value::String("contents"),
-  )
+  assert_eq(call("arch", []), String("x86_64"))
+  assert_eq(call("os", []), String("linux"))
+  assert_eq(call("os_family", []), String("unix"))
+  assert_eq(call("env", [String("MODE")]), String("test"))
+  assert_eq(call("read", [String("input.txt")]), String("contents"))
   assert_true(
-    call("canonicalize", [@value.Value::String("input.txt")])
+    call("canonicalize", [String("input.txt")])
     .to_string()
     .contains("input.txt"),
   )
+  assert_eq(call("path_exists", [String("")]), List([]))
+  assert_eq(call("path_exists", [String("input.txt")]), String("true"))
   assert_eq(
-    call("path_exists", [@value.Value::String("")]),
-    @value.Value::List([]),
+    call("write", [String("output.txt"), String("written")]),
+    String(""),
   )
-  assert_eq(
-    call("path_exists", [@value.Value::String("input.txt")]),
-    @value.Value::String("true"),
-  )
-  assert_eq(
-    call("write", [
-      @value.Value::String("output.txt"),
-      @value.Value::String("written"),
-    ]),
-    @value.Value::String(""),
-  )
-  assert_eq(
-    call("read", [@value.Value::String("output.txt")]),
-    @value.Value::String("written"),
-  )
-  assert_eq(call("now_millis", []), @value.Value::String("1000"))
+  assert_eq(call("read", [String("output.txt")]), String("written"))
+  assert_eq(call("now_millis", []), String("1000"))
+  assert_true(call("datetime_utc", [String("%s")]).to_string().length() > 0)
   assert_true(
-    call("datetime_utc", [@value.Value::String("%s")]).to_string().length() > 0,
+    call("sha256_file", [String("input.txt")]).to_string().length() > 0,
   )
   assert_true(
-    call("sha256_file", [@value.Value::String("input.txt")])
-    .to_string()
-    .length() >
-    0,
-  )
-  assert_true(
-    call("blake3_file", [@value.Value::String("input.txt")])
-    .to_string()
-    .length() >
-    0,
+    call("blake3_file", [String("input.txt")]).to_string().length() > 0,
   )
   assert_true(call("uuid", []).to_string().contains("-"))
-  try call("shell", [@value.Value::String("echo ok")]) catch {
+  try call("shell", [String("echo ok")]) catch {
     EffectRequired(effect="process", ..) => ()
     error => fail("unexpected shell effect error: \{Repr(error)}")
   } noraise {
     _ => fail("expected process effect requirement")
   }
-  try call("require", [@value.Value::String("missing-tool")]) catch {
+  try call("require", [String("missing-tool")]) catch {
     Builtin(Failure(message~), ..) =>
       assert_true(message.contains("missing-tool"))
     error => fail("unexpected require error: \{Repr(error)}")
@@ -730,7 +616,7 @@ test "non-process effects map denied capabilities and platform variants" {
       EvaluationContext::new(cwd=windows_cwd, lists=true),
       span,
     ),
-    @value.Value::String("windows"),
+    String("windows"),
   )
 
   let host = @host.FakeHost::new(
@@ -745,41 +631,33 @@ test "non-process effects map denied capabilities and platform variants" {
       context,
       span,
     ),
-    @value.Value::String("1.57.0"),
+    String("1.57.0"),
   )
   assert_eq(
     call_non_process_effect_with_context(
       host,
       "absolute_path",
-      [
-        @value.Value::List([
-          @value.Value::String("a"),
-          @value.Value::String("b"),
-        ]),
-      ],
+      [List([String("a"), String("b")])],
       context,
       span,
     ),
-    @value.Value::List([
-      @value.Value::String("/workspace/a"),
-      @value.Value::String("/workspace/b"),
-    ]),
+    List([String("/workspace/a"), String("/workspace/b")]),
   )
   assert_eq(
     call_non_process_effect_with_context(
       host,
       "absolute_path",
-      [@value.Value::String("a")],
+      [String("a")],
       plain,
       span,
     ),
-    @value.Value::String("/workspace/a"),
+    String("/workspace/a"),
   )
   try
     call_non_process_effect_with_context(
       host,
       "which",
-      [@value.Value::String("tool")],
+      [String("tool")],
       plain,
       span,
     )
@@ -794,13 +672,13 @@ test "non-process effects map denied capabilities and platform variants" {
     cwd,
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
   )
-  denied_read.deny(@host.FsRead)
+  denied_read.deny(FsRead)
   for name in ["canonicalize", "read", "sha256_file", "blake3_file"] {
     try
       call_non_process_effect_with_context(
         denied_read,
         name,
-        [@value.Value::String("missing")],
+        [String("missing")],
         context,
         span,
       )
@@ -815,12 +693,12 @@ test "non-process effects map denied capabilities and platform variants" {
     cwd,
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
   )
-  denied_write.deny(@host.FsWrite)
+  denied_write.deny(FsWrite)
   try
     call_non_process_effect_with_context(
       denied_write,
       "write",
-      [@value.Value::String("output"), @value.Value::String("value")],
+      [String("output"), String("value")],
       context,
       span,
     )
@@ -834,7 +712,7 @@ test "non-process effects map denied capabilities and platform variants" {
     cwd,
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
   )
-  denied_clock.deny(@host.Clock)
+  denied_clock.deny(Clock)
   for
     row in [("now_millis", []), ("datetime_utc", [@value.Value::String("%s")])] {
     try
@@ -856,7 +734,7 @@ test "non-process effects map denied capabilities and platform variants" {
     cwd,
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
   )
-  denied_random.deny(@host.Random)
+  denied_random.deny(Random)
   try
     call_non_process_effect_with_context(
       denied_random,

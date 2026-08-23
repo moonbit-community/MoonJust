@@ -175,23 +175,18 @@ pub fn LazyEnvironment::resolve(
   }
   self.states[name] = Evaluating
   self.stack.push(name)
-  try self.resolve_body(assignment) catch {
-    error => {
-      ignore(self.stack.pop())
-      self.states[name] = Unevaluated
-      raise error
-    }
-  } noraise {
-    value => {
-      ignore(self.stack.pop())
-      self.states[name] = Evaluated(value)
-      self.environment.set(name, value)
-      if assignment.exported() || self.compilation.settings().bool("export") {
-        self.environment.mark_exported(name)
-      }
-      value
-    }
+  errdefer {
+    ignore(self.stack.pop())
+    self.states[name] = Unevaluated
   }
+  let value = self.resolve_body(assignment)
+  ignore(self.stack.pop())
+  self.states[name] = Evaluated(value)
+  self.environment.set(name, value)
+  if assignment.exported() || self.compilation.settings().bool("export") {
+    self.environment.mark_exported(name)
+  }
+  value
 }
 
 ///|

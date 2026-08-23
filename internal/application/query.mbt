@@ -1860,6 +1860,7 @@ pub fn[
 
 ///|
 /// Bounded-source variant used by the native and wasm CLI entry points.
+#warnings("-unused_async-unused_trait_bound")
 pub async fn[
   F : @host.HostFs + @host.HostSourceReader,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
@@ -2055,6 +2056,7 @@ pub fn[
 }
 
 ///|
+#warnings("-unused_async-unused_trait_bound")
 pub async fn[
   F : @host.HostFs + @host.HostSourceReader,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,

@@ -127,12 +127,7 @@ fn semantic_expression_coverage_fixture() -> (
   @syntax.Expression,
 ) raise @source.SourceError {
   let span = @source.Span::new(@source.SourceId::new(9801), 0, 1)
-  let literal = @syntax.StringLiteral::new(
-    "'value'",
-    "value",
-    @syntax.StringKind::Raw,
-    span,
-  )
+  let literal = @syntax.StringLiteral::new("'value'", "value", Raw, span)
   let string : @syntax.Expression = String(literal)
   let boolean : @syntax.Expression = Boolean(value=true, span~)
   let variable : @syntax.Expression = Variable(name="known", span~)
@@ -167,21 +162,11 @@ test "semantic whitebox coverage visits expression validators and const paths" {
     span~,
   )
   let format : @syntax.Expression = Format(
-    start=@syntax.StringLiteral::new(
-      "\"\"",
-      "",
-      @syntax.StringKind::Cooked,
-      span,
-    ),
+    start=@syntax.StringLiteral::new("\"\"", "", Cooked, span),
     parts=[
       @syntax.FormatPart::new(
         variable,
-        @syntax.StringLiteral::new(
-          "\"x\"",
-          "x",
-          @syntax.StringKind::Cooked,
-          span,
-        ),
+        @syntax.StringLiteral::new("\"x\"", "x", Cooked, span),
       ),
     ],
     span~,
@@ -223,14 +208,7 @@ test "semantic whitebox coverage visits expression validators and const paths" {
   assert_true(expression_is_const(format, variables))
   assert_false(
     expression_is_const(
-      Backtick(
-        @syntax.StringLiteral::new(
-          "`x`",
-          "x",
-          @syntax.StringKind::Backtick,
-          span,
-        ),
-      ),
+      Backtick(@syntax.StringLiteral::new("`x`", "x", Backtick, span)),
       variables,
     ),
   )
@@ -251,14 +229,7 @@ test "semantic whitebox coverage visits expression validators and const paths" {
   }
   try
     validate_const_expression(
-      Backtick(
-        @syntax.StringLiteral::new(
-          "`x`",
-          "x",
-          @syntax.StringKind::Backtick,
-          span,
-        ),
-      ),
+      Backtick(@syntax.StringLiteral::new("`x`", "x", Backtick, span)),
       variables,
       variables,
     )
@@ -443,9 +414,7 @@ test "semantic whitebox coverage exercises setting and attribute branches" {
   assert_eq(SettingValue::Boolean(false).as_bool(), Some(false))
   assert_eq(SettingValue::Text("x").as_text(), Some("x"))
   assert_eq(
-    SettingValue::Expression(
-      @syntax.Expression::Boolean(value=true, span=source.full_span()),
-    ).as_text(),
+    SettingValue::Expression(Boolean(value=true, span=source.full_span())).as_text(),
     None,
   )
   assert_true(setting_specs().length() > 20)
@@ -543,7 +512,7 @@ test "semantic whitebox coverage exercises setting and attribute branches" {
         argument(
           None,
           Some(
-            @syntax.Expression::String(
+            String(
               @syntax.StringLiteral::new(
                 "'SIGINT'",
                 "SIGINT",

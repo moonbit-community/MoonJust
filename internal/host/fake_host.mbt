@@ -702,7 +702,7 @@ pub impl HostAsyncProcess for FakeHost with fn run_process_async(
     }
     let exists = self.files.contains(path)
     let success = match command.arguments()[0] {
-      "-d" => !exists && !self.read_dir(path).is_empty()
+      "-d" => !exists && !HostFs::read_dir(self, path).is_empty()
       "-x" => exists
       _ => false
     }

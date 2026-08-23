@@ -34,6 +34,7 @@ fn command_display(arguments : ArrayView[String]) -> String {
 ///|
 /// Execute `--command` with the selected project directory, dotenv entries,
 /// overrides, and exported assignments. Child streams remain live.
+#warnings("-unused_trait_bound")
 pub async fn[
   F : @host.HostFs + @host.HostSourceReader,
   P : @host.HostAsyncProcess,

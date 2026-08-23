@@ -177,7 +177,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_direct
 
 ///|
 #cfg(target="native")
-async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_async(
+fn[T : @host.HostFs] load_input_with_directories_async(
   host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,
@@ -187,17 +187,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_
 
 ///|
 #cfg(target="native")
-async fn[T : @host.HostFs + @host.HostSourceReader] load_input_async(
-  host : T,
-  arguments : @cli.CliArguments,
-  context : ApplicationContext,
-) -> @loader.LoadedSource raise ApplicationError {
-  load_input(host, arguments, context)
-}
-
-///|
-#cfg(target="native")
-async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_directories_async(
+fn[T : @host.HostFs] load_graph_input_with_directories_async(
   host : T,
   arguments : @cli.CliArguments,
   context : ApplicationContext,

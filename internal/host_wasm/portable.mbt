@@ -216,11 +216,25 @@ fn portable_os() -> @host.OperatingSystem {
 }
 
 ///|
+/// Rust's `env::consts::ARCH` uses `aarch64` for Apple arm64 hosts. The
+/// launcher receives the host-native spelling from `platform.machine()`, so
+/// normalize the aliases before exposing the value through `arch()`.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn portable_architecture(raw : String?) -> String {
+  match raw {
+    Some("arm64") | Some("ARM64") => "aarch64"
+    Some("amd64") | Some("AMD64") => "x86_64"
+    Some(value) => value
+    None => "wasm32"
+  }
+}
+
+///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 fn portable_flavor(os : @host.OperatingSystem) -> @path.PathFlavor {
   match os {
-    Windows => @path.Windows
-    _ => @path.Unix
+    Windows => Windows
+    _ => Unix
   }
 }
 
@@ -306,7 +320,7 @@ pub impl @host.HostPlatform for PortableHost with fn platform_info(
   let os = portable_os()
   @host.PlatformInfo::new(
     os,
-    @env.get_env_var("MOONJUST_ARCH").unwrap_or("wasm32"),
+    portable_architecture(@env.get_env_var("MOONJUST_ARCH")),
     portable_flavor(os),
     portable_runtime=true,
     pid?=portable_positive_int("MOONJUST_PID"),

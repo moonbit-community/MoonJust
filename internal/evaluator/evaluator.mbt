@@ -478,16 +478,11 @@ fn Evaluator::eval(
   expression : @syntax.Expression,
 ) -> Value raise EvaluationError {
   let before = self.depth
-  try self.eval_inner(expression) catch {
-    error => {
-      if self.depth > before {
-        self.leave()
-      }
-      raise error
-    }
-  } noraise {
-    value => value
+  let result = {
+    errdefer (if self.depth > before { self.leave() })
+    self.eval_inner(expression)
   }
+  result
 }
 
 ///|

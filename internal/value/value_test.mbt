@@ -19,7 +19,7 @@ test "value accessors and rendering cover every variant" {
   assert_eq(Value::List([String("a"), String("b")]).as_string(), None)
   assert_eq(Value::Bool(false).as_string(), None)
   assert_eq(Value::Bool(true).as_string(), Some("true"))
-  let single : Array[Value] = [Value::String("a")]
+  let single : Array[Value] = [String("a")]
   assert_eq(Value::List(single).as_list(), Some(single[:]))
   assert_eq(Value::String("a").as_list(), None)
   assert_eq(Value::Bool(true).as_bool(), Some(true))

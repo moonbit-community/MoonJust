@@ -71,7 +71,7 @@ test "loader whitebox coverage resolves explicit and implicit modules" {
   let imported = @syntax.StringLiteral::new(
     "\"~/common.just\"",
     "~/common.just",
-    @syntax.StringKind::Cooked,
+    Cooked,
     source.full_span(),
   )
   assert_eq(
@@ -150,7 +150,7 @@ async test "loader whitebox coverage visits async platform skips and host errors
     platform=@semantic.TargetPlatform::new(Linux, true),
   )
   assert_eq(graph.files().length(), 1)
-  host.deny(@host.FsRead)
+  host.deny(FsRead)
   try load_async(host, root, @source.SourceId::new(9603)) catch {
     Host(CapabilityDenied(FsRead)) => ()
     error => fail("unexpected async host error: \{Repr(error)}")
@@ -301,7 +301,7 @@ async test "loader whitebox coverage maps async parse sources and optional impor
 test "loader whitebox coverage maps denied source and environment access" {
   let path = try! @path.PathValue::new("/workspace/denied.just", Unix)
   let filesystem = loader_coverage_host()
-  filesystem.deny(@host.FsRead)
+  filesystem.deny(FsRead)
   try load(filesystem, path, @source.SourceId::new(9730)) catch {
     Host(CapabilityDenied(FsRead)) => ()
     error => fail("unexpected denied source error: \{Repr(error)}")
@@ -310,7 +310,7 @@ test "loader whitebox coverage maps denied source and environment access" {
   }
 
   let environment = loader_coverage_host()
-  environment.deny(@host.Environment)
+  environment.deny(Environment)
   try load_from_current_dir(environment, @source.SourceId::new(9731)) catch {
     Host(CapabilityDenied(Environment)) => ()
     error => fail("unexpected denied environment error: \{Repr(error)}")

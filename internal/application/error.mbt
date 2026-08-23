@@ -295,6 +295,7 @@ pub fn[T : @host.HostFs] render_application_error(
 ///|
 /// Async counterpart used by production command paths. Source recovery for a
 /// diagnostic observes the same bounded-read contract as the initial load.
+#warnings("-unused_async-unused_trait_bound")
 pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_async(
   host : T,
   arguments : @cli.CliArguments,

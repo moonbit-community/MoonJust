@@ -13,22 +13,22 @@ test "application coverage exercises stable error presentation families" {
   )
   let semantic = @semantic.SemanticError::UndefinedVariable(name="x", span~)
   let errors : Array[@application.ApplicationError] = [
-    Cli(@cli.CliParseError::Invalid("bad")),
-    Cli(@cli.CliParseError::Config("config")),
-    Cli(@cli.CliParseError::Unsupported("future")),
-    Load(@loader.LoaderError::InvalidLimit),
-    Format(@formatter.FormatterError::InvalidInput("format")),
+    Cli(Invalid("bad")),
+    Cli(Config("config")),
+    Cli(Unsupported("future")),
+    Load(InvalidLimit),
+    Format(InvalidInput("format")),
     Evaluation(evaluation),
-    Environment(@environment.EnvironmentConfigError::EmptyShell),
-    Dotenv(@environment.DotenvError::Required),
-    Executor(@executor.ExecutionError::UnknownRecipe(recipe="missing")),
-    Host(@host.HostError::InvalidInput("host")),
-    Invocation(@invocation.InvocationError::NoRecipes),
-    Path(@path.PathError::NulByte),
-    Project(@semantic.ProjectCompilationError::MissingRootModule),
+    Environment(EmptyShell),
+    Dotenv(Required),
+    Executor(UnknownRecipe(recipe="missing")),
+    Host(InvalidInput("host")),
+    Invocation(NoRecipes),
+    Path(NulByte),
+    Project(MissingRootModule),
     Semantic(semantic),
     ContextualSemantic(error=semantic, source~, cwd~),
-    WorkingDirectory(@workdir.WorkingDirectoryError::JustfileWithoutParent(cwd)),
+    WorkingDirectory(JustfileWithoutParent(cwd)),
     InteractiveInvocation(kind="command", command="tool", detail="missing"),
     InteractiveInvocation(kind="shell", command="sh", detail="missing"),
     InteractiveProcess(kind="command", command="tool", termination=Exited(3)),
@@ -67,26 +67,16 @@ test "application coverage renders source and fallback diagnostics" {
   let span = source.full_span()
   let arguments = try! @cli.parse_arguments([], {})
   let errors : Array[@application.ApplicationError] = [
-    @application.ApplicationError::Semantic(
-      @semantic.SemanticError::UndefinedVariable(name="missing", span~),
-    ),
-    @application.ApplicationError::ContextualSemantic(
-      error=@semantic.SemanticError::UndefinedVariable(name="missing", span~),
+    Semantic(UndefinedVariable(name="missing", span~)),
+    ContextualSemantic(
+      error=UndefinedVariable(name="missing", span~),
       source~,
       cwd=@path.PathValue::new("/workspace", Unix),
     ),
-    @application.ApplicationError::Evaluation(
-      @evaluator.EvaluationError::UndefinedVariable(name="missing", span~),
-    ),
-    @application.ApplicationError::Executor(
-      @executor.ExecutionError::Evaluation(
-        @evaluator.EvaluationError::UndefinedVariable(name="missing", span~),
-      ),
-    ),
-    @application.ApplicationError::Load(@loader.LoaderError::InvalidLimit),
-    @application.ApplicationError::Invocation(
-      @invocation.InvocationError::UnknownRecipe(recipe="missing"),
-    ),
+    Evaluation(UndefinedVariable(name="missing", span~)),
+    Executor(Evaluation(UndefinedVariable(name="missing", span~))),
+    Load(InvalidLimit),
+    Invocation(UnknownRecipe(recipe="missing")),
   ]
   for error in errors {
     let rendered = @application.render_application_error(
@@ -98,7 +88,7 @@ test "application coverage renders source and fallback diagnostics" {
     host,
     arguments,
     context,
-    @application.ApplicationError::Query("plain query"),
+    Query("plain query"),
   )
   assert_eq(fallback, "error: plain query")
 }
@@ -109,32 +99,12 @@ async test "application coverage renders direct evaluation contracts synchronous
   let arguments = try! @cli.parse_arguments([], {})
   let span = @source.Span::origin(@source.SourceId::new(9905))
   let errors : Array[@application.ApplicationError] = [
-    Evaluation(
-      @evaluator.EvaluationError::UnknownOverrides(names=["missing"], span~),
-    ),
-    Evaluation(
-      @evaluator.EvaluationError::EmptyParameter(
-        recipe="build",
-        parameter="target",
-        span~,
-      ),
-    ),
+    Evaluation(UnknownOverrides(names=["missing"], span~)),
+    Evaluation(EmptyParameter(recipe="build", parameter="target", span~)),
     Executor(
-      @executor.ExecutionError::Evaluation(
-        @evaluator.EvaluationError::EmptyParameter(
-          recipe="build",
-          parameter="target",
-          span~,
-        ),
-      ),
+      Evaluation(EmptyParameter(recipe="build", parameter="target", span~)),
     ),
-    Evaluation(
-      @evaluator.EvaluationError::FunctionRecursionLimit(
-        name="f",
-        limit=8,
-        span~,
-      ),
-    ),
+    Evaluation(FunctionRecursionLimit(name="f", limit=8, span~)),
   ]
   for error in errors {
     let rendered = @application.render_application_error(
@@ -229,21 +199,15 @@ async test "application coverage renders asynchronous source diagnostics" {
   let span = source.full_span()
   let arguments = try! @cli.parse_arguments([], {})
   let errors : Array[@application.ApplicationError] = [
-    Semantic(@semantic.SemanticError::UndefinedVariable(name="missing", span~)),
+    Semantic(UndefinedVariable(name="missing", span~)),
     ContextualSemantic(
-      error=@semantic.SemanticError::UndefinedVariable(name="missing", span~),
+      error=UndefinedVariable(name="missing", span~),
       source~,
       cwd=try! @path.PathValue::new("/workspace", Unix),
     ),
-    Evaluation(
-      @evaluator.EvaluationError::UndefinedVariable(name="missing", span~),
-    ),
-    Executor(
-      @executor.ExecutionError::Evaluation(
-        @evaluator.EvaluationError::UndefinedVariable(name="missing", span~),
-      ),
-    ),
-    Invocation(@invocation.InvocationError::UnknownRecipe(recipe="missing")),
+    Evaluation(UndefinedVariable(name="missing", span~)),
+    Executor(Evaluation(UndefinedVariable(name="missing", span~))),
+    Invocation(UnknownRecipe(recipe="missing")),
     Query("plain asynchronous query"),
   ]
   for error in errors {
@@ -383,7 +347,7 @@ test "application coverage plans synchronous recipes and validates plan modes" {
     try! @path.PathValue::new("/workspace", Unix),
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
   )
-  denied.deny(@host.Environment)
+  denied.deny(Environment)
   try
     @application.plan_run_command(
       host,

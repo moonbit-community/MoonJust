@@ -139,8 +139,8 @@ async test "process stream matrix drains inherited and captured pipes" {
   try! process_coverage_mutex.acquire()
   defer process_coverage_mutex.release()
   for inherit_stdin in [false, true] {
-    for stdout in [@host.Capture, @host.Inherit] {
-      for stderr in [@host.Capture, @host.Inherit] {
+    for stdout in [@host.Capture, Inherit] {
+      for stderr in [@host.Capture, Inherit] {
         let command = try! @host.CommandSpec::new("/bin/sh", ["-c", ":"])
         command.set_inherit_stdin(inherit_stdin)
         command.set_stdout(stdout)
@@ -802,8 +802,8 @@ async test "native process helper coverage drains inherited output and stdin" {
   let inherited = try! @host.CommandSpec::new("/bin/sh", [
     "-c", "printf out >/dev/null; printf err >/dev/null",
   ])
-  inherited.set_stdout(@host.Inherit)
-  inherited.set_stderr(@host.Inherit)
+  inherited.set_stdout(Inherit)
+  inherited.set_stderr(Inherit)
   inherited.set_inherit_stdin(false)
   inherited.set_stdin(b"input")
   let inherited_result = try! run_process_with_output_limit(inherited, 1024)
@@ -812,8 +812,8 @@ async test "native process helper coverage drains inherited output and stdin" {
   let mixed = try! @host.CommandSpec::new("/bin/sh", [
     "-c", "printf out >/dev/null; printf err >/dev/null",
   ])
-  mixed.set_stdout(@host.Inherit)
-  mixed.set_stderr(@host.Capture)
+  mixed.set_stdout(Inherit)
+  mixed.set_stderr(Capture)
   mixed.set_inherit_stdin(false)
   mixed.set_stdin(b"input")
   let mixed_result = try! run_process_with_output_limit(mixed, 1024)

@@ -1010,6 +1010,7 @@ pub fn[T : @host.HostFs] execute_inspect_command(
 }
 
 ///|
+#warnings("-unused_async-unused_trait_bound")
 pub async fn[T : @host.HostFs + @host.HostSourceReader] execute_inspect_command_async(
   host : T,
   arguments : @cli.CliArguments,
