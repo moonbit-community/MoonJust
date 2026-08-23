@@ -560,6 +560,32 @@ test "configured interpreter keeps extension, normalizes CRLF, and cleans failur
 }
 
 ///|
+test "script process denial still removes the materialized file" {
+  let (compilation, recipe) = compile_recipe(
+    "[script]\nbuild:\n  echo denied\n",
+  )
+  let host = fake_host()
+  host.deny(Process)
+  let interpreter = try! @environment.ShellConfiguration::new("sh", ["-eu"])
+  try
+    execute_script_recipe(
+      host,
+      recipe,
+      try! @evaluator.evaluate_compilation(compilation),
+      unix_path("/workspace"),
+      script_configuration("/tmp", interpreter),
+    )
+  catch {
+    Host(CapabilityDenied(Process)) => ()
+    error => fail("unexpected script process denial: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected script process denial")
+  }
+  assert_eq(host.script_temp_creations().length(), 1)
+  assert_false(try! host.file_exists(host.script_temp_creations()[0].0))
+}
+
+///|
 test "PowerShell script selects ps1 and UTF-8 BOM" {
   let (compilation, recipe) = compile_recipe(
     "[script]\nbuild:\n  Write-Host caf\u{00e9}\n",

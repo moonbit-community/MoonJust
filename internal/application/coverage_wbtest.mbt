@@ -998,3 +998,14 @@ test "global context covers platform fallbacks and invalid requests" {
     }
   }
 }
+
+///|
+test "dotenv merge updates duplicates only when override is enabled" {
+  assert_eq(
+    merge_dotenv_entries([("A", "old")], [("A", "new"), ("B", "added")], true),
+    [("A", "new"), ("B", "added")],
+  )
+  assert_eq(merge_dotenv_entries([("A", "old")], [("A", "new")], false), [
+    ("A", "old"),
+  ])
+}

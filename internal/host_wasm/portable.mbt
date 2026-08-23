@@ -179,6 +179,7 @@ async fn portable_read_source(
 }
 
 ///|
+#coverage.skip
 #cfg(any(target="wasm-gc", target="js"))
 fn portable_read_source(
   path : @path.PathValue,

@@ -199,7 +199,9 @@ test "project validation propagates absent modules through recipes and aliases" 
   } noraise {
     value => value
   }
-  let compilation = try compile(ast, defer_recipe_linking=true) catch {
+  let compilation = try
+    compile(ast, allow_unstable=true, defer_recipe_linking=true)
+  catch {
     error => fail("project coverage compile failed: \{Repr(error)}")
   } noraise {
     value => value
@@ -230,4 +232,94 @@ test "project validation propagates absent modules through recipes and aliases" 
   assert_eq(project.recipe_absent_modules(root_path, "root"), [missing_path])
   assert_eq(project.alias_absent_modules(root_path, "indirect"), [missing_path])
   assert_eq(project.absent_module_for_reference(root_path, "indirect"), None)
+}
+
+///|
+test "project validation accepts a plain empty recipe fanout" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(914),
+    "plain-fanout.just",
+    "root: first second\nfirst:\nsecond:\n",
+  )
+  let ast = try! @parser.parse(source)
+  let compilation = try! compile(ast, defer_recipe_linking=true)
+  let project = try! ProjectCompilation::new([
+    ProjectModule::new(
+      @modulepath.ModulePath::root(),
+      compilation,
+      try! @path.PathValue::new("/workspace", Unix),
+    ),
+  ])
+  try validate_project_compilation(project) catch {
+    error => fail("plain fanout validation failed: \{Repr(error)}")
+  } noraise {
+    _ => ()
+  }
+  assert_false(project.recipe_disabled(@modulepath.ModulePath::root(), "root"))
+}
+
+///|
+test "project validation rejects dependency argument mismatches" {
+  for
+    fixture in [
+      "root: (child 'extra')\nchild:\n", "root: child\nchild required:\n", "root: child\nchild +required:\n",
+      "set lists\nroot: (child 'one' 'two' 'three')\nchild first *rest:\n",
+    ] {
+    let ast = try! @parser.parse(
+      @source.Source::from_text(
+        @source.SourceId::new(915),
+        "project-dependency-arguments.just",
+        fixture,
+      ),
+    )
+    let compilation = compile(
+      ast,
+      allow_unstable=true,
+      defer_recipe_linking=true,
+    ) catch {
+      error =>
+        fail("dependency fixture failed before project linking: \{Repr(error)}")
+    }
+    let project = try! ProjectCompilation::new([
+      ProjectModule::new(
+        @modulepath.ModulePath::root(),
+        compilation,
+        try! @path.PathValue::new("/workspace", Unix),
+      ),
+    ])
+    try validate_project_compilation(project) catch {
+      InvalidDependencyArguments(..) => ()
+      error => fail("unexpected dependency argument error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected project dependency argument rejection")
+    }
+  }
+}
+
+///|
+test "project validation excludes flag parameters from dependency arity" {
+  let ast = try! @parser.parse(
+    @source.Source::from_text(
+      @source.SourceId::new(916),
+      "project-flag-parameter.just",
+      "[arg('flag', long, flag)]\nchild flag:\n\nroot: child\n",
+    ),
+  )
+  let compilation = try! compile(
+    ast,
+    allow_unstable=true,
+    defer_recipe_linking=true,
+  )
+  let project = try! ProjectCompilation::new([
+    ProjectModule::new(
+      @modulepath.ModulePath::root(),
+      compilation,
+      try! @path.PathValue::new("/workspace", Unix),
+    ),
+  ])
+  try validate_project_compilation(project) catch {
+    error => fail("flag dependency validation failed: \{Repr(error)}")
+  } noraise {
+    _ => ()
+  }
 }

@@ -441,6 +441,19 @@ async test "native adapter covers bounded failures temporary lifecycles and host
   )
   assert_eq(@host.HostFs::read_file(host, executable), b"executable")
   @host.HostAsyncScriptTemp::remove_script_temp_async(host, executable)
+  for name in [("", ".sh"), ("bad/name", ".sh"), ("ok", "/bad")] {
+    let (stem, extension) = name
+    try
+      @host.HostAsyncScriptTemp::create_script_temp_async(
+        host, directory, stem, extension, b"denied", false,
+      )
+    catch {
+      InvalidInput(_) => ()
+      error => fail("unexpected async script name error: \{Repr(error)}")
+    } noraise {
+      _ => fail("expected invalid async script name rejection")
+    }
+  }
   try
     @host.HostAsyncScriptTemp::create_script_temp_async(
       host, missing, "async", ".sh", b"denied", false,

@@ -883,6 +883,7 @@ async fn runtime_async_plan(
   verbosity? : Int = 0,
   explain? : Bool = false,
   time? : Bool = false,
+  dry_run? : Bool = false,
 ) -> @executor.ExecutionPlan {
   let compilation = runtime_compilation(text)
   let environment = try! @evaluator.evaluate_compilation(compilation)
@@ -906,7 +907,7 @@ async fn runtime_async_plan(
       runtime_path("/tmp"),
       @host.PlatformInfo::new(Linux, "test", Unix),
     ),
-    options=@executor.ExecutionOptions::new(time~)
+    options=@executor.ExecutionOptions::new(time~, dry_run~)
       .with_jobs(jobs)
       .with_cache(cache_enabled)
       .with_unstable(true)
@@ -914,6 +915,38 @@ async fn runtime_async_plan(
       .with_verbosity(verbosity),
     cache_directory~,
   )
+}
+
+///|
+async test "live runtime short-circuits dry empty tasks and rejects zero jobs" {
+  let dry = runtime_async_plan(
+    "[doc('Root')]\nroot: first second\nfirst:\nsecond:\n",
+    2,
+    explain=true,
+    dry_run=true,
+  )
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  assert_eq((try! execute_plan_live(host, host, host, host, dry)).commands(), 0)
+  assert_true(host.output_events().any(fn(event) { event.1.length() > 0 }))
+
+  let invalid = runtime_async_plan("root:\n  echo invalid\n", 0)
+  try execute_plan(host, host, host, invalid) catch {
+    Execution(error=Host(InvalidInput(message)), ..) =>
+      assert_true(message.contains("jobs"))
+    error => fail("unexpected captured zero-jobs error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected captured zero-jobs rejection")
+  }
+  try execute_plan_live(host, host, host, host, invalid) catch {
+    LiveExecution(error=CacheFailure(message~), ..) =>
+      assert_true(message.contains("jobs"))
+    error => fail("unexpected live zero-jobs error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected live zero-jobs rejection")
+  }
 }
 
 ///|
@@ -1308,6 +1341,29 @@ async test "parallel failure selection ignores completion timing" {
   } noraise {
     _ => fail("expected parallel failure")
   }
+}
+
+///|
+async test "live runtime marks failed dependency consumers blocked" {
+  let plan = runtime_async_plan(
+    "root: child\n  root\nchild:\n  child\n",
+    1,
+    cache_enabled=false,
+  )
+  let process = ProbeProcess::new()
+  process.fail("child", 7, 0)
+  let host = @host.FakeHost::new(
+    runtime_path("/workspace"),
+    @host.PlatformInfo::new(Linux, "test", Unix),
+  )
+  try execute_plan_live(process, host, host, host, plan) catch {
+    LiveExecution(error=CommandFailed(recipe="child", exit_code=7, ..), ..) =>
+      ()
+    error => fail("unexpected blocked dependency failure: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected dependency failure")
+  }
+  assert_eq(process.starts, ["child"])
 }
 
 ///|

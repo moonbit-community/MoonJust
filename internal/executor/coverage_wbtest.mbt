@@ -806,3 +806,250 @@ async test "executor async planner preserves attributes dependencies and cache m
   assert_eq(cache.outputs(), ["output"])
   assert_eq(cache.extra(), "tag")
 }
+
+///|
+async test "executor fast planner preserves empty fanout topology" {
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  let source = @source.Source::from_text(
+    @source.SourceId::new(9932),
+    "executor-empty-fanout.just",
+    "root: first first second\nfirst:\nsecond:\n",
+  )
+  let compilation = try! @semantic.compile_source(source)
+  let plan = try! plan_recipe_graph_async(
+    host,
+    host,
+    compilation,
+    [RecipeRequest::new("root")],
+    try! @evaluator.evaluate_compilation(compilation),
+    @evaluator.EvaluationContext::new(cwd~),
+    shell,
+    cwd,
+    ScriptConfiguration::new(
+      shell,
+      cwd,
+      @host.PlatformInfo::new(Linux, "x86_64", Unix),
+    ),
+  )
+  assert_eq(plan.tasks().map(fn(task) { task.recipe() }), [
+    "first", "second", "root",
+  ])
+  assert_eq(plan.tasks()[0].dependencies(), [])
+  assert_eq(plan.tasks()[1].dependencies(), [0])
+  assert_eq(plan.tasks()[2].dependencies(), [1])
+  assert_true(plan.tasks().all(fn(task) { task.steps().is_empty() }))
+}
+
+///|
+test "executor empty fanout helper rejects effectful recipes" {
+  fn compile_fixture(text) -> @semantic.Compilation raise {
+    @semantic.compile_source(
+      @source.Source::from_text(
+        @source.SourceId::new(9933),
+        "executor-fast-path-boundary.just",
+        text,
+      ),
+      allow_unstable=true,
+    )
+  }
+  for
+    fixture in [
+      "root:\n", "root: child\nchild:\n  echo child\n", "root: (child 'value')\nchild value:\n",
+      "root: alias\nchild:\nalias alias := child\n", "root: child\nchild: grandchild\ngrandchild:\n",
+      "root: child\nchild: && cleanup\ncleanup:\n", "root: child\n[doc('child')]\nchild:\n",
+    ] {
+    let compilation = compile_fixture(fixture) catch {
+      error => fail("invalid fast-path fixture `\{fixture}`: \{Repr(error)}")
+    }
+    let tasks : Array[ExecutionTask] = []
+    let ran : Map[String, Int] = Map([])
+    assert_eq(
+      plan_plain_empty_fanout(
+        compilation,
+        compilation.recipe("root").unwrap(),
+        compilation.recipe_attributes("root"),
+        "root",
+        "root",
+        @modulepath.ModulePath::root(),
+        [],
+        tasks,
+        ran,
+        ExecutionOptions::new(),
+      ),
+      None,
+    )
+  }
+  let compilation = try! compile_fixture("root: child\nchild:\n")
+  let tasks : Array[ExecutionTask] = []
+  let ran : Map[String, Int] = Map([])
+  assert_eq(
+    plan_plain_empty_fanout(
+      compilation,
+      compilation.recipe("root").unwrap(),
+      compilation.recipe_attributes("root"),
+      "root",
+      "root",
+      @modulepath.ModulePath::root(),
+      [],
+      tasks,
+      ran,
+      ExecutionOptions::new().with_no_dependencies(true),
+    ),
+    None,
+  )
+  let span = @source.Span::new(@source.SourceId::new(9933), 0, 1)
+  let missing = @syntax.Recipe::new(
+    "root",
+    false,
+    [],
+    [@syntax.Dependency::new("missing", span, [], false, span)],
+    [],
+    [],
+    [],
+    span,
+  )
+  assert_eq(
+    plan_plain_empty_fanout(
+      compilation,
+      missing,
+      compilation.recipe_attributes("root"),
+      "root",
+      "root",
+      @modulepath.ModulePath::root(),
+      [],
+      tasks,
+      ran,
+      ExecutionOptions::new(),
+    ),
+    None,
+  )
+  let dependency = @syntax.Dependency::new("child", span, [], false, span)
+  let synthetic = @syntax.Recipe::new(
+    "root",
+    false,
+    [],
+    [dependency],
+    [],
+    [],
+    [],
+    span,
+  )
+  let tasks : Array[ExecutionTask] = []
+  let ran : Map[String, Int] = Map([])
+  assert_eq(
+    plan_plain_empty_fanout(
+      compilation,
+      synthetic,
+      None,
+      "root",
+      "root",
+      @modulepath.ModulePath::root(),
+      [],
+      tasks,
+      ran,
+      ExecutionOptions::new(),
+    ),
+    None,
+  )
+  let module_tasks : Array[ExecutionTask] = []
+  let module_ran : Map[String, Int] = Map([])
+  assert_true(
+    plan_plain_empty_fanout(
+      compilation,
+      compilation.recipe("root").unwrap(),
+      compilation.recipe_attributes("root"),
+      "root",
+      "tools::root",
+      try! @modulepath.ModulePath::parse("tools"),
+      [],
+      module_tasks,
+      module_ran,
+      ExecutionOptions::new(),
+    )
+    is Some(_),
+  )
+  assert_eq(module_tasks[0].recipe(), "tools::child")
+}
+
+///|
+async test "executor async planner expands mapped dependencies and explain preambles" {
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  async fn plan(host, source_text, color) -> ExecutionPlan {
+    let compilation = @semantic.compile_source(
+      @source.Source::from_text(
+        @source.SourceId::new(9934),
+        "executor-mapped-coverage.just",
+        source_text,
+      ),
+      allow_unstable=true,
+    ) catch {
+      error => fail("invalid mapped planner fixture: \{Repr(error)}")
+    }
+    let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
+    let cwd = try! @path.PathValue::new("/workspace", Unix)
+    let global = @evaluator.evaluate_compilation(compilation) catch {
+      error => fail("mapped fixture evaluation failed: \{Repr(error)}")
+    }
+    plan_recipe_graph_async(
+      host,
+      host,
+      compilation,
+      [
+        RecipeRequest::new(
+          if source_text.contains("root:") {
+            "root"
+          } else {
+            "leaf"
+          },
+        ),
+      ],
+      global,
+      @evaluator.EvaluationContext::new(
+        cwd~,
+        lists=compilation.settings().bool("lists"),
+      ),
+      shell,
+      cwd,
+      ScriptConfiguration::new(
+        shell,
+        cwd,
+        @host.PlatformInfo::new(Linux, "x86_64", Unix),
+      ),
+      options=ExecutionOptions::new()
+        .with_explain(true)
+        .with_color_enabled(color),
+    ) catch {
+      error => fail("mapped fixture planning failed: \{Repr(error)}")
+    }
+  }
+  let mapped = plan(
+    host, "set lists\n[parallel]\nroot: *(child *['one', 'two'])\nchild value:\n",
+    false,
+  )
+  assert_eq(mapped.tasks().map(fn(task) { task.recipe() }), [
+    "child", "child", "root",
+  ])
+  let serial_mapped = plan(
+    host, "set lists\nroot: *(child *['one', 'two'])\nchild value:\n", false,
+  )
+  assert_eq(serial_mapped.tasks().map(fn(task) { task.recipe() }), [
+    "child", "child", "root",
+  ])
+  assert_eq(serial_mapped.tasks()[1].dependencies(), [0])
+  for color in [false, true] {
+    let explained = plan(host, "[doc('Leaf docs')]\nleaf:\n", color)
+    assert_eq(explained.tasks().length(), 1)
+    let preamble = explained.tasks()[0].preamble()
+    assert_true(preamble.length() > 0)
+    assert_eq(preamble.get(0) == Some(0x1b), color)
+  }
+}
