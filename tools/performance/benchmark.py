@@ -583,8 +583,8 @@ def collect_cold_warm_phase(
         for kind in kinds
     }
     for round_index in range(COLD_WARM_ROUNDS):
-        cold_order = balanced_orders(kinds, 1, seed + round_index)[0]
-        for position, kind in enumerate(cold_order):
+        order = balanced_orders(kinds, 1, seed + round_index)[0]
+        for position, kind in enumerate(order):
             value = run_latency_sample(commands[kind], cwd)
             collected[kind]["cold"].append(value)
             raw_rows.append(
@@ -607,11 +607,8 @@ def collect_cold_warm_phase(
                     "elapsed_ms": value,
                 }
             )
-        for order in balanced_orders(kinds, COLD_WARM_WARMUPS, seed + 100 + round_index):
-            for kind in order:
+            for _ in range(COLD_WARM_WARMUPS):
                 run_latency_sample(commands[kind], cwd)
-        warm_order = balanced_orders(kinds, 1, seed + 200 + round_index)[0]
-        for position, kind in enumerate(warm_order):
             value = run_latency_sample(commands[kind], cwd)
             collected[kind]["warm"].append(value)
             raw_rows.append(
@@ -896,7 +893,7 @@ def main() -> int:
             "enabled": args.cold_warm,
             "rounds": COLD_WARM_ROUNDS,
             "warmups_per_round": COLD_WARM_WARMUPS,
-            "semantics": "cold=first fresh process; warm=five same-command warmups then fresh process",
+            "semantics": "per balanced round and artifact: cold=first fresh process, then five same-command warmups, then warm=fresh process",
             "workloads": cold_warm_results,
         },
         "artifacts": {

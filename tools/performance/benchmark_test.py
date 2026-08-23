@@ -66,6 +66,10 @@ class BenchmarkTest(unittest.TestCase):
             self.assertEqual(len(rows), 12)
             self.assertEqual([len(values[k][c]) for k in values for c in ("cold", "warm")], [3] * 4)
             self.assertEqual({row["condition"] for row in rows}, {"cold", "warm"})
+            self.assertEqual(
+                [row["condition"] for row in rows[:4]],
+                ["cold", "warm", "cold", "warm"],
+            )
             self.assertEqual(sample.call_count, 3 * (2 + 5 * 2 + 2))
 
     def test_summary_keeps_latency_and_memory_separate(self) -> None:
