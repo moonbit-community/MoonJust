@@ -21,6 +21,18 @@ SPEC.loader.exec_module(runner)
 class RunnerTest(unittest.TestCase):
     def test_modes_are_layered_and_deterministic(self) -> None:
         self.assertEqual(runner.mode_commands("fast")[0], ("moon", "fmt", "--check"))
+        self.assertIn(
+            (
+                "moon",
+                "check",
+                "--target",
+                "all",
+                "--warn-list",
+                "+73",
+                "--deny-warn",
+            ),
+            runner.mode_commands("fast"),
+        )
         self.assertLess(len(runner.mode_commands("fast")), len(runner.mode_commands("verify")))
         self.assertEqual(runner.mode_commands("verify"), runner.mode_commands("verify"))
         self.assertIn(("./tools/verification/checks/compatibility.sh",), runner.mode_commands("compat"))

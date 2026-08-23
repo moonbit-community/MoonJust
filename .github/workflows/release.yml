@@ -136,7 +136,7 @@ jobs:
         run: ./tools/release/ensure_moonx.sh
       - run: moon update
       - run: moon install
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: moonjust-release-wasm1
           path: _build/shared-wasm
@@ -161,14 +161,12 @@ jobs:
           MOONJUST_WASM_CANDIDATE: ${{ github.workspace }}/_build/shared-wasm/just.wasm
         run: |
           python3 tools/runner.py run --mode verify --no-build --task native-tests --task native-version --evidence _build/verification/release-native.json
-          python3 tools/runner.py run --mode compat --tier-only --no-build \
-            --task platform --task wasm-platform \
-            --evidence _build/verification/release-platform.json
+          tasks=(--task platform --task wasm-platform)
           if [ "${{ matrix.platform }}" = "linux-x86_64" ]; then
-            python3 ./tools/upstream/run_official_harness.py \
-              --native-candidate "$GITHUB_WORKSPACE/_build/native/debug/build/cmd/just/just.exe" \
-              --wasm-candidate "$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm"
+            tasks+=(--task official-harness)
           fi
+          python3 tools/runner.py run --mode compat --tier-only --no-build \
+            "${tasks[@]}" --evidence _build/verification/release-platform.json
       - name: Build, inspect, and enforce release size
         shell: bash
         run: |
@@ -232,6 +230,7 @@ jobs:
             _build/size-baseline.json
             _build/release/build/native/release/build/cmd/just/just.exe
             _build/upstream-harness/**
+            _build/verification/release-platform.json
           if-no-files-found: error
 
   contracts:
@@ -319,11 +318,11 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: moonjust-release-coverage-native
           path: _build/coverage
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: moonjust-release-coverage-wasm
           path: _build/coverage
@@ -405,47 +404,47 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-linux-x86_64
           path: evidence/linux-x86_64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-macos-aarch64
           path: evidence/macos-aarch64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-windows-x86_64
           path: evidence/windows-x86_64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-wasm1
           path: evidence/wasm1
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-contracts
           path: evidence/contracts
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-coverage
           path: evidence/coverage
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-performance-linux-x86_64
           path: evidence/performance/linux-x86_64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-performance-macos-aarch64
           path: evidence/performance/macos-aarch64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-release-performance-windows-x86_64
@@ -469,8 +468,9 @@ jobs:
             --test-map tests/upstream/just-1.57.0/test-map.jsonl \
             --contract-results evidence/contracts/results.jsonl \
             --compat-report linux-x86_64=evidence/linux-x86_64/upstream-harness/compatibility-report.jsonl \
-            --compat-report macos-aarch64=evidence/macos-aarch64/upstream-harness/compatibility-report.jsonl \
-            --compat-report windows-x86_64=evidence/windows-x86_64/upstream-harness/compatibility-report.jsonl \
+            --platform-evidence linux-x86_64=evidence/linux-x86_64/verification/release-platform.json \
+            --platform-evidence macos-aarch64=evidence/macos-aarch64/verification/release-platform.json \
+            --platform-evidence windows-x86_64=evidence/windows-x86_64/verification/release-platform.json \
             --coverage evidence/coverage/summary.json \
             --coverage-metadata native=evidence/coverage/native.metadata.json \
             --coverage-metadata wasm=evidence/coverage/wasm.metadata.json \

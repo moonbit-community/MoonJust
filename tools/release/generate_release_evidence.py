@@ -17,6 +17,11 @@ from pathlib import Path
 SCHEMA_VERSION = 2
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 REQUIRED_PLATFORMS = {"linux-x86_64", "macos-aarch64", "windows-x86_64"}
+PLATFORM_SYSTEMS = {
+    "linux-x86_64": "Linux",
+    "macos-aarch64": "Darwin",
+    "windows-x86_64": "Windows",
+}
 REQUIRED_COVERAGE_AREAS = {
     "lexer",
     "parser",
@@ -229,6 +234,46 @@ def compatibility_summary(path: Path, failures: list[str]) -> dict[str, object]:
         "denominator": denominator,
         "dispositions": dict(sorted(dispositions.items())),
     }
+
+
+def platform_evidence_summaries(
+    paths: dict[str, Path],
+    moonjust_commit: str,
+    failures: list[str],
+) -> dict[str, object]:
+    if set(paths) != REQUIRED_PLATFORMS:
+        failures.append("platform evidence does not cover all three release platforms")
+    values: dict[str, object] = {}
+    for name, path in sorted(paths.items()):
+        value = load_json(path)
+        if value.get("schema_version") != 2:
+            failures.append(f"platform evidence schema changed for {name}")
+        if value.get("commit_sha") != moonjust_commit:
+            failures.append(f"platform evidence commit differs for {name}")
+        if value.get("mode") != "compat" or value.get("status") != "passed":
+            failures.append(f"platform evidence is not passing for {name}")
+        host = value.get("host", {})
+        if not isinstance(host, dict) or host.get("system") != PLATFORM_SYSTEMS.get(name):
+            failures.append(f"platform evidence host differs for {name}")
+        measurements = value.get("measurements", {})
+        tasks = measurements.get("tasks", []) if isinstance(measurements, dict) else []
+        task_status = {
+            str(task.get("name")): task.get("status")
+            for task in tasks
+            if isinstance(task, dict)
+        }
+        for required in ("platform", "wasm-platform"):
+            if task_status.get(required) != "passed":
+                failures.append(f"platform evidence task {required} is not passing for {name}")
+        if name == "linux-x86_64" and task_status.get("official-harness") != "passed":
+            failures.append("Linux platform evidence lacks the full official harness")
+        values[name] = {
+            "path": str(path),
+            "sha256": sha256(path),
+            "host": host,
+            "tasks": dict(sorted(task_status.items())),
+        }
+    return values
 
 
 def test_map_summary(path: Path, failures: list[str]) -> dict[str, object]:
@@ -582,6 +627,7 @@ def main() -> int:
     parser.add_argument("--test-map", type=Path, required=True)
     parser.add_argument("--contract-results", type=Path, required=True)
     parser.add_argument("--compat-report", action="append", default=[])
+    parser.add_argument("--platform-evidence", action="append", default=[])
     parser.add_argument("--coverage", type=Path, required=True)
     parser.add_argument("--coverage-metadata", action="append", default=[])
     parser.add_argument("--performance", type=Path, required=True)
@@ -597,6 +643,9 @@ def main() -> int:
 
     failures: list[str] = []
     compatibility_paths = indexed_paths(args.compat_report, "compatibility", failures)
+    platform_evidence_paths = indexed_paths(
+        args.platform_evidence, "platform evidence", failures
+    )
     coverage_metadata_paths = indexed_paths(
         args.coverage_metadata, "coverage metadata", failures
     )
@@ -614,12 +663,8 @@ def main() -> int:
         if not path.is_file():
             failures.append(f"release evidence input is missing: {path}")
 
-    if set(compatibility_paths) != REQUIRED_PLATFORMS:
-        failures.append("compatibility reports do not cover all three release platforms")
-    compatibility = {
-        name: compatibility_summary(path, failures)
-        for name, path in sorted(compatibility_paths.items())
-    }
+    if set(compatibility_paths) != {"linux-x86_64"}:
+        failures.append("official compatibility report must come from Linux exactly once")
     if set(native_paths) != REQUIRED_PLATFORMS:
         failures.append("native artifacts do not cover all three release platforms")
     native = {name: artifact(path) for name, path in sorted(native_paths.items())}
@@ -627,6 +672,16 @@ def main() -> int:
     moonjust_commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
     ).stdout.strip()
+    compatibility = {
+        "official": (
+            compatibility_summary(compatibility_paths["linux-x86_64"], failures)
+            if "linux-x86_64" in compatibility_paths
+            else {"missing": True}
+        ),
+        "platforms": platform_evidence_summaries(
+            platform_evidence_paths, moonjust_commit, failures
+        ),
+    }
     sizes = size_summaries(size_paths, failures)
     coverage_metadata = coverage_metadata_summaries(
         coverage_metadata_paths, moonjust_commit, failures

@@ -186,7 +186,7 @@ jobs:
           moon install
 
       - name: Download shared wasm1 asset
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: moonjust-ci-wasm1
           path: _build/shared-wasm
@@ -397,11 +397,11 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: moonjust-coverage-native
           path: _build/coverage
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: moonjust-coverage-wasm
           path: _build/coverage
@@ -453,37 +453,37 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-ci-linux-x86_64
           path: evidence/linux-x86_64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-ci-macos-aarch64
           path: evidence/macos-aarch64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-ci-windows-x86_64
           path: evidence/windows-x86_64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-ci-wasm1
           path: evidence/wasm1
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-coverage-evidence
           path: evidence/coverage
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-performance-trend
           path: evidence/performance
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: moonjust-contract-evidence
@@ -495,10 +495,11 @@ jobs:
           python3 tools/release/generate_release_evidence.py \
             --mode pr \
             --test-map tests/upstream/just-1.57.0/test-map.jsonl \
-            --contract-results evidence/contracts/results.jsonl \
+            --contract-results evidence/contracts/upstream-contracts/results.jsonl \
             --compat-report linux-x86_64=evidence/linux-x86_64/upstream-harness/compatibility-report.jsonl \
-            --compat-report macos-aarch64=evidence/macos-aarch64/upstream-harness/compatibility-report.jsonl \
-            --compat-report windows-x86_64=evidence/windows-x86_64/upstream-harness/compatibility-report.jsonl \
+            --platform-evidence linux-x86_64=evidence/linux-x86_64/verification/platform-compat.json \
+            --platform-evidence macos-aarch64=evidence/macos-aarch64/verification/platform-compat.json \
+            --platform-evidence windows-x86_64=evidence/windows-x86_64/verification/platform-compat.json \
             --coverage evidence/coverage/summary.json \
             --coverage-metadata native=evidence/coverage/native.metadata.json \
             --coverage-metadata wasm=evidence/coverage/wasm.metadata.json \
