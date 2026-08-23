@@ -823,6 +823,7 @@ def run_measurement(
     baseline_native: Path | None = None,
     baseline_wasm: Path | None = None,
     report_only: bool = False,
+    cold_warm: bool = False,
 ) -> int:
     """Run the existing statistically strict sampler through the unified CLI."""
     started_at = time.time()
@@ -844,6 +845,8 @@ def run_measurement(
         command_line.append("--authoritative")
     if report_only:
         command_line.append("--report-only")
+    if cold_warm:
+        command_line.append("--cold-warm")
     if baseline_native is not None or baseline_wasm is not None:
         if baseline_native is None or baseline_wasm is None:
             raise ValueError("both baseline_native and baseline_wasm are required")
@@ -966,6 +969,11 @@ def main() -> int:
     measure_parser.add_argument("--baseline-native", type=Path)
     measure_parser.add_argument("--baseline-wasm", type=Path)
     measure_parser.add_argument("--report-only", action="store_true")
+    measure_parser.add_argument(
+        "--cold-warm",
+        action="store_true",
+        help="measure real-project cold and warmed process starts in balanced rounds",
+    )
 
     coverage_parser = subparsers.add_parser("coverage")
     coverage_parser.add_argument("--target", choices=("native", "wasm", "merge"), required=True)
@@ -1014,6 +1022,7 @@ def main() -> int:
             args.baseline_native.resolve() if args.baseline_native else None,
             args.baseline_wasm.resolve() if args.baseline_wasm else None,
             args.report_only,
+            args.cold_warm,
         )
     if args.subcommand == "coverage":
         return run_coverage(repo, args.target, args.base)

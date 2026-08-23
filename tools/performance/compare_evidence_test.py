@@ -34,6 +34,28 @@ def write_fixture(root: Path, name: str, schema: int, command_path: Path) -> Pat
 
 
 class CompareEvidenceTest(unittest.TestCase):
+    def test_invalid_cold_warm_sample_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            legacy = write_fixture(root, "legacy", 2, root / "old.just")
+            current = write_fixture(root, "current", 3, root / "new.just")
+            raw_path = root / "current.jsonl"
+            raw_path.write_text(
+                json.dumps(
+                    {
+                        "phase": "cold-warm",
+                        "condition": "unknown",
+                        "round": "0",
+                        "exit_code": 0,
+                        "elapsed_ms": "bad",
+                    }
+                )
+                + "\n"
+            )
+            result = compare_evidence.compare(legacy, current)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("invalid samples" in item for item in result["mismatches"]))
+
     def test_schema_migration_and_fixture_paths_compare(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

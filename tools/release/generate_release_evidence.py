@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import platform
 import subprocess
 import sys
@@ -372,6 +373,40 @@ def performance_summary(
         or machine.get("machine") not in {"x86_64", "AMD64"}
     ):
         failures.append("performance report is not from Linux x86_64")
+    if require_authoritative:
+        cold_warm = report.get("cold_warm", {})
+        required_workloads = {
+            "project-modules",
+            "project-parameters",
+            "project-execution",
+        }
+        if not isinstance(cold_warm, dict) or cold_warm.get("enabled") is not True:
+            failures.append("authoritative performance report is missing cold/warm validation")
+        else:
+            if cold_warm.get("rounds") != 3 or cold_warm.get("warmups_per_round") != 5:
+                failures.append("cold/warm validation must use 3 rounds and 5 warmups")
+            workloads = cold_warm.get("workloads", {})
+            if not isinstance(workloads, dict) or set(workloads) != required_workloads:
+                failures.append("cold/warm validation workload inventory is incomplete")
+            else:
+                for workload in sorted(required_workloads):
+                    entries = workloads.get(workload)
+                    if not isinstance(entries, dict):
+                        failures.append(f"cold/warm evidence is missing for {workload}")
+                        continue
+                    for kind in ("official", "candidate-native", "candidate-wasm"):
+                        conditions = entries.get(kind)
+                        if not isinstance(conditions, dict):
+                            failures.append(f"cold/warm evidence is missing for {workload}/{kind}")
+                            continue
+                        for condition in ("cold", "warm"):
+                            summary = conditions.get(condition)
+                            samples = summary.get("latency_samples") if isinstance(summary, dict) else None
+                            median = summary.get("median_ms") if isinstance(summary, dict) else None
+                            if samples != 3 or not isinstance(median, (int, float)) or not math.isfinite(float(median)):
+                                failures.append(
+                                    f"cold/warm evidence is invalid for {workload}/{kind}/{condition}"
+                                )
     if not require_authoritative and (
         not isinstance(configuration, dict)
         or configuration.get("authoritative") is not False

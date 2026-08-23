@@ -36,6 +36,8 @@ WASM_BUDGETS_MS = {
     "dag-1000": (150.0, 250.0),
 }
 MAX_WASM_RSS_KIB = 128 * 1024
+COLD_WARM_ROUNDS = 3
+COLD_WARM_WARMUPS = 5
 
 
 def sha256(path: Path) -> str:
@@ -366,6 +368,18 @@ def balanced_orders(kinds: Iterable[str], count: int, seed: int) -> list[tuple[s
     return result
 
 
+def fixture_profile(workload: str) -> str:
+    return "real-project" if workload.startswith("project-") else "synthetic-scale"
+
+
+def fixture_files(workload: str, fixture: Path) -> list[Path]:
+    """Return every file that contributes to a fixture, including modules."""
+    files = [fixture]
+    if workload == "project-modules":
+        files.append(fixture.parent / "tools" / "mod.just")
+    return files
+
+
 def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
     recipes10 = root / "recipes-10.just"
     recipes10.write_text("".join(f"r{index:04d}:\n" for index in range(10)))
@@ -385,6 +399,52 @@ def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
         "all: " + " ".join(f"noop{index:03d}" for index in range(100)) + "\n"
         + "".join(f"noop{index:03d}:\n  @:\n" for index in range(100))
     )
+    project_modules = root / "project-modules.just"
+    project_modules.write_text(
+        "set shell := [\"sh\", \"-cu\"]\n"
+        "project := \"moonjust\"\n"
+        "mod tools\n\n"
+        "[group(\"build\")]\n"
+        "build: tools::prepare\n"
+        "  @:\n"
+    )
+    tools = root / "tools"
+    tools.mkdir()
+    (tools / "mod.just").write_text(
+        "set shell := [\"sh\", \"-cu\"]\n"
+        "prepare:\n"
+        "  @:\n"
+        "package:\n"
+        "  @:\n"
+    )
+    project_parameters = root / "project-parameters.just"
+    project_parameters.write_text(
+        "set shell := [\"sh\", \"-cu\"]\n"
+        "set positional-arguments\n"
+        "project := \"moonjust\"\n"
+        "alias b := build\n\n"
+        "build target=\"debug\" *flags: (prepare target)\n"
+        "  @:\n\n"
+        "prepare target:\n"
+        "  @:\n\n"
+        "check:\n"
+        "  @:\n\n"
+        "all: build check\n"
+        "  @:\n"
+    )
+    project_execution = root / "project-execution.just"
+    project_execution.write_text(
+        "set shell := [\"sh\", \"-cu\"]\n"
+        "export BUILD_MODE := \"release\"\n\n"
+        "all: lint test package\n"
+        "  @:\n\n"
+        "lint:\n"
+        "  @:\n\n"
+        "test:\n"
+        "  @:\n\n"
+        "package:\n"
+        "  @:\n"
+    )
     return {
         "startup": (recipes10, ["--version"]),
         "recipes-10": (recipes10, ["--summary"]),
@@ -395,6 +455,9 @@ def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
         "format": (recipes1000, ["--fmt"]),
         "dag-1000": (dag, ["--dry-run", "root"]),
         "noops-100": (noops, ["all"]),
+        "project-modules": (project_modules, ["--summary"]),
+        "project-parameters": (project_parameters, ["--dry-run", "build", "release", "fast"]),
+        "project-execution": (project_execution, ["all"]),
     }
 
 
@@ -497,6 +560,83 @@ def collect_phase(
     return collected, time.perf_counter() - started, phase == "latency" and len(next(iter(collected.values()))) < max_samples
 
 
+def collect_cold_warm_phase(
+    workload: str,
+    commands: dict[str, list[str]],
+    cwd: Path,
+    seed: int,
+    raw_rows: list[dict[str, object]],
+    toolchain: str,
+    artifact_hashes: dict[str, str],
+) -> tuple[dict[str, dict[str, list[float]]], float]:
+    """Measure fresh-process and warmed-process starts in balanced rounds.
+
+    A cold observation is the first invocation of a new process in a round.
+    A warm observation follows five invocations of that same command.  This
+    intentionally does not drop the host page cache: doing so would require a
+    privileged, global machine mutation and would not be a portable RC gate.
+    """
+    started = time.perf_counter()
+    kinds = tuple(commands)
+    collected = {
+        kind: {"cold": [], "warm": []}
+        for kind in kinds
+    }
+    for round_index in range(COLD_WARM_ROUNDS):
+        cold_order = balanced_orders(kinds, 1, seed + round_index)[0]
+        for position, kind in enumerate(cold_order):
+            value = run_latency_sample(commands[kind], cwd)
+            collected[kind]["cold"].append(value)
+            raw_rows.append(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "legacy_schema_version": LEGACY_SCHEMA_VERSION,
+                    "phase": "cold-warm",
+                    "condition": "cold",
+                    "round": round_index,
+                    "workload": workload,
+                    "iteration": round_index,
+                    "position": position,
+                    "kind": kind,
+                    "command": commands[kind],
+                    "target": kind.rsplit("-", 1)[-1] if "-" in kind else kind,
+                    "exit_code": 0,
+                    "toolchain": toolchain,
+                    "artifact_sha256": artifact_hashes[kind],
+                    "sampler": "elapsed-process",
+                    "elapsed_ms": value,
+                }
+            )
+        for order in balanced_orders(kinds, COLD_WARM_WARMUPS, seed + 100 + round_index):
+            for kind in order:
+                run_latency_sample(commands[kind], cwd)
+        warm_order = balanced_orders(kinds, 1, seed + 200 + round_index)[0]
+        for position, kind in enumerate(warm_order):
+            value = run_latency_sample(commands[kind], cwd)
+            collected[kind]["warm"].append(value)
+            raw_rows.append(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "legacy_schema_version": LEGACY_SCHEMA_VERSION,
+                    "phase": "cold-warm",
+                    "condition": "warm",
+                    "round": round_index,
+                    "workload": workload,
+                    "iteration": round_index,
+                    "position": position,
+                    "kind": kind,
+                    "command": commands[kind],
+                    "target": kind.rsplit("-", 1)[-1] if "-" in kind else kind,
+                    "exit_code": 0,
+                    "toolchain": toolchain,
+                    "artifact_sha256": artifact_hashes[kind],
+                    "sampler": "elapsed-process",
+                    "elapsed_ms": value,
+                }
+            )
+    return collected, time.perf_counter() - started
+
+
 def add_ratio_failure(
     failures: list[str], workload: str, candidate: dict[str, object], baseline: dict[str, object]
 ) -> None:
@@ -527,6 +667,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--authoritative", action="store_true")
     parser.add_argument("--report-only", action="store_true")
+    parser.add_argument(
+        "--cold-warm",
+        action="store_true",
+        help="run three balanced cold-process/warmed-process rounds for real-project workloads",
+    )
     parser.add_argument("--workload")
     return parser.parse_args()
 
@@ -590,6 +735,8 @@ def main() -> int:
     raw_rows: list[dict[str, object]] = []
     phase_durations: dict[str, float] = {"latency": 0.0, "memory": 0.0}
     early_stops: dict[str, bool] = {}
+    cold_warm_results: dict[str, dict[str, dict[str, dict[str, object]]]] = {}
+    cold_warm_duration = 0.0
     cpu = machine["selected_cpu"] if isinstance(machine["selected_cpu"], int) else None
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
@@ -600,9 +747,19 @@ def main() -> int:
                 raise RuntimeError(f"unknown benchmark workload: {args.workload}")
             selected_fixtures = {args.workload: fixtures[args.workload]}
         for workload, (fixture, arguments) in selected_fixtures.items():
+            fixture_paths = fixture_files(workload, fixture)
             fixtures_record[workload] = {
+                "profile": fixture_profile(workload),
                 "sha256": sha256(fixture),
                 "bytes": fixture.stat().st_size,
+                "files": [
+                    {
+                        "path": str(path.relative_to(root)),
+                        "bytes": path.stat().st_size,
+                        "sha256": sha256(path),
+                    }
+                    for path in fixture_paths
+                ],
                 "arguments": arguments,
             }
             commands = {
@@ -635,6 +792,26 @@ def main() -> int:
                 )
                 for kind in artifacts
             }
+            if args.cold_warm and (
+                args.workload is not None or fixture_profile(workload) == "real-project"
+            ):
+                conditions, duration = collect_cold_warm_phase(
+                    workload,
+                    commands,
+                    root,
+                    args.seed + len(results) * 1000,
+                    raw_rows,
+                    moon_toolchain,
+                    {kind: sha256(path) for kind, path in artifacts.items()},
+                )
+                cold_warm_duration += duration
+                cold_warm_results[workload] = {
+                    kind: {
+                        condition: summarize(values, [])
+                        for condition, values in conditions[kind].items()
+                    }
+                    for kind in artifacts
+                }
 
     failures = list(environment_errors)
     for workload, values in results.items():
@@ -713,6 +890,14 @@ def main() -> int:
         "phases": {
             "durations_seconds": phase_durations,
             "latency_early_stops": early_stops,
+            "cold_warm_duration_seconds": cold_warm_duration,
+        },
+        "cold_warm": {
+            "enabled": args.cold_warm,
+            "rounds": COLD_WARM_ROUNDS,
+            "warmups_per_round": COLD_WARM_WARMUPS,
+            "semantics": "cold=first fresh process; warm=five same-command warmups then fresh process",
+            "workloads": cold_warm_results,
         },
         "artifacts": {
             kind: {"path": str(path), "bytes": path.stat().st_size, "sha256": sha256(path)}

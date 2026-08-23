@@ -80,15 +80,19 @@ def _invalid_samples(value: dict[str, Any]) -> list[str]:
             invalid.append(f"line {line_number}: non-zero exit code")
             continue
         phase = row.get("phase")
-        field = "elapsed_ms" if phase == "latency" else "peak_rss_kib"
+        field = "elapsed_ms" if phase in {"latency", "cold-warm"} else "peak_rss_kib"
         sample = row.get(field)
-        if phase == "latency" and (
+        if phase in {"latency", "cold-warm"} and (
             not isinstance(sample, (int, float))
             or not math.isfinite(float(sample))
             or float(sample) < 0
         ):
             invalid.append(f"line {line_number}: invalid latency sample")
-        if phase not in {"latency", "memory"}:
+        if phase == "cold-warm" and row.get("condition") not in {"cold", "warm"}:
+            invalid.append(f"line {line_number}: invalid cold/warm condition")
+        if phase == "cold-warm" and not isinstance(row.get("round"), int):
+            invalid.append(f"line {line_number}: invalid cold/warm round")
+        if phase not in {"latency", "memory", "cold-warm"}:
             invalid.append(f"line {line_number}: unknown phase")
     return invalid
 

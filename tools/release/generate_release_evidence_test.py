@@ -17,6 +17,56 @@ SPEC.loader.exec_module(evidence)
 
 
 class ReleaseEvidenceTest(unittest.TestCase):
+    def test_authoritative_performance_requires_real_project_cold_warm_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "performance.json"
+            workloads = {}
+            for workload in ("project-modules", "project-parameters", "project-execution"):
+                workloads[workload] = {
+                    kind: {
+                        condition: {"latency_samples": 3, "median_ms": 1.0}
+                        for condition in ("cold", "warm")
+                    }
+                    for kind in ("official", "candidate-native", "candidate-wasm")
+                }
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 3,
+                        "status": "passed",
+                        "configuration": {"authoritative": True},
+                        "machine": {"system": "Linux", "machine": "x86_64"},
+                        "cold_warm": {
+                            "enabled": True,
+                            "rounds": 3,
+                            "warmups_per_round": 5,
+                            "workloads": workloads,
+                        },
+                    }
+                )
+            )
+            failures: list[str] = []
+            summary = evidence.performance_summary(path, failures, True)
+            self.assertEqual(summary["authority"], "authoritative")
+            self.assertEqual(failures, [])
+
+    def test_authoritative_performance_rejects_missing_cold_warm_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "performance.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 3,
+                        "status": "passed",
+                        "configuration": {"authoritative": True},
+                        "machine": {"system": "Linux", "machine": "x86_64"},
+                    }
+                )
+            )
+            failures: list[str] = []
+            evidence.performance_summary(path, failures, True)
+            self.assertIn("authoritative performance report is missing cold/warm validation", failures)
+
     def test_moon_toolchain_identity_ignores_install_paths(self) -> None:
         first = "moon 1 (abc) /home/runner/.moon/bin/moon\nmoonc 2 C:\\\\moon\\\\moonc"
         second = "moon 1 (abc) /Users/example/.moon/bin/moon\nmoonc 2 /opt/moon/moonc"

@@ -378,6 +378,7 @@ jobs:
         run: |
           python3 tools/runner.py measure \
             --authoritative \
+            --cold-warm \
             --baseline-native "$MOONJUST_BASELINE_NATIVE" \
             --baseline-wasm "$MOONJUST_BASELINE_WASM" \
             --output _build/performance/results.json

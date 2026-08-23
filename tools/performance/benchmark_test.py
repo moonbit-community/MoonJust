@@ -43,10 +43,30 @@ class BenchmarkTest(unittest.TestCase):
                     "format",
                     "dag-1000",
                     "noops-100",
+                    "project-modules",
+                    "project-parameters",
+                    "project-execution",
                 ],
             )
             self.assertEqual(fixtures["recipes-1000"][0].stat().st_size, 7000)
             self.assertEqual(fixtures["dag-1000"][0].read_text().count("node"), 1998)
+            self.assertEqual(benchmark.fixture_profile("project-modules"), "real-project")
+            self.assertEqual(len(benchmark.fixture_files("project-modules", fixtures["project-modules"][0])), 2)
+
+    def test_cold_warm_phase_records_three_conditions_per_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            commands = {"a": ["a"], "b": ["b"]}
+            rows: list[dict[str, object]] = []
+            with mock.patch.object(benchmark, "run_latency_sample", return_value=1.0) as sample:
+                values, duration = benchmark.collect_cold_warm_phase(
+                    "project-test", commands, root, 1570, rows, "moon", {"a": "a", "b": "b"}
+                )
+            self.assertGreaterEqual(duration, 0.0)
+            self.assertEqual(len(rows), 12)
+            self.assertEqual([len(values[k][c]) for k in values for c in ("cold", "warm")], [3] * 4)
+            self.assertEqual({row["condition"] for row in rows}, {"cold", "warm"})
+            self.assertEqual(sample.call_count, 3 * (2 + 5 * 2 + 2))
 
     def test_summary_keeps_latency_and_memory_separate(self) -> None:
         summary = benchmark.summarize([1.0, 2.0, 3.0], [10, None, 20])
