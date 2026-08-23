@@ -119,6 +119,15 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(benchmark.cpuinfo_field(value, "model name"), "Example CPU")
         self.assertEqual(benchmark.cpuinfo_field(value, "microcode"), "0x123")
 
+    def test_benchmark_environment_describes_windows_portable_host(self) -> None:
+        with (
+            mock.patch.object(benchmark.platform, "system", return_value="Windows"),
+            mock.patch.object(benchmark.platform, "machine", return_value="AMD64"),
+        ):
+            environment = benchmark.benchmark_environment()
+        self.assertEqual(environment["MOONJUST_OS"], "windows")
+        self.assertEqual(environment["MOONJUST_ARCH"], "amd64")
+
 
 if __name__ == "__main__":
     unittest.main()

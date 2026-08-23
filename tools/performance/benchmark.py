@@ -209,6 +209,27 @@ def command_prefix(cpu: int | None) -> list[str]:
     return []
 
 
+def benchmark_environment() -> dict[str, str]:
+    """Expose the real runner platform to the shared portable Wasm host."""
+    system = platform.system()
+    os_name = {
+        "Linux": "linux",
+        "Darwin": "macos",
+        "Windows": "windows",
+    }.get(system, system.lower())
+    machine = platform.machine()
+    architecture = {
+        "AMD64": "amd64",
+        "x86_64": "x86_64",
+        "arm64": "arm64",
+        "aarch64": "aarch64",
+    }.get(machine, machine)
+    environment = os.environ.copy()
+    environment["MOONJUST_OS"] = os_name
+    environment["MOONJUST_ARCH"] = architecture
+    return environment
+
+
 def run_latency_sample(command: list[str], cwd: Path) -> float:
     started = time.perf_counter_ns()
     result = subprocess.run(
@@ -217,6 +238,7 @@ def run_latency_sample(command: list[str], cwd: Path) -> float:
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
+        env=benchmark_environment(),
         timeout=120,
     )
     elapsed_ms = (time.perf_counter_ns() - started) / 1_000_000
@@ -245,6 +267,7 @@ def run_memory_sample(command: list[str], cwd: Path) -> int | None:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
+            env=benchmark_environment(),
             timeout=120,
         )
         if result.returncode != 0:
@@ -884,6 +907,10 @@ def main() -> int:
                 "warmups": 2,
                 "samples": 10,
                 "supported": memory_supported(),
+            },
+            "portable_host": {
+                "MOONJUST_OS": benchmark_environment()["MOONJUST_OS"],
+                "MOONJUST_ARCH": benchmark_environment()["MOONJUST_ARCH"],
             },
         },
         "phases": {
