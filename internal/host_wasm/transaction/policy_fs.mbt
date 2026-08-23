@@ -3,12 +3,12 @@
 /// writes use the MoonBit host filesystem surface; atomic transactions use the
 /// async runtime so moonrun applies the configured create/remove/rename policy.
 pub struct PolicyFs {
-  inner : @host_native.NativeFs
+  inner : @host_wasm.PortableHost
 }
 
 ///|
 pub fn PolicyFs::new() -> PolicyFs {
-  { inner: @host_native.NativeFs::new() }
+  { inner: @host_wasm.PortableHost::new() }
 }
 
 ///|

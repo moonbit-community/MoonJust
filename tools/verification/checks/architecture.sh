@@ -5,6 +5,11 @@ script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../../.." && pwd)
 core_packages="source diagnostic path host cli lexer syntax parser formatter semantic loader value builtin evaluator environment invocation workdir scheduler cache executor application"
 async_packages="loader evaluator executor application"
+# Loader and application keep a stable async API while selecting the already
+# verified synchronous Native implementation. Target selection is allowed only
+# in these capability-boundary packages; native imports and extern declarations
+# remain forbidden here.
+target_specialized_packages="loader application"
 
 fail() {
   echo "architecture boundary error: $1" >&2
@@ -85,7 +90,14 @@ for package in $core_packages; do
     elif grep -nE \
       '#cfg|#external|extern[[:space:]]+"|native-stub' \
       "$file"; then
-      fail "target-specific implementation found in internal/$package"
+      case " $target_specialized_packages " in
+        *" $package "*)
+          if grep -nE '#external|extern[[:space:]]+"|native-stub' "$file"; then
+            fail "native target implementation found in internal/$package"
+          fi
+          ;;
+        *) fail "target-specific implementation found in internal/$package" ;;
+      esac
     fi
     if [ "$package" != host ] && [ "$package" != loader ] && \
       [ "$package" != evaluator ] && \
@@ -97,7 +109,7 @@ for package in $core_packages; do
 done
 
 for package in loader evaluator executor application; do
-  if grep -nE 'moonbitlang/async|#cfg|#external|extern[[:space:]]+"' \
+  if grep -nE 'moonbitlang/async|#external|extern[[:space:]]+"' \
     "$repo_root/internal/$package"/*.mbt; then
     fail "internal/$package async capability API imports a runtime or target implementation"
   fi

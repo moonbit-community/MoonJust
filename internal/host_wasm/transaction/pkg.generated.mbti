@@ -3,7 +3,7 @@ package "moonbit-community/MoonJust/internal/host_wasm/transaction"
 
 import {
   "moonbit-community/MoonJust/internal/host",
-  "moonbit-community/MoonJust/internal/host_native",
+  "moonbit-community/MoonJust/internal/host_wasm",
   "moonbit-community/MoonJust/internal/path",
 }
 
@@ -13,7 +13,7 @@ import {
 
 // Types and methods
 pub struct PolicyFs {
-  inner : @host_native.NativeFs
+  inner : @host_wasm.PortableHost
 }
 pub fn PolicyFs::new() -> Self
 pub impl @host.HostAtomicFs for PolicyFs

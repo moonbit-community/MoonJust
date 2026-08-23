@@ -99,6 +99,11 @@ fn[T : @host.HostFs + @host.HostTemp] format_response(
           loaded.canonical_path(),
           @utf8.encode(result.formatted()),
         ) catch {
+          PermissionDenied(_, detail=_) =>
+            raise WriteJustfile(
+              path=loaded.path(),
+              detail=write_permission_detail(loaded.path()),
+            )
           error => raise Host(error)
         }
         return @cli.ApplicationResponse::success(
@@ -113,6 +118,7 @@ fn[T : @host.HostFs + @host.HostTemp] format_response(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] format_response_async(
   host : T,
   arguments : @cli.CliArguments,
@@ -236,6 +242,8 @@ fn[T : @host.HostFs + @host.HostTemp] init_response(
     @utf8.encode(INIT_TEMPLATE),
     overwrite=false,
   ) catch {
+    PermissionDenied(_, detail=_) =>
+      raise WriteJustfile(path~, detail=write_permission_detail(path))
     error => raise Host(error)
   }
   @cli.ApplicationResponse::success(
@@ -244,6 +252,7 @@ fn[T : @host.HostFs + @host.HostTemp] init_response(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[T : @host.HostFs + @host.HostAtomicFs] init_response_async(
   host : T,
   arguments : @cli.CliArguments,
@@ -350,6 +359,7 @@ pub fn[T : @host.HostFs + @host.HostTemp] execute_file_command(
 
 ///|
 /// Async file-command entry point for policy-aware native and wasm CLI hosts.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] execute_file_command_async(
   host : T,
   arguments : @cli.CliArguments,
@@ -364,4 +374,17 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] exe
     InitCommand => init_response_async(host, arguments, context)
     command => raise UnsupportedCommand("\{Repr(command)}")
   }
+}
+
+///|
+/// Native file commands reuse the synchronous application path. Keeping the
+/// async API at this boundary preserves the CLI dispatcher while removing the
+/// native-only I/O state machines.
+#cfg(target="native")
+pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostTemp] execute_file_command_async(
+  host : T,
+  arguments : @cli.CliArguments,
+  context : ApplicationContext,
+) -> @cli.ApplicationResponse raise ApplicationError {
+  execute_file_command(host, arguments, context)
 }

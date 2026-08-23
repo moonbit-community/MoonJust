@@ -358,7 +358,7 @@ fn append_response(
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostSourceReader + @host.HostAsyncScriptTemp + @host.HostCacheStore + @host.HostAtomicFs,
+  F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAsyncScriptTemp + @host.HostCacheStore + @host.HostAtomicFs,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] run_cli(
   host : F,

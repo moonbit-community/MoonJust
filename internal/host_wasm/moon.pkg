@@ -8,6 +8,8 @@ import {
   "moonbitlang/async/os_error",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
+  "moonbitlang/core/string",
+  "moonbitlang/x/fs",
 }
 
 warnings = "-29"

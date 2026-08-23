@@ -1,4 +1,5 @@
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_async(
   host : T,
   arguments : @cli.CliArguments,
@@ -68,6 +69,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[T : @host.HostFs + @host.HostSourceReader] load_input_async(
   host : T,
   arguments : @cli.CliArguments,
@@ -77,6 +79,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_input_async(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_directories_async(
   host : T,
   arguments : @cli.CliArguments,
@@ -170,4 +173,45 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_direct
       (graph, directories)
     }
   }
+}
+
+///|
+#cfg(target="native")
+async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_async(
+  host : T,
+  arguments : @cli.CliArguments,
+  context : ApplicationContext,
+) -> (@loader.LoadedSource, @workdir.WorkingDirectoryModel) raise ApplicationError {
+  load_input_with_directories(host, arguments, context)
+}
+
+///|
+#cfg(target="native")
+async fn[T : @host.HostFs + @host.HostSourceReader] load_input_async(
+  host : T,
+  arguments : @cli.CliArguments,
+  context : ApplicationContext,
+) -> @loader.LoadedSource raise ApplicationError {
+  load_input(host, arguments, context)
+}
+
+///|
+#cfg(target="native")
+async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_directories_async(
+  host : T,
+  arguments : @cli.CliArguments,
+  context : ApplicationContext,
+  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+    Other("unknown"),
+    false,
+  ),
+  environment? : ArrayView[(String, String)] = [],
+) -> (@loader.LoadedGraph, @workdir.WorkingDirectoryModel) raise ApplicationError {
+  load_graph_input_with_directories(
+    host,
+    arguments,
+    context,
+    platform~,
+    environment~,
+  )
 }

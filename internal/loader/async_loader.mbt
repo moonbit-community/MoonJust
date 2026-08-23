@@ -4,6 +4,7 @@ fn source_read_limit() -> Int {
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 /// Read one source through the bounded production host capability.
 pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
   host : T,
@@ -37,6 +38,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
   host : T,
   root_source : LoadedSource,
@@ -177,6 +179,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 /// Recursively load a filesystem graph without reading any source past the
 /// lexer byte limit plus one.
 pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
@@ -201,6 +204,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
   host : T,
   bytes : Bytes,
@@ -232,4 +236,56 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
     module_directory: base,
   }
   build_graph_async(host, root, source_id, limits, platform, environment)
+}
+
+///|
+#cfg(target="native")
+pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
+  host : T,
+  path : @path.PathValue,
+  source_id : @source.SourceId,
+  environment? : ArrayView[(String, String)] = [],
+) -> LoadedSource raise LoaderError {
+  load(host, path, source_id, environment~)
+}
+
+///|
+#cfg(target="native")
+pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
+  host : T,
+  root : @path.PathValue,
+  source_id : @source.SourceId,
+  limits? : GraphLimits = GraphLimits::default(),
+  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+    Other("unknown"),
+    false,
+  ),
+  environment? : ArrayView[(String, String)] = [],
+) -> LoadedGraph raise LoaderError {
+  load_graph(host, root, source_id, limits~, platform~, environment~)
+}
+
+///|
+#cfg(target="native")
+pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
+  host : T,
+  bytes : Bytes,
+  source_id : @source.SourceId,
+  base : @path.PathValue,
+  limits? : GraphLimits = GraphLimits::default(),
+  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+    Other("unknown"),
+    false,
+  ),
+  environment? : ArrayView[(String, String)] = [],
+) -> LoadedGraph raise LoaderError {
+  load_stdin_graph(
+    host,
+    bytes,
+    source_id,
+    base,
+    limits~,
+    platform~,
+    environment~,
+  )
 }

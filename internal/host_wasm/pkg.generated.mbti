@@ -3,7 +3,6 @@ package "moonbit-community/MoonJust/internal/host_wasm"
 
 import {
   "moonbit-community/MoonJust/internal/host",
-  "moonbit-community/MoonJust/internal/host_native",
   "moonbit-community/MoonJust/internal/path",
 }
 
@@ -23,8 +22,20 @@ pub impl @host.HostFs for ExecutionFs
 pub impl @host.HostSourceReader for ExecutionFs
 pub impl @host.HostTemp for ExecutionFs
 
+pub struct PortableHost {
+  marker : Unit
+}
+pub fn PortableHost::new() -> Self
+pub impl @host.HostClock for PortableHost
+pub impl @host.HostEnv for PortableHost
+pub impl @host.HostFs for PortableHost
+pub impl @host.HostPlatform for PortableHost
+pub impl @host.HostRandom for PortableHost
+pub impl @host.HostSourceReader for PortableHost
+pub impl @host.HostTerminal for PortableHost
+
 pub struct ReadOnlyFs {
-  inner : @host_native.NativeFs
+  inner : PortableHost
 }
 pub fn ReadOnlyFs::new() -> Self
 pub impl @host.HostAtomicFs for ReadOnlyFs

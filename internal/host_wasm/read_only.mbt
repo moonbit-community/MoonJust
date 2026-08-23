@@ -1,13 +1,27 @@
 ///|
 /// Filesystem adapter for Wasm inspection. It deliberately exposes no process,
 /// environment, clock, random, terminal, or signal capability.
+#cfg(target="native")
 pub struct ReadOnlyFs {
   inner : @host_native.NativeFs
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+pub struct ReadOnlyFs {
+  inner : PortableHost
+}
+
+///|
+#cfg(target="native")
 pub fn ReadOnlyFs::new() -> ReadOnlyFs {
   { inner: @host_native.NativeFs::new() }
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+pub fn ReadOnlyFs::new() -> ReadOnlyFs {
+  { inner: PortableHost::new() }
 }
 
 ///|

@@ -1,12 +1,11 @@
 ///|
 fn runtime_host() -> @host_wasm.ExecutionFs {
-  ignore(@host_native.NativeFs::new)
   @host_wasm.ExecutionFs::new()
 }
 
 ///|
-fn runtime_environment_host() -> @host_native.NativeFs {
-  @host_native.NativeFs::new()
+fn runtime_environment_host() -> @host_wasm.PortableHost {
+  @host_wasm.PortableHost::new()
 }
 
 ///|
