@@ -193,6 +193,51 @@ class ReleaseEvidenceTest(unittest.TestCase):
             self.assertEqual(summary["denominator"], 1)
             self.assertEqual(failures, [])
 
+    def test_platform_evidence_requires_exact_head_and_required_tasks(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            commit = "a" * 40
+            paths: dict[str, Path] = {}
+            for name, system in evidence.PLATFORM_SYSTEMS.items():
+                tasks = [
+                    {"name": "platform", "status": "passed"},
+                    {"name": "wasm-platform", "status": "passed"},
+                ]
+                if name == "linux-x86_64":
+                    tasks.append({"name": "official-harness", "status": "passed"})
+                path = directory / f"{name}.json"
+                path.write_text(
+                    json.dumps(
+                        {
+                            "schema_version": 2,
+                            "commit_sha": commit,
+                            "mode": "compat",
+                            "status": "passed",
+                            "host": {"system": system},
+                            "measurements": {"tasks": tasks},
+                        }
+                    )
+                )
+                paths[name] = path
+            failures: list[str] = []
+            summaries = evidence.platform_evidence_summaries(paths, commit, failures)
+            self.assertEqual(set(summaries), evidence.REQUIRED_PLATFORMS)
+            self.assertEqual(failures, [])
+
+            windows = json.loads(paths["windows-x86_64"].read_text())
+            windows["commit_sha"] = "b" * 40
+            windows["measurements"]["tasks"][0]["status"] = "failed"
+            paths["windows-x86_64"].write_text(json.dumps(windows))
+            failures = []
+            evidence.platform_evidence_summaries(paths, commit, failures)
+            self.assertIn(
+                "platform evidence commit differs for windows-x86_64", failures
+            )
+            self.assertIn(
+                "platform evidence task platform is not passing for windows-x86_64",
+                failures,
+            )
+
     def test_contract_summary_requires_exact_unique_target_matrix(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             directory = Path(raw)
