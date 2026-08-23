@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/core/array",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

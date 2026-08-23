@@ -2,33 +2,44 @@
 package "moonbit-community/MoonJust/api"
 
 import {
-  "moonbit-community/MoonJust/src/evaluator",
-  "moonbit-community/MoonJust/src/formatter",
-  "moonbit-community/MoonJust/src/parser",
-  "moonbit-community/MoonJust/src/semantic",
-  "moonbit-community/MoonJust/src/source",
-  "moonbit-community/MoonJust/src/syntax",
-  "moonbit-community/MoonJust/src/value",
+  "moonbitlang/core/debug",
 }
 
 // Values
-pub fn compatible_just_version() -> String
+pub fn check_source(String, source_name? : String) -> Unit raise ApiError
 
-pub fn compile_source(@source.Source) -> @semantic.Compilation raise @semantic.SemanticError
+pub fn format_text(String, source_name? : String) -> String raise ApiError
 
-pub fn evaluate_expression(@syntax.Expression, environment? : @evaluator.Environment, limits? : @evaluator.EvaluationLimits) -> @value.Value raise @evaluator.EvaluationError
+pub fn just_compatibility_target() -> String
 
-pub fn format_source(@source.Source) -> String raise @formatter.FormatterError
-
-pub fn parse(@source.Source) -> @syntax.Ast raise @parser.ParserError
+pub fn recipe_names(String, source_name? : String) -> Array[String] raise ApiError
 
 pub fn version() -> String
 
 pub fn version_line() -> String
 
 // Errors
+pub(all) suberror ApiError {
+  InvalidSource(Array[ApiDiagnostic])
+} derive(@debug.Debug)
 
 // Types and methods
+pub struct ApiDiagnostic {
+  code : String
+  message : String
+  source_name : String
+  start_line : Int?
+  start_column : Int?
+  end_line : Int?
+  end_column : Int?
+} derive(@debug.Debug)
+pub fn ApiDiagnostic::code(Self) -> String
+pub fn ApiDiagnostic::end_column(Self) -> Int?
+pub fn ApiDiagnostic::end_line(Self) -> Int?
+pub fn ApiDiagnostic::message(Self) -> String
+pub fn ApiDiagnostic::source_name(Self) -> String
+pub fn ApiDiagnostic::start_column(Self) -> Int?
+pub fn ApiDiagnostic::start_line(Self) -> Int?
 
 // Type aliases
 

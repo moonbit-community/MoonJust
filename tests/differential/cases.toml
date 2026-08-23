@@ -25,11 +25,11 @@ reason = "ADR 0001 requires independent MoonJust identification; argparse presen
 id = "MJ-COMPAT-0003"
 directory = "03-missing-justfile"
 owner_area = "execution-context"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
-allowed_difference = "diagnostic-style"
-reason = "Search and working-directory behavior is covered by the execution-context contract; this expected difference is limited to MoonJust's stable typed diagnostic code and product-specific error wording."
+allowed_difference = "none"
+reason = "Missing-justfile status, stdout, stderr, and filesystem effects are byte-exact after temporary-root normalization."
 
 [[case]]
 id = "MJ-COMPAT-0004"
@@ -273,100 +273,100 @@ reason = "User functions require the unstable gate; only stable-code diagnostic 
 id = "MJ-COMPAT-0030"
 directory = "30-function-duplicate-parameter"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::duplicate_parameter"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Duplicate function parameters fail statically with matching status and side effects."
 
 [[case]]
 id = "MJ-COMPAT-0031"
 directory = "31-function-redefinition"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::redefinition"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Function redefinition fails statically with matching status and side effects."
 
 [[case]]
 id = "MJ-COMPAT-0032"
 directory = "32-function-arity"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::wrong_argument_count"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "User function argument counts are validated before evaluation."
 
 [[case]]
 id = "MJ-COMPAT-0033"
 directory = "33-function-undefined-body-variable"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_variable_in_body"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Undefined variables in function bodies fail semantic validation."
 
 [[case]]
 id = "MJ-COMPAT-0034"
 directory = "34-function-undefined-assignment"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_assignment"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Undefined function calls in assignments fail semantic validation."
 
 [[case]]
 id = "MJ-COMPAT-0035"
 directory = "35-function-undefined-setting"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_setting"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Undefined function calls in settings fail semantic validation."
 
 [[case]]
 id = "MJ-COMPAT-0036"
 directory = "36-function-undefined-default"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_recipe_parameter_default"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Undefined function calls in recipe parameter defaults fail semantic validation."
 
 [[case]]
 id = "MJ-COMPAT-0037"
 directory = "37-function-undefined-dependency"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_dependency_argument"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Undefined function calls in dependency arguments fail semantic validation."
 
 [[case]]
 id = "MJ-COMPAT-0038"
 directory = "38-function-undefined-confirm"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_confirm_attribute"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Undefined function calls in confirm attributes fail semantic validation."
 
 [[case]]
 id = "MJ-COMPAT-0039"
 directory = "39-function-undefined-interpolation"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::undefined_in_interpolation"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Undefined function calls in recipe interpolation fail semantic validation."
 
 [[case]]
@@ -427,10 +427,10 @@ reason = "--allow-missing ignores an absent module invocation."
 id = "MJ-COMPAT-0046"
 directory = "46-allow-missing-compile-error"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["allow_missing::allow_missing_does_not_apply_to_compilation_errors"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "--allow-missing does not suppress semantic dependency errors."
 
 [[case]]
@@ -609,10 +609,10 @@ reason = "Command invocation failure matches status, diagnostics, and side effec
 id = "MJ-COMPAT-0066"
 directory = "66-command-no-binary"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["command::no_binary"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "A missing command argument is rejected at the CLI boundary."
 
 [[case]]
@@ -727,11 +727,11 @@ reason = "The no-exit-message attribute also suppresses a failing shebang script
 id = "MJ-COMPAT-0079"
 directory = "79-exit-message-conflict"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["no_exit_message::exit_message_and_no_exit_message_compile_forbidden"]
-allowed_difference = "diagnostic-style"
-reason = "Mutually exclusive exit-message attributes are rejected with stable MoonJust diagnostic formatting."
+allowed_difference = "none"
+reason = "Mutually exclusive exit-message attributes are rejected with byte-exact status and diagnostics."
 
 [[case]]
 id = "MJ-COMPAT-0080"
@@ -885,11 +885,11 @@ reason = "JSON inspection preserves metadata attribute boundaries, ordering, and
 id = "MJ-COMPAT-0096"
 directory = "96-metadata-missing-argument"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["attributes::expected_metadata_attribute_argument"]
-allowed_difference = "diagnostic-style"
-reason = "A metadata attribute without arguments is rejected; MoonJust retains its stable diagnostic code and layout."
+allowed_difference = "none"
+reason = "A metadata attribute without arguments is rejected with byte-exact status and diagnostics."
 
 [[case]]
 id = "MJ-COMPAT-0097"
@@ -1003,22 +1003,22 @@ reason = "JUST_HIGHLIGHT enables command styling under forced color."
 id = "MJ-COMPAT-0109"
 directory = "109-ceiling-run"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["ceiling::justfile_run_search_stops_at_ceiling_dir"]
 cwd = "foo/bar"
-allowed_difference = "diagnostic-style"
-reason = "Search stops at the requested ceiling; MoonJust retains its typed missing-justfile diagnostic."
+allowed_difference = "none"
+reason = "Search stops at the requested ceiling with byte-exact status and diagnostics."
 
 [[case]]
 id = "MJ-COMPAT-0110"
 directory = "110-ceiling-environment"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["ceiling::ceiling_can_be_passed_as_environment_variable"]
 cwd = "foo/bar"
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "JUST_CEILING has the same search boundary behavior as the CLI option."
 
 [[case]]
@@ -1166,10 +1166,10 @@ reason = "Reserved guard exit codes match the official category, code, and diagn
 id = "MJ-COMPAT-0126"
 directory = "126-guard-infallible-conflict"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["guards::guard_sigil_may_not_be_used_with_infallible_sigil"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Guard and infallible sigils are rejected during semantic analysis with the same source location and category."
 
 [[case]]
@@ -1230,10 +1230,10 @@ reason = "Sigils on physical continuation lines remain ordinary shell text."
 id = "MJ-COMPAT-0133"
 directory = "133-guard-after-comment"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["guards::sigils_are_recognized_after_ignored_comments"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "An ignored comment does not turn the following physical line into a continuation, so conflicting sigils are diagnosed."
 
 [[case]]
@@ -1258,10 +1258,10 @@ reason = "When comment ignoring is disabled, a comment continuation consumes the
 id = "MJ-COMPAT-0136"
 directory = "136-comment-continuation-evaluation"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["ignore_comments::ignore_comments_evaluates_comments_on_continuation_lines"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "A comment on a continuation line is evaluated and reports the same undefined-variable category and source location."
 
 [[case]]
@@ -1349,20 +1349,20 @@ reason = "The CLI indentation override takes precedence over the justfile settin
 id = "MJ-COMPAT-0146"
 directory = "146-indentation-invalid"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_setting_invalid_values"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Non-whitespace indentation is rejected with the same setting category and source location."
 
 [[case]]
 id = "MJ-COMPAT-0147"
 directory = "147-indentation-expression"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format::indentation_setting_must_be_string_literal"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "The indentation setting requires a plain string literal rather than an expression."
 
 [[case]]
@@ -1432,20 +1432,20 @@ reason = "Lazy execution skips an unused effectful assignment."
 id = "MJ-COMPAT-0155"
 directory = "155-lazy-default-eager"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::unused_assignments_are_evaluated_without_lazy"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Without the lazy setting, an unused failing backtick is still evaluated."
 
 [[case]]
 id = "MJ-COMPAT-0156"
 directory = "156-lazy-used-transitive"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::used_assignment_evaluated", "lazy::transitively_used_assignment_evaluated", "lazy::assignment_in_body_interpolation_evaluated"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "Recipe interpolation evaluates the full transitive assignment closure."
 
 [[case]]
@@ -1461,10 +1461,10 @@ reason = "Dependency arguments and transitive dependency bodies share one lazy a
 id = "MJ-COMPAT-0158"
 directory = "158-lazy-parameter-default"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::assignment_used_in_parameter_default_evaluated"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "A selected recipe parameter default participates in the lazy assignment closure."
 
 [[case]]
@@ -1498,10 +1498,10 @@ reason = "The export setting makes all assignments unconditional under lazy eval
 id = "MJ-COMPAT-0162"
 directory = "162-lazy-eager"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["lazy::eager_assignments_are_evaluated"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "An eager assignment is evaluated even when no selected recipe references it."
 
 [[case]]
@@ -1625,20 +1625,20 @@ reason = "CLI dotenv commands apply only to root while submodules use their own 
 id = "MJ-COMPAT-0176"
 directory = "176-dotenv-command-path-conflict"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["dotenv::command_conflicts_with_dotenv_path_setting"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "dotenv-command and dotenv-path settings are rejected as incompatible."
 
 [[case]]
 id = "MJ-COMPAT-0177"
 directory = "177-dotenv-command-required-conflict"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["dotenv::command_conflicts_with_dotenv_required_setting"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "dotenv-command and dotenv-required settings are rejected as incompatible."
 
 [[case]]
@@ -1684,8 +1684,8 @@ reason = "JSON dump exposes the normalized dotenv-command setting without execut
 id = "MJ-COMPAT-0182"
 directory = "182-dotenv-command-undefined-variable"
 owner_area = "executor"
-status = "expected-difference"
+status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["settings::undefined_variable_in_dotenv_command"]
-allowed_difference = "diagnostic-style"
+allowed_difference = "none"
 reason = "An undefined variable in dotenv-command is rejected at the same semantic boundary."

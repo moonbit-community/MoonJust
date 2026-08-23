@@ -123,6 +123,9 @@ def main() -> None:
     if not build_record_path.is_file():
         fail("build record is missing")
     build_record = json.loads(build_record_path.read_text())
+    native_digest = build_record.get("native_sha256")
+    if not isinstance(native_digest, str) or re.fullmatch(r"[0-9a-f]{64}", native_digest) is None:
+        fail("build record native digest is malformed")
     expected_commit = subprocess.run(
         ["git", "-C", str(repo), "rev-parse", "HEAD"],
         check=True,
@@ -134,6 +137,7 @@ def main() -> None:
         "version": version,
         "commit": expected_commit,
         "platform": args.platform,
+        "native_sha256": native_digest,
         "archive": archive.name,
         "archive_sha256": archive_digest,
         "wasm_asset": f"assets/moonbit-community/MoonJust@{version}/cmd/just/just.wasm",
@@ -186,7 +190,9 @@ def main() -> None:
         executable = root / executable_name
         if not args.platform.startswith("windows-"):
             executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
-        if checksum(root / "SHA256SUMS", executable_name) != sha256(executable):
+        if sha256(executable) != native_digest:
+            fail("build record native digest differs from archive")
+        if checksum(root / "SHA256SUMS", executable_name) != native_digest:
             fail("embedded checksum manifest differs")
         subprocess.run(
             [
@@ -209,7 +215,7 @@ def main() -> None:
             print("Release bundle verified structurally; Windows execution deferred to Windows runner")
             return
         result = subprocess.run([str(executable), "--version"], text=True, capture_output=True)
-        if result.returncode != 0 or not result.stdout.startswith(f"moonjust {version} "):
+        if result.returncode != 0 or result.stdout.strip() != f"moonjust {version}" or result.stderr:
             fail("extracted executable version smoke failed")
         query = subprocess.run(
             [

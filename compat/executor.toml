@@ -1,8 +1,8 @@
 schema_version = 2
 area = "executor"
 upstream = "just 1.57.0"
-status = "implemented"
-plan_exit = "passed"
+status = "strict-remediation"
+plan_exit = "blocked-by-strict-evidence"
 report = "docs/reports/PHASE_8_REPORT.md"
 audit = "docs/reports/RELEASE_AUDIT.md"
 
@@ -24,7 +24,7 @@ wasm_policy = "execute policy permits spawn/temp scripts; inspect policy denies 
 remote_ci = "pass: PR #37 run 31393683064"
 
 [evidence]
-executor_gate = "tools/checks/executor.sh"
+executor_gate = "tools/verification/checks/executor.sh"
 security_audit = "docs/reports/RELEASE_AUDIT.md"
 upstream_smoke = "tests/fixtures/execution"
 native_signal_gate = "tools/upstream/run_official_harness.py"

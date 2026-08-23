@@ -1,10 +1,10 @@
 * @ZSeanYves
 
-/src/source/ @ZSeanYves
-/src/diagnostic/ @ZSeanYves
-/src/parser/ @ZSeanYves
-/src/host/ @ZSeanYves
-/src/runtime/ @ZSeanYves
+/internal/source/ @ZSeanYves
+/internal/diagnostic/ @ZSeanYves
+/internal/parser/ @ZSeanYves
+/internal/host/ @ZSeanYves
+/internal/runtime/ @ZSeanYves
 /compat/ @ZSeanYves
 /tests/differential/ @ZSeanYves
 /.github/workflows/ @ZSeanYves

@@ -1,12 +1,13 @@
 schema_version = 2
 area = "release-readiness"
 upstream = "just 1.57.0"
-status = "complete"
-plan_exit = "passed"
+status = "blocked"
+plan_exit = "strict-gates-pending"
 report = "docs/reports/PHASE_11_REPORT.md"
 audit = "docs/reports/RELEASE_AUDIT.md"
 
 [contracts]
+compatibility = "blocked until every non-completion official registration is exact, diagnostic-exact, or explicitly approved diagnostic-semantic"
 mooncakes = "complete module metadata, source package validation, documented public facade and exact moonx executable coordinate"
 policy = "deny, inspect, CI and execute policies with real capability-denial and allow-path smoke tests"
 artifacts = "release-mode Linux, macOS and Windows Native executables plus linear-memory wasm1, SHA-256 checksums and clean extraction smoke tests"
@@ -32,7 +33,8 @@ moonrun = "0.1.20260803"
 moonx = "0.1.0"
 
 [evidence]
-release_gate = "tools/checks/release.sh"
+release_gate = ".github/workflows/release.yml (aggregate evidence job)"
+release_evidence = "tools/release/generate_release_evidence.py --strict"
 policy_gate = "tools/release/check_policies.sh"
 artifact_builder = "tools/release/build_artifacts.sh"
 artifact_verifier = "tools/release/verify_bundle.py"

@@ -5,18 +5,22 @@ from __future__ import annotations
 
 import ast
 import argparse
+import difflib
 import json
 import os
 import platform
 import re
+import signal
 import shutil
 import subprocess
 import sys
+import time
+import tomllib
 from pathlib import Path
 
 
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 WASM_SKIPS = ("signals::",)
 NATIVE_SIGNAL_TESTS = {
     "signals::continue_default_excludes_hangup",
@@ -31,8 +35,6 @@ NATIVE_SIGNAL_TESTS = {
     "signals::interrupt_command",
     "signals::interrupt_line",
     "signals::interrupt_shebang",
-}
-NATIVE_SIGNAL_EXCLUSIONS = {
     "signals::forwarding",
 }
 NATIVE_SIGINFO_SYSTEMS = {"Darwin", "DragonFly", "FreeBSD", "iOS", "NetBSD", "OpenBSD"}
@@ -81,16 +83,145 @@ DIAGNOSTIC_KEYWORDS = {
     "whitespace",
 }
 
+RESULT_CLASSIFICATIONS = {
+    "exact",
+    "diagnostic-exact",
+    "diagnostic-semantic",
+    "product-identity",
+    "excluded-completion",
+    "upstream-ignored",
+    "not-applicable",
+    "failed",
+}
+EXCEPTION_CLASSIFICATIONS = {
+    "diagnostic-exact",
+    "diagnostic-semantic",
+    "product-identity",
+    "excluded-completion",
+    "not-applicable",
+}
+PLATFORM_HOST_CASES = {
+    "non_unicode::warn_for_non_unicode_invocation_directory",
+    "non_unicode::warn_for_non_unicode_justfile_path",
+}
+
+
+def rust_string_literal(value: str) -> str:
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
+
 
 def repository_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def default_results_path(repo: Path) -> Path:
+    filename = {
+        "Darwin": "harness-results.jsonl",
+        "Linux": "harness-results-linux.jsonl",
+        "Windows": "harness-results-windows.jsonl",
+    }.get(platform.system(), "harness-results.jsonl")
+    return repo / "tests/upstream/just-1.57.0" / filename
 
 
 def fail(message: str) -> None:
     raise RuntimeError(message)
 
 
-def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def run_shell_script(script: Path, cwd: Path) -> None:
+    shell = shutil.which("sh") or shutil.which("bash")
+    if shell is None:
+        fail("a POSIX shell is required to build the pinned upstream oracle")
+    result = subprocess.run(
+        [shell, script.as_posix()],
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if result.returncode != 0:
+        fail(
+            f"upstream oracle build failed ({result.returncode}):\n"
+            f"{result.stdout}{result.stderr}"
+        )
+
+
+def load_exceptions(path: Path, tests: list[str]) -> dict[str, dict[str, object]]:
+    if not path.is_file():
+        fail(f"compatibility exception manifest is missing: {path}")
+    with path.open("rb") as handle:
+        document = tomllib.load(handle)
+    if document.get("schema_version") != 1:
+        fail("unsupported compatibility exception schema")
+    if document.get("upstream_commit") != UPSTREAM_COMMIT:
+        fail("compatibility exceptions target a different upstream commit")
+    known = set(tests)
+    rules: dict[str, dict[str, object]] = {}
+    for index, raw in enumerate(document.get("exceptions", []), start=1):
+        if not isinstance(raw, dict):
+            fail(f"compatibility exception {index} is not a table")
+        name = raw.get("test")
+        classification = raw.get("classification")
+        reason = raw.get("reason")
+        owner = raw.get("owner")
+        targets = raw.get("targets")
+        if not isinstance(name, str) or (
+            name not in known
+            and not (
+                classification == "not-applicable"
+                and name in PLATFORM_HOST_CASES
+            )
+        ):
+            fail(f"compatibility exception {index} has unknown exact test ID: {name!r}")
+        if name in rules:
+            fail(f"duplicate compatibility exception for {name}")
+        if classification not in EXCEPTION_CLASSIFICATIONS:
+            fail(f"invalid compatibility classification for {name}: {classification!r}")
+        if not isinstance(reason, str) or not reason.strip():
+            fail(f"compatibility exception {name} has no reason")
+        if not isinstance(owner, str) or not owner.strip():
+            fail(f"compatibility exception {name} has no owner")
+        if (
+            not isinstance(targets, list)
+            or not targets
+            or any(target not in {"native", "wasm1"} for target in targets)
+            or len(set(targets)) != len(targets)
+        ):
+            fail(f"compatibility exception {name} has invalid targets")
+        if classification == "diagnostic-exact":
+            normalizations = raw.get("normalizations")
+            if normalizations != ["ansi"]:
+                fail(
+                    f"diagnostic-exact exception {name} must declare only "
+                    "normalizations = ['ansi']"
+                )
+        rules[name] = raw
+    completion_names = {name for name in tests if name.startswith("completions::")}
+    excluded_names = {
+        name
+        for name, rule in rules.items()
+        if rule["classification"] == "excluded-completion"
+    }
+    if excluded_names != completion_names:
+        fail(
+            "completion exclusions must enumerate the pinned suite exactly: "
+            f"missing={sorted(completion_names - excluded_names)}, "
+            f"extra={sorted(excluded_names - completion_names)}"
+        )
+    return rules
+
+
+def clean_subprocess_environment(
+    env: dict[str, str] | None = None,
+) -> dict[str, str]:
     environment = os.environ.copy() if env is None else env.copy()
     for name in (
         "GIT_DIR",
@@ -103,15 +234,158 @@ def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> 
         "GIT_NAMESPACE",
     ):
         environment.pop(name, None)
+    if os.name == "nt":
+        git_paths = [
+            Path(r"C:\Program Files\Git\bin"),
+            Path(r"C:\Program Files\Git\usr\bin"),
+        ]
+        existing = [str(path) for path in git_paths if path.is_dir()]
+        if existing:
+            path_key = next(
+                (key for key in environment if key.casefold() == "path"),
+                "Path",
+            )
+            current_path = environment.get(path_key, "")
+            for key in list(environment):
+                if key.casefold() == "path":
+                    environment.pop(key, None)
+            environment[path_key] = os.pathsep.join(existing + [current_path])
+    return environment
+
+
+def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=cwd,
-        env=environment,
+        env=clean_subprocess_environment(env),
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=600,
     )
+
+
+def reset_subprocess_signals() -> None:
+    """Prevent an ignored parent signal mask from invalidating signal tests."""
+    signal.pthread_sigmask(signal.SIG_SETMASK, [])
+    for signum in (signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM):
+        signal.signal(signum, signal.SIG_DFL)
+
+
+def run_isolated_unix(
+    command: list[str],
+    *,
+    cwd: Path,
+    timeout: float,
+    extra_env: dict[str, str] | None = None,
+) -> tuple[subprocess.CompletedProcess[str], bool]:
+    environment = os.environ.copy()
+    if extra_env:
+        environment.update(extra_env)
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=clean_subprocess_environment(environment),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        start_new_session=True,
+        preexec_fn=reset_subprocess_signals,
+    )
+
+    timed_out = False
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        timeout_stderr = ""
+        try:
+            snapshot = subprocess.run(
+                [
+                    "ps",
+                    "-eo",
+                    "pid=,ppid=,pgid=,sid=,stat=,args=",
+                    "--forest",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=5,
+            )
+            timeout_stderr = (
+                "\n[timeout process snapshot]\n"
+                + snapshot.stdout
+                + snapshot.stderr
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            timeout_stderr = f"\n[timeout process snapshot unavailable: {error}]\n"
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        stdout, stderr = process.communicate()
+        stderr += timeout_stderr
+    return (
+        subprocess.CompletedProcess(
+            command,
+            124 if timed_out else process.returncode,
+            stdout,
+            stderr,
+        ),
+        timed_out,
+    )
+
+
+def linux_processes_with_environment(name: str, value: str) -> list[int]:
+    """Find live Linux processes carrying a unique harness environment marker."""
+    if platform.system() != "Linux":
+        return []
+    marker = f"{name}={value}".encode() + b"\0"
+    matches: list[int] = []
+    for entry in Path("/proc").glob("[0-9]*"):
+        try:
+            environment = (entry / "environ").read_bytes()
+        except (OSError, UnicodeError):
+            continue
+        if marker in environment:
+            try:
+                matches.append(int(entry.name))
+            except ValueError:
+                continue
+    return sorted(matches)
+
+
+def wait_for_linux_process_cleanup(name: str, value: str) -> list[int]:
+    deadline = time.monotonic() + 1.0
+    while True:
+        matches = linux_processes_with_environment(name, value)
+        if not matches or time.monotonic() >= deadline:
+            return matches
+        time.sleep(0.02)
+
+
+def timeout_snapshot_orphans(stderr: str) -> list[int]:
+    """Extract orphaned request children from the timeout process snapshot."""
+    if "[timeout process snapshot]" not in stderr:
+        return []
+    matches: list[int] = []
+    for line in stderr.splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) < 6 or fields[1] != "1":
+            continue
+        if "--request \"signal\"" not in fields[5]:
+            continue
+        try:
+            matches.append(int(fields[0]))
+        except ValueError:
+            continue
+    return sorted(set(matches))
 
 
 def compile_harness(source: Path, target: Path) -> tuple[Path, Path]:
@@ -187,6 +461,33 @@ def install_wasm_wrapper(
     }.get(platform.system(), "wasm")
     architecture = platform.machine() or "unknown"
     num_cpus = os.cpu_count() or 1
+    if os.name == "nt":
+        source = bound_binary.with_name("moonjust-wasm-launcher.rs")
+        source.write_text(
+            "use std::{env, process::{self, Command}};\n"
+            "fn main() {\n"
+            f"  let mut command = Command::new({rust_string_literal(moonrun)});\n"
+            f"  command.arg(\"--policy\").arg({rust_string_literal(str(policy))})"
+            f".arg({rust_string_literal(str(candidate))});\n"
+            "  command.args(env::args_os().skip(1));\n"
+            "  command.env(\"MOONJUST_EXECUTABLE\", "
+            "env::current_exe().unwrap_or_default());\n"
+            "  command.env(\"MOONJUST_PID\", process::id().to_string());\n"
+            f"  command.env(\"MOONJUST_NUM_CPUS\", {rust_string_literal(str(num_cpus))});\n"
+            f"  command.env(\"MOONJUST_ARCH\", {rust_string_literal(architecture)});\n"
+            "  command.env(\"MOONJUST_OS\", \"windows\");\n"
+            "  let status = command.status().expect(\"failed to launch moonrun\");\n"
+            "  process::exit(status.code().unwrap_or(1));\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        result = run(
+            ["rustc", "--edition=2021", "-O", str(source), "-o", str(bound_binary)],
+            cwd=bound_binary.parent,
+        )
+        if result.returncode != 0:
+            fail(f"failed to compile Windows wasm1 launcher:\n{result.stderr}")
+        return
     bound_binary.write_text(
         "#!/bin/sh\n"
         + "MOONJUST_EXECUTABLE=\"$0\"\n"
@@ -356,11 +657,29 @@ def is_bounded_diagnostic_difference(block: str) -> bool:
     return True
 
 
+def is_ansi_normalized_diagnostic_exact(block: str) -> bool:
+    """Accept a failed upstream assertion only when ANSI removal is sufficient."""
+    sides = diagnostic_sides(block)
+    return sides is not None and sides[0] == sides[1]
+
+
+def is_wasm_nonunicode_host_limitation(block: str) -> bool:
+    """Identify MoonX failing before wasm starts in a non-UTF-8 cwd.
+
+    The host launcher calls Rust's `current_dir().unwrap()` before invoking
+    the module. This is a precise runner limitation, not a MoonJust result;
+    keep it bound to the two pinned upstream non-Unicode cases.
+    """
+    clean = ANSI_ESCAPE.sub("", block).lower()
+    return "std/src/env.rs" in clean and "\\xff" in clean
+
+
 def execute_harness(
     label: str,
     executable: Path,
     source: Path,
     tests: list[str],
+    exceptions: dict[str, dict[str, object]] | None = None,
     skips: tuple[str, ...] = (),
 ) -> dict[str, str]:
     # The upstream harness mutates process-wide signal and environment state in
@@ -378,31 +697,58 @@ def execute_harness(
     )
     combined = result.stdout + result.stderr
     statuses = parse_statuses(combined, tests, skips)
+    if exceptions is None:
+        return statuses
     blocks = failure_blocks(combined)
     for name, status in statuses.items():
-        if status != "failed":
+        rule = exceptions.get(name)
+        target_rule = rule if rule is not None and label in rule["targets"] else None
+        if (
+            target_rule is not None
+            and target_rule["classification"] == "excluded-completion"
+        ):
+            statuses[name] = "excluded-completion"
+            continue
+        if status in {"ignored", "filtered"}:
+            statuses[name] = "upstream-ignored"
+            continue
+        if status == "passed":
+            statuses[name] = "exact"
             continue
         block = blocks.get(name, "")
-        if is_bounded_diagnostic_difference(block):
-            statuses[name] = "diagnostic-style"
+        if (
+            target_rule is not None
+            and target_rule["classification"] == "diagnostic-exact"
+            and is_ansi_normalized_diagnostic_exact(block)
+        ):
+            statuses[name] = "diagnostic-exact"
         elif (
-            name == "changelog::print_changelog"
+            target_rule is not None
+            and target_rule["classification"] == "diagnostic-semantic"
+            and is_bounded_diagnostic_difference(block)
+        ):
+            statuses[name] = "diagnostic-semantic"
+        elif (
+            target_rule is not None
+            and target_rule["classification"] == "product-identity"
             and "Bad stdout:" in block
             and "Bad status:" not in block
             and "Bad stderr:" not in block
         ):
             statuses[name] = "product-identity"
-    passed = sum(status == "passed" for status in statuses.values())
-    diagnostic = sum(
-        status in {"diagnostic-style", "product-identity"}
-        for status in statuses.values()
-    )
-    failed = sum(status == "failed" for status in statuses.values())
-    ignored = sum(status in {"ignored", "filtered"} for status in statuses.values())
-    print(
-        f"{label}: passed={passed} diagnostic-style={diagnostic} "
-        f"failed={failed} ignored-or-filtered={ignored}"
-    )
+        elif (
+            label == "wasm1"
+            and target_rule is not None
+            and target_rule["classification"] == "not-applicable"
+            and is_wasm_nonunicode_host_limitation(block)
+        ):
+            statuses[name] = "not-applicable"
+    counts = {classification: 0 for classification in RESULT_CLASSIFICATIONS}
+    for status in statuses.values():
+        if status not in counts:
+            fail(f"internal classification error for {label}: {status}")
+        counts[status] += 1
+    print(label + ": " + " ".join(f"{key}={counts[key]}" for key in sorted(counts)))
     return statuses
 
 
@@ -415,40 +761,98 @@ def execute_native_signal_gate(
         print("native signals: skipped on Windows")
         return
     registered = {name for name in tests if name.startswith("signals::")}
-    expected = NATIVE_SIGNAL_TESTS | NATIVE_SIGNAL_EXCLUSIONS
+    expected = set(NATIVE_SIGNAL_TESTS)
     if platform.system() in NATIVE_SIGINFO_SYSTEMS:
         expected.add("signals::siginfo_prints_current_process")
     if registered != expected:
         missing = sorted(expected - registered)
         extra = sorted(registered - expected)
         fail(f"pinned signal registration drift: missing={missing}, extra={extra}")
-    command = [
-        str(executable),
-        "--ignored",
-        "--test-threads=1",
-        "signals::",
-        "--skip",
-        "signals::forwarding",
-        "--skip",
-        "signals::siginfo_prints_current_process",
-        "--color=never",
-    ]
-    result = run(command, cwd=source)
     artifact = repository_root() / "_build" / "upstream-harness"
     artifact.mkdir(parents=True, exist_ok=True)
+    signal_artifact = artifact / "native-signals"
+    signal_artifact.mkdir(parents=True, exist_ok=True)
+    records: list[dict[str, object]] = []
+    combined: list[str] = []
+    passed: set[str] = set()
+    for name in sorted(expected):
+        slug = name.replace("::", "__")
+        signal_run_id = f"{os.getpid()}-{slug}"
+        command = [
+            str(executable),
+            name,
+            "--ignored",
+            "--exact",
+            "--test-threads=1",
+            "--color=never",
+        ]
+        result, timed_out = run_isolated_unix(
+            command,
+            cwd=source,
+            timeout=120,
+            extra_env={"MOONJUST_SIGNAL_RUN_ID": signal_run_id},
+        )
+        orphan_pids = wait_for_linux_process_cleanup(
+            "MOONJUST_SIGNAL_RUN_ID", signal_run_id
+        )
+        orphan_pids = sorted(
+            set(orphan_pids) | set(timeout_snapshot_orphans(result.stderr))
+        )
+        for pid in orphan_pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except (OSError, ProcessLookupError):
+                pass
+        output = result.stdout + result.stderr
+        matched = (
+            result.returncode == 0
+            and re.search(
+                rf"^test {re.escape(name)} \.\.\. ok$",
+                result.stdout,
+                re.MULTILINE,
+            )
+            is not None
+        )
+        if matched:
+            passed.add(name)
+        (signal_artifact / f"{slug}.log").write_text(output, encoding="utf-8")
+        records.append(
+            {
+                "schema_version": 1,
+                "upstream_commit": UPSTREAM_COMMIT,
+                "upstream_name": name,
+                "command": command,
+                "returncode": result.returncode,
+                "timed_out": timed_out,
+                "orphan_pids": orphan_pids,
+                "passed": matched,
+                "log": f"native-signals/{slug}.log",
+            }
+        )
+        combined.append(f"===== {name} =====\n{output}")
     (artifact / "native-signals.log").write_text(
-        result.stdout + result.stderr,
+        "\n".join(combined),
         encoding="utf-8",
     )
-    if result.returncode != 0:
-        fail(f"native signal gate failed:\n{result.stdout}{result.stderr}")
-    passed = {
-        name
-        for name in NATIVE_SIGNAL_TESTS
-        if re.search(rf"^test {re.escape(name)} \.\.\. ok$", result.stdout, re.MULTILINE)
-    }
-    if passed != NATIVE_SIGNAL_TESTS:
-        fail(f"native signal gate omitted: {sorted(NATIVE_SIGNAL_TESTS - passed)}")
+    (artifact / "native-signals.jsonl").write_text(
+        "".join(
+            json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+            for record in records
+        ),
+        encoding="utf-8",
+    )
+    if passed != expected or any(record["orphan_pids"] for record in records):
+        details = []
+        for record in records:
+            if record["passed"] and not record["orphan_pids"]:
+                continue
+            details.append(
+                f"{record['upstream_name']} "
+                f"returncode={record['returncode']} timed_out={record['timed_out']} "
+                f"orphan_pids={record['orphan_pids']} "
+                f"log={record['log']}"
+            )
+        fail("native signal gate failed:\n" + "\n".join(details))
     print(f"native signals: passed={len(passed)}")
 
 
@@ -457,15 +861,35 @@ def encode_results(
     official: dict[str, str],
     native: dict[str, str],
     wasm: dict[str, str],
+    exceptions: dict[str, dict[str, object]],
 ) -> str:
     host = f"{platform.system().lower()}-{platform.machine().lower()}"
     rows = []
     for name in tests:
-        verified = (
-            official[name] == "passed"
-            and native[name] in {"passed", "diagnostic-style", "product-identity"}
-            and wasm[name] in {"passed", "diagnostic-style", "product-identity"}
-        )
+        rule = exceptions.get(name)
+        target_statuses = (native[name], wasm[name])
+        if "failed" in target_statuses or official[name] == "failed":
+            disposition = "failed"
+        elif "excluded-completion" in target_statuses:
+            disposition = "excluded-completion"
+        elif "product-identity" in target_statuses:
+            disposition = "product-identity"
+        elif "not-applicable" in target_statuses:
+            disposition = "not-applicable"
+        elif "diagnostic-semantic" in target_statuses:
+            disposition = "diagnostic-semantic"
+        elif "upstream-ignored" in target_statuses:
+            disposition = "upstream-ignored"
+        elif "diagnostic-exact" in target_statuses:
+            disposition = "diagnostic-exact"
+        else:
+            disposition = "exact"
+        denominator = disposition not in {
+            "excluded-completion",
+            "product-identity",
+            "upstream-ignored",
+            "not-applicable",
+        }
         rows.append(
             {
                 "schema_version": SCHEMA_VERSION,
@@ -475,15 +899,18 @@ def encode_results(
                 "official": official[name],
                 "native": native[name],
                 "wasm1": wasm[name],
-                "disposition": "verified-differential" if verified else "unverified",
-                "allowed_difference": (
-                    "product-identity"
-                    if "product-identity" in {native[name], wasm[name]}
-                    else (
-                        "diagnostic-style"
-                        if "diagnostic-style" in {native[name], wasm[name]}
-                        else "none"
-                    )
+                "disposition": disposition,
+                "compatibility_rate_denominator": denominator,
+                "exception": (
+                    None
+                    if rule is None
+                    else {
+                        "classification": rule["classification"],
+                        "owner": rule["owner"],
+                        "reason": rule["reason"],
+                        "targets": rule["targets"],
+                        "normalizations": rule.get("normalizations", []),
+                    }
                 ),
             }
         )
@@ -493,18 +920,93 @@ def encode_results(
     )
 
 
-def verified_names(encoded: str) -> set[str]:
-    return {
-        row["upstream_name"]
-        for row in map(json.loads, encoded.splitlines())
-        if row["disposition"] == "verified-differential"
-    }
+def failed_names(statuses: dict[str, str]) -> set[str]:
+    return {name for name, status in statuses.items() if status == "failed"}
+
+
+def print_audit_diff(path: Path, encoded: str) -> None:
+    previous = path.read_text(encoding="utf-8") if path.is_file() else ""
+    diff = difflib.unified_diff(
+        previous.splitlines(keepends=True),
+        encoded.splitlines(keepends=True),
+        fromfile=str(path),
+        tofile=str(path) + ".candidate",
+    )
+    rendered = "".join(diff)
+    print(rendered if rendered else "compatibility oracle unchanged")
+
+
+def oracle_projection(encoded: str, source: str) -> str:
+    """Remove only the reporting host before comparing audited result rows."""
+    projected: list[str] = []
+    for line_number, line in enumerate(encoded.splitlines(), start=1):
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as error:
+            fail(f"invalid compatibility oracle JSON at {source}:{line_number}: {error}")
+        if not isinstance(row, dict) or row.get("schema_version") != SCHEMA_VERSION:
+            fail(
+                f"invalid compatibility oracle schema at {source}:{line_number}"
+            )
+        row.pop("host", None)
+        projected.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
+    return "\n".join(projected) + ("\n" if projected else "")
+
+
+def oracle_host(encoded: str, source: str) -> str:
+    hosts: set[str] = set()
+    for line_number, line in enumerate(encoded.splitlines(), start=1):
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as error:
+            fail(f"invalid compatibility oracle JSON at {source}:{line_number}: {error}")
+        host = row.get("host") if isinstance(row, dict) else None
+        if not isinstance(host, str) or not host:
+            fail(f"compatibility oracle host is missing at {source}:{line_number}")
+        hosts.add(host)
+    if len(hosts) != 1:
+        fail(
+            "compatibility oracle must contain exactly one host at "
+            f"{source}: {sorted(hosts)}"
+        )
+    return next(iter(hosts))
+
+
+def verify_audited_oracle(path: Path, encoded: str) -> None:
+    if not path.is_file():
+        fail(f"recorded harness results are missing: {path}")
+    recorded = path.read_text(encoding="utf-8")
+    recorded_host = oracle_host(recorded, str(path))
+    candidate_host = oracle_host(encoded, str(path) + ".candidate")
+    if recorded_host != candidate_host:
+        fail(
+            "compatibility oracle host mismatch: "
+            f"recorded={recorded_host}, candidate={candidate_host}"
+        )
+    previous = oracle_projection(recorded, str(path))
+    candidate = oracle_projection(encoded, str(path) + ".candidate")
+    if previous == candidate:
+        return
+    diff = "".join(
+        difflib.unified_diff(
+            previous.splitlines(keepends=True),
+            candidate.splitlines(keepends=True),
+            fromfile=str(path),
+            tofile=str(path) + ".candidate",
+            n=1,
+        )
+    )
+    fail(
+        "compatibility oracle drift; inspect the report and use the explicit "
+        f"--audit-write flow to approve it\n{diff[:12000]}"
+    )
 
 
 def regression_details(
     names: set[str],
     native: dict[str, str],
     wasm: dict[str, str],
+    limit: int = 40,
 ) -> str:
     artifact = repository_root() / "_build" / "upstream-harness"
     logs = {
@@ -512,29 +1014,89 @@ def regression_details(
         for label in ("native", "wasm1")
     }
     details: list[str] = []
-    for name in sorted(names):
+    ordered = sorted(names)
+    for name in ordered[:limit]:
         details.append(f"{name}: native={native[name]}, wasm1={wasm[name]}")
         for label in ("native", "wasm1"):
             block = ANSI_ESCAPE.sub("", logs[label].get(name, "")).strip()
             if block:
                 details.append(f"[{label}]\n{block[:2000]}")
+    if len(ordered) > limit:
+        details.append(
+            f"... {len(ordered) - limit} additional failures are preserved in "
+            "_build/upstream-harness/native.log and wasm1.log"
+        )
     return "\n".join(details)
 
 
 def main() -> int:
     repo = repository_root()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--write", action="store_true")
+    parser.add_argument(
+        "--audit-write",
+        action="store_true",
+        help="show the complete oracle diff and replace it after all gates pass",
+    )
+    parser.add_argument(
+        "--approve-audit-write",
+        choices=[UPSTREAM_COMMIT],
+        help="required pinned commit acknowledgement for --audit-write",
+    )
     parser.add_argument(
         "--results",
         type=Path,
-        default=repo / "tests/upstream/just-1.57.0/harness-results.jsonl",
+        default=default_results_path(repo),
+        help="platform-specific audited compatibility result path",
+    )
+    parser.add_argument(
+        "--native-candidate",
+        type=Path,
+        help="use this native executable instead of building the debug candidate",
+    )
+    parser.add_argument(
+        "--wasm-candidate",
+        type=Path,
+        help="use this wasm1 module instead of building the debug candidate",
+    )
+    parser.add_argument(
+        "--signal-only",
+        action="store_true",
+        help="run only the native signal and process-cleanup gate",
     )
     args = parser.parse_args()
+    if args.audit_write and args.approve_audit_write != UPSTREAM_COMMIT:
+        fail(
+            "--audit-write requires --approve-audit-write " + UPSTREAM_COMMIT
+        )
+    if args.approve_audit_write is not None and not args.audit_write:
+        fail("--approve-audit-write is only valid with --audit-write")
 
-    subprocess.run([str(repo / "tools/upstream/build_oracle.sh")], cwd=repo, check=True)
-    subprocess.run(["moon", "build", "--target", "native", "cmd/just"], cwd=repo, check=True)
-    subprocess.run(["moon", "build", "--target", "wasm", "cmd/just"], cwd=repo, check=True)
+    if not os.environ.get("MOONJUST_REUSE_BUILD"):
+        run_shell_script(repo / "tools/upstream/build_oracle.sh", repo)
+    if args.native_candidate is None:
+        subprocess.run(
+            ["moon", "build", "--target", "native", "cmd/just"],
+            cwd=repo,
+            check=True,
+        )
+        native_candidate = repo / "_build/native/debug/build/cmd/just/just.exe"
+    else:
+        native_candidate = args.native_candidate.resolve()
+    if args.signal_only:
+        wasm_candidate = None
+    elif args.wasm_candidate is None:
+        subprocess.run(
+            ["moon", "build", "--target", "wasm", "cmd/just"],
+            cwd=repo,
+            check=True,
+        )
+        wasm_candidate = repo / "_build/wasm/debug/build/cmd/just/just.wasm"
+    else:
+        wasm_candidate = args.wasm_candidate.resolve()
+    if not native_candidate.is_file():
+        fail(f"native candidate is missing: {native_candidate}")
+    if not args.signal_only and not wasm_candidate.is_file():
+        fail(f"wasm1 candidate is missing: {wasm_candidate}")
 
     cache = repo / "_build/upstream/just-1.57.0"
     source = cache / "source"
@@ -544,6 +1106,15 @@ def main() -> int:
     target = cache / "harness-target"
     executable, bound_binary = compile_harness(source, target)
     tests = list_tests(executable, source)
+    if args.signal_only:
+        install_binary(bound_binary, native_candidate)
+        execute_native_signal_gate(executable, source, tests)
+        print("native signal-only gate passed")
+        return 0
+    exceptions = load_exceptions(
+        repo / "tests/upstream/just-1.57.0/compatibility-exceptions.toml",
+        tests,
+    )
     official_binary = target / "debug" / ("just.official.exe" if os.name == "nt" else "just.official")
     shutil.copy2(bound_binary, official_binary)
 
@@ -552,12 +1123,16 @@ def main() -> int:
     if any(status == "failed" for status in official.values()):
         fail("pinned official harness has failures against the official binary")
 
-    native_candidate = repo / "_build/native/debug/build/cmd/just/just.exe"
     install_binary(bound_binary, native_candidate)
-    native = execute_harness("native", executable, source, tests)
+    native = execute_harness(
+        "native",
+        executable,
+        source,
+        tests,
+        exceptions=exceptions,
+    )
     execute_native_signal_gate(executable, source, tests)
 
-    wasm_candidate = repo / "_build/wasm/debug/build/cmd/just/just.wasm"
     moonrun = shutil.which("moonrun")
     if moonrun is None:
         fail("moonrun is required for the wasm1 harness")
@@ -567,24 +1142,61 @@ def main() -> int:
         repo / "policies/execute.toml",
         wasm_candidate,
     )
-    wasm = execute_harness("wasm1", executable, source, tests, WASM_SKIPS)
-    encoded = encode_results(tests, official, native, wasm)
-    args.results.parent.mkdir(parents=True, exist_ok=True)
-    if args.write:
+    wasm = execute_harness(
+        "wasm1",
+        executable,
+        source,
+        tests,
+        exceptions=exceptions,
+        skips=WASM_SKIPS,
+    )
+    encoded = encode_results(tests, official, native, wasm, exceptions)
+    artifact_report = repo / "_build/upstream-harness/compatibility-report.jsonl"
+    artifact_report.parent.mkdir(parents=True, exist_ok=True)
+    artifact_report.write_text(encoded, encoding="utf-8")
+    stale_diagnostics: list[str] = []
+    for name, rule in exceptions.items():
+        if rule["classification"] not in {
+            "diagnostic-exact",
+            "diagnostic-semantic",
+            "not-applicable",
+        }:
+            continue
+        for target_name, statuses in (("native", native), ("wasm1", wasm)):
+            if (
+                target_name in rule["targets"]
+                and name in statuses
+                and statuses[name] != rule["classification"]
+            ):
+                stale_diagnostics.append(
+                    f"{name} ({target_name} became {statuses[name]})"
+                )
+    failures = failed_names(native) | failed_names(wasm)
+    regression_errors: list[str] = []
+    if stale_diagnostics:
+        regression_errors.append(
+            "stale diagnostic exceptions: " + ", ".join(stale_diagnostics)
+        )
+    if failures:
+        regression_errors.append(
+            f"{len(failures)} unapproved compatibility failures\n"
+            + regression_details(failures, native, wasm)
+        )
+    if regression_errors:
+        fail("\n\n".join(regression_errors))
+    exact = {
+        name
+        for name in tests
+        if native[name] in {"exact", "diagnostic-exact"}
+        and wasm[name] in {"exact", "diagnostic-exact"}
+    }
+    if args.audit_write:
+        args.results.parent.mkdir(parents=True, exist_ok=True)
+        print_audit_diff(args.results, encoded)
         args.results.write_text(encoded, encoding="utf-8")
-    elif not args.results.is_file():
-        fail(f"recorded harness results are missing: {args.results}")
     else:
-        recorded = args.results.read_text(encoding="utf-8")
-        missing = verified_names(recorded) - verified_names(encoded)
-        if missing:
-            fail(
-                f"{len(missing)} recorded harness tests regressed: "
-                + ", ".join(sorted(missing))
-                + "\n"
-                + regression_details(missing, native, wasm)
-            )
-    print(f"verified exact Native/wasm1 intersection: {len(verified_names(encoded))}")
+        verify_audited_oracle(args.results, encoded)
+    print(f"verified exact Native/wasm1 intersection: {len(exact)}")
     return 0
 
 

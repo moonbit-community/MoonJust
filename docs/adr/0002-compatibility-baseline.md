@@ -1,5 +1,10 @@
 # ADR-0002: Compatibility baseline
 
+> Historical classification note: the former Tier A/B/W/X labels are retired.
+> Current release decisions use the pinned official-harness classifications
+> `exact`, `diagnostic-exact`, `diagnostic-semantic`, `product-identity`,
+> `excluded-completion`, `upstream-ignored`, and `failed`.
+
 - Status: Accepted
 - Date: 2026-08-04
 
@@ -17,9 +22,10 @@ public compatibility surface for MoonBit users.
   side-effect, scheduling, and platform behavior.
 - The upstream Rust library API and internal module structure are not
   compatibility surfaces.
-- Tier A, B, W, and X classifications in `docs/PROJECT_PLAN.md` control release
-  gates.
-- Shell completion generation and completion scripts are Tier X.
+- The pinned harness classifications, not historical planning tiers, control
+  release gates.
+- Shell completion generation and completion scripts are the sole excluded
+  feature and are reported as `excluded-completion`.
 - Every upstream test registration is mapped to evidence or an explicit reason
   that it does not apply.
 - MoonJust versions follow their own SemVer and expose the upstream baseline as

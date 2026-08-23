@@ -9,6 +9,9 @@ repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 cache_root=${MOONJUST_ORACLE_CACHE:-$repo_root/_build/upstream/just-1.57.0}
 checkout="$cache_root/source"
 binary="$cache_root/target/release/just"
+case "$(uname -s 2>/dev/null || true)" in
+  MINGW*|MSYS*|CYGWIN*) binary="$cache_root/target/release/just.exe" ;;
+esac
 
 fail() {
   echo "upstream oracle error: $1" >&2
@@ -54,7 +57,7 @@ fi
 command -v cargo >/dev/null 2>&1 || fail "cargo is required to build the pinned oracle"
 CARGO_TARGET_DIR="$cache_root/target" \
   cargo build --quiet --release --manifest-path "$checkout/Cargo.toml" --locked
-[ -x "$binary" ] || fail "cargo did not produce $binary"
+[ -f "$binary" ] || fail "cargo did not produce $binary"
 
 version=$($binary --version)
 case "$version" in

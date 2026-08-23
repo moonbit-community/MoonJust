@@ -1,0 +1,8 @@
+import {
+  "moonbit-community/MoonJust/internal/diagnostic",
+  "moonbit-community/MoonJust/internal/source",
+}
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

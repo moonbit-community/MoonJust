@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/MoonJust/internal/host_process"
+
+import {
+  "moonbit-community/MoonJust/internal/host",
+  "moonbitlang/async",
+}
+
+// Values
+pub fn[X] configure_signal_forwarding(@async.TaskGroup[X], Bool) -> @host.HostError?
+
+pub fn enable_process_group_boundary() -> Unit
+
+pub fn exec_process_group_from_args() -> Int
+
+pub fn prepare_signal_forwarding() -> Unit
+
+pub fn process_group_exec_requested() -> Bool
+
+pub async fn wait_for_signal_request() -> String?
+
+// Errors
+
+// Types and methods
+pub struct ProcessAdapter {
+  output_mutex : @async.Mutex
+}
+pub fn ProcessAdapter::new() -> Self
+pub impl @host.HostAsyncOutput for ProcessAdapter
+pub impl @host.HostAsyncProcess for ProcessAdapter
+
+// Type aliases
+
+// Traits

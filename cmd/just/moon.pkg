@@ -1,13 +1,15 @@
 import {
   "moonbit-community/MoonJust/api" @moonjust,
-  "moonbit-community/MoonJust/src/application",
-  "moonbit-community/MoonJust/src/cli",
-  "moonbit-community/MoonJust/src/host",
-  "moonbit-community/MoonJust/src/host_native",
-  "moonbit-community/MoonJust/src/host_process",
-  "moonbit-community/MoonJust/src/host_wasm",
-  "moonbit-community/MoonJust/src/executor",
-  "moonbit-community/MoonJust/src/runtime",
+  "moonbit-community/MoonJust/internal/application",
+  "moonbit-community/MoonJust/internal/cli",
+  "moonbit-community/MoonJust/internal/host",
+  "moonbit-community/MoonJust/internal/host_native",
+  "moonbit-community/MoonJust/internal/host_process",
+  "moonbit-community/MoonJust/internal/host_wasm",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbit-community/MoonJust/internal/lexer",
+  "moonbit-community/MoonJust/internal/executor",
+  "moonbit-community/MoonJust/internal/runtime",
   "moonbitlang/async",
   "moonbitlang/async/io",
   "moonbitlang/async/stdio",
@@ -19,6 +21,11 @@ import {
 pkgtype(kind: "executable")
 
 supported_targets = "-all+native+wasm"
+
+// The native runtime adapter is imported for runtime_native.mbt only; the
+// portable target intentionally does not reference that package.
+
+warnings = "-29"
 
 options(
   targets: {

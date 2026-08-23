@@ -39,6 +39,9 @@ MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip \
   --target native --target-dir "$target_dir" cmd/just
 native_source="$target_dir/native/release/build/cmd/just/just.exe"
 [ -f "$native_source" ] || release_fail "native release executable is missing"
+if [ "${platform%%-*}" = windows ]; then
+  python3 "$script_dir/normalize_pe_timestamp.py" "$native_source"
+fi
 
 mkdir -p "$stage"
 if [ "${platform%%-*}" = windows ]; then
@@ -72,10 +75,24 @@ python3 "$script_dir/create_archive.py" --source "$stage" --output "$archive"
 archive_digest=$(release_sha256 "$archive")
 printf '%s  %s\n' "$archive_digest" "$(basename "$archive")" >"$archive.sha256"
 
-MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip \
-  --target wasm --target-dir "$target_dir" cmd/just
-wasm_source="$target_dir/wasm/release/build/cmd/just/just.wasm"
-[ -f "$wasm_source" ] || release_fail "wasm1 release executable is missing"
+if [ -n "${MOONJUST_WASM_ASSET:-}" ]; then
+  wasm_input=$MOONJUST_WASM_ASSET
+  case "$wasm_input" in
+    /*) wasm_source=$wasm_input ;;
+    [A-Za-z]:[\\/]* )
+      if ! command -v cygpath >/dev/null 2>&1; then
+        release_fail "cygpath is required to normalize a Windows wasm asset path"
+      fi
+      wasm_source=$(cygpath -u -- "$wasm_input") ;;
+    *) release_fail "MOONJUST_WASM_ASSET must be an absolute path" ;;
+  esac
+  [ -f "$wasm_source" ] || release_fail "downloaded wasm1 release asset is missing"
+else
+  MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip \
+    --target wasm --target-dir "$target_dir" cmd/just
+  wasm_source="$target_dir/wasm/release/build/cmd/just/just.wasm"
+  [ -f "$wasm_source" ] || release_fail "wasm1 release executable is missing"
+fi
 wasm_dir="$out_root/assets/moonbit-community/MoonJust@$version/cmd/just"
 case "$wasm_dir" in
   "$out_root"/assets/moonbit-community/MoonJust@*/cmd/just) rm -rf -- "$wasm_dir" ;;
@@ -104,6 +121,7 @@ cat >"$out_root/build-$platform.json" <<EOF
   "version": "$version",
   "commit": "$commit",
   "platform": "$platform",
+  "native_sha256": "$native_digest",
   "archive": "$(basename "$archive")",
   "archive_sha256": "$archive_digest",
   "wasm_asset": "assets/moonbit-community/MoonJust@$version/cmd/just/just.wasm",

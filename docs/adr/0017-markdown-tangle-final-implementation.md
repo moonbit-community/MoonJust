@@ -19,7 +19,7 @@ Neither links nor prose need semantic interpretation.
 ## Decision
 
 MoonJust uses the project-owned source-aware extractor in
-`src/formatter/markdown.mbt` as the final implementation.
+`internal/formatter/markdown.mbt` as the final implementation.
 
 - Only top-level fenced blocks whose first info token is lowercase `just` are
   selected.

@@ -7,145 +7,116 @@ upstream = "just 1.57.0"
 
 [[attribute]]
 name = "android"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "arg"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "cache"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "confirm"
-tier = "B"
 status = "implemented"
 
 [[attribute]]
 name = "continue"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "default"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "doc"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "dragonfly"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "env"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "exit-message"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "extension"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "freebsd"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "group"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "linux"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "macos"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "metadata"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "netbsd"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "no-cd"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "no-exit-message"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "no-quiet"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "openbsd"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "parallel"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "positional-arguments"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "private"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "script"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "shell"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "unix"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "windows"
-tier = "A"
 status = "implemented"
 
 [[attribute]]
 name = "working-directory"
-tier = "A"
 status = "implemented"

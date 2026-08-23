@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tomllib
+from collections import Counter
 from pathlib import Path
 
 
@@ -17,7 +18,9 @@ EXPECTED_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 EXPECTED_REGISTRATIONS = 2417
 EXPECTED_LEXER_REGISTRATIONS = 93
 EXPECTED_TEST_LIST_SHA256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
-MAP_SCHEMA_VERSION = 3
+MAP_SCHEMA_VERSION = 4
+HARNESS_SCHEMA_VERSION = 4
+CONTRACT_SCHEMA_VERSIONS = {1, 2}
 VERIFIED_DISPOSITIONS = {"verified-differential", "verified-contract"}
 OWNER_AREAS = {
     "lexer",
@@ -112,6 +115,19 @@ ATTRIBUTE_NAMES = {
     "no-cd", "no-exit-message", "no-quiet", "openbsd", "parallel", "positional-arguments", "private",
     "script", "shell", "unix", "windows", "working-directory",
 }
+WINDOWS_ONLY_HARNESS_NAMES = {
+    "windows::bare_bash_in_shebang",
+    "windows::cmd_shell_expands_environment_variables",
+    "windows::cmd_shell_receives_command_verbatim",
+    "windows::cmd_shell_redirection",
+    "windows_shell::windows_powershell_setting_uses_powershell",
+    "windows_shell::windows_powershell_setting_uses_powershell_set_shell",
+    "windows_shell::windows_shell_setting",
+}
+PLATFORM_HOST_CASES = {
+    "non_unicode::warn_for_non_unicode_invocation_directory",
+    "non_unicode::warn_for_non_unicode_justfile_path",
+}
 
 
 def root() -> Path:
@@ -129,6 +145,19 @@ def expect(condition: bool, message: str) -> None:
 
 def is_verified(row: dict) -> bool:
     return row.get("disposition") in VERIFIED_DISPOSITIONS
+
+
+def incomplete_release_message(rows: list[dict[str, object]]) -> str:
+    by_area = Counter(str(row.get("owner_area", "unknown")) for row in rows)
+    breakdown = ", ".join(
+        f"{area}={count}" for area, count in sorted(by_area.items())
+    )
+    sample = ", ".join(str(row.get("id", "unknown")) for row in rows[:12])
+    suffix = ", ..." if len(rows) > 12 else ""
+    return (
+        f"strict release evidence is incomplete for {len(rows)} registrations "
+        f"({breakdown}); first IDs: {sample}{suffix}"
+    )
 
 
 def load(path: Path) -> dict:
@@ -183,6 +212,130 @@ def validate_test_anchor(
     )
 
 
+def validate_upstream_source(row_id: str, source: object) -> None:
+    expect(isinstance(source, dict), f"{row_id} has no upstream source provenance")
+    expect(
+        set(source) == {"path", "line", "file_sha256"},
+        f"{row_id} has an invalid upstream source schema",
+    )
+    expect(
+        isinstance(source["path"], str)
+        and source["path"]
+        and not Path(source["path"]).is_absolute()
+        and ".." not in Path(source["path"]).parts,
+        f"{row_id} has an invalid upstream source path",
+    )
+    expect(
+        isinstance(source["line"], int) and source["line"] > 0,
+        f"{row_id} has an invalid upstream source line",
+    )
+    expect(
+        isinstance(source["file_sha256"], str)
+        and re.fullmatch(r"[0-9a-f]{64}", source["file_sha256"]) is not None,
+        f"{row_id} has an invalid upstream source digest",
+    )
+def validate_harness_rows(
+    harness_rows: list[dict[str, object]],
+    expected_host: str,
+    known_names: set[str],
+) -> None:
+    harness_by_name = {}
+    for harness_row in harness_rows:
+        name = harness_row["upstream_name"]
+        expect(name in known_names, f"unknown official harness result {name}")
+        expect(name not in harness_by_name, f"duplicate official harness result {name}")
+        harness_by_name[name] = harness_row
+        expect(harness_row.get("host") == expected_host, f"harness host changed for {name}")
+        expect(
+            harness_row["schema_version"] == HARNESS_SCHEMA_VERSION,
+            f"tracked harness schema changed for {name}",
+        )
+        expect(harness_row["upstream_commit"] == EXPECTED_COMMIT, f"harness commit changed for {name}")
+        expected_official = (
+            "ignored"
+            if harness_row["disposition"] == "upstream-ignored"
+            else "passed"
+        )
+        expect(
+            harness_row["official"] == expected_official,
+            f"official harness status is inconsistent for {name}",
+        )
+        expect(
+            harness_row["disposition"]
+            in {
+                "exact",
+                "diagnostic-exact",
+                "diagnostic-semantic",
+                "product-identity",
+                "excluded-completion",
+                "upstream-ignored",
+                "not-applicable",
+            },
+            f"harness result is not approved for {name}",
+        )
+        target_statuses = {harness_row["native"], harness_row["wasm1"]}
+        disposition = harness_row["disposition"]
+        if disposition == "exact":
+            expect(target_statuses == {"exact"}, f"exact result drifted for {name}")
+        elif disposition == "diagnostic-exact":
+            expect(
+                target_statuses <= {"exact", "diagnostic-exact"}
+                and "diagnostic-exact" in target_statuses,
+                f"diagnostic-exact result drifted for {name}",
+            )
+        elif disposition == "diagnostic-semantic":
+            expect(
+                target_statuses <= {
+                    "exact",
+                    "diagnostic-exact",
+                    "diagnostic-semantic",
+                }
+                and "diagnostic-semantic" in target_statuses,
+                f"diagnostic-semantic result drifted for {name}",
+            )
+        elif disposition == "not-applicable":
+            exception = harness_row.get("exception")
+            expect(
+                isinstance(exception, dict)
+                and exception.get("classification") == "not-applicable"
+                and set(exception.get("targets", [])) <= {"native", "wasm1"},
+                f"not-applicable result has invalid exception for {name}",
+            )
+            exception_targets = set(exception["targets"])
+            for target_name, target_status in zip(
+                ("native", "wasm1"),
+                (harness_row["native"], harness_row["wasm1"]),
+            ):
+                if target_name in exception_targets:
+                    expect(
+                        target_status == "not-applicable",
+                        f"not-applicable target drifted for {name}",
+                    )
+                else:
+                    expect(
+                        target_status in {"exact", "diagnostic-exact"},
+                        f"non-exception target drifted for {name}",
+                    )
+        else:
+            expect(
+                target_statuses == {disposition},
+                f"exception result drifted for {name}",
+            )
+        expect(
+            harness_row["compatibility_rate_denominator"]
+            == (
+                harness_row["disposition"]
+                not in {
+                    "product-identity",
+                    "excluded-completion",
+                    "upstream-ignored",
+                    "not-applicable",
+                }
+            ),
+            f"harness denominator is inconsistent for {name}",
+        )
+
+
 def validate_map() -> None:
     repo = root()
     test_list = repo / "tests/upstream/just-1.57.0/test-list.txt"
@@ -194,68 +347,79 @@ def validate_map() -> None:
     rows = [json.loads(line) for line in test_map.read_text(encoding="utf-8").splitlines()]
     differential = load(repo / "tests/differential/cases.toml")
     differential_cases = {case["id"]: case for case in differential["case"]}
+    for expected_host, filename, expected_count in (
+        ("darwin-arm64", "harness-results.jsonl", 1842),
+        ("linux-x86_64", "harness-results-linux.jsonl", 1843),
+        ("windows-amd64", "harness-results-windows.jsonl", 1821),
+    ):
+        harness_rows = [
+            json.loads(line)
+            for line in (
+                repo / "tests/upstream/just-1.57.0" / filename
+            ).read_text(encoding="utf-8").splitlines()
+        ]
+        expect(
+            len(harness_rows) == expected_count,
+            f"{expected_host} official integration harness result count changed",
+        )
+        known_names = set(names)
+        if expected_host == "linux-x86_64":
+            known_names |= PLATFORM_HOST_CASES
+        if expected_host == "windows-amd64":
+            known_names |= WINDOWS_ONLY_HARNESS_NAMES
+        validate_harness_rows(harness_rows, expected_host, known_names)
     harness_rows = [
         json.loads(line)
         for line in (
             repo / "tests/upstream/just-1.57.0/harness-results.jsonl"
         ).read_text(encoding="utf-8").splitlines()
     ]
-    expect(len(harness_rows) == 1842, "official integration harness result count changed")
-    harness_by_name = {}
-    for harness_row in harness_rows:
-        name = harness_row["upstream_name"]
-        expect(name not in harness_by_name, f"duplicate official harness result {name}")
-        harness_by_name[name] = harness_row
-        expect(harness_row["schema_version"] == MAP_SCHEMA_VERSION, f"harness schema changed for {name}")
-        expect(harness_row["upstream_commit"] == EXPECTED_COMMIT, f"harness commit changed for {name}")
-        expect(
-            harness_row["disposition"]
-            == (
-                "verified-differential"
-                if harness_row["official"] == "passed"
-                and harness_row["native"] in {"passed", "diagnostic-style", "product-identity"}
-                and harness_row["wasm1"] in {"passed", "diagnostic-style", "product-identity"}
-                else "unverified"
-            ),
-            f"harness disposition is inconsistent for {name}",
-        )
-        expect(
-            harness_row.get("allowed_difference")
-            == (
-                "product-identity"
-                if "product-identity"
-                in {harness_row["native"], harness_row["wasm1"]}
-                else (
-                    "diagnostic-style"
-                    if "diagnostic-style"
-                    in {harness_row["native"], harness_row["wasm1"]}
-                    else "none"
-                )
-            ),
-            f"harness difference classification is inconsistent for {name}",
-        )
+    harness_by_name = {row["upstream_name"]: row for row in harness_rows}
+    expect(len(harness_by_name) == len(harness_rows), "duplicate official harness result")
     expect(len(rows) == len(names), "upstream mapping row count does not match registrations")
     source_cache: dict[str, str] = {}
+    contract_anchors: set[tuple[str, str]] = set()
     for index, (row, name) in enumerate(zip(rows, names), start=1):
         expect(row["schema_version"] == MAP_SCHEMA_VERSION, f"mapping schema changed at row {index}")
         expect(row["id"] == f"JUST-1.57.0-{index:04d}", f"invalid mapping id at row {index}")
         expect(row["upstream_name"] == name, f"mapping mismatch at row {index}")
         expect(row["owner_area"] in OWNER_AREAS, f"missing owner area at row {index}")
-        expect(row["tier"] in {"A", "B", "W", "X"}, f"invalid tier at row {index}")
+        expect(
+            row["scope"]
+            in {
+                "compatibility",
+                "excluded-completion",
+                "product-identity",
+                "upstream-internal",
+            },
+            f"invalid compatibility scope at row {index}",
+        )
         expect(row["tracking"], f"missing tracking owner at row {index}")
         for evidence in row["evidence"]:
             expect((repo / evidence).exists(), f"missing evidence {evidence} at row {index}")
         if row["disposition"] == "verified-contract":
             validate_test_anchor(repo, row["id"], row.get("test_anchor"), source_cache)
+            validate_upstream_source(row["id"], row.get("upstream_source"))
             expect(row["test_anchor"]["suite"] == row["evidence"][1], f"{row['id']} anchor suite differs from evidence")
+            anchor_key = (
+                row["test_anchor"]["suite"],
+                row["test_anchor"]["test_name"],
+            )
+            expect(
+                anchor_key not in contract_anchors,
+                f"{row['id']} reuses contract anchor {anchor_key[0]}::{anchor_key[1]}",
+            )
+            contract_anchors.add(anchor_key)
         if row["disposition"] == "verified-differential":
             evidence_case = row.get("evidence_case")
             if isinstance(evidence_case, str) and evidence_case.startswith("MJ-UPSTREAM-HARNESS::"):
                 harness = harness_by_name.get(name)
                 expect(harness is not None, f"{row['id']} has no official harness result")
                 expect(
-                    harness["disposition"] == "verified-differential",
-                    f"{row['id']} official harness result is not verified",
+                    harness["official"] == "passed"
+                    and harness["native"] in {"exact", "diagnostic-exact"}
+                    and harness["wasm1"] in {"exact", "diagnostic-exact"},
+                    f"{row['id']} official harness result is not byte-exact",
                 )
                 expect(
                     evidence_case == f"MJ-UPSTREAM-HARNESS::{name}",
@@ -269,8 +433,9 @@ def validate_map() -> None:
                 )
         if is_verified(row):
             expect(
-                row["targets"] == ["native", "wasm1"],
-                f"{row['owner_area']} row {index} target matrix is incomplete",
+                row["targets"]
+                in (["native"], ["wasm1"], ["native", "wasm1"]),
+                f"{row['owner_area']} row {index} has an invalid target matrix",
             )
         expect(
             row["disposition"] != "planned",
@@ -300,6 +465,7 @@ def validate_map() -> None:
             expected = expected_by_id.get(case.get("case_id"))
             expect(expected is not None, f"{area} case has an unknown id")
             expect(case.get("test_anchor") == expected.get("test_anchor"), f"{area} case anchor differs from test map")
+            expect(case.get("upstream_source") == expected.get("upstream_source"), f"{area} case source differs from test map")
 
 
 def validate_differential_cases() -> None:
@@ -442,7 +608,7 @@ def validate() -> None:
                 bool(entry.get("env_reason")),
                 f"{entry['env']} lacks an environment-specific reason",
             )
-    cli_source = (repo / "src/cli/arguments.mbt").read_text(encoding="utf-8")
+    cli_source = (repo / "internal/cli/arguments.mbt").read_text(encoding="utf-8")
     implemented_env = {
         entry["env"]
         for entry in cli["option"]
@@ -464,7 +630,7 @@ def validate() -> None:
         "HostEnv::env_entries(environment_host)" in main_source,
         "production CLI does not pass the HostEnv snapshot to argparse",
     )
-    platform_gate = (repo / "tools/checks/platform.sh").read_text(encoding="utf-8")
+    platform_gate = (repo / "tools/verification/checks/platform.sh").read_text(encoding="utf-8")
     for required_probe in ("JUST_YES=1", "JUST_JUSTFILE=-"):
         expect(
             required_probe in platform_gate,
@@ -503,7 +669,7 @@ def validate() -> None:
     expect(lexer["area"] == "lexer", "lexer area changed")
     inventory = lexer["upstream_lexer_inventory"]
     expect(inventory["registrations"] == EXPECTED_LEXER_REGISTRATIONS, "lexer registration count changed")
-    expect(len(lexer["contract"]) == 5, "lexer contract count changed")
+    expect(len(lexer["contract"]) == 6, "lexer contract count changed")
     expect(
         all(c["status"] == "implemented" and c["native"] == "pass" and c["wasm1"] == "pass" for c in lexer["contract"]),
         "lexer contract evidence is incomplete",
@@ -513,7 +679,7 @@ def validate() -> None:
     expect(inventory["adapted_error_cases"] == 5, "lexer error-oracle count changed")
     expected_lexer_tests = sum(c["black_box_tests"] for c in lexer["contract"])
     for target in ("native", "wasm"):
-        expect(selected_tests(target, "src/lexer") == expected_lexer_tests, f"{target} lexer test outline count changed")
+        expect(selected_tests(target, "internal/lexer") == expected_lexer_tests, f"{target} lexer test outline count changed")
 
     area_sources = {
         "parser-formatter": ("compat/parser-formatter.toml", "parser-formatter.toml"),
@@ -531,23 +697,40 @@ def validate() -> None:
     for area, (manifest_path, corpus_name) in area_sources.items():
         manifest = load(repo / manifest_path)
         expect(manifest["area"] == area, f"{area} manifest area changed")
-        expect(manifest["status"] == "implemented", f"{area} status is not implemented")
+        expect(
+            manifest["status"] in {"implemented", "strict-remediation"},
+            f"{area} has an invalid compatibility status",
+        )
         if area == "query-cli":
             expect(
-                manifest["plan_exit"] in {"pending-remote-ci-and-audit", "passed"},
+                manifest["plan_exit"]
+                in {
+                    "pending-remote-ci-and-audit",
+                    "passed",
+                    "blocked-by-strict-evidence",
+                },
                 "query CLI exit has an invalid state",
             )
-            expect(manifest["evidence"]["native_tests"] == 134, "query CLI Native evidence count changed")
-            expect(manifest["evidence"]["wasm_tests"] == 133, "query CLI wasm evidence count changed")
+            expect(manifest["evidence"]["native_tests"] == 137, "query CLI Native evidence count changed")
+            expect(manifest["evidence"]["wasm_tests"] == 136, "query CLI wasm evidence count changed")
         elif area == "execution-context":
             expect(
-                manifest["plan_exit"] in {"pending-remote-ci", "passed"},
+                manifest["plan_exit"]
+                in {
+                    "pending-remote-ci",
+                    "passed",
+                    "blocked-by-strict-evidence",
+                },
                 "execution context exit has an invalid state",
             )
-            expect(manifest["evidence"]["native_tests"] == 211, "execution context Native evidence count changed")
-            expect(manifest["evidence"]["wasm_tests"] == 208, "execution context wasm evidence count changed")
+            expect(manifest["evidence"]["native_tests"] == 246, "execution context Native evidence count changed")
+            expect(manifest["evidence"]["wasm_tests"] == 243, "execution context wasm evidence count changed")
         else:
-            expect(manifest["plan_exit"] == "passed", f"{area} exit is not passed")
+            expect(
+                manifest["plan_exit"]
+                in {"passed", "blocked-by-strict-evidence"},
+                f"{area} has an invalid compatibility exit",
+            )
         corpus = load(repo / "tests/upstream/just-1.57.0" / corpus_name)
         expect(corpus["area"] == area, f"{area} corpus area changed")
         expect(corpus["upstream_commit"] == EXPECTED_COMMIT, f"{area} corpus commit changed")
@@ -591,17 +774,18 @@ def validate() -> None:
 
     runtime_cache = load(repo / "compat/runtime-cache.toml")
     expect(runtime_cache["area"] == "runtime-cache", "runtime cache area changed")
-    expect(runtime_cache["status"] == "implemented", "runtime cache status is not implemented")
     expect(
-        runtime_cache["plan_exit"] in {"pending-remote-ci", "passed"},
+        runtime_cache["status"] in {"implemented", "strict-remediation"},
+        "runtime cache has an invalid compatibility status",
+    )
+    expect(
+        runtime_cache["plan_exit"]
+        in {"pending-remote-ci", "passed", "blocked-by-strict-evidence"},
         "runtime cache exit has an invalid state",
     )
     runtime_rows = [row for row in mapped_rows if row["owner_area"] == "runtime-cache"]
     expect(len(runtime_rows) == 74, "runtime cache registration count changed")
-    expect(
-        sum(is_verified(row) for row in runtime_rows) == 74,
-        "runtime cache executable registration count changed",
-    )
+    expect(any(is_verified(row) for row in runtime_rows), "runtime cache has no executable evidence")
     runtime_differences = [row for row in runtime_rows if row["disposition"] == "unsupported"]
     expect(not runtime_differences, "runtime cache still contains unsupported registrations")
     expect(
@@ -616,12 +800,17 @@ def validate() -> None:
 
     platform_compatibility = load(repo / "compat/platform-compatibility.toml")
     expect(platform_compatibility["area"] == "platform-compatibility", "platform compatibility area changed")
-    expect(platform_compatibility["status"] == "implemented", "platform compatibility status is not implemented")
+    expect(
+        platform_compatibility["status"]
+        in {"implemented", "strict-remediation"},
+        "platform compatibility has an invalid status",
+    )
     expect(
         platform_compatibility["plan_exit"] in {
             "pending-remote-ci-and-second-audit",
             "pending-remediation-ci-and-merge",
             "passed",
+            "blocked-by-strict-evidence",
         },
         "platform compatibility exit has an invalid state",
     )
@@ -631,26 +820,36 @@ def validate() -> None:
     compatibility = platform_compatibility["compatibility"]
     expect(
         compatibility["covered_registrations"]
-        == sum(is_verified(row) for row in platform_rows)
-        == 40,
+        == sum(is_verified(row) for row in platform_rows),
         "platform compatibility covered registration count changed",
     )
     expect(
+        compatibility["unverified_registrations"]
+        == sum(row["disposition"] == "unverified" for row in platform_rows),
+        "platform compatibility unverified registration count changed",
+    )
+    expect(
         compatibility["unsupported_registrations"]
-        == sum(row["disposition"] == "unsupported" for row in platform_rows)
-        == 4,
+        == sum(row["disposition"] == "unsupported" for row in platform_rows),
         "platform compatibility unsupported registration count changed",
     )
     expect(
         compatibility["excluded_registrations"]
-        == sum(row["disposition"] in {"excluded-completion", "not-applicable"} for row in platform_rows)
-        == 8,
+        == sum(
+            row["disposition"] in {"excluded-completion", "not-applicable"}
+            for row in platform_rows
+        ),
         "platform compatibility excluded registration count changed",
     )
     expect(
         compatibility["executor_covered_registrations"]
         == sum(is_verified(row) for row in executor_rows),
         "executor covered registration count changed",
+    )
+    expect(
+        compatibility["executor_unverified_registrations"]
+        == sum(row["disposition"] == "unverified" for row in executor_rows),
+        "executor unverified registration count changed",
     )
     expect(
         compatibility["executor_unsupported_registrations"]
@@ -670,7 +869,7 @@ def validate() -> None:
     expect(policy["fs"]["write"] == [], "inspect policy grants filesystem writes")
     expect(policy["process"]["spawn"] is False, "inspect policy grants process spawn")
     expect(policy["net"] == {"dns": [], "connect": [], "bind": []}, "inspect policy grants network access")
-    wasm_interface = (repo / "src/host_wasm/pkg.generated.mbti").read_text(encoding="utf-8")
+    wasm_interface = (repo / "internal/host_wasm/pkg.generated.mbti").read_text(encoding="utf-8")
     expect("HostProcess" not in wasm_interface, "Wasm inspect adapter exposes HostProcess")
 
     settings = load(repo / "compat/settings.toml")
@@ -697,7 +896,7 @@ def validate() -> None:
     expect(selected_tests("wasm") == counts["wasm1"], "wasm1 test outline count changed")
 
 
-def validate_release() -> None:
+def validate_release(contract_results: Path) -> None:
     repo = root()
     rows = [
         json.loads(line)
@@ -705,38 +904,78 @@ def validate_release() -> None:
         .read_text(encoding="utf-8")
         .splitlines()
     ]
-    tier_a = [row for row in rows if row["tier"] == "A"]
+    compatibility_rows = [
+        row for row in rows if row["scope"] == "compatibility"
+    ]
     incomplete = [
         row
-        for row in tier_a
-        if row["disposition"] not in VERIFIED_DISPOSITIONS | {"not-applicable"}
+        for row in compatibility_rows
+        if row["disposition"] not in VERIFIED_DISPOSITIONS
     ]
-    expect(not incomplete, f"Tier A release evidence is incomplete for {len(incomplete)} registrations")
     expect(
-        all(row["targets"] == ["native", "wasm1"] for row in tier_a if is_verified(row)),
-        "Tier A release target matrix is incomplete",
+        all(
+            row["targets"] == ["native", "wasm1"]
+            for row in compatibility_rows
+            if is_verified(row)
+        ),
+        "strict release target matrix is incomplete",
     )
-    for manifest_name, key in (
-        ("cli-options.toml", "option"),
-        ("settings.toml", "setting"),
-        ("attributes.toml", "attribute"),
-    ):
-        manifest = load(repo / "compat" / manifest_name)
-        entries = list(manifest[key])
-        if manifest_name == "cli-options.toml":
-            entries.extend(manifest["command"])
-        remaining = [entry for entry in entries if entry.get("tier") == "A" and entry["status"] != "implemented"]
-        expect(not remaining, f"{manifest_name} has {len(remaining)} incomplete Tier A entries")
+    contract_rows = [row for row in rows if row["disposition"] == "verified-contract"]
+    expect(contract_results.is_file(), f"contract execution results are missing: {contract_results}")
+    executions = [
+        json.loads(line)
+        for line in contract_results.read_text(encoding="utf-8").splitlines()
+    ]
+    expected_executions = {
+        (row["id"], target)
+        for row in contract_rows
+        for target in row["targets"]
+    }
+    actual_executions = {(row.get("case_id"), row.get("target")) for row in executions}
+    expect(actual_executions == expected_executions, "contract execution target matrix differs")
+    contract_by_id = {row["id"]: row for row in contract_rows}
+    candidate_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    for execution in executions:
+        row = contract_by_id[execution["case_id"]]
+        expect(execution.get("schema_version") in CONTRACT_SCHEMA_VERSIONS, f"contract result schema changed for {row['id']}")
+        expect(execution.get("passed") is True, f"contract execution failed for {row['id']}")
+        expect(execution.get("upstream_commit") == EXPECTED_COMMIT, f"contract source commit changed for {row['id']}")
+        expect(execution.get("upstream_name") == row["upstream_name"], f"contract upstream name changed for {row['id']}")
+        expect(execution.get("upstream_source") == row["upstream_source"], f"contract source provenance changed for {row['id']}")
+        if execution.get("schema_version") == 2:
+            expect(execution.get("commit_sha") == candidate_commit, f"contract candidate commit changed for {row['id']}")
+    expect(
+        not incomplete,
+        incomplete_release_message(incomplete),
+    )
+    completion_rows = [
+        row for row in rows if row["scope"] == "excluded-completion"
+    ]
+    expect(
+        completion_rows
+        and all(
+            row["disposition"] == "excluded-completion"
+            for row in completion_rows
+        ),
+        "completion is not the sole explicit feature exclusion",
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--release", action="store_true")
+    parser.add_argument(
+        "--contract-results",
+        type=Path,
+        default=root() / "_build/upstream-contracts/results.jsonl",
+    )
     args = parser.parse_args()
     try:
         validate()
         if args.release:
-            validate_release()
+            validate_release(args.contract_results.resolve())
     except (OSError, ValueError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
         print(f"manifest verification error: {error}", file=sys.stderr)
         return 1

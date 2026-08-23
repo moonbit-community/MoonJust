@@ -1,5 +1,13 @@
 # Release readiness audit
 
+> **Superseded historical audit.** This report preserves the evidence and
+> conclusions recorded at the Phase 11 audit closure. It is not current
+> compatibility or release-readiness evidence. The schema-v4 verifier now
+> rejects the former shared-anchor accounting: `verify_manifest.py --release`
+> reports 568 registrations without independent evidence. The active status is
+> stated in the repository README and the machine-readable files under
+> `tests/upstream/just-1.57.0/`.
+
 - Review period: 2026-08-04 through 2026-08-13
 - Historical scope: Phase 0 through Phase 11
 - Audit-closure baseline: `ec960b5a1cdf8bce63fcaae79f63b4f9947490f3`
@@ -20,9 +28,10 @@ A delivery milestone passes only when its declared contracts have executable pos
 negative tests, target-appropriate capability boundaries, pinned upstream
 provenance where applicable, deterministic machine-readable metadata, and
 successful protected-main CI. Historical phase reports retain their original
-scope and test snapshots; this document is the current cross-phase verdict.
+scope and test snapshots; this document likewise records only the audit-closure
+verdict below.
 
-## Current verdict
+## Historical verdict
 
 All Phase 0-11 delivery milestones are complete under their merged evidence.
 The final protected-main CI and manually dispatched candidate workflow passed
@@ -49,11 +58,12 @@ use capability-oriented names.
 | 10 | platform behavior, interactive commands, Markdown and compatibility convergence | complete | passed | complete 2,417-row classification, platform matrix, tangle oracle and protected-main CI |
 | 11 | package, policy, artifact, supply-chain and upgrade engineering | complete | passed | cold rebuild, repeatability, three Native candidates, wasm1 asset, tamper matrix and attestation workflow |
 
-No applicable Tier A registration remains unsupported or unverified. Explicit
-Tier B differences, completion exclusions and Rust-internal or maintenance rows
-remain machine classified and are not counted as Tier A compatibility.
+The former audit classified no applicable Tier A registration as unsupported or
+unverified. That classification is retired and must not be used as a current
+compatibility claim: schema v4 requires each registration to have independent
+executable evidence and currently blocks release on 568 unverified rows.
 
-## Current release matrix
+## Historical audit-closure matrix
 
 | Evidence | Result |
 | --- | --- |

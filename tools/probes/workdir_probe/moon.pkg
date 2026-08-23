@@ -1,6 +1,6 @@
 import {
-  "moonbit-community/MoonJust/src/path",
-  "moonbit-community/MoonJust/src/workdir",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbit-community/MoonJust/internal/workdir",
   "moonbitlang/core/env",
 }
 

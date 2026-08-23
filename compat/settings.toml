@@ -7,148 +7,119 @@ upstream = "just 1.57.0"
 
 [[setting]]
 name = "allow-duplicate-recipes"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "allow-duplicate-variables"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "default-list"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "default-script"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "dotenv-command"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "dotenv-filename"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "dotenv-load"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "dotenv-override"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "dotenv-path"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "dotenv-required"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "export"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "fallback"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "guards"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "ignore-comments"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "indentation"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "lazy"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "lists"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "minimum-version"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "no-cd"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "no-exit-message"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "positional-arguments"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "quiet"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "script-interpreter"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "shell"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "tempdir"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "unstable"
-tier = "X"
 status = "unsupported"
 reason = "Unstable features are enabled only by the explicit --unstable CLI gate."
 
 [[setting]]
 name = "windows-powershell"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "windows-shell"
-tier = "A"
 status = "implemented"
 
 [[setting]]
 name = "working-directory"
-tier = "A"
 status = "implemented"
 
 [[conflict]]

@@ -1,0 +1,32 @@
+{
+  "commit": "573792ffc7bf61c3a423920b433a2a8bc80df3b0",
+  "engineering_target_ratio": 1.0,
+  "hard_limit_ratio": 1.05,
+  "native": {
+    "macos-aarch64": {
+      "bytes": 5377016,
+      "sha256": "895551e3667856e8880229921e8617c4abbf175154fa4c2e98ead70d3674f528"
+    }
+  },
+  "schema_version": 2,
+  "wasm1": {
+    "bytes": 1729627,
+    "sha256": "d358e5cbdba99ca2be04db0fdd3a6ef234b6dc4ba24cc577d6c974a54f845a65",
+    "sections": [
+      {"encoded_bytes": 2592, "id": 1, "index": 0, "name": "type", "payload_bytes": 2589},
+      {"encoded_bytes": 6247, "id": 2, "index": 1, "name": "import", "payload_bytes": 6244},
+      {"encoded_bytes": 7605, "id": 3, "index": 2, "name": "function", "payload_bytes": 7602},
+      {"encoded_bytes": 12, "id": 4, "index": 3, "name": "table", "payload_bytes": 10},
+      {"encoded_bytes": 5, "id": 5, "index": 4, "name": "memory", "payload_bytes": 3},
+      {"encoded_bytes": 7479, "id": 6, "index": 5, "name": "global", "payload_bytes": 7476},
+      {"encoded_bytes": 22, "id": 7, "index": 6, "name": "export", "payload_bytes": 20},
+      {"encoded_bytes": 4, "id": 8, "index": 7, "name": "start", "payload_bytes": 2},
+      {"encoded_bytes": 2804, "id": 9, "index": 8, "name": "element", "payload_bytes": 2801},
+      {"encoded_bytes": 3, "id": 12, "index": 9, "name": "data-count", "payload_bytes": 1},
+      {"encoded_bytes": 1394039, "id": 10, "index": 10, "name": "code", "payload_bytes": 1394035},
+      {"encoded_bytes": 308678, "id": 11, "index": 11, "name": "data", "payload_bytes": 308674},
+      {"encoded_bytes": 59, "id": 0, "index": 12, "name": "custom:name", "payload_bytes": 57},
+      {"encoded_bytes": 70, "id": 0, "index": 13, "name": "custom:producers", "payload_bytes": 68}
+    ]
+  }
+}

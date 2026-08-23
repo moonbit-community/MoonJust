@@ -1,0 +1,11 @@
+import {
+  "moonbit-community/MoonJust/internal/cache",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbitlang/core/array",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/set",
+}
+
+import {
+  "moonbitlang/async",
+} for "test"

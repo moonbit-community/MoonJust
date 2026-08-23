@@ -15,16 +15,16 @@ registrations = 2417
 path = "tests/upstream/just-1.57.0/test-list.txt"
 sha256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85ddef5e802381d9"
 mapping = "tests/upstream/just-1.57.0/test-map.jsonl"
-mapping_schema = 3
+mapping_schema = 4
 mapping_generator = "tools/upstream/test_map.py"
 
 [scope]
-native_tier_a = "required"
-wasm_moonrun_tier_w = "required"
-completion = "excluded"
-rust_library_api = "not-applicable"
-browser_execution = "excluded"
-arbitrary_wasi_execution = "excluded"
+compatibility_target = "just 1.57.0 (e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f)"
+native = "required on Linux, macOS, and Windows"
+wasm_moonx = "one Ubuntu-built asset required on Linux, macOS, and Windows"
+completion = "excluded-completion"
+product_identity = "reported separately"
+platform_inapplicable = "reported separately by exact test id"
 
 [evidence]
 cli_options = "compat/cli-options.toml"

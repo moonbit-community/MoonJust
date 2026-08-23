@@ -1,0 +1,33 @@
+import {
+  "moonbit-community/MoonJust/internal/cli",
+  "moonbit-community/MoonJust/internal/diagnostic",
+  "moonbit-community/MoonJust/internal/formatter",
+  "moonbit-community/MoonJust/internal/evaluator",
+  "moonbit-community/MoonJust/internal/environment",
+  "moonbit-community/MoonJust/internal/executor",
+  "moonbit-community/MoonJust/internal/host",
+  "moonbit-community/MoonJust/internal/invocation",
+  "moonbit-community/MoonJust/internal/lexer",
+  "moonbit-community/MoonJust/internal/loader",
+  "moonbit-community/MoonJust/internal/modulepath",
+  "moonbit-community/MoonJust/internal/path",
+  "moonbit-community/MoonJust/internal/semantic",
+  "moonbit-community/MoonJust/internal/source",
+  "moonbit-community/MoonJust/internal/syntax",
+  "moonbit-community/MoonJust/internal/value",
+  "moonbit-community/MoonJust/internal/workdir",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbit-community/MoonJust/internal/cache",
+  "moonbitlang/core/bench",
+  "moonbitlang/async",
+} for "test"
+
+import {
+  "moonbitlang/core/bench",
+} for "wbtest"

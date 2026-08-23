@@ -7,10 +7,12 @@ the upstream Rust library API is not part of MoonJust's public API.
 
 > **Current status**
 >
-> MoonJust is compatible with the pinned `just 1.57.0` Tier A surface on
-> native and wasm/moonrun. Completion, browser execution and arbitrary WASI
-> remain outside scope. No publication, tag or GitHub Release is performed by
-> the compatibility gate.
+> MoonJust is compatible with the pinned `just 1.57.0` compatibility inventory
+> on supported Native and wasm1/moonrun hosts. Completion remains excluded.
+> Linux, macOS and Windows Native gates, the shared Ubuntu wasm1 asset, and the
+> official non-completion differential harness pass. Release artifacts remain
+> subject to a strict size baseline gate; publication, tagging and GitHub
+> Release creation are not automatic.
 
 ## What is delivered
 
@@ -41,14 +43,36 @@ versioned, locked across processes and atomically published after output checks.
 - Upstream: `just 1.57.0`, commit
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
-- Tier A registrations: 2,328 total; 1,758 verified by official/native/wasm
-  differential execution, 569 by executable contract cases, one explicitly
-  not applicable, and zero unsupported or unverified.
-- Full pinned inventory: 2,366 verified, five Tier B chooser/submodule/SIGINFO
-  differences, 35 excluded completion rows and eleven not-applicable
-  Rust-internal, testing-interface or product-maintenance rows.
-- Structured CLI differential corpus: 147 exact matches and 35 bounded
-  product-identity or diagnostic-layout differences, with zero failures.
+- Differential results are classified as exact, diagnostic-exact,
+  diagnostic-semantic, product identity, excluded completion, upstream
+  ignored, not-applicable, or failed. Product identity, excluded/ignored, and
+  explicitly not-applicable cases never enter the compatibility denominator.
+- The pinned inventory contains 2,417 rows: 1,792 verified differential cases,
+  580 verified contract cases, 35 excluded completion cases, and 10 explicit
+  product/upstream-internal not-applicable cases. No compatibility row remains
+  incomplete or unregistered.
+- Current platform evidence covers Linux x86_64, macOS arm64, and Windows
+  x86_64 Native candidates plus one Ubuntu-built wasm1 asset downloaded by all
+  three Native jobs. The platform gate and official non-completion harness
+  pass on all six target combinations; the overall CI workflow can still be
+  red for independent coverage, contract, quality, or artifact-size gates.
+- Two Linux-only upstream tests for non-UTF-8 working directories are
+  `not-applicable` for wasm1. The `moonrun`/MoonX host environment boundary
+  currently panics on the invalid host value before producing a useful
+  MoonJust wasm result. Native passes both tests exactly. This is an accepted
+  host limitation outside MoonJust's platform scope; it is recorded in the
+  pinned exception manifest rather than hidden by normalization.
+- Unapproved differences fail by default. Updating the committed oracle
+  requires the explicit audited command documented in
+  [`tools/upstream/README.md`](tools/upstream/README.md).
+- Native signal qualification activates the pinned ignored signal suite,
+  including forwarding and SIGINFO where the host supports it.
+- Hosted cloud-trend benchmarks cover Linux x86_64, macOS arm64 and Windows
+  x86_64 with three cold/warm rounds. They are comparable trend evidence, not
+  machine-independent absolute timing claims. The current release candidates
+  are approximately 1.06x–1.12x the frozen artifact-size baseline; the strict
+  size gate is intentionally reported separately from compatibility and
+  performance gates.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 
@@ -57,16 +81,23 @@ The complete decision record is in the
 area contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
+The current platform-only closure, including CI evidence and the accepted
+MoonX host limitation, is documented in
+[`docs/reports/PLATFORM_COMPATIBILITY.md`](docs/reports/PLATFORM_COMPATIBILITY.md).
+
+The final pre-release review checklist and exact evidence coordinates are in
+[`docs/reports/FINAL_RELEASE_REVIEW.md`](docs/reports/FINAL_RELEASE_REVIEW.md).
+
 ## Quick start
 
 ### Prerequisites
 
-The repository currently uses:
+Development uses the latest available MoonBit toolchain; every compatibility
+or release run records the resolved versions with `moon version --all`.
+The repository currently requires:
 
 ```text
-moon 0.1.20260803
-moonc 0.10.6+62c2592d1
-moonrun 0.1.20260803
+moon, moonc, and moonrun from the latest matching distribution
 ```
 
 Install the matching MoonBit toolchain, then enable the repository hook:
@@ -96,7 +127,7 @@ moonrun --policy policies/inspect.toml \
 ### Run the release gate
 
 ```bash
-./tools/check.sh
+python3 tools/runner.py run --mode release
 ```
 
 The gate checks architecture boundaries, pinned upstream metadata, the
@@ -138,11 +169,11 @@ Wasm inspection adapter receives only the capabilities its policy allows.
 | Path | Responsibility |
 | --- | --- |
 | `api/` | stable public library facade and build metadata |
-| `src/source`, `src/diagnostic`, `src/path` | target-independent source coordinates, diagnostics and lexical paths |
-| `src/lexer`, `src/parser`, `src/syntax`, `src/formatter` | language front end and Markdown tangle |
-| `src/semantic`, `src/loader`, `src/evaluator`, `src/builtin` | compilation, graph loading, evaluation and typed builtins |
-| `src/host`, `src/host_native`, `src/host_wasm` | explicit host contracts and platform adapters |
-| `src/cli`, `src/application`, `src/invocation`, `src/workdir`, `src/environment` | CLI, invocation, working-directory and environment models |
+| `internal/source`, `internal/diagnostic`, `internal/path` | target-independent source coordinates, diagnostics and lexical paths |
+| `internal/lexer`, `internal/parser`, `internal/syntax`, `internal/formatter` | language front end and Markdown tangle |
+| `internal/semantic`, `internal/loader`, `internal/evaluator`, `internal/builtin` | compilation, graph loading, evaluation and typed builtins |
+| `internal/host`, `internal/host_native`, `internal/host_wasm` | explicit host contracts and platform adapters |
+| `internal/cli`, `internal/application`, `internal/invocation`, `internal/workdir`, `internal/environment` | CLI, invocation, working-directory and environment models |
 | `cmd/just` | Native/wasm1 executable composition root |
 | `compat/` | machine-readable compatibility inventories and area contracts |
 | `tests/upstream/` | pinned upstream corpus, ownership map and provenance |
@@ -171,9 +202,9 @@ child with a deterministic error.
 
 ## Development workflow
 
-Every behavior change must identify its compatibility tier, upstream reference,
-supported targets, and regression evidence. Use the existing package boundaries
-and ADRs before introducing a new abstraction.
+Every behavior change must identify its upstream reference, supported targets,
+and regression evidence. Use the existing package boundaries and ADRs before
+introducing a new abstraction.
 
 ```bash
 moon check --target all --warn-list +73
@@ -181,7 +212,7 @@ moon test --target native
 moon test --target wasm
 moon info
 moon fmt
-./tools/check.sh
+python3 tools/runner.py run --mode verify
 ```
 
 Before opening a PR, review generated `.mbti` diffs, run the applicable

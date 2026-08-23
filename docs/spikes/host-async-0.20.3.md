@@ -1,7 +1,7 @@
 # Host async capability spike
 
 - Date: 2026-08-04
-- Dependency: `moonbitlang/async 0.20.3`
+- Dependency: `moonbitlang/async 0.20.4`
 - License: Apache-2.0
 - Toolchain: `moon 0.1.20260803`, `moonc 0.10.6+62c2592d1`
 - Development host: macOS 26.5.2 arm64, Unix `/bin/sh`
@@ -47,7 +47,7 @@ earlier false-positive risk where a successful command selected zero tests.
 
 ## Decision
 
-Adopt exact `moonbitlang/async 0.20.3` as the initial implementation dependency
+Adopt exact `moonbitlang/async 0.20.4` as the initial implementation dependency
 for Native and wasm1 filesystem/process adapters, subject to these controls:
 
 - Keep the dependency in leaf adapters and never expose its concrete types.
@@ -59,6 +59,18 @@ for Native and wasm1 filesystem/process adapters, subject to these controls:
 - Prefer an upstream fix for package defects; fork only with an explicit patch
   queue and license record.
 - Do not enable a second default runtime implementation in parallel.
+
+## Linux signal ownership follow-up
+
+The isolated `signal_probe` checks HUP, INT, QUIT, and TERM independently after
+calling `set_global_cancellation_signals([])`. Hosted Linux evidence showed the
+application handler receiving every sampled SIGINT, so a previously suspected
+`sigwait` ownership race is not accepted as the cause of the forwarding test
+failure. The public async signal API still does not expose the first received
+signal or official just's selective "record INT/HUP/QUIT, forward TERM"
+contract. Process spawn, wait, cancellation, and Windows Job Object ownership
+remain delegated to async; the Unix compatibility adapter must stay isolated
+until async exposes signal observation or configurable wait ownership.
 
 ## Original spike limitations
 

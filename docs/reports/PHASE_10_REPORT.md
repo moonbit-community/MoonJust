@@ -1,5 +1,10 @@
 # Phase 10 Completion Report
 
+> **Historical report.** The Tier A/B accounting below predates schema v4 and
+> is retained only as a record of the Phase 10 closure. It is not current
+> compatibility evidence; the strict release verifier currently rejects 568
+> registrations that lack independent executable evidence.
+
 - Scope: PR-100 through PR-105 from `docs/PROJECT_PLAN.md`
 - Compatibility baseline: `just 1.57.0` at `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 - Release identity: `0.7.0-alpha`

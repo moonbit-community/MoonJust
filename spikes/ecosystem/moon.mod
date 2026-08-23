@@ -11,5 +11,5 @@ description = "Isolated MoonJust parser ecosystem spike"
 import {
   "moonbitlang/regexp@0.3.5",
   "moonbit-community/cmark@0.4.4",
-  "moonbitlang/x@0.4.47",
+  "moonbitlang/x@0.4.50",
 }

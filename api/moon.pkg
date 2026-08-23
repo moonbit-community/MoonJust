@@ -1,9 +1,5 @@
 import {
-  "moonbit-community/MoonJust/src/evaluator",
-  "moonbit-community/MoonJust/src/formatter",
-  "moonbit-community/MoonJust/src/parser",
-  "moonbit-community/MoonJust/src/semantic",
-  "moonbit-community/MoonJust/src/source",
-  "moonbit-community/MoonJust/src/syntax",
-  "moonbit-community/MoonJust/src/value",
+  "moonbit-community/MoonJust/internal/formatter",
+  "moonbit-community/MoonJust/internal/semantic",
+  "moonbit-community/MoonJust/internal/source",
 }

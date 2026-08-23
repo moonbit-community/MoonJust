@@ -4,8 +4,9 @@ set -eu
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 oracle_root="$repo_root/_build/upstream/just-1.57.0"
-candidate="$repo_root/_build/native/debug/build/cmd/just/just.exe"
-candidate_wasm="$repo_root/_build/wasm/debug/build/cmd/just/just.wasm"
+oracle="${MOONJUST_ORACLE_CANDIDATE:-$oracle_root/target/release/just}"
+candidate="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
+candidate_wasm="${MOONJUST_WASM_CANDIDATE:-$repo_root/_build/wasm/debug/build/cmd/just/just.wasm}"
 metadata="$repo_root/_build/differential/oracle-metadata.txt"
 
 python3 - "$repo_root/tests/differential/cases.toml" <<'PY'
@@ -53,9 +54,13 @@ for case in cases:
 PY
 
 mkdir -p "$(dirname -- "$metadata")"
-"$repo_root/tools/upstream/build_oracle.sh" | tee "$metadata"
-moon build --target native cmd/just
-moon build --target wasm cmd/just
+if [ -z "${MOONJUST_ORACLE_CANDIDATE:-}" ]; then
+  "$repo_root/tools/upstream/build_oracle.sh" | tee "$metadata"
+else
+  printf 'oracle=%s\n' "$oracle" >"$metadata"
+fi
+if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build --target native cmd/just; fi
+if [ -z "${MOONJUST_WASM_CANDIDATE:-}" ]; then moon build --target wasm cmd/just; fi
 [ -x "$candidate" ] || {
   echo "real differential error: candidate binary is missing: $candidate" >&2
   exit 1
@@ -65,7 +70,6 @@ moon build --target wasm cmd/just
   exit 1
 }
 
-oracle="$oracle_root/target/release/just"
 [ -x "$oracle" ] || {
   echo "real differential error: oracle binary is missing: $oracle" >&2
   exit 1

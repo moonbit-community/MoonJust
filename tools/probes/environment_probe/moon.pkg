@@ -1,8 +1,8 @@
 import {
-  "moonbit-community/MoonJust/src/cli",
-  "moonbit-community/MoonJust/src/environment",
-  "moonbit-community/MoonJust/src/host",
-  "moonbit-community/MoonJust/src/path",
+  "moonbit-community/MoonJust/internal/cli",
+  "moonbit-community/MoonJust/internal/environment",
+  "moonbit-community/MoonJust/internal/host",
+  "moonbit-community/MoonJust/internal/path",
   "moonbitlang/core/env",
 }
 

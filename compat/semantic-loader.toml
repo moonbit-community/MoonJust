@@ -1,8 +1,8 @@
 schema_version = 2
 area = "semantic-loader"
 upstream = "just 1.57.0"
-status = "implemented"
-plan_exit = "passed"
+status = "strict-remediation"
+plan_exit = "blocked-by-strict-evidence"
 audit = "docs/reports/RELEASE_AUDIT.md"
 
 [contracts]
@@ -24,7 +24,7 @@ stdin_cases = 2
 graph_cases = 5
 parameter_validation_cases = 7
 api_cases = 2
-real_fs_adapter = "src/host_native/native_test.mbt"
+real_fs_adapter = "internal/host_native/native_test.mbt"
 canonical_identity = "native realpath + FakeHost alias contract"
 case_manifest = "tests/upstream/just-1.57.0/semantic-loader-cases.jsonl"
 provenance = "tests/upstream/NOTICE.md"

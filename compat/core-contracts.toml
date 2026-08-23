@@ -6,48 +6,48 @@ area = "core-contracts"
 id = "MJ-SOURCE-0001"
 name = "UTF-8 source and byte spans"
 status = "implemented"
-package = "src/source"
+package = "internal/source"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 9
+black_box_tests = 10
 evidence = "ASCII, multibyte UTF-8, CRLF, invalid UTF-8, EOF, source-map errors"
 
 [[contract]]
 id = "MJ-DIAG-0001"
 name = "Structured color-free diagnostics"
 status = "implemented"
-package = "src/diagnostic"
+package = "internal/diagnostic"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 4
+black_box_tests = 6
 evidence = "primary and secondary labels, notes, help, source chain, invalid spans, ANSI rejection"
 
 [[contract]]
 id = "MJ-PATH-0001"
 name = "Explicit Unix and Windows lexical paths"
 status = "implemented"
-package = "src/path"
+package = "internal/path"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 5
+black_box_tests = 25
 evidence = "clean, join, parent, extension, drive-relative, rooted, and UNC paths"
 
 [[contract]]
 id = "MJ-HOST-0001"
 name = "Host capability contracts and deterministic fake"
 status = "implemented"
-package = "src/host"
+package = "internal/host"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 14
+black_box_tests = 15
 evidence = "memory fs, atomic temp cleanup, env, clock, random, redacted process IR, explicit stdio, ordered output streams, terminal, signal, platform, denied and unavailable capabilities"
 
 [[contract]]
 id = "MJ-CLI-EXIT-0001"
 name = "Application request, failure, and exit mapping"
 status = "implemented"
-package = "src/cli"
+package = "internal/cli"
 native = "pass"
 wasm1 = "pass"
-black_box_tests = 37
+black_box_tests = 78
 evidence = "usage, compilation, capability, recipe exit, signal exit, immutable requests, binary streams, argparse, complete JUST_* bindings and environment composition"

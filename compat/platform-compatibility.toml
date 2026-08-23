@@ -1,8 +1,8 @@
 schema_version = 2
 area = "platform-compatibility"
 upstream = "just 1.57.0"
-status = "implemented"
-plan_exit = "passed"
+status = "strict-remediation"
+plan_exit = "blocked-by-strict-evidence"
 report = "docs/reports/PHASE_10_REPORT.md"
 audit = "docs/reports/RELEASE_AUDIT.md"
 
@@ -15,14 +15,14 @@ markdown = "automatic Markdown loading, top-level fenced-just extraction, byte-p
 inventory = "all CLI flags, commands, settings, attributes, builtins and 2,417 upstream registrations explicitly classified"
 
 [compatibility]
-covered_registrations = 40
+covered_registrations = 44
 unverified_registrations = 0
-unsupported_registrations = 4
+unsupported_registrations = 0
 excluded_registrations = 8
-executor_covered_registrations = 729
+executor_covered_registrations = 731
 executor_unverified_registrations = 0
-executor_unsupported_registrations = 1
-executor_not_applicable_registrations = 2
+executor_unsupported_registrations = 0
+executor_not_applicable_registrations = 1
 planned_registrations = 0
 
 [target_matrix]
@@ -33,8 +33,8 @@ macos = "pass: local macOS aarch64 gate, remediation PR CI and protected-main CI
 windows = "pass: remediation PR CI and protected-main CI"
 
 [evidence]
-compatibility_gate = "tools/checks/compatibility.sh"
-platform_gate = "tools/checks/platform.sh"
+compatibility_gate = "tools/verification/checks/compatibility.sh"
+platform_gate = "tools/verification/checks/platform.sh"
 case_manifest = "tests/upstream/just-1.57.0/platform-compatibility-cases.jsonl"
 markdown_adr = "docs/adr/0017-markdown-tangle-final-implementation.md"
 completion_report = "docs/reports/PHASE_10_REPORT.md"

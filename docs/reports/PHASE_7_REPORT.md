@@ -87,7 +87,7 @@ Phase 7 upstream rows were still marked planned, the Phase 7 corpus and report
 were absent, and the aggregate local gate omitted the environment-composition
 differential. The remediation adds deterministic executable anchors for the
 188 in-scope registrations, defers later-runtime cases honestly, publishes the
-structured manifests, and includes all five gates in `tools/check.sh`.
+structured manifests, and includes all five gates in `python3 tools/runner.py run --mode verify`.
 
 PR #33 closed all three findings. Its PR CI and post-merge `main` CI completed
 Quality gates plus Ubuntu, macOS, and Windows jobs successfully; the aggregate

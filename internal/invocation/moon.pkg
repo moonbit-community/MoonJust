@@ -1,0 +1,16 @@
+import {
+  "moonbit-community/MoonJust/internal/builtin",
+  "moonbit-community/MoonJust/internal/diagnostic",
+  "moonbit-community/MoonJust/internal/evaluator",
+  "moonbit-community/MoonJust/internal/modulepath",
+  "moonbit-community/MoonJust/internal/semantic",
+  "moonbit-community/MoonJust/internal/source",
+  "moonbit-community/MoonJust/internal/syntax",
+  "moonbit-community/MoonJust/internal/value",
+  "moonbitlang/core/string",
+  "moonbitlang/regexp",
+}
+
+import {
+  "moonbit-community/MoonJust/internal/path",
+} for "test"

@@ -1,7 +1,7 @@
 import {
-  "moonbit-community/MoonJust/src/invocation",
-  "moonbit-community/MoonJust/src/semantic",
-  "moonbit-community/MoonJust/src/source",
+  "moonbit-community/MoonJust/internal/invocation",
+  "moonbit-community/MoonJust/internal/semantic",
+  "moonbit-community/MoonJust/internal/source",
   "moonbitlang/async",
   "moonbitlang/async/stdio",
   "moonbitlang/core/encoding/utf8",

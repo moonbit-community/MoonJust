@@ -86,7 +86,7 @@ def rows() -> list[dict[str, object]]:
     for index, name in enumerate(names, start=1):
         minimum, maximum = arity(name)
         required = capabilities(name)
-        suite = "src/evaluator/evaluator_test.mbt" if required else "src/builtin/builtin_test.mbt"
+        suite = "internal/evaluator/evaluator_test.mbt" if required else "internal/builtin/builtin_test.mbt"
         result.append({
             "schema_version": 1,
             "index": index,
