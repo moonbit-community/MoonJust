@@ -12,7 +12,7 @@ under `tools/verification/` so failures remain attributable to one area.
 | `probes/` | internal MoonBit executables used to expose typed behavior to gates |
 | `quality/` | coverage collection, aggregation, and quality evidence |
 | `release/` | artifact construction, verification, supply chain, and rollback tooling |
-| `spikes/` | retained ecosystem and host capability qualification checks |
+| `spikes/` | retained host capability qualification checks |
 | `upstream/` | pinned `just` inventory, oracle, manifest, and harness tooling |
 Generated build output and language caches belong under ignored cache
 directories, never in this tree.

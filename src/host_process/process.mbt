@@ -692,7 +692,7 @@ async fn run_process_with_output_limit(
     value => value
   }
   let collected = try
-    @async.with_task_group() <| group => {
+    @async.with_task_group() <| reader_group => {
       let (wrapped_program, wrapped_arguments, temporary_script) = materialize_windows_command(
         resolved_program,
         command.arguments(),
@@ -700,10 +700,6 @@ async fn run_process_with_output_limit(
         command.environment(),
         command.inherits_environment(),
       )
-      match temporary_script {
-        Some(path) => group.add_defer(() => remove_windows_command_script(path))
-        None => ()
-      }
       let (program, arguments, signal_observable) = observable_process_command(
         wrapped_program, wrapped_arguments,
       )
@@ -724,104 +720,126 @@ async fn run_process_with_output_limit(
       let merge_regular = stdout_regular &&
         stderr_regular &&
         @stdio.stdout.fd() == @stdio.stderr.fd()
-      let child_stdin = if command.inherits_stdin() {
-        None
-      } else {
-        let (child_stdin, writer) = @process.write_to_process()
-        group.spawn_bg(() => {
-          defer writer.close()
-          if !command.stdin().is_empty() {
-            try writer.write(command.stdin()) catch {
-              _ => ()
-            } noraise {
-              _ => ()
-            }
-          }
-        })
-        Some(child_stdin)
-      }
-      let child_stdout = if pipe_stdout { stdout_target } else { @stdio.stdout }
-      let child_stderr = if merge_regular {
-        stdout_target
-      } else if pipe_stderr {
-        stderr_target
-      } else {
-        @stdio.stderr
-      }
-      let environment = environment_map(command)
-      let process = if command.inherits_stdin() {
-        spawn_observed_process(
-          group,
-          program,
-          arguments,
-          environment,
-          command.inherits_environment(),
-          @stdio.stdin,
-          child_stdout,
-          child_stderr,
-          cwd,
-        )
-      } else {
-        spawn_observed_process(
-          group,
-          program,
-          arguments,
-          environment,
-          command.inherits_environment(),
-          child_stdin.unwrap(),
-          child_stdout,
-          child_stderr,
-          cwd,
-        )
-      }
-      let stdout_task = if !pipe_stdout {
-        stdout_reader.close()
-        group.spawn(() => (b"", false))
-      } else {
-        group.spawn(() => {
-          read_bounded_process_output(
-            output_mutex,
-            stdout_reader,
-            output_limit,
-            command.stdout() == Capture,
-            process,
-            if command.stdout() == Inherit {
-              Some(Stdout)
-            } else {
-              None
-            },
-          )
-        })
-      }
-      let stderr_task = if merge_regular || !pipe_stderr {
-        stderr_reader.close()
-        group.spawn(() => (b"", false))
-      } else {
-        group.spawn(() => {
-          read_bounded_process_output(
-            output_mutex,
-            stderr_reader,
-            output_limit,
-            command.stderr() == Capture,
-            process,
-            if command.stderr() == Inherit {
-              Some(Stderr)
-            } else {
-              None
-            },
-          )
-        })
-      }
-      let status = try process.wait() catch {
-        _ => {
-          process.cancel()
-          None
+      let (status, stdout_task, stderr_task, signal_observable) = @async.with_task_group() <| child_group => {
+        match temporary_script {
+          Some(path) =>
+            child_group.add_defer(() => remove_windows_command_script(path))
+          None => ()
         }
-      } noraise {
-        value => Some(value)
+        let child_stdin = if command.inherits_stdin() {
+          None
+        } else {
+          let (child_stdin, writer) = @process.write_to_process()
+          child_group.spawn_bg(() => {
+            defer writer.close()
+            if !command.stdin().is_empty() {
+              try writer.write(command.stdin()) catch {
+                _ => ()
+              } noraise {
+                _ => ()
+              }
+            }
+          })
+          Some(child_stdin)
+        }
+        let child_stdout = if pipe_stdout {
+          stdout_target
+        } else {
+          @stdio.stdout
+        }
+        let child_stderr = if merge_regular {
+          stdout_target
+        } else if pipe_stderr {
+          stderr_target
+        } else {
+          @stdio.stderr
+        }
+        let environment = environment_map(command)
+        let process = if command.inherits_stdin() {
+          spawn_observed_process(
+            child_group,
+            program,
+            arguments,
+            environment,
+            command.inherits_environment(),
+            @stdio.stdin,
+            child_stdout,
+            child_stderr,
+            cwd,
+          )
+        } else {
+          spawn_observed_process(
+            child_group,
+            program,
+            arguments,
+            environment,
+            command.inherits_environment(),
+            child_stdin.unwrap(),
+            child_stdout,
+            child_stderr,
+            cwd,
+          )
+        }
+        let stdout_task = if !pipe_stdout {
+          stdout_reader.close()
+          None
+        } else {
+          Some(
+            reader_group.spawn(() => {
+              read_bounded_process_output(
+                output_mutex,
+                stdout_reader,
+                output_limit,
+                command.stdout() == Capture,
+                process,
+                if command.stdout() == Inherit {
+                  Some(Stdout)
+                } else {
+                  None
+                },
+              )
+            }),
+          )
+        }
+        let stderr_task = if merge_regular || !pipe_stderr {
+          stderr_reader.close()
+          None
+        } else {
+          Some(
+            reader_group.spawn(() => {
+              read_bounded_process_output(
+                output_mutex,
+                stderr_reader,
+                output_limit,
+                command.stderr() == Capture,
+                process,
+                if command.stderr() == Inherit {
+                  Some(Stderr)
+                } else {
+                  None
+                },
+              )
+            }),
+          )
+        }
+        let status = try process.wait() catch {
+          _ => {
+            process.cancel()
+            None
+          }
+        } noraise {
+          value => Some(value)
+        }
+        (status, stdout_task, stderr_task, signal_observable)
       }
-      let (stdout, stdout_limited) = stdout_task.wait()
-      let (stderr, stderr_limited) = stderr_task.wait()
+      let (stdout, stdout_limited) = match stdout_task {
+        Some(reader) => reader.wait()
+        None => (b"", false)
+      }
+      let (stderr, stderr_limited) = match stderr_task {
+        Some(reader) => reader.wait()
+        None => (b"", false)
+      }
       (
         status, stdout, stderr, stdout_limited, stderr_limited, signal_observable,
       )

@@ -212,10 +212,11 @@ transparent measurements, not the later 1.0 release threshold.
 
 The repository, product identity, pinned upstream source, CC0 provenance,
 compatibility inventory, differential harness, required checks, architecture
-rules and dependency spikes are all present. The harness compares stdout,
+rules and dependency qualification records are preserved. The harness compares stdout,
 stderr, exit status and filesystem trees without broad normalization. The
-async and parser ecosystem spikes remain isolated under `spikes/` and their
-experimental APIs do not enter the pure core.
+retained host capability spike remains isolated under `spikes/`; its
+experimental API does not enter the pure core. The parser ecosystem spike was
+removed after the project chose the in-project parser implementation.
 
 ### Phase 1: contracts and boundaries
 

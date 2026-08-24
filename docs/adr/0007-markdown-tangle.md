@@ -31,7 +31,7 @@ larger than MoonJust's required surface.
 
 The parser remains independent of a large third-party AST and can replace the
 implementation without a public migration. Conversion costs are accepted for
-Markdown input, which is a secondary load path. The Phase 0 result proves block
-selection and position availability, not full tangle compatibility; the exact
-evidence and remaining work are recorded in
-`docs/spikes/parser-ecosystem.md`.
+Markdown input, which is a secondary load path. The Phase 0 result proved block
+selection and position availability, not full tangle compatibility; that
+historical spike was later removed after the project chose the in-project
+parser implementation.

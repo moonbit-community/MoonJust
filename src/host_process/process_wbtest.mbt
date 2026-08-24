@@ -12,9 +12,6 @@ async test "signal status keeps the direct child result without a fixed registry
 
 ///|
 test "process status mapping retains only captured streams" {
-  assert_false(process_group_exec_requested())
-  enable_process_group_boundary()
-  assert_eq(exec_process_group_from_args(), 95)
   let captured = try! @host.CommandSpec::new("echo", [])
   captured.set_stdout(Capture)
   captured.set_stderr(Capture)

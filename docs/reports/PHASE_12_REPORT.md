@@ -44,10 +44,13 @@ host 和 executor 实现类型不会泄漏到 facade。
 
 生产 `src/host_native/platform.c`、`realpath.c` 和 `transaction.c` 已删除，
 对应能力迁移到 MoonBit native/portable 文件，并只通过系统标准 ABI 或已批准的
-`moonbitlang/async`/`moonbitlang/x/fs` 后端完成平台调用。本轮后的生产与验证 C
-清单严格为：
+`moonbitlang/async`/`moonbitlang/x/fs` 后端完成平台调用。本轮后的生产 C 清单
+严格为：
 
 - `src/host_process/signal_forward.c`
+
+host-async 验证包另保留两个隔离探针：
+
 - `spikes/host-async/process_lifecycle/process_lifecycle.c`
 - `spikes/host-async/signal_probe/signal_probe.c`
 

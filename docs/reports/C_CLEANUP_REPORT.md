@@ -9,10 +9,15 @@ cleanup removes project-owned production C that duplicated filesystem,
 platform, and process-group behavior while retaining only the signal stub and
 isolated research probes explicitly approved by the plan.
 
-Tracked project C sources after the cleanup:
+Production C source after the cleanup:
 
 ```text
 src/host_process/signal_forward.c
+```
+
+The host-async validation package retains two isolated test probes:
+
+```text
 spikes/host-async/process_lifecycle/process_lifecycle.c
 spikes/host-async/signal_probe/signal_probe.c
 ```
@@ -46,11 +51,11 @@ rg -n 'native-stub|moonjust_host_|extern "C"|extern "c"' src tools
 
 Results:
 
-- The current C inventory is exactly the three files listed above.
+- The production C inventory is exactly `src/host_process/signal_forward.c`.
 - `src/host_native/moon.pkg` has no `native-stub` entries.
 - `src/host_process/moon.pkg` is the only production package with a
   `native-stub` list, and it contains only `signal_forward.c`.
-- The two spike packages retain their own explicitly isolated C probes.
+- The host-async validation package retains its two explicitly isolated C probes.
 - No removed `moonjust_host_*` symbol remains.
 - Remaining MoonBit `extern "C"` declarations are system ABI calls or calls
   into approved `moonbitlang` backends; they are not project-owned C sources.
