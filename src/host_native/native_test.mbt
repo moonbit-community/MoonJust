@@ -9,15 +9,6 @@ extern "C" fn test_file_attributes(path : String) -> UInt = "GetFileAttributesW"
 extern "C" fn test_set_file_attributes(path : String, attributes : UInt) -> Int = "SetFileAttributesW"
 
 ///|
-#cfg(platform="windows")
-#borrow(target, link_path)
-extern "C" fn test_symlink(
-  target : String,
-  link_path : String,
-  flags : UInt,
-) -> Int = "CreateSymbolicLinkW"
-
-///|
 #cfg(not(platform="windows"))
 #borrow(path)
 extern "C" fn test_chmod(path : Bytes, mode : Int) -> Int = "chmod"
@@ -29,13 +20,20 @@ extern "C" fn test_stat(path : Bytes, metadata : Bytes) -> Int = "stat"
 
 ///|
 #cfg(not(platform="windows"))
-#borrow(target, link_path)
-extern "C" fn test_symlink(target : Bytes, link_path : Bytes) -> Int = "symlink"
+#borrow(path)
+extern "C" fn test_mkfifo(path : Bytes, mode : Int) -> Int = "mkfifo"
+
+///|
+#cfg(platform="windows")
+fn make_fifo_for_test(_path : String) -> Int {
+  -1
+}
 
 ///|
 #cfg(not(platform="windows"))
-#borrow(path)
-extern "C" fn test_mkfifo(path : Bytes, mode : Int) -> Int = "mkfifo"
+fn make_fifo_for_test(path : String) -> Int {
+  test_mkfifo(@utf8.encode(path) + Bytes::make(1, (0).to_byte()), 0o600)
+}
 
 ///|
 #cfg(platform="windows")
@@ -123,36 +121,6 @@ fn mode_for_test(_path : @path.PathValue) -> Int? {
 }
 
 ///|
-#cfg(platform="windows")
-fn symlink_for_test(
-  target : @path.PathValue,
-  link_path : @path.PathValue,
-) -> Int {
-  if test_symlink(link_path.as_string(), target.as_string(), 2U) == 0 {
-    0
-  } else {
-    4
-  }
-}
-
-///|
-#cfg(not(platform="windows"))
-fn symlink_for_test(
-  target : @path.PathValue,
-  link_path : @path.PathValue,
-) -> Int {
-  if test_symlink(
-      @utf8.encode(target.as_string()) + Bytes::make(1, (0).to_byte()),
-      @utf8.encode(link_path.as_string()) + Bytes::make(1, (0).to_byte()),
-    ) ==
-    0 {
-    0
-  } else {
-    4
-  }
-}
-
-///|
 test "real filesystem adapter reads metadata directories and canonical identity" {
   let host = NativeFs::new()
   let path = @path.PathValue::new("moon.mod", Unix)
@@ -197,16 +165,18 @@ async test "native source reader retains at most limit plus one byte" {
 }
 
 ///|
-#cfg(not(platform="windows"))
 async test "native source reader streams named pipes" {
+  if @host.HostPlatform::platform_info(NativeFs::new()).operating_system() ==
+    Windows {
+    return
+  }
   @async.with_task_group() <| group => {
     let host = NativeFs::new()
     let path = @path.PathValue::new(".moonjust-native-dotenv-fifo", Unix)
     if @fs.path_exists(path.as_string()) {
       @fs.remove_file(path.as_string())
     }
-    let encoded = @utf8.encode(path.as_string()) + Bytes::make(1, (0).to_byte())
-    assert_eq(test_mkfifo(encoded, 0o600), 0)
+    assert_eq(make_fifo_for_test(path.as_string()), 0)
     group.add_defer(() => @fs.remove_file(path.as_string()))
     assert_true(@host.HostFs::file_exists(host, path))
     let metadata = @host.HostFs::metadata(host, path)
@@ -266,24 +236,35 @@ test "native filesystem commits same-directory transactions without debris" {
 }
 
 ///|
-test "native canonical identity follows filesystem symlinks" {
+async test "native canonical identity follows filesystem symlinks" {
   let host = NativeFs::new()
-  let target = @path.PathValue::new(".moonjust-native-symlink-target", Unix)
-  let link = @path.PathValue::new(".moonjust-native-symlink", Unix)
-  if @host.HostFs::file_exists(host, link) {
-    @fs.remove_file(link.as_string())
-  }
-  if @host.HostFs::file_exists(host, target) {
-    @fs.remove_file(target.as_string())
-  }
-  @host.HostFs::write_file(host, target, b"target")
-  assert_eq(symlink_for_test(target, link), 0)
-  assert_eq(
-    @host.HostFs::canonicalize(host, link),
-    @host.HostFs::canonicalize(host, target),
+  let flavor = @host.HostPlatform::platform_info(host).path_flavor()
+  let separator = "\{flavor.separator()}"
+  let cwd = @host.HostEnv::current_dir(host).as_string()
+  let target = @path.PathValue::new(
+    cwd + separator + ".moonjust-native-symlink-target",
+    flavor,
   )
-  @fs.remove_file(link.as_string())
-  @fs.remove_file(target.as_string())
+  let link = @path.PathValue::new(
+    cwd + separator + ".moonjust-native-symlink",
+    flavor,
+  )
+  @async.with_task_group() <| group => {
+    if @host.HostFs::file_exists(host, link) {
+      @async_fs.remove(link.as_string())
+    }
+    if @host.HostFs::file_exists(host, target) {
+      @async_fs.rmdir(target.as_string(), recursive=true)
+    }
+    @async_fs.mkdir(target.as_string())
+    @async_fs.symlink(link.as_string(), target=target.as_string())
+    group.add_defer(() => @async_fs.remove(link.as_string()))
+    group.add_defer(() => @async_fs.rmdir(target.as_string(), recursive=true))
+    assert_eq(
+      @host.HostFs::canonicalize(host, link),
+      @host.HostFs::canonicalize(host, target),
+    )
+  }
 }
 
 ///|
