@@ -286,23 +286,23 @@ RUNTIME_CACHE_DIFFERENCES = {
 
 EXPLICIT_CONTRACT_EVIDENCE = {
     "global::not_macos": (
-        "internal/application/application_test.mbt",
+        "src/application/application_test.mbt",
         "global context follows Linux XDG lookup and project root",
     ),
     "parallel::dependents_block_on_running_dependencies": (
-        "internal/runtime/runtime_test.mbt",
+        "src/runtime/runtime_test.mbt",
         "contract runtime dependents block on running dependencies",
     ),
     "parallel::jobs_limits_concurrent_recipes": (
-        "internal/runtime/runtime_test.mbt",
+        "src/runtime/runtime_test.mbt",
         "contract runtime jobs limits concurrent recipes",
     ),
     "parallel::prior_dependencies_run_in_parallel": (
-        "internal/runtime/runtime_test.mbt",
+        "src/runtime/runtime_test.mbt",
         "contract runtime prior dependencies run in parallel",
     ),
     "parallel::recipes_up_to_job_limit_run_in_parallel": (
-        "internal/runtime/runtime_test.mbt",
+        "src/runtime/runtime_test.mbt",
         "contract runtime recipes up to job limit run in parallel",
     ),
     "version::tests::compare": (
@@ -388,105 +388,105 @@ EXECUTOR_UNSUPPORTED_MARKERS = (
 AREA_TEST_ANCHORS = {
     "parser-formatter": {
         "parser": (
-            "internal/parser/top_level_test.mbt",
+            "src/parser/top_level_test.mbt",
             "top-level parser builds assignments aliases settings recipes and imports",
         ),
         "format": (
-            "internal/formatter/formatter_test.mbt",
+            "src/formatter/formatter_test.mbt",
             "formatter corpus is idempotent across representative grammar",
         ),
         "markdown": (
-            "internal/formatter/markdown_test.mbt",
+            "src/formatter/markdown_test.mbt",
             "markdown corpus preserves CommonMark fence boundaries",
         ),
         "tangle": (
-            "internal/formatter/markdown_test.mbt",
+            "src/formatter/markdown_test.mbt",
             "markdown tangle requires matching fence character and minimum length",
         ),
     },
     "semantic-loader": {
         "semantic": (
-            "internal/semantic/semantic_test.mbt",
+            "src/semantic/semantic_test.mbt",
             "compilation exposes ordered symbols and typed settings",
         ),
         "validation": (
-            "internal/semantic/semantic_test.mbt",
+            "src/semantic/semantic_test.mbt",
             "semantic validation checks minimum version, dependency arity, and recipe variables",
         ),
         "settings": (
-            "internal/semantic/semantic_test.mbt",
+            "src/semantic/semantic_test.mbt",
             "settings and attributes expose complete typed contracts",
         ),
         "loader_search": (
-            "internal/loader/loader_test.mbt",
+            "src/loader/loader_test.mbt",
             "search ascends to the project ceiling and loads through host",
         ),
         "loader_global": (
-            "internal/loader/loader_test.mbt",
+            "src/loader/loader_test.mbt",
             "global fallback and stdin loading are explicit",
         ),
         "loader_graph": (
-            "internal/loader/loader_test.mbt",
+            "src/loader/loader_test.mbt",
             "optional imports are skipped and cycles are reported",
         ),
     },
     "evaluator-builtins": {
         "pure": (
-            "internal/builtin/builtin_test.mbt",
+            "src/builtin/builtin_test.mbt",
             "pure builtins cover string, path, regex and semver contracts",
         ),
         "builtin_collections": (
-            "internal/builtin/builtin_test.mbt",
+            "src/builtin/builtin_test.mbt",
             "canonical string and list builtins are deterministic",
         ),
         "effect": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "effect context connects fs random clock process terminal and PATH facts",
         ),
         "evaluation": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "pure evaluation supports conditions, lists, concatenation and builtins",
         ),
         "lazy": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "lazy assignments expose states and redact cycle diagnostics",
         ),
         "scope": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "recipe and module scopes implement defaults variadics shadowing and exports",
         ),
         "limits": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "evaluation limits reject adversarial depth",
         ),
     },
     "query-cli": {
         "init": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "init creates the canonical template and refuses overwrite",
         ),
         "list": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "list renders docs aliases groups and hides private recipes",
         ),
         "alias_style": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "list groups recipes once and supports every upstream alias style",
         ),
         "groups": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "groups are deduplicated and Unicode list padding uses display width",
         ),
         "show_usage": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "show and usage resolve aliases without executing recipes",
         ),
         "summary": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "summary supports sorted and source-order output",
         ),
         "inspect": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "dump and JSON inspect are deterministic and schema-pinned",
         ),
         "version": (
@@ -496,181 +496,181 @@ AREA_TEST_ANCHORS = {
     },
     "execution-context": {
         "dotenv": (
-            "internal/environment/environment_test.mbt",
+            "src/environment/environment_test.mbt",
             "dotenv file loading implements path filename precedence and ancestor search",
         ),
         "invocation": (
-            "internal/invocation/invocation_test.mbt",
+            "src/invocation/invocation_test.mbt",
             "long short combined repeatable and terminator options match upstream",
         ),
         "stdin": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "relative justfile and working directory use explicit invocation cwd",
         ),
         "workdir": (
-            "internal/workdir/workdir_test.mbt",
+            "src/workdir/workdir_test.mbt",
             "recipe working-directory overrides settings and no-cd",
         ),
         "cli_environment": (
-            "internal/cli/cli_test.mbt",
+            "src/cli/cli_test.mbt",
             "shell arguments and clear flag use last occurrence semantics",
         ),
         "overrides": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "CLI variable overrides reach evaluate and invocation validation",
         ),
         "tempdir": (
-            "internal/environment/environment_test.mbt",
+            "src/environment/environment_test.mbt",
             "temporary directory CLI setting and host precedence is lexical",
         ),
     },
     "runtime-cache": {
         "cache_key": (
-            "internal/cache/cache_test.mbt",
+            "src/cache/cache_test.mbt",
             "cache key invalidates on body extra inputs and outputs",
         ),
         "cache_runtime": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "cache miss hit input invalidation and corruption recovery",
         ),
         "cache_outputs": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "missing cache outputs fail without publishing a manifest",
         ),
         "cache_bypass": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "no-cache bypasses lookup locks and publication",
         ),
         "cache_verbose": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "verbose cache diagnostics report stable hits and key material",
         ),
         "cache_gate": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "cache attributes require the explicit unstable gate",
         ),
         "cache_scope": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "cache expressions resolve in recipe scope and require scripts",
         ),
         "cache_clean": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "clean filters recipe and module prefixes",
         ),
         "path_clean": (
-            "internal/path/path_test.mbt",
+            "src/path/path_test.mbt",
             "Unix paths clean without escaping an absolute root",
         ),
         "parallel_runtime": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "parallel dependencies use bounded stable concurrency",
         ),
         "parallel_failure": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "parallel failure selection ignores completion timing",
         ),
         "parallel_subsequent": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "parallel subsequent dependencies join before completion",
         ),
         "jobs": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "jobs must be a positive integer before execution planning",
         ),
     },
     "executor": {
         "bom": (
-            "internal/lexer/lexer_test.mbt",
+            "src/lexer/lexer_test.mbt",
             "operators, comments, BOM, CRLF, and continued lines",
         ),
         "cli": (
-            "internal/cli/cli_test.mbt",
+            "src/cli/cli_test.mbt",
             "CLI validates command conflicts color aliases and verbosity",
         ),
         "dependency": (
-            "internal/executor/executor_test.mbt",
+            "src/executor/executor_test.mbt",
             "dependency graph is deterministic and once is keyed by parameter values",
         ),
         "effect": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "configured shell captures stdout and removes exactly one line ending",
         ),
         "environment": (
-            "internal/environment/environment_test.mbt",
+            "src/environment/environment_test.mbt",
             "process environment precedence table is complete",
         ),
         "evaluation": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "pure evaluation supports conditions, lists, concatenation and builtins",
         ),
         "lexer": (
-            "internal/lexer/lexer_test.mbt",
+            "src/lexer/lexer_test.mbt",
             "recipe bodies preserve text, prefixes, blank lines, and brace escapes",
         ),
         "invocation": (
-            "internal/invocation/invocation_test.mbt",
+            "src/invocation/invocation_test.mbt",
             "long short combined repeatable and terminator options match upstream",
         ),
         "line": (
-            "internal/executor/executor_test.mbt",
+            "src/executor/executor_test.mbt",
             "ordinary line evaluates interpolation and captures exact process request",
         ),
         "output": (
-            "internal/executor/executor_test.mbt",
+            "src/executor/executor_test.mbt",
             "quiet discards child streams while verbose timestamp and color force echo",
         ),
         "platform": (
-            "internal/executor/executor_test.mbt",
+            "src/executor/executor_test.mbt",
             "shell families preserve representative argv without quoting rewrites",
         ),
         "query": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "list renders docs aliases groups and hides private recipes",
         ),
         "script": (
-            "internal/executor/executor_test.mbt",
+            "src/executor/executor_test.mbt",
             "shebang script uses executable temporary path and always cleans it",
         ),
         "semantic": (
-            "internal/semantic/semantic_test.mbt",
+            "src/semantic/semantic_test.mbt",
             "settings and attributes expose complete typed contracts",
         ),
         "signal": (
-            "internal/host/fake_host_test.mbt",
+            "src/host/fake_host_test.mbt",
             "signal numbers and exit codes preserve the process contract",
         ),
         "signals": (
-            "internal/runtime/runtime_test.mbt",
+            "src/runtime/runtime_test.mbt",
             "continue signals are explicit per recipe and preserve subsequent execution",
         ),
         "dotenv": (
-            "internal/environment/environment_test.mbt",
+            "src/environment/environment_test.mbt",
             "dotenv file loading implements path filename precedence and ancestor search",
         ),
         "justfile": (
-            "internal/parser/top_level_test.mbt",
+            "src/parser/top_level_test.mbt",
             "top-level parser builds assignments aliases settings recipes and imports",
         ),
         "style": (
-            "internal/evaluator/evaluator_test.mbt",
+            "src/evaluator/evaluator_test.mbt",
             "effect context connects fs random clock process terminal and PATH facts",
         ),
     },
     "platform-compatibility": {
         "choose": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "chooser filters candidates and preserves each selected invocation",
         ),
         "confirm": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "confirmation plan preserves parent-first dependency context and prompts",
         ),
         "edit": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "editor uses visual precedence and opens invalid source from its directory",
         ),
         "list": (
-            "internal/application/application_test.mbt",
+            "src/application/application_test.mbt",
             "list color highlights doc backticks on stdout",
         ),
     },
@@ -985,39 +985,39 @@ def anchor_for(area: str, category: str, name: str | None = None) -> tuple[str, 
         if key == "list":
             if name == "list::doc_above_wide_signature":
                 return (
-                    "internal/application/application_test.mbt",
+                    "src/application/application_test.mbt",
                     "list places wide signature documentation above",
                 )
             if "::tests::" in name:
                 return (
-                    "internal/application/width_wbtest.mbt",
+                    "src/application/width_wbtest.mbt",
                     "human-readable lists use upstream conjunctions and ticks",
                 )
         if key == "choose":
             if name in {"choose::cancelled_by_user", "choose::chooser_signal_exit_code_is_propagated"}:
                 return (
-                    "internal/application/application_test.mbt",
+                    "src/application/application_test.mbt",
                     "chooser cancellation succeeds and signals preserve exit status",
                 )
             if name == "choose::status_error":
                 return (
-                    "internal/application/application_test.mbt",
+                    "src/application/application_test.mbt",
                     "chooser nonzero status is propagated",
                 )
             if name == "choose::invoke_error_function":
                 return (
-                    "internal/application/application_test.mbt",
+                    "src/application/application_test.mbt",
                     "interactive invocation and exit failures retain context",
                 )
         if key == "edit":
             if name in {"edit::invoke_error", "edit::status_error"}:
                 return (
-                    "internal/application/application_test.mbt",
+                    "src/application/application_test.mbt",
                     "interactive invocation and exit failures retain context",
                 )
             if name == "edit::editor_precedence":
                 return (
-                    "internal/application/application_test.mbt",
+                    "src/application/application_test.mbt",
                     "editor falls back through EDITOR and vim",
                 )
         if key == "confirm" and any(
@@ -1025,7 +1025,7 @@ def anchor_for(area: str, category: str, name: str | None = None) -> tuple[str, 
             for marker in ("dump", "format", "too_many", "argument")
         ):
             return (
-                "internal/application/application_test.mbt",
+                "src/application/application_test.mbt",
                 "confirm attributes format and reject excess prompt arguments",
             )
         return AREA_TEST_ANCHORS["platform-compatibility"][key]
@@ -1167,15 +1167,15 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 targets=["native", "wasm1"],
                 evidence=[
                     "compat/lexer.toml",
-                    "internal/lexer/upstream_lexer_test.mbt",
-                    "internal/lexer/hardening_test.mbt",
+                    "src/lexer/upstream_lexer_test.mbt",
+                    "src/lexer/hardening_test.mbt",
                 ],
                 tracking="MJ-LEX-HARDEN-0001",
                 test_anchor={
-                    "suite": "internal/lexer/upstream_lexer_test.mbt",
+                    "suite": "src/lexer/upstream_lexer_test.mbt",
                     "test_name": "just 1.57.0 key token oracle corpus",
                 },
-                contract_case="MJ-CONTRACT::internal/lexer/upstream_lexer_test.mbt::just 1.57.0 key token oracle corpus",
+                contract_case="MJ-CONTRACT::src/lexer/upstream_lexer_test.mbt::just 1.57.0 key token oracle corpus",
             )
         elif category in {"changelog", "man", "readme"}:
             row.update(

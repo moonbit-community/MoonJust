@@ -257,7 +257,7 @@ jobs:
           version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
           python3 ./tools/release/check_moonx_asset.py \
             --repo . --registry _build/release \
-            --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+            --coordinate "ZSeanYves/MoonJust/cmd/just@$version"
           base_ref="${{ github.event.pull_request.base.sha }}"
           if [ -z "$base_ref" ]; then base_ref=origin/main; fi
           python3 ./tools/release/build_size_baseline.py \

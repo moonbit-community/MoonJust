@@ -1,7 +1,7 @@
 ///|
 /// Return the current MoonJust package version.
 pub fn version() -> String {
-  "0.7.0-alpha.1"
+  "v0.1.0"
 }
 
 ///|

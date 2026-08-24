@@ -42,22 +42,22 @@ class ChangedLinesTests(unittest.TestCase):
             self.git(repo, "init", "-b", "main")
             self.git(repo, "config", "user.email", "moonjust@example.invalid")
             self.git(repo, "config", "user.name", "MoonJust Test")
-            self.write(repo, "internal/demo/core.mbt", "root\n")
+            self.write(repo, "src/demo/core.mbt", "root\n")
             root = self.commit(repo, "root")
 
             self.git(repo, "switch", "-c", "frozen")
-            self.write(repo, "internal/demo/frozen.mbt", "shared\n")
+            self.write(repo, "src/demo/frozen.mbt", "shared\n")
             frozen = self.commit(repo, "frozen baseline")
 
             self.git(repo, "switch", "main")
-            self.write(repo, "internal/demo/frozen.mbt", "shared\n")
-            self.write(repo, "internal/demo/core.mbt", "root\nchanged\n")
+            self.write(repo, "src/demo/frozen.mbt", "shared\n")
+            self.write(repo, "src/demo/core.mbt", "root\nchanged\n")
             self.commit(repo, "squashed candidate")
 
             self.assertEqual(self.git(repo, "merge-base", frozen, "HEAD"), root)
             self.assertEqual(
                 merge_coverage.changed_lines(repo, frozen),
-                {"internal/demo/core.mbt": {2}},
+                {"src/demo/core.mbt": {2}},
             )
 
 

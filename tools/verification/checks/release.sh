@@ -22,8 +22,8 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-[ "$version" = "0.7.0-alpha.1" ] || fail "module version differs from release identity"
-grep -q '^coordinate = "moonbit-community/MoonJust/cmd/just@0.7.0-alpha.1"$' "$manifest" || \
+[ "$version" = "0.1.0" ] || fail "module version differs from release identity"
+grep -q '^coordinate = "ZSeanYves/MoonJust/cmd/just@0.1.0"$' "$manifest" || \
   fail "MoonX coordinate differs"
 for required in api/API.mbt.md docs/API.md docs/RELEASE_POLICY.md LICENSE NOTICE README.mbt.md SECURITY.md CHANGELOG.md; do
   [ -s "$repo_root/$required" ] || fail "required publication file is missing: $required"
@@ -74,7 +74,7 @@ python3 "$release_dir/check_tamper_resistance.py" \
 python3 "$release_dir/check_moonx_asset.py" \
   --repo "$repo_root" \
   --registry "$repo_root/_build/release" \
-  --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+  --coordinate "ZSeanYves/MoonJust/cmd/just@$version"
 
 MOONJUST_RELEASE_PLATFORM="$platform" \
   MOONJUST_RELEASE_OUT="$repo_root/_build/release-upgrade" \

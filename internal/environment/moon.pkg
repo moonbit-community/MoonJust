@@ -1,5 +1,0 @@
-import {
-  "moonbit-community/MoonJust/internal/host",
-  "moonbit-community/MoonJust/internal/path",
-  "moonbitlang/core/encoding/utf8",
-}

@@ -1,0 +1,175 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/src/lexer"
+
+import {
+  "ZSeanYves/MoonJust/src/diagnostic",
+  "ZSeanYves/MoonJust/src/source",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn lex(@source.Source) -> TokenStream raise LexerError
+
+pub fn lex_with_limits(@source.Source, LexerLimits) -> TokenStream raise LexerError
+
+// Errors
+pub(all) suberror LexerConfigurationError {
+  InvalidLexerLimit(name~ : String, value~ : Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) suberror LexerError {
+  UnknownStartOfToken(start~ : String, span~ : @source.Span)
+  UnexpectedEndOfToken(expected~ : String, span~ : @source.Span)
+  UnexpectedCharacter(expected~ : String, found~ : String, span~ : @source.Span)
+  InvalidEscapeSequence(character~ : String, span~ : @source.Span)
+  EscapeEndOfFile(span~ : @source.Span)
+  UnpairedCarriageReturn(span~ : @source.Span)
+  UnexpectedClosingDelimiter(close~ : DelimiterKind, span~ : @source.Span)
+  MismatchedClosingDelimiter(open~ : DelimiterKind, close~ : DelimiterKind, open_line~ : Int, span~ : @source.Span)
+  UnterminatedString(span~ : @source.Span)
+  UnterminatedBacktick(span~ : @source.Span)
+  UnterminatedInterpolation(span~ : @source.Span)
+  MixedLeadingWhitespace(whitespace~ : String, span~ : @source.Span)
+  InconsistentLeadingWhitespace(expected~ : String, found~ : String, span~ : @source.Span)
+  SourceLimitExceeded(length~ : Int, limit~ : Int, span~ : @source.Span)
+  TokenLimitExceeded(limit~ : Int, span~ : @source.Span)
+  NestingLimitExceeded(limit~ : Int, span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+pub fn LexerError::code(Self) -> String
+pub fn LexerError::message(Self) -> String
+pub fn LexerError::span(Self) -> @source.Span
+pub fn LexerError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+
+// Types and methods
+pub(all) enum DelimiterKind {
+  Brace
+  Bracket
+  Paren
+  FormatString
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Keyword {
+  Alias
+  AllowDuplicateRecipes
+  AllowDuplicateVariables
+  Assert
+  DefaultList
+  DefaultScript
+  DotenvCommand
+  DotenvFilename
+  DotenvLoad
+  DotenvOverride
+  DotenvPath
+  DotenvRequired
+  Eager
+  Else
+  Export
+  F
+  Fallback
+  False
+  Guards
+  If
+  IgnoreComments
+  Import
+  Indentation
+  Lazy
+  Lists
+  MinimumVersion
+  Mod
+  NoCd
+  NoExitMessage
+  PositionalArguments
+  Quiet
+  ScriptInterpreter
+  Set
+  Shell
+  Tempdir
+  True
+  Unexport
+  Unstable
+  WindowsPowershell
+  WindowsShell
+  WorkingDirectory
+  X
+} derive(Compare, Eq, Hash, @debug.Debug)
+pub fn Keyword::from_lexeme(String) -> Self?
+pub fn Keyword::lexeme(Self) -> String
+
+pub struct LexerLimits {
+  max_source_bytes : Int
+  max_tokens : Int
+  max_nesting : Int
+} derive(Eq, @debug.Debug)
+pub fn LexerLimits::default() -> Self
+pub fn LexerLimits::max_nesting(Self) -> Int
+pub fn LexerLimits::max_source_bytes(Self) -> Int
+pub fn LexerLimits::max_tokens(Self) -> Int
+pub fn LexerLimits::new(Int, Int, Int) -> Self raise LexerConfigurationError
+
+pub struct Token {
+  kind : TokenKind
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Token::is_synthetic(Self) -> Bool
+pub fn Token::kind(Self) -> TokenKind
+pub fn Token::lexeme(Self, @source.Source) -> String raise @source.SourceError
+pub fn Token::new(TokenKind, @source.Span) -> Self
+pub fn Token::span(Self) -> @source.Span
+
+pub(all) enum TokenKind {
+  AmpersandAmpersand
+  Asterisk
+  At
+  Backtick
+  Bang
+  BangEquals
+  BangTilde
+  BarBar
+  BraceL
+  BraceR
+  BracketL
+  BracketR
+  ByteOrderMark
+  Colon
+  ColonColon
+  ColonEquals
+  Comma
+  Comment
+  Dedent
+  Dollar
+  Eof
+  Eol
+  Equals
+  EqualsEquals
+  EqualsTilde
+  FormatStringContinue
+  FormatStringEnd
+  FormatStringStart
+  Identifier
+  Indent
+  InterpolationEnd
+  InterpolationStart
+  ParenL
+  ParenR
+  Plus
+  PlusPlus
+  QuestionMark
+  Slash
+  StringToken
+  Text
+  Unspecified
+  Whitespace
+} derive(Compare, Eq, Hash, @debug.Debug)
+pub fn TokenKind::as_string(Self) -> String
+
+pub struct TokenStream {
+  source_id : @source.SourceId
+  tokens : Array[Token]
+} derive(@debug.Debug)
+pub fn TokenStream::length(Self) -> Int
+pub fn TokenStream::source_id(Self) -> @source.SourceId
+pub fn TokenStream::tokens(Self) -> ArrayView[Token]
+
+// Type aliases
+
+// Traits

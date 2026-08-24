@@ -1,0 +1,33 @@
+import {
+  "ZSeanYves/MoonJust/src/cli",
+  "ZSeanYves/MoonJust/src/diagnostic",
+  "ZSeanYves/MoonJust/src/formatter",
+  "ZSeanYves/MoonJust/src/evaluator",
+  "ZSeanYves/MoonJust/src/environment",
+  "ZSeanYves/MoonJust/src/executor",
+  "ZSeanYves/MoonJust/src/host",
+  "ZSeanYves/MoonJust/src/invocation",
+  "ZSeanYves/MoonJust/src/lexer",
+  "ZSeanYves/MoonJust/src/loader",
+  "ZSeanYves/MoonJust/src/modulepath",
+  "ZSeanYves/MoonJust/src/path",
+  "ZSeanYves/MoonJust/src/semantic",
+  "ZSeanYves/MoonJust/src/source",
+  "ZSeanYves/MoonJust/src/syntax",
+  "ZSeanYves/MoonJust/src/value",
+  "ZSeanYves/MoonJust/src/workdir",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+}
+
+import {
+  "ZSeanYves/MoonJust/src/cache",
+  "moonbitlang/core/bench",
+  "moonbitlang/async",
+} for "test"
+
+import {
+  "moonbitlang/core/bench",
+} for "wbtest"

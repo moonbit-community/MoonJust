@@ -1,5 +1,5 @@
 import {
-  "moonbit-community/MoonJust/internal/formatter",
-  "moonbit-community/MoonJust/internal/semantic",
-  "moonbit-community/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/src/formatter",
+  "ZSeanYves/MoonJust/src/semantic",
+  "ZSeanYves/MoonJust/src/source",
 }

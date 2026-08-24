@@ -17,14 +17,14 @@ upgrade = "cold source-package install, previous-release replacement, corpus exe
 publication = "repository automation prepares and attests candidates only; formal Mooncakes publication, tags and GitHub Releases are maintainer-only"
 
 [mooncakes]
-module = "moonbit-community/MoonJust"
-version = "0.7.0-alpha.1"
+module = "ZSeanYves/MoonJust"
+version = "0.1.0"
 package = "cmd/just"
-coordinate = "moonbit-community/MoonJust/cmd/just@0.7.0-alpha.1"
-wasm_asset = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/just.wasm"
-wasm_checksum = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/just.wasm.sha256"
-wasm_sbom = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/sbom.cdx.json"
-wasm_provenance = "assets/moonbit-community/MoonJust@0.7.0-alpha.1/cmd/just/provenance.intoto.json"
+coordinate = "ZSeanYves/MoonJust/cmd/just@0.1.0"
+wasm_asset = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/just.wasm"
+wasm_checksum = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/just.wasm.sha256"
+wasm_sbom = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/sbom.cdx.json"
+wasm_provenance = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/provenance.intoto.json"
 
 [toolchain]
 moon = "0.1.20260803"

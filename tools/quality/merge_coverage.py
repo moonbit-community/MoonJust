@@ -14,7 +14,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-PRODUCTION_PREFIXES = ("api/", "cmd/just/", "internal/")
+PRODUCTION_PREFIXES = ("api/", "cmd/just/", "src/")
 EXCLUDED_SUFFIXES = ("_test.mbt", "_wbtest.mbt", "pkg.generated.mbti")
 REQUIRED_AREAS = {
     "lexer",
@@ -38,7 +38,7 @@ def production_file(filename: str) -> bool:
 
 
 def package_for(filename: str) -> str:
-    if filename.startswith("internal/"):
+    if filename.startswith("src/"):
         return filename.split("/", 2)[1]
     if filename.startswith("cmd/just/"):
         return "cmd/just"
@@ -73,7 +73,7 @@ def changed_lines(repo: Path, base: str | None) -> dict[str, set[int]]:
         command.extend([base, "HEAD"])
     else:
         command.append("HEAD")
-    command.extend(["--", "api", "cmd/just", "internal"])
+    command.extend(["--", "api", "cmd/just", "src"])
     result = subprocess.run(command, check=True, capture_output=True, text=True)
     current: str | None = None
     changed: dict[str, set[int]] = defaultdict(set)

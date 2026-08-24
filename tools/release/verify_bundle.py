@@ -140,10 +140,10 @@ def main() -> None:
         "native_sha256": native_digest,
         "archive": archive.name,
         "archive_sha256": archive_digest,
-        "wasm_asset": f"assets/moonbit-community/MoonJust@{version}/cmd/just/just.wasm",
+        "wasm_asset": f"assets/ZSeanYves/MoonJust@{version}/cmd/just/just.wasm",
         "wasm_sha256": "pending",
-        "wasm_sbom": f"assets/moonbit-community/MoonJust@{version}/cmd/just/sbom.cdx.json",
-        "wasm_provenance": f"assets/moonbit-community/MoonJust@{version}/cmd/just/provenance.intoto.json",
+        "wasm_sbom": f"assets/ZSeanYves/MoonJust@{version}/cmd/just/sbom.cdx.json",
+        "wasm_provenance": f"assets/ZSeanYves/MoonJust@{version}/cmd/just/provenance.intoto.json",
     }
     wasm = archive.parent / expected_record["wasm_asset"]
     if not wasm.is_file():
@@ -215,7 +215,7 @@ def main() -> None:
             print("Release bundle verified structurally; Windows execution deferred to Windows runner")
             return
         result = subprocess.run([str(executable), "--version"], text=True, capture_output=True)
-        if result.returncode != 0 or result.stdout.strip() != f"moonjust {version}" or result.stderr:
+        if result.returncode != 0 or result.stdout.strip() != f"moonjust v{version}" or result.stderr:
             fail("extracted executable version smoke failed")
         query = subprocess.run(
             [

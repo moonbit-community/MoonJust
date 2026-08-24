@@ -608,7 +608,7 @@ def validate() -> None:
                 bool(entry.get("env_reason")),
                 f"{entry['env']} lacks an environment-specific reason",
             )
-    cli_source = (repo / "internal/cli/arguments.mbt").read_text(encoding="utf-8")
+    cli_source = (repo / "src/cli/arguments.mbt").read_text(encoding="utf-8")
     implemented_env = {
         entry["env"]
         for entry in cli["option"]
@@ -679,7 +679,7 @@ def validate() -> None:
     expect(inventory["adapted_error_cases"] == 5, "lexer error-oracle count changed")
     expected_lexer_tests = sum(c["black_box_tests"] for c in lexer["contract"])
     for target in ("native", "wasm"):
-        expect(selected_tests(target, "internal/lexer") == expected_lexer_tests, f"{target} lexer test outline count changed")
+        expect(selected_tests(target, "src/lexer") == expected_lexer_tests, f"{target} lexer test outline count changed")
 
     area_sources = {
         "parser-formatter": ("compat/parser-formatter.toml", "parser-formatter.toml"),
@@ -869,7 +869,7 @@ def validate() -> None:
     expect(policy["fs"]["write"] == [], "inspect policy grants filesystem writes")
     expect(policy["process"]["spawn"] is False, "inspect policy grants process spawn")
     expect(policy["net"] == {"dns": [], "connect": [], "bind": []}, "inspect policy grants network access")
-    wasm_interface = (repo / "internal/host_wasm/pkg.generated.mbti").read_text(encoding="utf-8")
+    wasm_interface = (repo / "src/host_wasm/pkg.generated.mbti").read_text(encoding="utf-8")
     expect("HostProcess" not in wasm_interface, "Wasm inspect adapter exposes HostProcess")
 
     settings = load(repo / "compat/settings.toml")

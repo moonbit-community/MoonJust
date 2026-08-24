@@ -76,7 +76,7 @@ jobs:
         run: |
           mkdir -p _build/shared-wasm
           version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
-          cp "_build/release/assets/moonbit-community/MoonJust@${version}/cmd/just/just.wasm" \
+          cp "_build/release/assets/ZSeanYves/MoonJust@${version}/cmd/just/just.wasm" \
             _build/shared-wasm/just.wasm
           cp _build/size-debug/wasm/release/build/cmd/just/just.wasm \
             _build/shared-wasm/just.debug.wasm
@@ -88,7 +88,7 @@ jobs:
             --output _build/shared-wasm/repeatability.json
           python3 ./tools/release/check_moonx_asset.py \
             --repo . --registry _build/release \
-            --coordinate "moonbit-community/MoonJust/cmd/just@$version"
+            --coordinate "ZSeanYves/MoonJust/cmd/just@$version"
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: _build/shared-wasm/**

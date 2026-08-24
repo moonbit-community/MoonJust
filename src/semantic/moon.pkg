@@ -1,0 +1,13 @@
+import {
+  "ZSeanYves/MoonJust/src/builtin",
+  "ZSeanYves/MoonJust/src/diagnostic",
+  "ZSeanYves/MoonJust/src/modulepath",
+  "ZSeanYves/MoonJust/src/parser",
+  "ZSeanYves/MoonJust/src/path",
+  "ZSeanYves/MoonJust/src/source",
+  "ZSeanYves/MoonJust/src/syntax",
+}
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

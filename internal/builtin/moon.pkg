@@ -1,7 +1,0 @@
-import {
-  "moonbit-community/MoonJust/internal/path",
-  "moonbit-community/MoonJust/internal/value",
-  "moonbitlang/core/encoding/utf8",
-  "moonbitlang/regexp",
-  "moonbitlang/x/crypto",
-}

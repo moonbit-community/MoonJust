@@ -11,9 +11,9 @@ esac
 
 cd "$repo_root"
 moon bench --frozen --release --target "$target" --no-parallelize \
-  internal/lexer \
-  internal/parser \
-  internal/semantic \
-  internal/formatter \
-  internal/evaluator \
-  internal/executor
+  src/lexer \
+  src/parser \
+  src/semantic \
+  src/formatter \
+  src/evaluator \
+  src/executor

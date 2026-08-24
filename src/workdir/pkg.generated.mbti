@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/src/workdir"
+
+import {
+  "ZSeanYves/MoonJust/src/path",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+pub(all) suberror WorkingDirectoryError {
+  Path(@path.PathError)
+  JustfileWithoutParent(@path.PathValue)
+} derive(Eq, @debug.Debug)
+pub fn WorkingDirectoryError::code(Self) -> String
+pub fn WorkingDirectoryError::message(Self) -> String
+
+// Types and methods
+pub struct WorkingDirectoryModel {
+  invocation : @path.PathValue
+  project : @path.PathValue
+  module_base : @path.PathValue
+  justfile : @path.PathValue?
+} derive(Eq, @debug.Debug)
+pub fn WorkingDirectoryModel::evaluation_directory(Self, module_setting? : String?) -> @path.PathValue raise WorkingDirectoryError
+pub fn WorkingDirectoryModel::for_import(Self, @path.PathValue) -> Self
+pub fn WorkingDirectoryModel::for_module(Self, @path.PathValue) -> Self raise WorkingDirectoryError
+pub fn WorkingDirectoryModel::from_global_justfile(@path.PathValue, @path.PathValue, @path.PathValue) -> Self raise WorkingDirectoryError
+pub fn WorkingDirectoryModel::from_justfile(@path.PathValue, @path.PathValue, working_directory? : @path.PathValue?) -> Self raise WorkingDirectoryError
+pub fn WorkingDirectoryModel::from_stdin(@path.PathValue, working_directory? : @path.PathValue?) -> Self raise WorkingDirectoryError
+pub fn WorkingDirectoryModel::invocation_directory(Self) -> @path.PathValue
+pub fn WorkingDirectoryModel::justfile(Self) -> @path.PathValue?
+pub fn WorkingDirectoryModel::module_directory(Self) -> @path.PathValue
+pub fn WorkingDirectoryModel::project_directory(Self) -> @path.PathValue
+pub fn WorkingDirectoryModel::recipe_directory(Self, module_setting? : String?, module_no_cd? : Bool, recipe_no_cd? : Bool, recipe_working_directory? : String?) -> @path.PathValue raise WorkingDirectoryError
+
+// Type aliases
+
+// Traits

@@ -183,7 +183,7 @@ def apply_toolchain_compatibility_patches(work: Path) -> list[dict[str, object]]
     """
     process_candidates = (
         work / "src/host_process/process.mbt",
-        work / "internal/host_process/process.mbt",
+        work / "src/host_process/process.mbt",
     )
     process = next((path for path in process_candidates if path.is_file()), None)
     if process is None:
@@ -194,7 +194,7 @@ def apply_toolchain_compatibility_patches(work: Path) -> list[dict[str, object]]
 
     c_candidates = (
         process.parent / "signal_forward.c",
-        work / "internal/host_process/signal_forward.c",
+        work / "src/host_process/signal_forward.c",
     )
     c_source = next((path for path in c_candidates if path.is_file()), None)
     if c_source is None:

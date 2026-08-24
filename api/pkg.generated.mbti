@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbit-community/MoonJust/api"
+package "ZSeanYves/MoonJust/api"
 
 import {
   "moonbitlang/core/debug",

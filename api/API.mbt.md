@@ -1,6 +1,6 @@
 # MoonJust public API
 
-`moonbit-community/MoonJust/api` is the only stable library package. Its
+`ZSeanYves/MoonJust/api` is the only stable library package. Its
 in-memory operations do not read imports or access host capabilities.
 
 ```mbt check

@@ -86,10 +86,10 @@ def main() -> None:
         if forbidden:
             fail(f"build/cache/credential files were packaged: {forbidden}")
         manifest = package.read("moon.mod").decode()
-        if field(manifest, "name") != "moonbit-community/MoonJust":
+        if field(manifest, "name") != "ZSeanYves/MoonJust":
             fail("module name differs")
-        if not re.fullmatch(r"0\.7\.0-alpha\.[1-9][0-9]*", field(manifest, "version")):
-            fail("Release version is not a numbered 0.7.0 alpha prerelease")
+        if not re.fullmatch(r"0\.1\.0", field(manifest, "version")):
+            fail("Release version is not 0.1.0")
         if field(manifest, "readme") != "README.mbt.md":
             fail("readme metadata differs")
         if field(manifest, "repository") != "https://github.com/moonbit-community/MoonJust":

@@ -273,11 +273,11 @@ def main() -> None:
     rows = [json.loads(line) for line in MAP.read_text(encoding="utf-8").splitlines()]
     existing_cases = [json.loads(line) for line in CASES.read_text(encoding="utf-8").splitlines()]
     remaining_suites = {
-        "internal/semantic/remaining_contract_test.mbt",
-        "internal/executor/remaining_contract_test.mbt",
-        "internal/evaluator/remaining_contract_test.mbt",
-        "internal/cli/remaining_contract_test.mbt",
-        "internal/loader/remaining_contract_test.mbt",
+        "src/semantic/remaining_contract_test.mbt",
+        "src/executor/remaining_contract_test.mbt",
+        "src/evaluator/remaining_contract_test.mbt",
+        "src/cli/remaining_contract_test.mbt",
+        "src/loader/remaining_contract_test.mbt",
     }
     existing_remaining_ids = {
         str(case["case_id"])
@@ -304,11 +304,11 @@ def main() -> None:
             groups[str(row["owner_area"])].append(row)
 
     suites = {
-        "semantic-loader": "internal/semantic/remaining_contract_test.mbt",
-        "executor": "internal/executor/remaining_contract_test.mbt",
-        "evaluator-builtins": "internal/evaluator/remaining_contract_test.mbt",
-        "execution-context": "internal/cli/remaining_contract_test.mbt",
-        "loader": "internal/loader/remaining_contract_test.mbt",
+        "semantic-loader": "src/semantic/remaining_contract_test.mbt",
+        "executor": "src/executor/remaining_contract_test.mbt",
+        "evaluator-builtins": "src/evaluator/remaining_contract_test.mbt",
+        "execution-context": "src/cli/remaining_contract_test.mbt",
+        "loader": "src/loader/remaining_contract_test.mbt",
     }
     (ROOT / suites["semantic-loader"]).write_text(render_semantic(groups["semantic-loader"]), encoding="utf-8")
     (ROOT / suites["executor"]).write_text(render_executor(groups["executor"]), encoding="utf-8")
