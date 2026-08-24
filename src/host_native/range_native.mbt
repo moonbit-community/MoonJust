@@ -15,32 +15,106 @@ fn RangeNativePath::new(value : String) -> RangeNativePath {
 ///|
 #cfg(not(platform="windows"))
 fn RangeNativePath::new(value : String) -> RangeNativePath {
-  RangeNativePath(@utf8.encode(value))
+  RangeNativePath(@utf8.encode(value) + Bytes::make(1, (0).to_byte()))
 }
 
 ///|
-#borrow(path)
-extern "C" fn file_size_ffi(path : RangeNativePath) -> Int64 = "moonjust_host_file_size"
+#external
+priv type NativeFileHandle
 
 ///|
-#borrow(path)
-extern "C" fn file_executable_ffi(path : RangeNativePath) -> Int = "moonjust_host_file_executable"
+#borrow(file)
+extern "C" fn native_file_is_null(file : NativeFileHandle) -> Int = "moonbitlang_x_fs_is_null"
 
 ///|
-#borrow(path)
-extern "C" fn read_file_range_ffi(
-  path : RangeNativePath,
+#cfg(platform="windows")
+#borrow(path, mode)
+extern "C" fn native_open_file(
+  path : String,
+  mode : String,
+) -> NativeFileHandle = "_wfopen"
+
+///|
+#cfg(not(platform="windows"))
+#borrow(path, mode)
+extern "C" fn native_open_file(path : Bytes, mode : Bytes) -> NativeFileHandle = "fopen"
+
+///|
+#borrow(file)
+extern "C" fn native_close_file(file : NativeFileHandle) -> Int = "fclose"
+
+///|
+#cfg(platform="windows")
+#borrow(file)
+extern "C" fn native_seek_file(
+  file : NativeFileHandle,
   offset : Int64,
-  length : Int,
-) -> Bytes = "moonjust_host_read_file_range"
+  whence : Int,
+) -> Int = "_fseeki64"
 
 ///|
+#cfg(not(platform="windows"))
+#borrow(file)
+extern "C" fn native_seek_file(
+  file : NativeFileHandle,
+  offset : Int64,
+  whence : Int,
+) -> Int = "fseeko"
+
+///|
+#cfg(platform="windows")
+#borrow(file)
+extern "C" fn native_tell_file(file : NativeFileHandle) -> Int64 = "_ftelli64"
+
+///|
+#cfg(not(platform="windows"))
+#borrow(file)
+extern "C" fn native_tell_file(file : NativeFileHandle) -> Int64 = "ftello"
+
+///|
+#borrow(buffer, file)
+extern "C" fn native_read_file(
+  buffer : Bytes,
+  size : Int,
+  count : Int,
+  file : NativeFileHandle,
+) -> Int = "fread"
+
+///|
+#cfg(platform="windows")
 #borrow(path)
-extern "C" fn read_file_stream_ffi(path : RangeNativePath) -> Bytes = "moonjust_host_read_file_stream"
+extern "C" fn native_access(path : String, mode : Int) -> Int = "_waccess"
+
+///|
+#cfg(not(platform="windows"))
+#borrow(path)
+extern "C" fn native_access(path : Bytes, mode : Int) -> Int = "access"
+
+///|
+#cfg(platform="windows")
+fn native_open_read(path : RangeNativePath) -> NativeFileHandle {
+  match path {
+    RangeNativePath(path) => native_open_file(path, "rb")
+  }
+}
+
+///|
+#cfg(not(platform="windows"))
+fn native_open_read(path : RangeNativePath) -> NativeFileHandle {
+  match path {
+    RangeNativePath(path) =>
+      native_open_file(path, b"rb" + Bytes::make(1, (0).to_byte()))
+  }
+}
 
 ///|
 fn file_size_value(value : String) -> Int64? {
-  let size = file_size_ffi(RangeNativePath::new(value))
+  let path = RangeNativePath::new(value)
+  let file = native_open_read(path)
+  guard native_file_is_null(file) == 0 else { return None }
+  defer ignore(native_close_file(file))
+  guard native_seek_file(file, 0L, 2) == 0 else { return None }
+  let size = native_tell_file(file)
   if size < 0L {
     None
   } else {
@@ -50,7 +124,8 @@ fn file_size_value(value : String) -> Int64? {
 
 ///|
 fn file_executable_value(value : String) -> Bool {
-  file_executable_ffi(RangeNativePath::new(value)) != 0
+  let path = RangeNativePath::new(value)
+  native_access_value(path)
 }
 
 ///|
@@ -59,20 +134,38 @@ fn read_file_range_value(
   offset : Int64,
   length : Int,
 ) -> Bytes? {
-  let bytes = read_file_range_ffi(RangeNativePath::new(value), offset, length)
-  if length > 0 && bytes.is_empty() {
+  guard offset >= 0L && length >= 0 else { return None }
+  let path = RangeNativePath::new(value)
+  let file = native_open_read(path)
+  guard native_file_is_null(file) == 0 else { return None }
+  defer ignore(native_close_file(file))
+  guard native_seek_file(file, offset, 0) == 0 else { return None }
+  let buffer = Bytes::make(length, 0)
+  let count = native_read_file(buffer, 1, length, file)
+  if count < 0 {
     None
   } else {
-    Some(bytes)
+    Some(buffer[:Int::min(count, length)].to_owned())
+  }
+}
+
+///|
+#cfg(platform="windows")
+fn native_access_value(path : RangeNativePath) -> Bool {
+  match path {
+    RangeNativePath(path) => native_access(path, 0) == 0
+  }
+}
+
+///|
+#cfg(not(platform="windows"))
+fn native_access_value(path : RangeNativePath) -> Bool {
+  match path {
+    RangeNativePath(path) => native_access(path, 1) == 0
   }
 }
 
 ///|
 fn read_file_stream_value(value : String) -> Bytes? {
-  let encoded = read_file_stream_ffi(RangeNativePath::new(value))
-  if encoded.is_empty() || encoded[0] != 1 {
-    None
-  } else {
-    Some(encoded[1:].to_owned())
-  }
+  Some(@fs.read_file_to_bytes(value) catch { _ => return None })
 }
