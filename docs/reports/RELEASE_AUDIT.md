@@ -22,6 +22,28 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
   `dag-1000`/`project-parameters` performance; neither is hidden or used to
   lower a threshold
 
+## C cleanup closure
+
+The Phase 12 native-host C cleanup removed the project-owned `platform.c`,
+`realpath.c`, and `transaction.c`. The only tracked project C sources are now
+the two process/signal stubs under `src/host_process` and the two explicitly
+isolated `spikes/host-async` probes. Third-party `.mooncakes` sources and
+generated `_build` files are excluded from this inventory.
+
+The replacement keeps canonical path resolution, range reads, exclusive
+temporary creation, full synchronization, atomic overwrite/no-overwrite,
+permission inheritance, read-only rejection, executable handling, cleanup,
+Windows wide-character paths, and the documented non-UTF-8 cwd classification.
+`api/pkg.generated.mbti` has no declaration or byte changes. The remaining
+MoonBit `extern "C"` declarations reference system ABI or approved dependency
+backends; no project C shim or new dependency was added.
+
+Local second-pass evidence: host-native 9/9, Native 1118/1118, Wasm 1097/1097,
+all-target check with warnings denied, naming and architecture checks, and the
+pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
+three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned
+gates and must be attached to the final main SHA.
+
 The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
 unchanged stable `.mbti` declarations, all-target tests, architecture and
 naming checks, and a clean stale-path/duplicate-artifact audit. The historical

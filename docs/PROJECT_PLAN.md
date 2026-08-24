@@ -729,6 +729,13 @@ Phase 12 的功能、上游兼容、跨平台行为、稳定 API、测试治理�
 继续排除。完整出口协议和二次复检清单见
 [`docs/reports/PHASE_12_REPORT.md`](reports/PHASE_12_REPORT.md)。
 
+本阶段的 C 清理已完成：生产 host-native 的 `platform.c`、`realpath.c` 和
+`transaction.c` 已由 MoonBit native/portable 适配层及标准库/系统 ABI 调用替换。
+项目自有跟踪 C 仅保留 `src/host_process` 的 process/signal 桩与
+`spikes/host-async` 的两个调研探针；`.mooncakes` 和生成目录中的第三方/缓存
+文件不属于项目 C 清单。原子写入、权限继承、canonicalize、范围读取、非 UTF-8
+cwd 分类和 Native/Wasm 行为测试均保留。
+
 ## 11. PR 规范
 
 ### 11.1 PR 必备内容
