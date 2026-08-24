@@ -44,10 +44,13 @@ host 和 executor 实现类型不会泄漏到 facade。
 
 生产 `src/host_native/platform.c`、`realpath.c` 和 `transaction.c` 已删除，
 对应能力迁移到 MoonBit native/portable 文件，并只通过系统标准 ABI 或已批准的
-`moonbitlang/async`/`moonbitlang/x/fs` 后端完成平台调用。保留的项目 C 清单严格为：
+`moonbitlang/async`/`moonbitlang/x/fs` 后端完成平台调用。本轮后的生产 C 清单
+严格为：
 
-- `src/host_process/process_group.c`
 - `src/host_process/signal_forward.c`
+
+host-async 验证包另保留两个隔离探针：
+
 - `spikes/host-async/process_lifecycle/process_lifecycle.c`
 - `spikes/host-async/signal_probe/signal_probe.c`
 
@@ -65,8 +68,14 @@ rg -n 'native-stub|moonjust_host_|extern "C"|extern "c"' src tools
 ```
 
 审计结果：删除的 `moonjust_host_*` 符号和 `src/host_native` native-stub 均为
-零；剩余 `native-stub` 只出现在允许的 process 桩和两个 spike 包。外部 libc
-符号声明属于 MoonBit FFI 适配，不是项目自有 C 文件或新增第三方依赖。
+零；生产 `native-stub` 只保留 `signal_forward.c`，另有两个 spike 包保留
+隔离探针。外部 libc 符号声明属于 MoonBit FFI 适配，不是项目自有 C 文件或
+新增第三方依赖。
+
+进程生命周期已统一为 `moonbitlang/async/process` 的直接子进程契约：创建、
+取消、等待、reap、退出码和信号映射由 adapter 保留，间接、后台、daemon 或
+detached descendant 不属于清理保证。共享 stdout/stderr pipe 仍可能被
+descendant 持有，因此 pipe reader 的 EOF 与 direct-child wait/reap 分开观测。
 
 ## 测试治理与命名
 
@@ -86,7 +95,10 @@ Ubuntu 构建、由三平台 gate 消费并校验哈希的共享 wasm1 产物。
 signal、process 和 interactive evidence 不跨主机缓存。官方差分固定使用
 上游提交，completion 单独排除。
 
-Native 与共享 wasm1 的完整行为结果均为零未登记失败。Linux MoonX 在无效
+Native 与共享 wasm1 的完整行为结果均为零未登记失败。上游
+`signals::forwarding` 依赖 TERM 传递到 recipe 间接启动的 MoonJust；该场景
+现按 ADR-0019 记录为 Native direct-child 生命周期之外的显式 unsupported，
+不会重新引入 process-group cleanup。Linux MoonX 在无效
 UTF-8 cwd 的两个上游场景仍为明确 `not-applicable`：
 
 - `non_unicode::warn_for_non_unicode_invocation_directory`
@@ -105,8 +117,8 @@ moon info
 moon fmt
 moon fmt --check
 moon check --target all --warn-list +73 --deny-warn
-moon test --target native       # 1119 passed, 0 failed
-moon test --target wasm         # 1097 passed, 0 failed
+moon test --target native       # 1112 passed, 0 failed
+moon test --target wasm         # 1096 passed, 0 failed
 python3 tools/quality/check_naming.py
 python3 tools/quality/check_naming_test.py
 python3 tools/runner.py run --mode fast
@@ -117,10 +129,10 @@ python3 tools/runner.py run --mode fast
 仍按同一 runner 和精确 SHA 协议执行。
 
 本次迁移后的二次本地复检还通过了 host_native 定向 9/9、全量 Native
-1119/1119、全量 Wasm 1097/1097、`moon check --target all --warn-list +73
+1112/1112、全量 Wasm 1096/1096、`moon check --target all --warn-list +73
 --deny-warn`、命名/架构检查，以及上游 2,417 条注册清单和官方差分 smoke。
 Release/三平台 artifact evidence 仍须由精确 head 的 CI/RC 提供，不能由本机
-macOS 结果替代。官方 signal gate 在空闲重跑中通过 14/14；完整官方 harness
+macOS 结果替代。官方 signal gate 除上述明确 unsupported 场景外均通过；完整官方 harness
 在 macOS 的 `dotenv::fifo` 仍受本机 environment-source/FIFO 能力限制，表现为
 上游测试自身的环境读取返回码差异，Linux CI 是该项的权威验证主机。该本机限制
 没有改变此次 host-native C 清理的定向测试、Native/Wasm 全量测试或其他兼容门禁。

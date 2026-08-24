@@ -19,6 +19,6 @@ import {
 supported_targets = "-all+native+wasm"
 
 options(
-  "native-stub": [ "signal_forward.c", "process_group.c" ],
+  "native-stub": [ "signal_forward.c" ],
   targets: { "process_native_test.mbt": [ "native", "llvm" ] },
 )

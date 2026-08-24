@@ -1,6 +1,6 @@
 # ADR-0019: Direct-child process lifecycle and C-free Wasm execution
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-24
 - Issue: [MoonJust #58](https://github.com/moonbit-community/MoonJust/issues/58)
 
@@ -57,7 +57,7 @@ event or cancellation-cause surface.
 
 ## Scope of removal
 
-The implementation change covered by this ADR will remove:
+The implementation change covered by this ADR removes:
 
 - `src/host_process/process_group.c` from the native stub list;
 - `src/host_process/process_group.mbt` and its helper command flag;

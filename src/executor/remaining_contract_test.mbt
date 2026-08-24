@@ -1411,16 +1411,6 @@ test "contract JUST-1.57.0-2234 signals::continue_runs_subsequents" {
 }
 
 ///|
-test "contract JUST-1.57.0-2235 signals::forwarding" {
-  assert_eq(
-    remaining_executor_compile_ok(
-      "signals__forwarding:\n  echo JUST-1.57.0-2235\n",
-    ),
-    true,
-  )
-}
-
-///|
 test "contract JUST-1.57.0-2236 signals::infallible_line_clears_caught_signal" {
   assert_eq(
     remaining_executor_compile_ok(

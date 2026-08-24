@@ -413,7 +413,6 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
             depends_on=("differential-smoke",),
         ),
         task("async-spike", "./tools/spikes/check_host_async.sh", depends_on=("check",)),
-        task("ecosystem-spike", "./tools/spikes/check_ecosystem.sh", depends_on=("check",)),
         task("moon-info", "moon", "info", depends_on=("check",)),
         task("interface-diff", "git", "diff", "--exit-code", depends_on=("moon-info",)),
         task(

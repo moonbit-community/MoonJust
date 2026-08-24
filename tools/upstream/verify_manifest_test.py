@@ -15,6 +15,20 @@ SPEC.loader.exec_module(verify)
 
 
 class VerifyManifestTest(unittest.TestCase):
+    def test_release_approved_difference_requires_exact_policy_metadata(self) -> None:
+        row = {
+            "id": "JUST-1.57.0-2235",
+            "disposition": "unsupported",
+            "tracking": "ADR-0019",
+            "evidence": [
+                "docs/adr/0019-direct-child-process-lifecycle.md",
+                "tools/upstream/run_official_harness.py",
+            ],
+        }
+        self.assertTrue(verify.is_release_approved_difference(row))
+        row["tracking"] = "unreviewed"
+        self.assertFalse(verify.is_release_approved_difference(row))
+
     def test_incomplete_release_message_is_stable_and_actionable(self) -> None:
         rows = [
             {"id": "JUST-1.57.0-0022", "owner_area": "semantic-loader"},

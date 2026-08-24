@@ -106,6 +106,9 @@ NATIVE_SIGNAL_TESTS = {
     "signals::forwarding",
     "signals::siginfo_prints_current_process",
 }
+DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS = {
+    "signals::forwarding",
+}
 
 AREA_PREFIXES = {
     "lexer": {"lexer"},
@@ -1220,6 +1223,21 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 ],
                 tracking="PROJECT_PLAN_PR-105",
                 reason=RUNTIME_CACHE_DIFFERENCES[name],
+            )
+        elif name in DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS:
+            row.update(
+                disposition="unsupported",
+                targets=["native"],
+                evidence=[
+                    "docs/adr/0019-direct-child-process-lifecycle.md",
+                    "tools/upstream/run_official_harness.py",
+                ],
+                tracking="ADR-0019",
+                reason=(
+                    "The upstream scenario requires TERM delivery to an indirect "
+                    "recipe descendant and shared-pipe cleanup. The accepted "
+                    "direct-child lifecycle owns only the tracked recipe child."
+                ),
             )
         elif name in NATIVE_SIGNAL_TESTS:
             test_anchor = anchor_dict(area, category, name)

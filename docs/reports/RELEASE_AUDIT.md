@@ -18,6 +18,9 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
 - Completion: excluded by scope
 - Accepted MoonX limitation: two Linux invalid UTF-8 cwd rows are
   `not-applicable`
+- Accepted process limitation: `signals::forwarding` is an explicit Native
+  unsupported case because its upstream fixture requires indirect descendant
+  signal delivery and shared-pipe cleanup outside the direct-child contract
 - Known exceptions: release artifact-size gate and Windows Native
   `dag-1000`/`project-parameters` performance; neither is hidden or used to
   lower a threshold
@@ -25,10 +28,11 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
 ## C cleanup closure
 
 The Phase 12 native-host C cleanup removed the project-owned `platform.c`,
-`realpath.c`, and `transaction.c`. The only tracked project C sources are now
-the two process/signal stubs under `src/host_process` and the two explicitly
-isolated `spikes/host-async` probes. Third-party `.mooncakes` sources and
-generated `_build` files are excluded from this inventory.
+`realpath.c`, and `transaction.c`. The only production project C source now is
+the signal-forwarding stub under `src/host_process`; the two explicitly
+isolated `spikes/host-async` probes remain outside production. Third-party
+`.mooncakes` sources and generated `_build` files are excluded from this
+inventory.
 
 The replacement keeps canonical path resolution, range reads, exclusive
 temporary creation, full synchronization, atomic overwrite/no-overwrite,
@@ -38,13 +42,14 @@ Windows wide-character paths, and the documented non-UTF-8 cwd classification.
 MoonBit `extern "C"` declarations reference system ABI or approved dependency
 backends; no project C shim or new dependency was added.
 
-Local second-pass evidence: host-native 9/9, Native 1119/1119, Wasm 1097/1097,
+Local second-pass evidence: host-native 9/9, Native 1112/1112, Wasm 1096/1096,
 all-target check with warnings denied, naming and architecture checks, and the
 pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
 three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned
 gates and must be attached to the final main SHA. The macOS-only full upstream
 harness retains the pre-existing `dotenv::fifo` environment-source limitation;
-the isolated signal gate passed 14/14 on rerun, and Linux CI remains authoritative
+supported signal cases pass on rerun, while `signals::forwarding` is recorded as
+the ADR-0019 direct-child exception, and Linux CI remains authoritative
 for the FIFO case.
 
 The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
@@ -211,10 +216,11 @@ transparent measurements, not the later 1.0 release threshold.
 
 The repository, product identity, pinned upstream source, CC0 provenance,
 compatibility inventory, differential harness, required checks, architecture
-rules and dependency spikes are all present. The harness compares stdout,
+rules and dependency qualification records are preserved. The harness compares stdout,
 stderr, exit status and filesystem trees without broad normalization. The
-async and parser ecosystem spikes remain isolated under `spikes/` and their
-experimental APIs do not enter the pure core.
+retained host capability spike remains isolated under `spikes/`; its
+experimental API does not enter the pure core. The parser ecosystem spike was
+removed after the project chose the in-project parser implementation.
 
 ### Phase 1: contracts and boundaries
 
@@ -302,7 +308,10 @@ the Unix shell name as required by their invocation models.
 
 Native and wasm process adapters pass exact cwd/env/stdin and capture streams
 internally before publishing inherited output. Non-zero statuses map to typed
-signals; cancellation delegates to async/process-group termination and reap.
+signals; cancellation delegates to async direct-child termination, wait, and
+reap. Indirect, background, daemon, and detached descendants are outside the
+cleanup contract, and a descendant can keep a shared output pipe open after
+the direct child has been reaped.
 The execute policy explicitly grants environment, filesystem and process
 capabilities. The inspect policy remains deny-write and deny-spawn; execution
 is never inferred from inspect mode.
