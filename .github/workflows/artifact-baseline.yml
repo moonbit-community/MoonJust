@@ -19,6 +19,7 @@ jobs:
         with:
           path: evidence-tools
           persist-credentials: false
+      - uses: ./evidence-tools/.github/actions/setup-python
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.MOONJUST_BASELINE_COMMIT }}
@@ -27,37 +28,23 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
-      - name: Add Git Bash to Windows PATH
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
-          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\usr\bin'
       - name: Apply latest MoonBit baseline compatibility patch
-        run: git -C baseline-source apply "$GITHUB_WORKSPACE/evidence-tools/tools/release/latest-moonbit-baseline.patch"
-      - run: ./baseline-source/tools/release/ensure_moonx.sh
-      - run: |
-          moon -C baseline-source update
-          moon -C baseline-source install
-      - name: Build wasm1 twice without shared build cache
-        shell: bash
-        run: |
-          for repeat in 1 2; do
-            MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon -C baseline-source build \
-              --frozen --release --strip --target wasm \
-              --target-dir "_build/repeat-$repeat" cmd/just
-          done
-          mkdir -p _build/shared-wasm
-          cp baseline-source/_build/repeat-1/wasm/release/build/cmd/just/just.wasm \
-            _build/shared-wasm/just.wasm
-          cp baseline-source/_build/repeat-2/wasm/release/build/cmd/just/just.wasm \
-            _build/shared-wasm/just.repeat.wasm
-      - name: Require byte-for-byte reproducibility
-        shell: bash
-        run: |
-          cmp _build/shared-wasm/just.wasm _build/shared-wasm/just.repeat.wasm
-          sha256sum _build/shared-wasm/just.wasm | \
-            sed 's#_build/shared-wasm/##' > _build/shared-wasm/just.wasm.sha256
+        run: git -C baseline-source apply "${{ github.workspace }}/evidence-tools/tools/release/latest-moonbit-baseline.patch"
+      - run: python evidence-tools/tools/release/ensure_moonx.py
+      - run: moon -C baseline-source update
+      - run: moon -C baseline-source install
+      - name: Build wasm1 repeat 1 without shared build cache
+        env:
+          MOON_DEP_CACHE: "off"
+          MOON_BUILD_CACHE: "off"
+        run: moon -C baseline-source build --frozen --release --strip --target wasm --target-dir _build/repeat-1 cmd/just
+      - name: Build wasm1 repeat 2 without shared build cache
+        env:
+          MOON_DEP_CACHE: "off"
+          MOON_BUILD_CACHE: "off"
+        run: moon -C baseline-source build --frozen --release --strip --target wasm --target-dir _build/repeat-2 cmd/just
+      - name: Stage and verify baseline wasm1
+        run: python evidence-tools/tools/verification/ci.py stage-baseline-wasm --repo baseline-source --source baseline-source/_build/repeat-1/wasm/release/build/cmd/just/just.wasm --repeat baseline-source/_build/repeat-2/wasm/release/build/cmd/just/just.wasm --out _build/shared-wasm
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-baseline-wasm1
@@ -96,6 +83,7 @@ jobs:
         with:
           path: evidence-tools
           persist-credentials: false
+      - uses: ./evidence-tools/.github/actions/setup-python
       - name: Check out frozen source
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -106,39 +94,19 @@ jobs:
         with:
           version: latest
       - name: Apply latest MoonBit baseline compatibility patch
-        run: git -C baseline-source apply "$GITHUB_WORKSPACE/evidence-tools/tools/release/latest-moonbit-baseline.patch"
-      - run: ./baseline-source/tools/release/ensure_moonx.sh
-        shell: bash
-      - run: |
-          moon -C baseline-source update
-          moon -C baseline-source install
+        run: git -C baseline-source apply "${{ github.workspace }}/evidence-tools/tools/release/latest-moonbit-baseline.patch"
+      - run: python evidence-tools/tools/release/ensure_moonx.py
+      - run: moon -C baseline-source update
+      - run: moon -C baseline-source install
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: moonjust-baseline-wasm1
           path: _build/shared-wasm
       - name: Build frozen native release and analysis sibling
-        shell: bash
-        run: |
-          archive=$(cd baseline-source && \
-            MOON_DEP_CACHE=off MOON_BUILD_CACHE=off \
-            MOONJUST_REQUIRE_CLEAN=0 \
-            MOONJUST_RELEASE_PLATFORM="${{ matrix.platform }}" \
-            MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
-            ./tools/release/build_artifacts.sh)
-          moon -C baseline-source build --frozen --release --no-strip \
-            --target native --target-dir _build/size-debug cmd/just
-          python3 evidence-tools/tools/release/check_artifact_size.py \
-            --baseline evidence-tools/compat/artifact-size-baseline.json \
-            --historical-baseline \
-            --platform "${{ matrix.platform }}" \
-            --source-commit "$MOONJUST_BASELINE_COMMIT" \
-            --source-patch evidence-tools/tools/release/latest-moonbit-baseline.patch \
-            --native baseline-source/_build/release/build/native/release/build/cmd/just/just.exe \
-            --wasm _build/shared-wasm/just.wasm \
-            --native-debug baseline-source/_build/size-debug/native/release/build/cmd/just/just.exe \
-            --archive "$archive" \
-            --report-only \
-            --output "_build/artifact-size-${{ matrix.platform }}-${{ matrix.repeat }}.json"
+        env:
+          MOON_DEP_CACHE: "off"
+          MOON_BUILD_CACHE: "off"
+        run: python evidence-tools/tools/verification/ci.py baseline-platform --repo baseline-source --tools evidence-tools --platform "${{ matrix.platform }}" --wasm _build/shared-wasm/just.wasm --baseline evidence-tools/compat/artifact-size-baseline.json --source-commit "${{ env.MOONJUST_BASELINE_COMMIT }}" --output "_build/artifact-size-${{ matrix.platform }}-${{ matrix.repeat }}.json"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-baseline-${{ matrix.platform }}-${{ matrix.repeat }}
@@ -153,23 +121,14 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+      - uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: moonjust-baseline-*-*
           path: _build/baseline-reports
           merge-multiple: true
       - name: Verify repeat hashes and preserve frozen values
-        shell: bash
-        run: |
-          python3 tools/release/freeze_artifact_baseline.py \
-            --baseline compat/artifact-size-baseline.json \
-            --report _build/baseline-reports/artifact-size-linux-x86_64-1.json \
-            --report _build/baseline-reports/artifact-size-linux-x86_64-2.json \
-            --report _build/baseline-reports/artifact-size-macos-aarch64-1.json \
-            --report _build/baseline-reports/artifact-size-macos-aarch64-2.json \
-            --report _build/baseline-reports/artifact-size-windows-x86_64-1.json \
-            --report _build/baseline-reports/artifact-size-windows-x86_64-2.json \
-            --output _build/artifact-size-baseline.proposed.json
+        run: python tools/release/freeze_artifact_baseline.py --baseline compat/artifact-size-baseline.json --report _build/baseline-reports/artifact-size-linux-x86_64-1.json --report _build/baseline-reports/artifact-size-linux-x86_64-2.json --report _build/baseline-reports/artifact-size-macos-aarch64-1.json --report _build/baseline-reports/artifact-size-macos-aarch64-2.json --report _build/baseline-reports/artifact-size-windows-x86_64-1.json --report _build/baseline-reports/artifact-size-windows-x86_64-2.json --output _build/artifact-size-baseline.proposed.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-artifact-baseline-proposal

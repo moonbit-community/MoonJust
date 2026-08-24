@@ -43,12 +43,7 @@ case "$workload" in
 esac
 
 cd "$out"
-# moon delegates to perf on Linux and Time Profiler on macOS.
-if [ -n "${MOONJUST_PERF_CPU:-}" ] && command -v taskset >/dev/null 2>&1; then
-  taskset -c "$MOONJUST_PERF_CPU" moon -C "$repo_root" run \
-    --frozen --release --target native --profile cmd/just -- \
-    --justfile "$fixture" $arguments
-else
-  moon -C "$repo_root" run --frozen --release --target native --profile cmd/just -- \
-    --justfile "$fixture" $arguments
-fi
+# This is a manual trend profiler; host scheduling policy is intentionally
+# observed by the operating system rather than enforced by a timing gate.
+moon -C "$repo_root" run --frozen --release --target native --profile cmd/just -- \
+  --justfile "$fixture" $arguments

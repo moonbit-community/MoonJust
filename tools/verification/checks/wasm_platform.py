@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import os
-import platform
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+sys.path = [entry for entry in sys.path if Path(entry or ".").resolve() != Path(__file__).parent.resolve()]
+import platform
 
 
 EXPECTED_VERSION = "moonjust v0.1.0"

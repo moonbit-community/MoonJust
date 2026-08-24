@@ -35,7 +35,10 @@ class RunnerTest(unittest.TestCase):
         )
         self.assertLess(len(runner.mode_commands("fast")), len(runner.mode_commands("verify")))
         self.assertEqual(runner.mode_commands("verify"), runner.mode_commands("verify"))
-        self.assertIn(("./tools/verification/checks/compatibility.sh",), runner.mode_commands("compat"))
+        self.assertIn(
+            (sys.executable, "tools/verification/checks/compatibility.py"),
+            runner.mode_commands("compat"),
+        )
 
     def test_build_registry_claims_a_key_once(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -107,18 +110,24 @@ class RunnerTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 runner.validate_evidence(path, "c" * 40)
 
-    def test_windows_shell_probes_use_bash(self) -> None:
+    def test_windows_compatibility_helper_is_preserved_for_manual_callers(self) -> None:
         with mock.patch.object(runner.platform, "system", return_value="Windows"):
             command = runner.executable_command(("./tools/verification/checks/platform.sh",))
             self.assertTrue(command[0].lower().endswith(("bash", "bash.exe")))
             self.assertEqual(command[1], "./tools/verification/checks/platform.sh")
 
-    def test_windows_oracle_uses_git_bash_not_wsl(self) -> None:
+    def test_windows_oracle_uses_python(self) -> None:
         with mock.patch.object(runner.platform, "system", return_value="Windows"):
-            self.assertEqual(
-                runner.oracle_build_command(),
-                (r"C:\Program Files\Git\bin\bash.exe", "./tools/upstream/build_oracle.sh"),
-            )
+            self.assertEqual(runner.oracle_build_command()[1], "tools/upstream/build_oracle.py")
+
+    def test_windows_platform_tasks_do_not_use_shell(self) -> None:
+        with mock.patch.object(runner.platform, "system", return_value="Windows"):
+            commands = runner.mode_commands("verify")
+            self.assertIn((sys.executable, "tools/verification/checks/test_target.py", "native"), commands)
+            self.assertIn(("./tools/spikes/check_host_async.sh",), commands)
+            for command in commands:
+                if command != ("./tools/spikes/check_host_async.sh",):
+                    self.assertFalse(command and command[0].endswith(".sh"), command)
 
     def test_windows_oracle_artifact_uses_exe_suffix(self) -> None:
         with mock.patch.object(runner.platform, "system", return_value="Windows"):

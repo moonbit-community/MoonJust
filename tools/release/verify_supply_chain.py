@@ -132,7 +132,7 @@ def main() -> int:
     )
     expected_builder = os.environ.get(
         "MOONJUST_BUILDER_ID",
-        "https://github.com/moonbit-community/MoonJust/tools/release/build_artifacts.sh",
+        "https://github.com/moonbit-community/MoonJust/tools/release/build_artifacts.py",
     )
     expected_dirty = bool(
         subprocess.run(

@@ -67,12 +67,14 @@ versioned, locked across processes and atomically published after output checks.
   [`tools/upstream/README.md`](tools/upstream/README.md).
 - Native signal qualification activates the pinned ignored signal suite,
   including forwarding and SIGINFO where the host supports it.
-- Hosted cloud-trend benchmarks cover Linux x86_64, macOS arm64 and Windows
-  x86_64 with three cold/warm rounds. They are comparable trend evidence, not
-  machine-independent absolute timing claims. The current release candidates
-  are approximately 1.06x–1.12x the frozen artifact-size baseline; the strict
-  size gate is intentionally reported separately from compatibility and
-  performance gates.
+- Main and release workflows run report-only benchmarks on Linux x86_64, macOS
+  arm64 and Windows x86_64 with three cold/warm rounds. They gate execution,
+  sample completeness and provenance only; timing values are trend evidence,
+  not absolute performance thresholds. Production coverage keeps Native and
+  Wasm raw reports and gates only the merged overall rate at 80%.
+- CI orchestration uses Python 3.11 and native path/file operations. Windows
+  jobs do not require Git Bash; the host async lifecycle observation remains a
+  Unix-only, explicitly not-applicable task.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 

@@ -17,7 +17,7 @@ SPEC.loader.exec_module(evidence)
 
 
 class ReleaseEvidenceTest(unittest.TestCase):
-    def test_authoritative_performance_requires_real_project_cold_warm_evidence(self) -> None:
+    def test_performance_report_accepts_complete_cold_warm_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             path = Path(raw) / "performance.json"
             workloads = {}
@@ -34,8 +34,7 @@ class ReleaseEvidenceTest(unittest.TestCase):
                     {
                         "schema_version": 3,
                         "status": "passed",
-                        "configuration": {"authoritative": True},
-                        "machine": {"system": "Linux", "machine": "x86_64"},
+                        "configuration": {"mode": "report-only"},
                         "cold_warm": {
                             "enabled": True,
                             "rounds": 3,
@@ -46,11 +45,11 @@ class ReleaseEvidenceTest(unittest.TestCase):
                 )
             )
             failures: list[str] = []
-            summary = evidence.performance_summary(path, failures, True)
-            self.assertEqual(summary["authority"], "authoritative")
+            summary = evidence.performance_summary(path, failures)
+            self.assertEqual(summary["mode"], "report-only")
             self.assertEqual(failures, [])
 
-    def test_authoritative_performance_rejects_missing_cold_warm_evidence(self) -> None:
+    def test_performance_report_rejects_missing_cold_warm_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             path = Path(raw) / "performance.json"
             path.write_text(
@@ -58,14 +57,30 @@ class ReleaseEvidenceTest(unittest.TestCase):
                     {
                         "schema_version": 3,
                         "status": "passed",
-                        "configuration": {"authoritative": True},
+                        "configuration": {"mode": "report-only"},
                         "machine": {"system": "Linux", "machine": "x86_64"},
                     }
                 )
             )
             failures: list[str] = []
-            evidence.performance_summary(path, failures, True)
-            self.assertIn("authoritative performance report is missing cold/warm validation", failures)
+            evidence.performance_summary(path, failures)
+            self.assertIn("performance benchmark is missing cold/warm evidence", failures)
+
+    def test_coverage_summary_keeps_changed_and_package_rates_informational(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "coverage.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "overall": {"rate": 0.80},
+                        "changed": {"valid": 100, "rate": 0.01},
+                        "packages": {"parser": {"rate": 0.01}},
+                    }
+                )
+            )
+            failures: list[str] = []
+            evidence.coverage_summary(path, failures)
+            self.assertEqual(failures, [])
 
     def test_cloud_performance_requires_all_exact_head_platform_reports(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -85,6 +100,7 @@ class ReleaseEvidenceTest(unittest.TestCase):
                 reports[platform_name] = {
                     "commit_sha": commit,
                     "report": {
+                        "status": "passed",
                         "cold_warm": {
                             "enabled": True,
                             "rounds": 3,
@@ -99,18 +115,14 @@ class ReleaseEvidenceTest(unittest.TestCase):
                         "schema_version": 3,
                         "status": "passed",
                         "commit": commit,
-                        "configuration": {
-                            "authoritative": False,
-                            "authority": "cloud-trend",
-                            "timing_gates": False,
-                        },
+                        "configuration": {"mode": "report-only"},
                         "platform_reports": reports,
                     }
                 )
             )
             failures: list[str] = []
-            summary = evidence.performance_summary(path, failures, False, True, commit)
-            self.assertEqual(summary["authority"], "cloud-trend")
+            summary = evidence.performance_summary(path, failures, commit)
+            self.assertEqual(summary["mode"], "report-only")
             self.assertEqual(failures, [])
 
     def test_moon_toolchain_identity_ignores_install_paths(self) -> None:
