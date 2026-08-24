@@ -277,6 +277,41 @@ def platform_evidence_summaries(
     return values
 
 
+def official_harness_summary(
+    path: Path,
+    moonjust_commit: str,
+    failures: list[str],
+) -> dict[str, object]:
+    value = load_json(path)
+    if value.get("schema_version") != SCHEMA_VERSION:
+        failures.append("official harness evidence schema changed")
+    if value.get("commit_sha") != moonjust_commit:
+        failures.append("official harness evidence commit differs")
+    if value.get("mode") != "compat" or value.get("status") != "passed":
+        failures.append("official harness evidence is not passing")
+    host = value.get("host", {})
+    if (
+        not isinstance(host, dict)
+        or host.get("system") != PLATFORM_SYSTEMS["linux-x86_64"]
+    ):
+        failures.append("official harness evidence host differs from Linux")
+    measurements = value.get("measurements", {})
+    tasks = measurements.get("tasks", []) if isinstance(measurements, dict) else []
+    task_status = {
+        str(task.get("name")): task.get("status")
+        for task in tasks
+        if isinstance(task, dict)
+    }
+    if task_status.get("official-harness") != "passed":
+        failures.append("official harness evidence task is not passing")
+    return {
+        "path": str(path),
+        "sha256": sha256(path),
+        "host": host,
+        "tasks": dict(sorted(task_status.items())),
+    }
+
+
 def is_release_approved_difference(row: dict[str, object]) -> bool:
     rule = RELEASE_APPROVED_DIFFERENCES.get(str(row.get("id")))
     return (
@@ -569,6 +604,7 @@ def main() -> int:
     parser.add_argument("--contract-results", type=Path, required=True)
     parser.add_argument("--compat-report", action="append", default=[])
     parser.add_argument("--platform-evidence", action="append", default=[])
+    parser.add_argument("--official-evidence", action="append", default=[])
     parser.add_argument("--coverage", type=Path, required=True)
     parser.add_argument("--coverage-metadata", action="append", default=[])
     parser.add_argument("--performance", type=Path, required=True)
@@ -586,6 +622,9 @@ def main() -> int:
     compatibility_paths = indexed_paths(args.compat_report, "compatibility", failures)
     platform_evidence_paths = indexed_paths(
         args.platform_evidence, "platform evidence", failures
+    )
+    official_evidence_paths = indexed_paths(
+        args.official_evidence, "official harness evidence", failures
     )
     coverage_metadata_paths = indexed_paths(
         args.coverage_metadata, "coverage metadata", failures
@@ -606,6 +645,8 @@ def main() -> int:
 
     if set(compatibility_paths) != {"linux-x86_64"}:
         failures.append("official compatibility report must come from Linux exactly once")
+    if args.mode == "release" and set(official_evidence_paths) != {"linux-x86_64"}:
+        failures.append("official harness evidence must come from Linux exactly once")
     if set(native_paths) != REQUIRED_PLATFORMS:
         failures.append("native artifacts do not cover all three release platforms")
     native = {name: artifact(path) for name, path in sorted(native_paths.items())}
@@ -617,6 +658,13 @@ def main() -> int:
         "official": (
             compatibility_summary(compatibility_paths["linux-x86_64"], failures)
             if "linux-x86_64" in compatibility_paths
+            else {"missing": True}
+        ),
+        "official_harness": (
+            official_harness_summary(
+                official_evidence_paths["linux-x86_64"], moonjust_commit, failures
+            )
+            if "linux-x86_64" in official_evidence_paths
             else {"missing": True}
         ),
         "platforms": platform_evidence_summaries(

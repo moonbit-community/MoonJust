@@ -448,6 +448,7 @@ jobs:
             --platform-evidence linux-x86_64=evidence/linux-x86_64/verification/platform-compat.json \
             --platform-evidence macos-aarch64=evidence/macos-aarch64/verification/platform-compat.json \
             --platform-evidence windows-x86_64=evidence/windows-x86_64/verification/platform-compat.json \
+            --official-evidence linux-x86_64=evidence/linux-x86_64/verification/platform-official.json \
             --coverage _build/coverage/summary.json \
             --coverage-metadata native=_build/coverage/native.metadata.json \
             --coverage-metadata wasm=_build/coverage/wasm.metadata.json \
