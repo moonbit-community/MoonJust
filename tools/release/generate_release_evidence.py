@@ -17,6 +17,16 @@ from pathlib import Path
 SCHEMA_VERSION = 2
 UPSTREAM_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 REQUIRED_PLATFORMS = {"linux-x86_64", "macos-aarch64", "windows-x86_64"}
+RELEASE_APPROVED_DIFFERENCES = {
+    "JUST-1.57.0-2235": {
+        "disposition": "unsupported",
+        "tracking": "ADR-0019",
+        "evidence": {
+            "docs/adr/0019-direct-child-process-lifecycle.md",
+            "tools/upstream/run_official_harness.py",
+        },
+    },
+}
 PLATFORM_SYSTEMS = {
     "linux-x86_64": "Linux",
     "macos-aarch64": "Darwin",
@@ -276,14 +286,35 @@ def platform_evidence_summaries(
     return values
 
 
+def is_release_approved_difference(row: dict[str, object]) -> bool:
+    rule = RELEASE_APPROVED_DIFFERENCES.get(str(row.get("id")))
+    return (
+        rule is not None
+        and row.get("disposition") == rule["disposition"]
+        and row.get("tracking") == rule["tracking"]
+        and rule["evidence"] <= set(row.get("evidence", []))
+    )
+
+
 def test_map_summary(path: Path, failures: list[str]) -> dict[str, object]:
     rows = load_jsonl(path)
     dispositions = Counter(str(row.get("disposition")) for row in rows)
     compatibility = [row for row in rows if row.get("scope") == "compatibility"]
+    approved_ids = {
+        str(row.get("id"))
+        for row in compatibility
+        if is_release_approved_difference(row)
+    }
+    expected_ids = set(RELEASE_APPROVED_DIFFERENCES)
+    if any(str(row.get("id")) in expected_ids for row in compatibility) and (
+        approved_ids != expected_ids
+    ):
+        failures.append("release-approved compatibility differences drifted")
     incomplete = [
         row
         for row in compatibility
         if row.get("disposition") not in {"verified-differential", "verified-contract"}
+        and not is_release_approved_difference(row)
     ]
     by_area = Counter(str(row.get("owner_area", "unknown")) for row in incomplete)
     by_disposition = Counter(

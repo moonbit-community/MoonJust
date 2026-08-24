@@ -128,6 +128,16 @@ PLATFORM_HOST_CASES = {
     "non_unicode::warn_for_non_unicode_invocation_directory",
     "non_unicode::warn_for_non_unicode_justfile_path",
 }
+RELEASE_APPROVED_DIFFERENCES = {
+    "JUST-1.57.0-2235": {
+        "disposition": "unsupported",
+        "tracking": "ADR-0019",
+        "evidence": {
+            "docs/adr/0019-direct-child-process-lifecycle.md",
+            "tools/upstream/run_official_harness.py",
+        },
+    },
+}
 
 
 def root() -> Path:
@@ -157,6 +167,16 @@ def incomplete_release_message(rows: list[dict[str, object]]) -> str:
     return (
         f"strict release evidence is incomplete for {len(rows)} registrations "
         f"({breakdown}); first IDs: {sample}{suffix}"
+    )
+
+
+def is_release_approved_difference(row: dict[str, object]) -> bool:
+    rule = RELEASE_APPROVED_DIFFERENCES.get(str(row.get("id")))
+    return (
+        rule is not None
+        and row.get("disposition") == rule["disposition"]
+        and row.get("tracking") == rule["tracking"]
+        and rule["evidence"] <= set(row.get("evidence", []))
     )
 
 
@@ -907,10 +927,20 @@ def validate_release(contract_results: Path) -> None:
     compatibility_rows = [
         row for row in rows if row["scope"] == "compatibility"
     ]
+    approved_ids = {
+        str(row["id"])
+        for row in compatibility_rows
+        if is_release_approved_difference(row)
+    }
+    expect(
+        approved_ids == set(RELEASE_APPROVED_DIFFERENCES),
+        "release-approved compatibility differences drifted",
+    )
     incomplete = [
         row
         for row in compatibility_rows
         if row["disposition"] not in VERIFIED_DISPOSITIONS
+        and not is_release_approved_difference(row)
     ]
     expect(
         all(
