@@ -1,36 +1,151 @@
 ///|
 #cfg(platform="windows")
-priv struct NativeTestPath(String)
-
-///|
-#cfg(not(platform="windows"))
-priv struct NativeTestPath(Bytes)
+#borrow(path)
+extern "C" fn test_file_attributes(path : String) -> UInt = "GetFileAttributesW"
 
 ///|
 #cfg(platform="windows")
-fn NativeTestPath::new(value : String) -> NativeTestPath {
-  NativeTestPath(value)
+#borrow(path)
+extern "C" fn test_set_file_attributes(path : String, attributes : UInt) -> Int = "SetFileAttributesW"
+
+///|
+#cfg(platform="windows")
+#borrow(target, link_path)
+extern "C" fn test_symlink(
+  target : String,
+  link_path : String,
+  flags : UInt,
+) -> Int = "CreateSymbolicLinkW"
+
+///|
+#cfg(not(platform="windows"))
+#borrow(path)
+extern "C" fn test_chmod(path : Bytes, mode : Int) -> Int = "chmod"
+
+///|
+#cfg(not(platform="windows"))
+#borrow(path, metadata)
+extern "C" fn test_stat(path : Bytes, metadata : Bytes) -> Int = "stat"
+
+///|
+#cfg(not(platform="windows"))
+#borrow(target, link_path)
+extern "C" fn test_symlink(target : Bytes, link_path : Bytes) -> Int = "symlink"
+
+///|
+#cfg(platform="windows")
+fn set_readonly_for_test(path : @path.PathValue, make_readonly : Bool) -> Int {
+  let value = test_file_attributes(path.as_string())
+  if value == 4294967295U {
+    3
+  } else {
+    let next = if make_readonly { value | 1U } else { value & 4294967294U }
+    if test_set_file_attributes(path.as_string(), next) != 0 {
+      0
+    } else {
+      4
+    }
+  }
 }
 
 ///|
 #cfg(not(platform="windows"))
-fn NativeTestPath::new(value : String) -> NativeTestPath {
-  NativeTestPath(@utf8.encode(value))
+fn set_readonly_for_test(path : @path.PathValue, make_readonly : Bool) -> Int {
+  if test_chmod(
+      @utf8.encode(path.as_string()) + Bytes::make(1, (0).to_byte()),
+      if make_readonly {
+        0o400
+      } else {
+        0o600
+      },
+    ) ==
+    0 {
+    0
+  } else {
+    4
+  }
 }
 
 ///|
-#borrow(path)
-extern "C" fn set_readonly_for_test(
-  path : NativeTestPath,
-  make_readonly : Bool,
-) -> Int = "moonjust_host_set_readonly_for_test"
+#cfg(not(platform="windows"))
+fn set_mode_for_test(path : @path.PathValue, mode : Int) -> Int {
+  if test_chmod(
+      @utf8.encode(path.as_string()) + Bytes::make(1, (0).to_byte()),
+      mode,
+    ) ==
+    0 {
+    0
+  } else {
+    4
+  }
+}
 
 ///|
-#borrow(target, link_path)
-extern "C" fn symlink_for_test(
-  target : NativeTestPath,
-  link_path : NativeTestPath,
-) -> Int = "moonjust_host_symlink_for_test"
+#cfg(not(platform="windows"))
+fn mode_for_test(path : @path.PathValue) -> Int? {
+  let metadata = Bytes::make(512, 0)
+  let value = @utf8.encode(path.as_string()) + Bytes::make(1, (0).to_byte())
+  if test_stat(value, metadata) != 0 {
+    None
+  } else {
+    let host = NativeFs::new()
+    let offset = try {
+      if @host.HostPlatform::platform_info(host).operating_system() == Macos {
+        4
+      } else {
+        24
+      }
+    } catch {
+      _ => 24
+    }
+    Some(
+      (metadata[offset].to_int() | (metadata[offset + 1].to_int() << 8)) &
+      0o7777,
+    )
+  }
+}
+
+///|
+#cfg(platform="windows")
+fn set_mode_for_test(_path : @path.PathValue, _mode : Int) -> Int {
+  0
+}
+
+///|
+#cfg(platform="windows")
+fn mode_for_test(_path : @path.PathValue) -> Int? {
+  None
+}
+
+///|
+#cfg(platform="windows")
+fn symlink_for_test(
+  target : @path.PathValue,
+  link_path : @path.PathValue,
+) -> Int {
+  if test_symlink(target.as_string(), link_path.as_string(), 2U) == 0 {
+    0
+  } else {
+    4
+  }
+}
+
+///|
+#cfg(not(platform="windows"))
+fn symlink_for_test(
+  target : @path.PathValue,
+  link_path : @path.PathValue,
+) -> Int {
+  if test_symlink(
+      @utf8.encode(target.as_string()) + Bytes::make(1, (0).to_byte()),
+      @utf8.encode(link_path.as_string()) + Bytes::make(1, (0).to_byte()),
+    ) ==
+    0 {
+    0
+  } else {
+    4
+  }
+}
 
 ///|
 test "real filesystem adapter reads metadata directories and canonical identity" {
@@ -87,12 +202,13 @@ test "native filesystem commits same-directory transactions without debris" {
     @fs.remove_file(target.as_string())
   }
   @host.HostFs::write_file(host, target, b"old\r\n")
+  assert_eq(set_mode_for_test(target, 0o640), 0)
   @host.write_file_atomic(host, target, b"new\r\n")
   assert_eq(@host.HostFs::read_file(host, target), b"new\r\n")
-  assert_eq(
-    set_readonly_for_test(NativeTestPath::new(target.as_string()), true),
-    0,
-  )
+  if mode_for_test(target) is Some(mode) {
+    assert_eq(mode, 0o640)
+  }
+  assert_eq(set_readonly_for_test(target, true), 0)
   try @host.write_file_atomic(host, target, b"forbidden") catch {
     PermissionDenied(FsWrite, ..) => ()
     error => fail("unexpected readonly error: \{Repr(error)}")
@@ -100,10 +216,7 @@ test "native filesystem commits same-directory transactions without debris" {
     _ => fail("expected readonly target rejection")
   }
   assert_eq(@host.HostFs::read_file(host, target), b"new\r\n")
-  assert_eq(
-    set_readonly_for_test(NativeTestPath::new(target.as_string()), false),
-    0,
-  )
+  assert_eq(set_readonly_for_test(target, false), 0)
   try @host.write_file_atomic(host, target, b"lost", overwrite=false) catch {
     AlreadyExists(path) => assert_eq(path, target)
     error => fail("unexpected no-overwrite error: \{Repr(error)}")
@@ -131,13 +244,7 @@ test "native canonical identity follows filesystem symlinks" {
     @fs.remove_file(target.as_string())
   }
   @host.HostFs::write_file(host, target, b"target")
-  assert_eq(
-    symlink_for_test(
-      NativeTestPath::new(target.as_string()),
-      NativeTestPath::new(link.as_string()),
-    ),
-    0,
-  )
+  assert_eq(symlink_for_test(target, link), 0)
   assert_eq(
     @host.HostFs::canonicalize(host, link),
     @host.HostFs::canonicalize(host, target),

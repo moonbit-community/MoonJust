@@ -14,7 +14,6 @@ import {
 warnings = "-29"
 
 options(
-  "native-stub": [ "realpath.c", "transaction.c", "platform.c" ],
   targets: {
     "canonical_native.mbt": [ "native", "llvm" ],
     "canonical_portable.mbt": [ "wasm", "wasm-gc", "js" ],
