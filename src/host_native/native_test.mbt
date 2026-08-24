@@ -128,7 +128,7 @@ fn symlink_for_test(
   target : @path.PathValue,
   link_path : @path.PathValue,
 ) -> Int {
-  if test_symlink(target.as_string(), link_path.as_string(), 2U) == 0 {
+  if test_symlink(link_path.as_string(), target.as_string(), 2U) == 0 {
     0
   } else {
     4

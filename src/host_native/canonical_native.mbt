@@ -42,7 +42,7 @@ fn canonical_path_string(value : String) -> String? {
     None
   } else {
     ignore(native_close_path_handle(handle))
-    let resolved = buffer[:length.to_int()].to_owned()
+    let resolved = buffer[:length.reinterpret_as_int()].to_owned()
     if resolved.has_prefix("\\\\?\\UNC\\") {
       Some("\\\\" + resolved[8:].to_owned())
     } else if resolved.has_prefix("\\\\?\\") {
