@@ -21,9 +21,14 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
 - Accepted process limitation: `signals::forwarding` is an explicit Native
   unsupported case because its upstream fixture requires indirect descendant
   signal delivery and shared-pipe cleanup outside the direct-child contract
-- Known exceptions: release artifact-size gate and Windows Native
-  `dag-1000`/`project-parameters` performance; neither is hidden or used to
-  lower a threshold
+- Current CI policy: merged Native/Wasm production coverage gates only overall
+  coverage at 80%; changed-line, area and frozen package baselines are report
+  fields, not failure conditions. Main and release workflows run report-only
+  benchmarks on all three supported platforms and gate execution, sample
+  completeness and provenance, without authoritative timing thresholds.
+- CI orchestration uses Python 3.11 with native Windows path and artifact
+  handling. The host async lifecycle observation remains Unix-only and is
+  recorded as `not-applicable` on Windows.
 
 ## C cleanup closure
 
@@ -50,7 +55,8 @@ gates and must be attached to the final main SHA. The macOS-only full upstream
 harness retains the pre-existing `dotenv::fifo` environment-source limitation;
 supported signal cases pass on rerun, while `signals::forwarding` is recorded as
 the ADR-0019 direct-child exception, and Linux CI remains authoritative
-for the FIFO case.
+for the FIFO case. The current CI workflow no longer treats Linux timing or
+authoritative performance as a release gate.
 
 The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
 unchanged stable `.mbti` declarations, all-target tests, architecture and

@@ -97,7 +97,7 @@ class BenchmarkTest(unittest.TestCase):
             path = Path(raw) / "legacy.json"
             path.write_text('{"schema_version": 2, "status": "passed"}\n')
             value = benchmark.read_evidence(path)
-            self.assertEqual(value["schema_version"], 3)
+            self.assertEqual(value["schema_version"], 4)
             self.assertEqual(value["legacy_schema_version"], 2)
 
     def test_shadow_result_sets_ignore_measurement_values(self) -> None:

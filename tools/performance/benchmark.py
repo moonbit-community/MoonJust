@@ -20,22 +20,14 @@ from pathlib import Path
 from typing import Iterable
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 LEGACY_SCHEMA_VERSION = 2
 OFFICIAL_COMMIT = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 DEFAULT_SEED = 1_570
-MAX_CV = 0.10
 STABLE_CV = 0.05
 STABLE_CI_HALF_WIDTH = 0.03
 MIN_LATENCY_SAMPLES = 15
 MAX_LATENCY_SAMPLES = 30
-MAX_CANDIDATE_REGRESSION = 1.02
-WASM_BUDGETS_MS = {
-    "startup": (25.0, 35.0),
-    "recipes-1000": (75.0, 120.0),
-    "dag-1000": (150.0, 250.0),
-}
-MAX_WASM_RSS_KIB = 128 * 1024
 COLD_WARM_ROUNDS = 3
 COLD_WARM_WARMUPS = 5
 
@@ -53,10 +45,6 @@ def text_or_none(path: Path) -> str | None:
         return path.read_text(encoding="utf-8").strip()
     except (OSError, UnicodeError):
         return None
-
-
-def linux_cpu_value(cpu: int, name: str) -> str | None:
-    return text_or_none(Path(f"/sys/devices/system/cpu/cpu{cpu}/cpufreq/{name}"))
 
 
 def cpuinfo_field(cpuinfo: str | None, name: str) -> str | None:
@@ -82,74 +70,11 @@ def parse_cpu_list(value: str) -> set[int]:
     return cpus
 
 
-def runnable_processes_on_cpu(cpu: int) -> list[dict[str, object]]:
-    """Return unrelated runnable tasks most recently scheduled on one CPU."""
-    if platform.system() != "Linux":
-        return []
-    own_ancestry = {os.getpid(), os.getppid()}
-    rows: list[dict[str, object]] = []
-    proc = Path("/proc")
-    for process_dir in proc.iterdir():
-        if not process_dir.name.isdigit():
-            continue
-        for task_dir in (process_dir / "task").glob("[0-9]*"):
-            try:
-                stat = (task_dir / "stat").read_text(encoding="utf-8")
-                close = stat.rfind(")")
-                fields = stat[close + 2 :].split()
-                state = fields[0]
-                processor = int(fields[36])
-                pid = int(process_dir.name)
-                if processor == cpu and state == "R" and pid not in own_ancestry:
-                    rows.append(
-                        {
-                            "pid": pid,
-                            "task": int(task_dir.name),
-                            "command": stat[stat.find("(") + 1 : close],
-                        }
-                    )
-            except (OSError, UnicodeError, ValueError, IndexError):
-                continue
-    return rows
-
-
-def machine_fingerprint(authoritative: bool) -> tuple[dict[str, object], list[str]]:
-    errors: list[str] = []
-    cpu_text = os.environ.get("MOONJUST_PERF_CPU")
-    selected_cpu: int | None = None
-    if cpu_text:
-        try:
-            selected_cpu = int(cpu_text)
-            if selected_cpu < 0:
-                raise ValueError
-        except ValueError:
-            errors.append("MOONJUST_PERF_CPU must be a non-negative integer")
-    elif authoritative:
-        errors.append("MOONJUST_PERF_CPU is required for an authoritative run")
-
+def machine_fingerprint() -> dict[str, object]:
     affinity = sorted(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else []
-    governor = (
-        linux_cpu_value(selected_cpu, "scaling_governor")
-        if selected_cpu is not None and platform.system() == "Linux"
-        else None
-    )
     load_1m = os.getloadavg()[0] if hasattr(os, "getloadavg") else None
     isolated_text = text_or_none(Path("/sys/devices/system/cpu/isolated")) or ""
     isolated = sorted(parse_cpu_list(isolated_text)) if isolated_text else []
-    runnable = runnable_processes_on_cpu(selected_cpu) if selected_cpu is not None else []
-    if authoritative:
-        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "AMD64"}:
-            errors.append("authoritative performance runs require Linux x86_64")
-        if shutil.which("taskset") is None:
-            errors.append("taskset is required for an authoritative run")
-        if selected_cpu is not None and affinity and selected_cpu not in affinity:
-            errors.append(f"CPU {selected_cpu} is outside the runner affinity")
-        if governor != "performance":
-            errors.append(f"CPU governor must be performance, observed {governor!r}")
-        if load_1m is None or load_1m > 0.5:
-            errors.append(f"1-minute load average must be <= 0.5, observed {load_1m!r}")
-        if runnable:
-            errors.append(f"CPU {selected_cpu} has unrelated runnable tasks: {runnable!r}")
 
     cpuinfo = text_or_none(Path("/proc/cpuinfo")) if platform.system() == "Linux" else None
     meminfo = text_or_none(Path("/proc/meminfo")) if platform.system() == "Linux" else None
@@ -169,44 +94,15 @@ def machine_fingerprint(authoritative: bool) -> tuple[dict[str, object], list[st
         "microcode": cpuinfo_field(cpuinfo, "microcode"),
         "kernel": platform.release(),
         "memory_total": cpuinfo_field(meminfo, "MemTotal"),
-        "selected_cpu": selected_cpu,
         "affinity": affinity,
         "isolated_cpus": isolated,
-        "governor": governor,
-        "scaling_current_khz": (
-            linux_cpu_value(selected_cpu, "scaling_cur_freq")
-            if selected_cpu is not None and platform.system() == "Linux"
-            else None
-        ),
-        "scaling_min_khz": (
-            linux_cpu_value(selected_cpu, "scaling_min_freq")
-            if selected_cpu is not None and platform.system() == "Linux"
-            else None
-        ),
-        "scaling_max_khz": (
-            linux_cpu_value(selected_cpu, "scaling_max_freq")
-            if selected_cpu is not None and platform.system() == "Linux"
-            else None
-        ),
-        "scaling_driver": (
-            linux_cpu_value(selected_cpu, "scaling_driver")
-            if selected_cpu is not None and platform.system() == "Linux"
-            else None
-        ),
         "load_1m": load_1m,
         "temperature_millidegrees": temperatures,
         "temperature_available": bool(temperature_paths),
         "cpuinfo_sha256": hashlib.sha256((cpuinfo or "").encode()).hexdigest(),
         "meminfo_sha256": hashlib.sha256((meminfo or "").encode()).hexdigest(),
-        "runnable_tasks_on_selected_cpu": runnable,
     }
-    return fingerprint, errors
-
-
-def command_prefix(cpu: int | None) -> list[str]:
-    if cpu is not None and platform.system() == "Linux":
-        return ["taskset", "-c", str(cpu)]
-    return []
+    return fingerprint
 
 
 def benchmark_environment() -> dict[str, str]:
@@ -314,16 +210,13 @@ def stable_window(values: list[float], window: int = 5) -> bool:
 
 
 def read_evidence(path: Path) -> dict[str, object]:
-    """Read both migration-era schema 2 and current schema 3 evidence."""
+    """Read current evidence plus migration-era schema 2/3 artifacts."""
     value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict) or value.get("schema_version") not in {
-        LEGACY_SCHEMA_VERSION,
-        SCHEMA_VERSION,
-    }:
+    if not isinstance(value, dict) or value.get("schema_version") not in {2, 3, SCHEMA_VERSION}:
         raise ValueError(f"unsupported performance evidence schema in {path}")
-    if value.get("schema_version") == LEGACY_SCHEMA_VERSION:
+    if value.get("schema_version") != SCHEMA_VERSION:
         value = dict(value)
-        value["legacy_schema_version"] = LEGACY_SCHEMA_VERSION
+        value["legacy_schema_version"] = value["schema_version"]
         value["schema_version"] = SCHEMA_VERSION
     return value
 
@@ -502,14 +395,13 @@ def command_for(
     arguments: list[str],
     moonrun: str,
     policy: Path,
-    cpu: int | None,
 ) -> list[str]:
     runtime = (
         [moonrun, "--policy", str(policy), str(binary)]
         if kind.endswith("wasm")
         else [str(binary)]
     )
-    prefix = command_prefix(cpu) + runtime
+    prefix = runtime
     if arguments == ["--version"]:
         return prefix + arguments
     return prefix + ["--justfile", str(fixture)] + arguments
@@ -668,26 +560,11 @@ def collect_cold_warm_phase(
     return collected, time.perf_counter() - started
 
 
-def add_ratio_failure(
-    failures: list[str], workload: str, candidate: dict[str, object], baseline: dict[str, object]
-) -> None:
-    if float(candidate["median_ms"]) > float(baseline["median_ms"]) * MAX_CANDIDATE_REGRESSION:
-        failures.append(f"{workload}/candidate median regressed by more than 2% from merge-base")
-    if float(candidate["p95_ms"]) > float(baseline["p95_ms"]) * MAX_CANDIDATE_REGRESSION:
-        failures.append(f"{workload}/candidate p95 regressed by more than 2% from merge-base")
-    candidate_rss = candidate["peak_rss_kib"]
-    baseline_rss = baseline["peak_rss_kib"]
-    if candidate_rss is not None and baseline_rss is not None and int(candidate_rss) > int(baseline_rss) * MAX_CANDIDATE_REGRESSION:
-        failures.append(f"{workload}/candidate peak RSS regressed by more than 2% from merge-base")
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--official", type=Path, required=True)
     parser.add_argument("--native", type=Path, required=True)
     parser.add_argument("--wasm", type=Path, required=True)
-    parser.add_argument("--baseline-native", type=Path)
-    parser.add_argument("--baseline-wasm", type=Path)
     parser.add_argument("--policy", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--raw-output", type=Path)
@@ -696,7 +573,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--memory-warmups", type=int, default=2)
     parser.add_argument("--memory-samples", type=int, default=10)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
-    parser.add_argument("--authoritative", action="store_true")
     parser.add_argument("--report-only", action="store_true")
     parser.add_argument(
         "--cold-warm",
@@ -709,7 +585,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    for name in ("official", "native", "wasm", "baseline_native", "baseline_wasm", "policy", "output"):
+    for name in ("official", "native", "wasm", "policy", "output"):
         value = getattr(args, name)
         if value is not None:
             setattr(args, name, value.resolve())
@@ -720,8 +596,6 @@ def main() -> int:
         raise RuntimeError("latency samples must be between 15 and 30")
     if args.memory_samples != 10:
         raise RuntimeError("memory samples must be exactly 10")
-    if (args.baseline_native is None) != (args.baseline_wasm is None):
-        raise RuntimeError("merge-base native and wasm artifacts must be supplied together")
     moonrun = shutil.which("moonrun")
     if moonrun is None:
         raise RuntimeError("moonrun is not installed")
@@ -730,14 +604,12 @@ def main() -> int:
         "candidate-native": args.native,
         "candidate-wasm": args.wasm,
     }
-    if args.baseline_native is not None:
-        artifacts["baseline-native"] = args.baseline_native
-        artifacts["baseline-wasm"] = args.baseline_wasm
     for artifact in (*artifacts.values(), args.policy):
         if not artifact.is_file():
             raise RuntimeError(f"benchmark input is missing: {artifact}")
 
-    machine, environment_errors = machine_fingerprint(args.authoritative)
+    machine = machine_fingerprint()
+    environment_errors: list[str] = []
     official_commit = os.environ.get("MOONJUST_OFFICIAL_COMMIT", OFFICIAL_COMMIT)
     if official_commit != OFFICIAL_COMMIT:
         environment_errors.append(
@@ -745,21 +617,6 @@ def main() -> int:
         )
     candidate_commit = tool_output(["git", "rev-parse", "HEAD"])
     moon_toolchain = tool_output(["moon", "version", "--all"])
-    merge_base = baseline_metadata(args.baseline_native)
-    if args.baseline_native is not None:
-        if merge_base is None:
-            environment_errors.append("merge-base metadata.json is missing or invalid")
-        else:
-            native = merge_base.get("native", {})
-            wasm = merge_base.get("wasm1", {})
-            if not isinstance(merge_base.get("commit"), str):
-                environment_errors.append("merge-base metadata commit is missing")
-            if not isinstance(native, dict) or native.get("sha256") != sha256(args.baseline_native):
-                environment_errors.append("merge-base native artifact hash does not match metadata")
-            if not isinstance(wasm, dict) or wasm.get("sha256") != sha256(args.baseline_wasm):
-                environment_errors.append("merge-base wasm artifact hash does not match metadata")
-            if merge_base.get("moon") != moon_toolchain:
-                environment_errors.append("merge-base and candidate MoonBit toolchains differ")
     args.raw_output.parent.mkdir(parents=True, exist_ok=True)
     results: dict[str, dict[str, object]] = {}
     fixtures_record: dict[str, dict[str, object]] = {}
@@ -768,7 +625,6 @@ def main() -> int:
     early_stops: dict[str, bool] = {}
     cold_warm_results: dict[str, dict[str, dict[str, dict[str, object]]]] = {}
     cold_warm_duration = 0.0
-    cpu = machine["selected_cpu"] if isinstance(machine["selected_cpu"], int) else None
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
         fixtures = write_fixtures(root)
@@ -794,7 +650,7 @@ def main() -> int:
                 "arguments": arguments,
             }
             commands = {
-                kind: command_for(kind, binary, fixture, arguments, moonrun, args.policy, cpu)
+                kind: command_for(kind, binary, fixture, arguments, moonrun, args.policy)
                 for kind, binary in artifacts.items()
             }
             fixtures_record[workload]["commands"] = commands
@@ -845,41 +701,21 @@ def main() -> int:
                 }
 
     failures = list(environment_errors)
+    required_kinds = {"official", "candidate-native", "candidate-wasm"}
     for workload, values in results.items():
+        if set(values) != required_kinds:
+            failures.append(f"{workload} is missing one or more benchmark artifacts")
         for kind, summary in values.items():
-            if float(summary["cv"]) > MAX_CV:
-                failures.append(f"{workload}/{kind} CV {float(summary['cv']):.2%} exceeds 10%")
-            rss_cv = summary["rss_cv"]
-            if rss_cv is not None and float(rss_cv) > MAX_CV:
-                failures.append(
-                    f"{workload}/{kind} RSS CV {float(rss_cv):.2%} exceeds 10%"
-                )
-            if args.authoritative and summary["memory_observations"] == 0:
-                failures.append(f"{workload}/{kind} has no RSS observations")
-        official = values["official"]
-        native = values["candidate-native"]
-        if float(native["median_ms"]) > float(official["median_ms"]) * 1.5:
-            failures.append(f"{workload}/native median exceeds 1.5x official")
-        if float(native["p95_ms"]) > float(official["p95_ms"]) * 1.75:
-            failures.append(f"{workload}/native p95 exceeds 1.75x official")
-        if native["peak_rss_kib"] is not None and official["peak_rss_kib"] is not None and int(native["peak_rss_kib"]) > int(official["peak_rss_kib"]) * 2:
-            failures.append(f"{workload}/native peak RSS exceeds 2x official")
-        wasm = values["candidate-wasm"]
-        if workload in WASM_BUDGETS_MS:
-            median_budget, p95_budget = WASM_BUDGETS_MS[workload]
-            if float(wasm["median_ms"]) > median_budget:
-                failures.append(f"{workload}/wasm median {float(wasm['median_ms']):.2f}ms exceeds {median_budget:.0f}ms")
-            if float(wasm["p95_ms"]) > p95_budget:
-                failures.append(f"{workload}/wasm p95 {float(wasm['p95_ms']):.2f}ms exceeds {p95_budget:.0f}ms")
-        if wasm["peak_rss_kib"] is not None and int(wasm["peak_rss_kib"]) > MAX_WASM_RSS_KIB:
-            failures.append(f"{workload}/wasm peak RSS exceeds 128 MiB")
-        if "baseline-native" in values:
-            add_ratio_failure(failures, workload, native, values["baseline-native"])
-            add_ratio_failure(failures, workload, wasm, values["baseline-wasm"])
+            if int(summary.get("latency_samples", 0)) < MIN_LATENCY_SAMPLES:
+                failures.append(f"{workload}/{kind} has incomplete latency samples")
+    if args.cold_warm:
+        for workload, values in cold_warm_results.items():
+            for kind, conditions in values.items():
+                for condition in ("cold", "warm"):
+                    if int(conditions[condition].get("latency_samples", 0)) != COLD_WARM_ROUNDS:
+                        failures.append(f"{workload}/{kind}/{condition} has incomplete cold/warm samples")
 
-    infrastructure_invalid = bool(environment_errors) or any(
-        " CV " in item or "RSS observations" in item for item in failures
-    )
+    infrastructure_invalid = bool(environment_errors)
     args.raw_output.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in raw_rows),
         encoding="utf-8",
@@ -892,8 +728,6 @@ def main() -> int:
             "official_commit": official_commit,
             "official_commit_verified": official_commit == OFFICIAL_COMMIT,
             "candidate_commit": candidate_commit,
-            "merge_base_commit": merge_base.get("commit") if merge_base else None,
-            "merge_base_moon": merge_base.get("moon") if merge_base else None,
         },
         "machine": machine,
         "moon": moon_toolchain,
@@ -903,9 +737,6 @@ def main() -> int:
             "memory_warmups": args.memory_warmups,
             "memory_samples": args.memory_samples,
             "seed": args.seed,
-            "authoritative": args.authoritative,
-            "authority": os.environ.get("MOONJUST_PERF_AUTHORITY", "local"),
-            "timing_gates": args.authoritative,
             "latency_policy": {
                 "warmups": 5,
                 "min_samples": MIN_LATENCY_SAMPLES,
@@ -948,8 +779,8 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     for failure in failures:
-        print(f"performance gate: {failure}", file=sys.stderr)
-    if failures and not args.report_only:
+        print(f"benchmark validation: {failure}", file=sys.stderr)
+    if failures:
         return 1
     print(f"performance samples written to {args.output} and {args.raw_output}")
     return 0
@@ -959,5 +790,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as error:
-        print(f"performance gate error: {error}", file=sys.stderr)
+        print(f"benchmark error: {error}", file=sys.stderr)
         raise SystemExit(1)

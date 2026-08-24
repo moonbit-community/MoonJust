@@ -146,7 +146,7 @@ def main() -> int:
     )
     builder_id = os.environ.get(
         "MOONJUST_BUILDER_ID",
-        "https://github.com/moonbit-community/MoonJust/tools/release/build_artifacts.sh",
+        "https://github.com/moonbit-community/MoonJust/tools/release/build_artifacts.py",
     )
     source_dirty = bool(
         subprocess.run(

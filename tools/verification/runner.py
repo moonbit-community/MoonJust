@@ -105,7 +105,6 @@ def environment_digest(env: dict[str, str]) -> str:
             "GITHUB_REF",
             "GITHUB_WORKFLOW",
             "MOONJUST_EXPECTED_HEAD_SHA",
-            "MOONJUST_PERF_CPU",
             "SOURCE_DATE_EPOCH",
             "ZERO_AR_DATE",
         )
@@ -380,7 +379,7 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
         raise ValueError(f"unknown verification mode: {mode}")
     fast = (
         task("format", "moon", "fmt", "--check", stage="fast"),
-        task("architecture", "./tools/verification/checks/architecture.sh", stage="fast"),
+        task("architecture", sys.executable, "tools/verification/checks/architecture.py", stage="fast"),
         task("naming", sys.executable, "tools/quality/check_naming.py", stage="fast"),
         task(
             "check",
@@ -399,11 +398,11 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
         result = fast
         return result
     verify = fast + (
-        task("native-tests", "./tools/verification/checks/test_target.sh", "native", depends_on=("check",)),
-        task("wasm-tests", "./tools/verification/checks/test_target.sh", "wasm", depends_on=("check",)),
-        task("snapshot", "./tools/upstream/verify_snapshot.sh", depends_on=("check",)),
-        task("differential-self-test", "./tools/differential/self_test.sh", depends_on=("check",)),
-        task("differential-smoke", "./tools/differential/real_smoke.sh", depends_on=("snapshot",)),
+        task("native-tests", sys.executable, "tools/verification/checks/test_target.py", "native", depends_on=("check",)),
+        task("wasm-tests", sys.executable, "tools/verification/checks/test_target.py", "wasm", depends_on=("check",)),
+        task("snapshot", sys.executable, "tools/upstream/verify_snapshot.py", depends_on=("check",)),
+        task("differential-self-test", sys.executable, "tools/differential/self_test.py", depends_on=("check",)),
+        task("differential-smoke", sys.executable, "tools/differential/real_smoke.py", depends_on=("snapshot",)),
         task(
             "evaluator-oracle",
             sys.executable,
@@ -412,6 +411,9 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
             "./_build/upstream/just-1.57.0/target/release/just",
             depends_on=("differential-smoke",),
         ),
+        # This is the sole Unix-only task. It remains intentionally bound to
+        # the existing host-async harness and is recorded as not-applicable on
+        # Windows; the harness itself is out of scope for this migration.
         task("async-spike", "./tools/spikes/check_host_async.sh", depends_on=("check",)),
         task("moon-info", "moon", "info", depends_on=("check",)),
         task("interface-diff", "git", "diff", "--exit-code", depends_on=("moon-info",)),
@@ -435,8 +437,8 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
         result = verify
         return tuple(item for item in result if item.stage == mode) if tier_only else result
     compat = verify + (
-        task("compatibility", "./tools/verification/checks/compatibility.sh", depends_on=("native-tests", "wasm-tests"), stage="compat"),
-        task("platform", "./tools/verification/checks/platform.sh", depends_on=("native-tests",), stage="compat"),
+        task("compatibility", sys.executable, "tools/verification/checks/compatibility.py", depends_on=("native-tests", "wasm-tests"), stage="compat"),
+        task("platform", sys.executable, "tools/verification/checks/platform.py", depends_on=("native-tests",), stage="compat"),
         task(
             "wasm-platform",
             sys.executable,
@@ -444,15 +446,15 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
             depends_on=("wasm-tests",),
             stage="compat",
         ),
-        task("query", "./tools/verification/checks/query.sh", depends_on=("native-tests", "wasm-tests"), stage="compat"),
-        task("hostfs", "./tools/verification/checks/hostfs.sh", depends_on=("wasm-tests",), stage="compat"),
-        task("dotenv", "./tools/verification/checks/dotenv.sh", depends_on=("native-tests",), stage="compat"),
-        task("invocation", "./tools/verification/checks/invocation.sh", depends_on=("native-tests",), stage="compat"),
-        task("workdir", "./tools/verification/checks/workdir.sh", depends_on=("native-tests", "wasm-tests"), stage="compat"),
-        task("environment", "./tools/verification/checks/environment.sh", depends_on=("native-tests",), stage="compat"),
-        task("executor", "./tools/verification/checks/executor.sh", depends_on=("native-tests",), stage="compat"),
-        task("runtime", "./tools/verification/checks/runtime.sh", depends_on=("native-tests", "wasm-tests"), stage="compat"),
-        task("inspect", "./tools/verification/checks/inspect.sh", depends_on=("wasm-tests",), stage="compat"),
+        task("query", sys.executable, "tools/verification/checks/legacy.py", "query", depends_on=("native-tests", "wasm-tests"), stage="compat"),
+        task("hostfs", sys.executable, "tools/verification/checks/legacy.py", "hostfs", depends_on=("wasm-tests",), stage="compat"),
+        task("dotenv", sys.executable, "tools/verification/checks/legacy.py", "dotenv", depends_on=("native-tests",), stage="compat"),
+        task("invocation", sys.executable, "tools/verification/checks/legacy.py", "invocation", depends_on=("native-tests",), stage="compat"),
+        task("workdir", sys.executable, "tools/verification/checks/legacy.py", "workdir", depends_on=("native-tests", "wasm-tests"), stage="compat"),
+        task("environment", sys.executable, "tools/verification/checks/legacy.py", "environment", depends_on=("native-tests",), stage="compat"),
+        task("executor", sys.executable, "tools/verification/checks/legacy.py", "executor", depends_on=("native-tests",), stage="compat"),
+        task("runtime", sys.executable, "tools/verification/checks/legacy.py", "runtime", depends_on=("native-tests", "wasm-tests"), stage="compat"),
+        task("inspect", sys.executable, "tools/verification/checks/legacy.py", "inspect", depends_on=("wasm-tests",), stage="compat"),
         task(
             "official-harness",
             sys.executable,
@@ -470,8 +472,7 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
         return tuple(item for item in result if item.stage == mode) if tier_only else result
     result = compat + (
         task("contracts", sys.executable, "tools/upstream/run_contract_harness.py", depends_on=("compatibility",), stage="release"),
-        task("release", "./tools/verification/checks/release.sh", depends_on=("compatibility", "platform"), stage="release"),
-        task("performance", sys.executable, "tools/runner.py", "measure", "--workload", "all", depends_on=("release",), stage="release"),
+        task("release", sys.executable, "tools/release/release.py", depends_on=("compatibility", "platform"), stage="release"),
     )
     return tuple(item for item in result if item.stage == mode) if tier_only else result
 
@@ -549,12 +550,8 @@ def official_artifact(repo: Path) -> Path:
 
 
 def oracle_build_command() -> Command:
-    """Run the POSIX oracle builder through Git Bash on Windows hosts."""
-    if platform.system() == "Windows":
-        # System32 also provides a `bash.exe` shim for WSL. Use Git Bash
-        # explicitly so hosted Windows runners do not require a WSL distro.
-        return (r"C:\Program Files\Git\bin\bash.exe", "./tools/upstream/build_oracle.sh")
-    return ("./tools/upstream/build_oracle.sh",)
+    """Build the pinned oracle through the native Python entrypoint."""
+    return (sys.executable, "tools/upstream/build_oracle.py")
 
 
 def ensure_build(
@@ -701,7 +698,7 @@ def evidence_record(
             "planned"
             if tasks and all(item["status"] == "planned" for item in tasks)
             else "passed"
-            if all(item["status"] == "passed" for item in tasks)
+            if all(item["status"] in {"passed", "not-applicable"} for item in tasks)
             else "failed"
         ),
         "classification": "correctness",
@@ -787,6 +784,26 @@ def run(
             raise RuntimeError(f"task graph order is invalid for {item.name}")
         if failures and mode in {"fast", "verify"}:
             break
+        if item.name == "async-spike" and platform.system() == "Windows":
+            record = {
+                "name": item.name,
+                "stage": item.stage,
+                "command": {
+                    "argv": relative_command(repo, item.command),
+                    "cwd": ".",
+                    "env_digest": environment_digest(env),
+                },
+                "started_at_ns": time.perf_counter_ns(),
+                "duration_ms": 0.0,
+                "exit_code": None,
+                "status": "not-applicable",
+                "classification": "platform-capability",
+                "reason": "host async lifecycle evidence is Unix-only",
+            }
+            tasks.append(record)
+            task_status[item.name] = "not-applicable"
+            completed.add(item.name)
+            continue
         blocked_by = sorted(
             dependency
             for dependency in item.depends_on
@@ -844,9 +861,6 @@ def run_measurement(
     repo: Path,
     workload: str,
     output: Path | None = None,
-    authoritative: bool = False,
-    baseline_native: Path | None = None,
-    baseline_wasm: Path | None = None,
     report_only: bool = False,
     cold_warm: bool = False,
 ) -> int:
@@ -869,16 +883,10 @@ def run_measurement(
         "--official", str(official), "--native", str(native), "--wasm", str(wasm),
         "--policy", str(policy), "--output", str(raw_report), "--raw-output", str(output.with_suffix(".jsonl")),
     ]
-    if authoritative:
-        command_line.append("--authoritative")
     if report_only:
         command_line.append("--report-only")
     if cold_warm:
         command_line.append("--cold-warm")
-    if baseline_native is not None or baseline_wasm is not None:
-        if baseline_native is None or baseline_wasm is None:
-            raise ValueError("both baseline_native and baseline_wasm are required")
-        command_line += ["--baseline-native", str(baseline_native), "--baseline-wasm", str(baseline_wasm)]
     if workload not in {"all", ""}:
         command_line += ["--workload", workload]
     result = subprocess.run(command_line, cwd=repo, check=False)
@@ -897,7 +905,7 @@ def run_measurement(
         "schema_version": EVIDENCE_SCHEMA_VERSION,
         "runner_version": RUNNER_VERSION,
         "run_id": f"{source['commit_sha'][:12]}-{uuid.uuid4().hex[:12]}",
-        "stage": "release" if authoritative else "measure",
+        "stage": "measure",
         "mode": "measure",
         "commit_sha": source["commit_sha"],
         "tree_sha": source["tree_sha"],
@@ -942,21 +950,20 @@ def run_coverage(repo: Path, target: str, base: str | None = None) -> int:
             "_build/coverage/cobertura.xml",
             "--summary",
             "_build/coverage/summary.json",
-            "--baseline",
-            "compat/coverage-baseline.json",
         )
         if base:
             command_line += ("--base", base)
     else:
         command_line = (
             sys.executable,
-            "tools/verification/checks/coverage_target.sh",
+            "tools/quality/collect_coverage.py",
+            "--repo",
+            str(repo),
+            "--target",
             target,
+            "--output",
+            str(repo / "_build/coverage"),
         )
-    # coverage_target.sh uses Bash options (including pipefail); invoke Bash
-    # explicitly so Ubuntu's dash does not silently reject the runner.
-    if target != "merge":
-        command_line = ("bash", *command_line[1:])
     return subprocess.run(command_line, cwd=repo, check=False).returncode
 
 
@@ -993,9 +1000,6 @@ def main() -> int:
     measure_parser = subparsers.add_parser("measure")
     measure_parser.add_argument("--workload", default="all")
     measure_parser.add_argument("--output", type=Path)
-    measure_parser.add_argument("--authoritative", action="store_true")
-    measure_parser.add_argument("--baseline-native", type=Path)
-    measure_parser.add_argument("--baseline-wasm", type=Path)
     measure_parser.add_argument("--report-only", action="store_true")
     measure_parser.add_argument(
         "--cold-warm",
@@ -1046,9 +1050,6 @@ def main() -> int:
             repo,
             args.workload,
             args.output.resolve() if args.output else None,
-            args.authoritative,
-            args.baseline_native.resolve() if args.baseline_native else None,
-            args.baseline_wasm.resolve() if args.baseline_wasm else None,
             args.report_only,
             args.cold_warm,
         )

@@ -25,14 +25,15 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - run: moon update
       - name: Run fast tier
-        run: python3 tools/runner.py run --mode fast --evidence _build/verification/fast.json
+        run: python tools/runner.py run --mode fast --evidence _build/verification/fast.json
       - name: Validate exact-head evidence
-        run: python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/fast.json
+        run: python tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/fast.json
       - name: Upload fast evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -51,6 +52,7 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
 
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
@@ -58,7 +60,7 @@ jobs:
           version: latest
 
       - name: Ensure MoonX entry point
-        run: ./tools/release/ensure_moonx.sh
+        run: python tools/release/ensure_moonx.py
 
       - name: Report toolchain
         run: moon version --all
@@ -78,10 +80,10 @@ jobs:
           key: just-1.57.0-e01a6bd7-907adacb
 
       - name: Run unified verify runner
-        run: python3 tools/runner.py run --mode verify --tier-only --evidence _build/verification/verify.json
+        run: python tools/runner.py run --mode verify --tier-only --evidence _build/verification/verify.json
 
       - name: Validate exact-head evidence
-        run: python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/verify.json
+        run: python tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/verify.json
       - name: Upload verify evidence and registry
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -110,12 +112,13 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
+      - uses: ./.github/actions/setup-python
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - name: Ensure MoonX entry point
-        run: ./tools/release/ensure_moonx.sh
+        run: python tools/release/ensure_moonx.py
       - run: moon update
       - run: moon install
       - name: Build wasm1 once on Ubuntu
@@ -125,16 +128,12 @@ jobs:
       - name: Rebuild stripped wasm1 without cache
         run: MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip --target wasm --target-dir _build/wasm-repeat cmd/just
       - name: Stage and hash wasm1
-        shell: bash
         run: |
-          mkdir -p _build/shared-wasm
-          cp _build/wasm/release/build/cmd/just/just.wasm _build/shared-wasm/just.wasm
-          cp _build/size-debug/wasm/release/build/cmd/just/just.wasm _build/shared-wasm/just.debug.wasm
-          sha256sum _build/shared-wasm/just.wasm | sed 's#_build/shared-wasm/##' > _build/shared-wasm/just.wasm.sha256
-          python3 tools/release/check_repeatable_artifacts.py \
-            --platform wasm1 \
-            --pair wasm1=_build/shared-wasm/just.wasm=_build/wasm-repeat/wasm/release/build/cmd/just/just.wasm \
-            --output _build/shared-wasm/repeatability.json
+          python tools/verification/ci.py stage-shared-wasm \
+            --source _build/wasm/release/build/cmd/just/just.wasm \
+            --debug _build/size-debug/wasm/release/build/cmd/just/just.wasm \
+            --repeat _build/wasm-repeat/wasm/release/build/cmd/just/just.wasm \
+            --out _build/shared-wasm
       - name: Upload shared wasm1
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -162,6 +161,7 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
 
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
@@ -169,15 +169,7 @@ jobs:
           version: latest
 
       - name: Ensure MoonX entry point
-        shell: bash
-        run: ./tools/release/ensure_moonx.sh
-
-      - name: Add Git Bash to Windows PATH
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
-          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\usr\bin'
+        run: python tools/release/ensure_moonx.py
 
       - name: Refresh dependencies
         run: |
@@ -191,89 +183,41 @@ jobs:
           path: _build/shared-wasm
 
       - name: Verify shared wasm1 checksum
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import hashlib
-          from pathlib import Path
-          asset = Path("_build/shared-wasm/just.wasm")
-          sidecar = Path("_build/shared-wasm/just.wasm.sha256").read_text().split()
-          actual = hashlib.sha256(asset.read_bytes()).hexdigest()
-          if len(sidecar) != 2 or sidecar[0] != actual or sidecar[1] != "just.wasm":
-              raise SystemExit("shared wasm1 checksum mismatch")
-          PY
+        run: python tools/verification/ci.py verify-shared-wasm --asset _build/shared-wasm/just.wasm --sidecar _build/shared-wasm/just.wasm.sha256
 
       - name: Build platform Native debug artifact through registry
-        run: python3 tools/runner.py build --target native --profile debug
+        run: python tools/runner.py build --target native --profile debug
 
       - name: Run Native verification tier
-        run: python3 tools/runner.py run --mode verify --no-build --task native-tests --task native-version --evidence _build/verification/platform-verify.json
+        run: python tools/runner.py run --mode verify --no-build --task native-tests --task native-version --evidence _build/verification/platform-verify.json
 
       - name: Run platform compatibility tier
         env:
           MOONJUST_NATIVE_CANDIDATE: ${{ github.workspace }}/_build/native/debug/build/cmd/just/just.exe
           MOONJUST_WASM_CANDIDATE: ${{ github.workspace }}/_build/shared-wasm/just.wasm
           MOONJUST_PLATFORM_SKIP_TESTS: "1"
-        shell: bash
         run: |
-          tasks=(--task platform --task wasm-platform)
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            tasks+=(--task official-harness)
-          fi
-          python3 tools/runner.py run --mode compat --tier-only --no-build "${tasks[@]}" --evidence _build/verification/platform-compat.json
+          python tools/runner.py run --mode compat --tier-only --no-build \
+            --task platform --task wasm-platform --evidence _build/verification/platform-compat.json
+      - name: Run Linux official harness
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          MOONJUST_NATIVE_CANDIDATE: ${{ github.workspace }}/_build/native/debug/build/cmd/just/just.exe
+          MOONJUST_WASM_CANDIDATE: ${{ github.workspace }}/_build/shared-wasm/just.wasm
+          MOONJUST_PLATFORM_SKIP_TESTS: "1"
+        run: python tools/runner.py run --mode compat --tier-only --no-build --task official-harness --evidence _build/verification/platform-official.json
 
-      - name: Validate platform evidence
-        run: |
-          python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/platform-verify.json
-          python3 tools/runner.py --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" evidence validate _build/verification/platform-compat.json
+      - name: Validate Native platform evidence
+        run: python tools/runner.py --expected-sha "${{ env.MOONJUST_EXPECTED_HEAD_SHA }}" evidence validate _build/verification/platform-verify.json
+      - name: Validate compatibility platform evidence
+        run: python tools/runner.py --expected-sha "${{ env.MOONJUST_EXPECTED_HEAD_SHA }}" evidence validate _build/verification/platform-compat.json
 
       - name: Build and verify Release artifact
         if: github.event_name != 'pull_request'
-        shell: bash
         env:
           MOONJUST_BUILDER_ID: https://github.com/moonbit-community/MoonJust/.github/workflows/ci.yml
-        run: |
-          platform="${{ matrix.platform }}"
-          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="$platform" \
-            MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
-            ./tools/release/build_artifacts.sh)
-          python3 ./tools/release/verify_bundle.py \
-            --repo . --archive "$archive" --platform "$platform"
-          mkdir -p _build/repeat-first
-          cp "$archive" _build/repeat-first/archive
-          cp _build/release/build/native/release/build/cmd/just/just.exe \
-            _build/repeat-first/native
-          archive=$(MOONJUST_REQUIRE_CLEAN=1 MOONJUST_RELEASE_PLATFORM="$platform" \
-            MOONJUST_WASM_ASSET="$GITHUB_WORKSPACE/_build/shared-wasm/just.wasm" \
-            ./tools/release/build_artifacts.sh)
-          python3 ./tools/release/verify_bundle.py \
-            --repo . --archive "$archive" --platform "$platform"
-          python3 ./tools/release/check_repeatable_artifacts.py \
-            --platform "$platform" \
-            --pair native=_build/repeat-first/native=_build/release/build/native/release/build/cmd/just/just.exe \
-            --pair archive=_build/repeat-first/archive="$archive" \
-            --output "_build/release/repeatability-$platform.json"
-          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)
-          python3 ./tools/release/check_moonx_asset.py \
-            --repo . --registry _build/release \
-            --coordinate "ZSeanYves/MoonJust/cmd/just@$version"
-          base_ref="${{ github.event.pull_request.base.sha }}"
-          if [ -z "$base_ref" ]; then base_ref=origin/main; fi
-          python3 ./tools/release/build_size_baseline.py \
-            --repo . --base-ref "$base_ref" --platform "$platform" \
-            --output _build/size-baseline.json
-          moon build --frozen --release --no-strip --target native \
-            --target-dir _build/size-debug cmd/just
-          python3 ./tools/release/check_artifact_size.py \
-            --baseline-report _build/size-baseline.json \
-            --platform "$platform" \
-            --native _build/release/build/native/release/build/cmd/just/just.exe \
-            --wasm _build/shared-wasm/just.wasm \
-            --native-debug _build/size-debug/native/release/build/cmd/just/just.exe \
-            --wasm-debug _build/shared-wasm/just.debug.wasm \
-            --archive "$archive" \
-            --require-complete-baseline \
-            --output "_build/release/artifact-size-$platform.json"
+          MOONJUST_REQUIRE_CLEAN: "1"
+        run: python tools/verification/ci.py platform-release --repo . --platform "${{ matrix.platform }}" --wasm _build/shared-wasm/just.wasm --base-ref origin/main
 
       - name: Upload Release artifact
         if: github.event_name != 'pull_request' && always()
@@ -300,13 +244,14 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - run: moon update
       - run: moon install
       - name: Execute every unique contract on native and wasm1
-        run: python3 tools/runner.py run --mode release --tier-only --task contracts --evidence _build/verification/contracts.json
+        run: python tools/runner.py run --mode release --tier-only --task contracts --evidence _build/verification/contracts.json
       - name: Upload contract results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -318,7 +263,7 @@ jobs:
             _build/verification/contracts.json
           if-no-files-found: error
       - name: Enforce strict registration evidence
-        run: python3 ./tools/upstream/verify_manifest.py --release
+        run: python ./tools/upstream/verify_manifest.py --release
 
   compat:
     name: Compatibility gate
@@ -327,10 +272,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Enforce compatibility prerequisites
-        run: |
-          test "${{ needs.verify.result }}" = success
-          test "${{ needs['native-platforms'].result }}" = success
-          test "${{ needs['contract-evidence'].result }}" = success
+        run: python tools/verification/ci.py require-results "${{ needs.verify.result }}" "${{ needs['native-platforms'].result }}" "${{ needs['contract-evidence'].result }}"
 
   coverage-native:
     name: Production coverage (Native)
@@ -341,13 +283,14 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - run: moon update
       - run: moon install
       - name: Measure Native coverage
-        run: python3 tools/runner.py coverage --target native
+        run: python tools/runner.py coverage --target native
       - name: Upload Native coverage evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -368,13 +311,14 @@ jobs:
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
       - run: moon update
       - run: moon install
       - name: Measure Wasm coverage
-        run: python3 tools/runner.py coverage --target wasm
+        run: python tools/runner.py coverage --target wasm
       - name: Upload Wasm coverage evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -386,72 +330,54 @@ jobs:
             _build/coverage/wasm/traces/**
           if-no-files-found: error
 
-  coverage-merge:
-    name: Production coverage (Merge)
-    needs: [coverage-native, coverage-wasm]
-    if: github.event_name != 'pull_request' && always()
-    runs-on: ubuntu-latest
+  benchmark:
+    name: Hosted benchmark (${{ matrix.platform }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-aarch64
+          - os: windows-latest
+            platform: windows-x86_64
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: moonjust-coverage-native
-          path: _build/coverage
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: moonjust-coverage-wasm
-          path: _build/coverage
-      - name: Merge and enforce production coverage
-        run: |
-          coverage_base=$(tr -d '[:space:]' < compat/stage0-coverage-baseline.sha)
-          python3 tools/runner.py coverage --target merge --base "$coverage_base"
-      - name: Upload merged coverage evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: moonjust-coverage-evidence
-          path: _build/coverage/**
-          if-no-files-found: error
-
-  performance-trend:
-    name: Hosted Linux performance trend
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
-          fetch-depth: 0
+      - uses: ./.github/actions/setup-python
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
-      - run: ./tools/release/ensure_moonx.sh
+      - run: python tools/release/ensure_moonx.py
       - run: |
           moon update
           moon install
-      - name: Run non-authoritative interleaved benchmark
-        run: python3 tools/runner.py measure --report-only --output _build/performance/results.json
-      - name: Upload trend evidence
+      - name: Run report-only benchmark
+        run: python tools/runner.py measure --report-only --cold-warm --output _build/performance/results.json
+      - name: Upload benchmark evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: moonjust-performance-trend
+          name: moonjust-performance-${{ matrix.platform }}
           path: _build/performance/**
           if-no-files-found: error
 
   release-evidence:
     name: Aggregate release evidence
     if: github.event_name != 'pull_request' && always()
-    needs: [fast, verify, compat, wasm1-shared, native-platforms, contract-evidence, coverage-merge, performance-trend]
+    needs: [fast, verify, compat, wasm1-shared, native-platforms, contract-evidence, coverage-native, coverage-wasm, benchmark]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
@@ -475,13 +401,28 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
-          name: moonjust-coverage-evidence
-          path: evidence/coverage
+          name: moonjust-coverage-native
+          path: _build/coverage
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
-          name: moonjust-performance-trend
-          path: evidence/performance
+          name: moonjust-coverage-wasm
+          path: _build/coverage
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          name: moonjust-performance-linux-x86_64
+          path: evidence/performance/linux-x86_64
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          name: moonjust-performance-macos-aarch64
+          path: evidence/performance/macos-aarch64
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          name: moonjust-performance-windows-x86_64
+          path: evidence/performance/windows-x86_64
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
@@ -489,19 +430,25 @@ jobs:
           path: evidence/contracts
       - name: Validate and aggregate evidence
         if: always()
-        shell: bash
         run: |
-          python3 tools/release/generate_release_evidence.py \
-            --mode pr \
+          python tools/runner.py coverage --target merge
+          python tools/performance/aggregate_cloud.py \
+            --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" \
+            --report linux-x86_64=evidence/performance/linux-x86_64/results.json \
+            --report macos-aarch64=evidence/performance/macos-aarch64/results.json \
+            --report windows-x86_64=evidence/performance/windows-x86_64/results.json \
+            --output evidence/performance/results.json
+          python tools/release/generate_release_evidence.py \
+            --mode release \
             --test-map tests/upstream/just-1.57.0/test-map.jsonl \
             --contract-results evidence/contracts/upstream-contracts/results.jsonl \
             --compat-report linux-x86_64=evidence/linux-x86_64/upstream-harness/compatibility-report.jsonl \
             --platform-evidence linux-x86_64=evidence/linux-x86_64/verification/platform-compat.json \
             --platform-evidence macos-aarch64=evidence/macos-aarch64/verification/platform-compat.json \
             --platform-evidence windows-x86_64=evidence/windows-x86_64/verification/platform-compat.json \
-            --coverage evidence/coverage/summary.json \
-            --coverage-metadata native=evidence/coverage/native.metadata.json \
-            --coverage-metadata wasm=evidence/coverage/wasm.metadata.json \
+            --coverage _build/coverage/summary.json \
+            --coverage-metadata native=_build/coverage/native.metadata.json \
+            --coverage-metadata wasm=_build/coverage/wasm.metadata.json \
             --performance evidence/performance/results.json \
             --size-report linux-x86_64=evidence/linux-x86_64/release/artifact-size-linux-x86_64.json \
             --size-report macos-aarch64=evidence/macos-aarch64/release/artifact-size-macos-aarch64.json \
@@ -521,19 +468,7 @@ jobs:
             --strict
       - name: Check prerequisite job results
         if: always()
-        shell: bash
-        run: |
-          for result in \
-            "${{ needs.fast.result }}" \
-            "${{ needs.verify.result }}" \
-            "${{ needs.compat.result }}" \
-            "${{ needs['wasm1-shared'].result }}" \
-            "${{ needs['native-platforms'].result }}" \
-            "${{ needs['contract-evidence'].result }}" \
-            "${{ needs['coverage-merge'].result }}" \
-            "${{ needs['performance-trend'].result }}"; do
-            [ "$result" = success ] || exit 1
-          done
+        run: python tools/verification/ci.py require-results "${{ needs.fast.result }}" "${{ needs.verify.result }}" "${{ needs.compat.result }}" "${{ needs['wasm1-shared'].result }}" "${{ needs['native-platforms'].result }}" "${{ needs['contract-evidence'].result }}" "${{ needs.coverage-native.result }}" "${{ needs.coverage-wasm.result }}" "${{ needs.benchmark.result }}"
       - name: Upload aggregate evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

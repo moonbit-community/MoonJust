@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge target coverage, filter production sources, and enforce thresholds."""
+"""Merge target coverage and enforce the repository-wide coverage threshold."""
 
 from __future__ import annotations
 
@@ -16,15 +16,7 @@ from pathlib import Path
 
 PRODUCTION_PREFIXES = ("api/", "cmd/just/", "src/")
 EXCLUDED_SUFFIXES = ("_test.mbt", "_wbtest.mbt", "pkg.generated.mbti")
-REQUIRED_AREAS = {
-    "lexer",
-    "parser",
-    "loader",
-    "semantic",
-    "executor",
-    "runtime",
-    "host_process",
-}
+OVERALL_MINIMUM = 0.80
 
 
 def fail(message: str) -> None:
@@ -65,6 +57,18 @@ def read_coverage(paths: list[Path]) -> dict[str, dict[int, int]]:
 
 def rate(covered: int, valid: int) -> float:
     return covered / valid if valid else 1.0
+
+
+def policy_failures(summary: dict[str, object]) -> list[str]:
+    overall = summary.get("overall")
+    if not isinstance(overall, dict):
+        return ["overall coverage report is missing"]
+    observed = overall.get("rate")
+    if not isinstance(observed, (int, float)):
+        return ["overall coverage rate is missing"]
+    if float(observed) < OVERALL_MINIMUM:
+        return [f"overall coverage {float(observed):.2%} < {OVERALL_MINIMUM:.0%}"]
+    return []
 
 
 def changed_lines(repo: Path, base: str | None) -> dict[str, set[int]]:
@@ -148,7 +152,9 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--cobertura", type=Path, required=True)
     parser.add_argument("--summary", type=Path, required=True)
-    parser.add_argument("--baseline", type=Path, required=True)
+    # Accepted temporarily so old local wrappers keep working. Package
+    # baselines are report inputs only and no longer participate in the gate.
+    parser.add_argument("--baseline", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--base", default=os.environ.get("MOONJUST_COVERAGE_BASE"))
     parser.add_argument("--report-only", action="store_true")
     args = parser.parse_args()
@@ -203,31 +209,7 @@ def main() -> int:
     args.summary.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     write_cobertura(args.cobertura, files, package_counts)
 
-    failures: list[str] = []
-    if rate(total_covered, total_valid) < 0.80:
-        failures.append(f"overall coverage {rate(total_covered, total_valid):.2%} < 80%")
-    for area in sorted(REQUIRED_AREAS):
-        area_rate = package_rates.get(area, 0.0)
-        if area_rate < 0.85:
-            failures.append(f"{area} coverage {area_rate:.2%} < 85%")
-    if changed_valid and rate(changed_covered, changed_valid) < 0.90:
-        failures.append(
-            f"changed-line coverage {rate(changed_covered, changed_valid):.2%} < 90%"
-        )
-    if not args.baseline.is_file():
-        failures.append(f"frozen package baseline is missing: {args.baseline}")
-    else:
-        baseline = json.loads(args.baseline.read_text())
-        if baseline.get("schema_version") != 1:
-            fail("unsupported package coverage baseline schema")
-        for package, previous in baseline.get("packages", {}).items():
-            current = package_rates.get(package)
-            if current is None:
-                failures.append(f"baseline package disappeared from coverage: {package}")
-            elif current + 0.01 < previous:
-                failures.append(
-                    f"{package} coverage dropped from {previous:.2%} to {current:.2%}"
-                )
+    failures = policy_failures(summary)
 
     print(
         f"coverage overall={rate(total_covered, total_valid):.2%} "

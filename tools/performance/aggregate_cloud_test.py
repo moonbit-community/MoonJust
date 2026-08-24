@@ -33,12 +33,8 @@ def report(commit: str) -> dict[str, object]:
         "measurements": {
             "report": {
                 "schema_version": 3,
-                "status": "failed",
-                "configuration": {
-                    "authoritative": False,
-                    "authority": "cloud-trend",
-                    "timing_gates": False,
-                },
+                "status": "passed",
+                "configuration": {"mode": "report-only"},
                 "cold_warm": {
                     "enabled": True,
                     "rounds": 3,
@@ -64,8 +60,27 @@ class AggregateCloudTest(unittest.TestCase):
             cloud.aggregate(paths, commit, output)
             value = json.loads(output.read_text())
             self.assertEqual(value["status"], "passed")
-            self.assertEqual(value["configuration"]["authority"], "cloud-trend")
-            self.assertEqual(value["provenance"]["source_statuses"]["linux-x86_64"], "failed")
+            self.assertEqual(value["configuration"]["mode"], "report-only")
+            self.assertEqual(value["provenance"]["source_statuses"]["linux-x86_64"], "passed")
+
+    def test_timing_values_are_observations_not_a_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            commit = "a" * 40
+            paths = {}
+            for name in cloud.REQUIRED_PLATFORMS:
+                value = report(commit)
+                nested = value["measurements"]["report"]
+                for workload in nested["cold_warm"]["workloads"].values():
+                    for artifact in workload.values():
+                        for summary in artifact.values():
+                            summary["median_ms"] = 999999.0
+                path = root / f"{name}.json"
+                path.write_text(json.dumps(value))
+                paths[name] = path
+            output = root / "results.json"
+            cloud.aggregate(paths, commit, output)
+            self.assertEqual(json.loads(output.read_text())["status"], "passed")
 
     def test_rejects_mixed_exact_heads(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

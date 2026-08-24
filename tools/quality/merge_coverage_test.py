@@ -60,6 +60,20 @@ class ChangedLinesTests(unittest.TestCase):
                 {"src/demo/core.mbt": {2}},
             )
 
+    def test_overall_passes_even_when_changed_and_packages_are_low(self) -> None:
+        summary = {
+            "overall": {"rate": 0.80},
+            "changed": {"valid": 10, "rate": 0.0},
+            "packages": {"parser": {"rate": 0.01}},
+        }
+        self.assertEqual(merge_coverage.policy_failures(summary), [])
+
+    def test_overall_below_threshold_fails(self) -> None:
+        self.assertEqual(
+            merge_coverage.policy_failures({"overall": {"rate": 0.799}}),
+            ["overall coverage 79.90% < 80%"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

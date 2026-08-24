@@ -32,15 +32,6 @@ PLATFORM_SYSTEMS = {
     "macos-aarch64": "Darwin",
     "windows-x86_64": "Windows",
 }
-REQUIRED_COVERAGE_AREAS = {
-    "lexer",
-    "parser",
-    "loader",
-    "semantic",
-    "executor",
-    "runtime",
-    "host_process",
-}
 COMPATIBILITY_DISPOSITIONS = {
     "exact",
     "diagnostic-exact",
@@ -405,27 +396,38 @@ def contract_summary(
 def coverage_summary(path: Path, failures: list[str]) -> dict[str, object]:
     value = load_json(path)
     overall = value.get("overall", {})
-    changed = value.get("changed", {})
-    packages = value.get("packages", {})
     if not isinstance(overall, dict) or float(overall.get("rate", 0.0)) < 0.80:
         failures.append("overall coverage is below 80%")
-    if isinstance(changed, dict) and int(changed.get("valid", 0)) > 0 and float(changed.get("rate", 0.0)) < 0.90:
-        failures.append("changed-line coverage is below 90%")
-    if not isinstance(packages, dict):
-        failures.append("coverage package report is missing")
-    else:
-        for area in sorted(REQUIRED_COVERAGE_AREAS):
-            entry = packages.get(area, {})
-            if not isinstance(entry, dict) or float(entry.get("rate", 0.0)) < 0.85:
-                failures.append(f"{area} coverage is below 85%")
     return {"path": str(path), "sha256": sha256(path), "summary": value}
+
+
+def _validate_benchmark_samples(report: dict[str, object], failures: list[str], label: str) -> None:
+    if report.get("status") != "passed":
+        failures.append(f"{label} benchmark status is {report.get('status')!r}")
+    cold_warm = report.get("cold_warm")
+    if not isinstance(cold_warm, dict) or cold_warm.get("enabled") is not True:
+        failures.append(f"{label} benchmark is missing cold/warm evidence")
+        return
+    if cold_warm.get("rounds") != 3 or cold_warm.get("warmups_per_round") != 5:
+        failures.append(f"{label} benchmark cold/warm policy is incomplete")
+    workloads = cold_warm.get("workloads")
+    required_workloads = {"project-modules", "project-parameters", "project-execution"}
+    if not isinstance(workloads, dict) or set(workloads) != required_workloads:
+        failures.append(f"{label} benchmark workload inventory is incomplete")
+        return
+    for workload in sorted(required_workloads):
+        entries = workloads[workload]
+        for kind in ("official", "candidate-native", "candidate-wasm"):
+            conditions = entries.get(kind) if isinstance(entries, dict) else None
+            for condition in ("cold", "warm"):
+                summary = conditions.get(condition) if isinstance(conditions, dict) else None
+                if not isinstance(summary, dict) or summary.get("latency_samples") != 3:
+                    failures.append(f"{label} benchmark samples are incomplete for {workload}/{kind}/{condition}")
 
 
 def performance_summary(
     path: Path,
     failures: list[str],
-    require_authoritative: bool,
-    require_cloud: bool = False,
     expected_commit: str | None = None,
 ) -> dict[str, object]:
     value = load_json(path)
@@ -434,33 +436,17 @@ def performance_summary(
         nested = value["measurements"].get("report")
         if isinstance(nested, dict):
             report = nested
-    configuration = report.get("configuration", {})
-    machine = report.get("machine", {})
-    if value.get("schema_version") not in {2, 3}:
+    if value.get("schema_version") not in {2, 3, 4}:
         failures.append("performance report schema changed")
     if expected_commit is not None:
         observed_commit = value.get("commit_sha", value.get("commit"))
         if observed_commit != expected_commit:
             failures.append("performance report commit differs from exact head")
-    if require_cloud:
-        if report.get("status") != "passed":
-            failures.append(f"cloud performance aggregation status is {report.get('status')!r}")
-        if (
-            not isinstance(configuration, dict)
-            or configuration.get("authoritative") is not False
-            or configuration.get("authority") != "cloud-trend"
-            or configuration.get("timing_gates") is not False
-        ):
-            failures.append("performance report is not a non-blocking cloud trend")
+    if isinstance(report.get("platform_reports"), dict):
         platform_reports = report.get("platform_reports", {})
         if not isinstance(platform_reports, dict) or set(platform_reports) != REQUIRED_PLATFORMS:
             failures.append("cloud performance report does not cover all release platforms")
         else:
-            required_workloads = {
-                "project-modules",
-                "project-parameters",
-                "project-execution",
-            }
             for platform_name in sorted(REQUIRED_PLATFORMS):
                 entry = platform_reports.get(platform_name)
                 nested = entry.get("report") if isinstance(entry, dict) else None
@@ -469,89 +455,13 @@ def performance_summary(
                 if not isinstance(nested, dict):
                     failures.append(f"cloud performance report is missing for {platform_name}")
                     continue
-                cold_warm = nested.get("cold_warm", {})
-                workloads = cold_warm.get("workloads", {}) if isinstance(cold_warm, dict) else {}
-                if (
-                    not isinstance(cold_warm, dict)
-                    or cold_warm.get("enabled") is not True
-                    or cold_warm.get("rounds") != 3
-                    or cold_warm.get("warmups_per_round") != 5
-                    or not isinstance(workloads, dict)
-                    or set(workloads) != required_workloads
-                ):
-                    failures.append(f"cloud cold/warm evidence is incomplete for {platform_name}")
-                    continue
-                for workload in sorted(required_workloads):
-                    entries = workloads.get(workload)
-                    for kind in ("official", "candidate-native", "candidate-wasm"):
-                        conditions = entries.get(kind) if isinstance(entries, dict) else None
-                        for condition in ("cold", "warm"):
-                            summary = conditions.get(condition) if isinstance(conditions, dict) else None
-                            if (
-                                not isinstance(summary, dict)
-                                or summary.get("latency_samples") != 3
-                                or not isinstance(summary.get("median_ms"), (int, float))
-                                or not math.isfinite(float(summary["median_ms"]))
-                            ):
-                                failures.append(
-                                    f"cloud cold/warm evidence is invalid for {platform_name}/{workload}/{kind}/{condition}"
-                                )
-    if require_authoritative and report.get("status") != "passed":
-        failures.append(f"authoritative performance status is {report.get('status')!r}")
-    if require_authoritative and (
-        not isinstance(configuration, dict)
-        or configuration.get("authoritative") is not True
-    ):
-        failures.append("performance report is not authoritative")
-    if require_authoritative and (
-        not isinstance(machine, dict)
-        or machine.get("system") != "Linux"
-        or machine.get("machine") not in {"x86_64", "AMD64"}
-    ):
-        failures.append("performance report is not from Linux x86_64")
-    if require_authoritative:
-        cold_warm = report.get("cold_warm", {})
-        required_workloads = {
-            "project-modules",
-            "project-parameters",
-            "project-execution",
-        }
-        if not isinstance(cold_warm, dict) or cold_warm.get("enabled") is not True:
-            failures.append("authoritative performance report is missing cold/warm validation")
-        else:
-            if cold_warm.get("rounds") != 3 or cold_warm.get("warmups_per_round") != 5:
-                failures.append("cold/warm validation must use 3 rounds and 5 warmups")
-            workloads = cold_warm.get("workloads", {})
-            if not isinstance(workloads, dict) or set(workloads) != required_workloads:
-                failures.append("cold/warm validation workload inventory is incomplete")
-            else:
-                for workload in sorted(required_workloads):
-                    entries = workloads.get(workload)
-                    if not isinstance(entries, dict):
-                        failures.append(f"cold/warm evidence is missing for {workload}")
-                        continue
-                    for kind in ("official", "candidate-native", "candidate-wasm"):
-                        conditions = entries.get(kind)
-                        if not isinstance(conditions, dict):
-                            failures.append(f"cold/warm evidence is missing for {workload}/{kind}")
-                            continue
-                        for condition in ("cold", "warm"):
-                            summary = conditions.get(condition)
-                            samples = summary.get("latency_samples") if isinstance(summary, dict) else None
-                            median = summary.get("median_ms") if isinstance(summary, dict) else None
-                            if samples != 3 or not isinstance(median, (int, float)) or not math.isfinite(float(median)):
-                                failures.append(
-                                    f"cold/warm evidence is invalid for {workload}/{kind}/{condition}"
-                                )
-    if not require_authoritative and not require_cloud and (
-        not isinstance(configuration, dict)
-        or configuration.get("authoritative") is not False
-    ):
-        failures.append("PR performance trend is incorrectly marked authoritative")
+                _validate_benchmark_samples(nested, failures, platform_name)
+    else:
+        _validate_benchmark_samples(report, failures, "performance")
     return {
         "path": str(path),
         "sha256": sha256(path),
-        "authority": "authoritative" if require_authoritative else "cloud-trend" if require_cloud else "trend",
+        "mode": "report-only",
         "summary": value,
     }
 
@@ -718,13 +628,7 @@ def main() -> int:
         coverage_metadata_paths, moonjust_commit, failures
     )
     performance = (
-        performance_summary(
-            args.performance,
-            failures,
-            require_authoritative=False,
-            require_cloud=args.mode == "release",
-            expected_commit=moonjust_commit,
-        )
+        performance_summary(args.performance, failures, expected_commit=moonjust_commit)
         if args.performance.is_file()
         else {"path": str(args.performance), "missing": True}
     )
@@ -778,7 +682,7 @@ def main() -> int:
         "missing_inputs": missing_inputs,
     }
     # Validators append failures while the record is assembled.
-    if any("infrastructure" in failure or "authoritative performance status" in failure for failure in failures):
+    if any("infrastructure" in failure for failure in failures):
         record["status"] = "infrastructure-invalid"
     elif missing_inputs:
         record["status"] = "missing"

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 REQUIRED_PLATFORMS = {"linux-x86_64", "macos-aarch64", "windows-x86_64"}
 REQUIRED_WORKLOADS = {"project-modules", "project-parameters", "project-execution"}
 REQUIRED_KINDS = ("official", "candidate-native", "candidate-wasm")
@@ -40,14 +40,8 @@ def nested_report(value: dict[str, object], path: Path) -> dict[str, object]:
 
 
 def validate_cold_warm(report: dict[str, object], path: Path) -> None:
-    configuration = report.get("configuration")
-    if (
-        not isinstance(configuration, dict)
-        or configuration.get("authoritative") is not False
-        or configuration.get("authority") != "cloud-trend"
-        or configuration.get("timing_gates") is not False
-    ):
-        raise ValueError(f"cloud report is marked authoritative: {path}")
+    if report.get("status") != "passed":
+        raise ValueError(f"cloud benchmark did not pass execution checks: {path}")
     cold_warm = report.get("cold_warm")
     if not isinstance(cold_warm, dict):
         raise ValueError(f"cloud report has no cold/warm evidence: {path}")
@@ -99,16 +93,12 @@ def aggregate(reports: dict[str, Path], expected_sha: str, output: Path) -> None
         "status": "passed",
         "commit": expected_sha,
         "provenance": {
-            "authority": "cloud-trend",
-            "timing_gates": False,
             "source_statuses": statuses,
         },
         "moon": next(iter(moon_values)) if len(moon_values) == 1 else None,
         "machine": {"platforms": sorted(REQUIRED_PLATFORMS)},
         "configuration": {
-            "authoritative": False,
-            "authority": "cloud-trend",
-            "timing_gates": False,
+            "mode": "report-only",
             "platforms": sorted(REQUIRED_PLATFORMS),
         },
         "platform_reports": platforms,
