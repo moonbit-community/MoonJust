@@ -38,7 +38,7 @@ Windows wide-character paths, and the documented non-UTF-8 cwd classification.
 MoonBit `extern "C"` declarations reference system ABI or approved dependency
 backends; no project C shim or new dependency was added.
 
-Local second-pass evidence: host-native 9/9, Native 1118/1118, Wasm 1097/1097,
+Local second-pass evidence: host-native 9/9, Native 1119/1119, Wasm 1097/1097,
 all-target check with warnings denied, naming and architecture checks, and the
 pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
 three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned

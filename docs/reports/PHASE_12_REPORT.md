@@ -105,7 +105,7 @@ moon info
 moon fmt
 moon fmt --check
 moon check --target all --warn-list +73 --deny-warn
-moon test --target native       # 1118 passed, 0 failed
+moon test --target native       # 1119 passed, 0 failed
 moon test --target wasm         # 1097 passed, 0 failed
 python3 tools/quality/check_naming.py
 python3 tools/quality/check_naming_test.py
@@ -117,7 +117,7 @@ python3 tools/runner.py run --mode fast
 仍按同一 runner 和精确 SHA 协议执行。
 
 本次迁移后的二次本地复检还通过了 host_native 定向 9/9、全量 Native
-1118/1118、全量 Wasm 1097/1097、`moon check --target all --warn-list +73
+1119/1119、全量 Wasm 1097/1097、`moon check --target all --warn-list +73
 --deny-warn`、命名/架构检查，以及上游 2,417 条注册清单和官方差分 smoke。
 Release/三平台 artifact evidence 仍须由精确 head 的 CI/RC 提供，不能由本机
 macOS 结果替代。官方 signal gate 在空闲重跑中通过 14/14；完整官方 harness
