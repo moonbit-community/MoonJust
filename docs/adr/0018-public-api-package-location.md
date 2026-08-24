@@ -13,7 +13,7 @@ package path can be corrected before the public API is frozen.
 ## Decision
 
 - Move the stable facade and build metadata to the `api/` package.
-- Publish the facade as `moonbit-community/MoonJust/api`.
+- Publish the facade as `ZSeanYves/MoonJust/api`.
 - Keep the existing functions and behavior unchanged.
 - Do not retain a root compatibility package because that would preserve the
   root-level files this change removes.
@@ -23,8 +23,8 @@ encapsulation, testing, and semantic-versioning policies remain in force.
 
 ## Compatibility
 
-Consumers must change imports from `moonbit-community/MoonJust` to
-`moonbit-community/MoonJust/api`. This is an intentional pre-beta breaking
+Consumers must change imports from `ZSeanYves/MoonJust` to
+`ZSeanYves/MoonJust/api`. This is an intentional pre-beta breaking
 change and is recorded in the changelog.
 
 ## Consequences

@@ -17,7 +17,7 @@ expressions rather than static strings.
 
 ## Decision
 
-- `internal/invocation` is a pure core package. It consumes an immutable semantic
+- `src/invocation` is a pure core package. It consumes an immutable semantic
   compilation and recipe argv and returns immutable invocations with one value
   group per parameter.
 - The CLI parser inserts its own argument boundary before the first recipe.

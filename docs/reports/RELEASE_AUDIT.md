@@ -1,12 +1,32 @@
 # Release readiness audit
 
-> **Superseded historical audit.** This report preserves the evidence and
-> conclusions recorded at the Phase 11 audit closure. It is not current
-> compatibility or release-readiness evidence. The schema-v4 verifier now
-> rejects the former shared-anchor accounting: `verify_manifest.py --release`
-> reports 568 registrations without independent evidence. The active status is
-> stated in the repository README and the machine-readable files under
-> `tests/upstream/just-1.57.0/`.
+## Current Phase 12 entry
+
+This is the current audit entry for the `main` branch after the Phase 12
+source-layout and release-identity closeout. The complete functional and
+platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md).
+
+- Upstream: `just 1.57.0`, commit
+  `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
+- Module: `ZSeanYves/MoonJust`, Moon metadata `0.1.0`, product/tag `v0.1.0`
+- Stable facade: `ZSeanYves/MoonJust/api`
+- Repository URL: `https://github.com/moonbit-community/MoonJust`
+- Layout: implementation packages under `src/*`; no repository `internal/*`
+- Main pre-close baseline: `6ac1e27ee288957fa9ec956d6847d60e56d8ba09`
+- Final main head: the commit containing this audit entry; its full SHA must be
+  taken from the post-push exact-head CI/RC evidence
+- Completion: excluded by scope
+- Accepted MoonX limitation: two Linux invalid UTF-8 cwd rows are
+  `not-applicable`
+- Known exceptions: release artifact-size gate and Windows Native
+  `dag-1000`/`project-parameters` performance; neither is hidden or used to
+  lower a threshold
+
+The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
+unchanged stable `.mbti` declarations, all-target tests, architecture and
+naming checks, and a clean stale-path/duplicate-artifact audit. The historical
+Phase 0-11 evidence below is retained as an immutable index; it is not a
+replacement for the current exact-head evidence.
 
 - Review period: 2026-08-04 through 2026-08-13
 - Historical scope: Phase 0 through Phase 11
@@ -18,7 +38,7 @@
 - Accepted specification: [`PROJECT_PLAN.md`](../PROJECT_PLAN.md)
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
-- MoonJust candidate identity: `0.7.0-alpha.1`
+- MoonJust candidate identity: `v0.1.0`
 - Required targets: Native and wasm1 through `moonrun`/`moonx`; Native smoke on Ubuntu, macOS and Windows
 
 ## Audit rule

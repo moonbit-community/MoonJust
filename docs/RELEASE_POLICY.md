@@ -2,7 +2,7 @@
 
 MoonJust prepares two related release candidates from the same reviewed commit:
 
-- the `moonbit-community/MoonJust` source module for Mooncakes;
+- the `ZSeanYves/MoonJust` source module for Mooncakes;
 - prebuilt `cmd/just` executables for Linux, macOS, Windows and wasm1.
 
 The reviewed Native candidate matrix is Linux x86_64, macOS arm64 and Windows
@@ -22,15 +22,15 @@ tag, its version must match these reviewed values.
 The executable coordinate is:
 
 ```text
-moonbit-community/MoonJust/cmd/just@<version>
+ZSeanYves/MoonJust/cmd/just@<version>
 ```
 
 `moonx` defaults to the linear-memory wasm backend and downloads these exact
 registry assets before invoking `moonrun`:
 
 ```text
-/assets/moonbit-community/MoonJust@<version>/cmd/just/just.wasm
-/assets/moonbit-community/MoonJust@<version>/cmd/just/just.wasm.sha256
+/assets/ZSeanYves/MoonJust@<version>/cmd/just/just.wasm
+/assets/ZSeanYves/MoonJust@<version>/cmd/just/just.wasm.sha256
 ```
 
 It validates the SHA-256 sidecar before execution. A source package without
