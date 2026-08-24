@@ -215,8 +215,6 @@ class ReleaseEvidenceTest(unittest.TestCase):
                     {"name": "platform", "status": "passed"},
                     {"name": "wasm-platform", "status": "passed"},
                 ]
-                if name == "linux-x86_64":
-                    tasks.append({"name": "official-harness", "status": "passed"})
                 path = directory / f"{name}.json"
                 path.write_text(
                     json.dumps(
