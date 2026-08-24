@@ -250,6 +250,31 @@ class ReleaseEvidenceTest(unittest.TestCase):
                 failures,
             )
 
+    def test_official_harness_evidence_is_validated_separately(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "official.json"
+            commit = "a" * 40
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "commit_sha": commit,
+                        "mode": "compat",
+                        "status": "passed",
+                        "host": {"system": "Linux"},
+                        "measurements": {
+                            "tasks": [
+                                {"name": "official-harness", "status": "passed"}
+                            ]
+                        },
+                    }
+                )
+            )
+            failures: list[str] = []
+            summary = evidence.official_harness_summary(path, commit, failures)
+            self.assertEqual(summary["tasks"], {"official-harness": "passed"})
+            self.assertEqual(failures, [])
+
     def test_contract_summary_requires_exact_unique_target_matrix(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             directory = Path(raw)
