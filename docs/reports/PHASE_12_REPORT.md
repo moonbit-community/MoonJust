@@ -95,7 +95,10 @@ Ubuntu 构建、由三平台 gate 消费并校验哈希的共享 wasm1 产物。
 signal、process 和 interactive evidence 不跨主机缓存。官方差分固定使用
 上游提交，completion 单独排除。
 
-Native 与共享 wasm1 的完整行为结果均为零未登记失败。Linux MoonX 在无效
+Native 与共享 wasm1 的完整行为结果均为零未登记失败。上游
+`signals::forwarding` 依赖 TERM 传递到 recipe 间接启动的 MoonJust；该场景
+现按 ADR-0019 记录为 Native direct-child 生命周期之外的显式 unsupported，
+不会重新引入 process-group cleanup。Linux MoonX 在无效
 UTF-8 cwd 的两个上游场景仍为明确 `not-applicable`：
 
 - `non_unicode::warn_for_non_unicode_invocation_directory`
@@ -114,8 +117,8 @@ moon info
 moon fmt
 moon fmt --check
 moon check --target all --warn-list +73 --deny-warn
-moon test --target native       # 1113 passed, 0 failed
-moon test --target wasm         # 1097 passed, 0 failed
+moon test --target native       # 1112 passed, 0 failed
+moon test --target wasm         # 1096 passed, 0 failed
 python3 tools/quality/check_naming.py
 python3 tools/quality/check_naming_test.py
 python3 tools/runner.py run --mode fast
@@ -126,10 +129,10 @@ python3 tools/runner.py run --mode fast
 仍按同一 runner 和精确 SHA 协议执行。
 
 本次迁移后的二次本地复检还通过了 host_native 定向 9/9、全量 Native
-1113/1113、全量 Wasm 1097/1097、`moon check --target all --warn-list +73
+1112/1112、全量 Wasm 1096/1096、`moon check --target all --warn-list +73
 --deny-warn`、命名/架构检查，以及上游 2,417 条注册清单和官方差分 smoke。
 Release/三平台 artifact evidence 仍须由精确 head 的 CI/RC 提供，不能由本机
-macOS 结果替代。官方 signal gate 在空闲重跑中通过 14/14；完整官方 harness
+macOS 结果替代。官方 signal gate 除上述明确 unsupported 场景外均通过；完整官方 harness
 在 macOS 的 `dotenv::fifo` 仍受本机 environment-source/FIFO 能力限制，表现为
 上游测试自身的环境读取返回码差异，Linux CI 是该项的权威验证主机。该本机限制
 没有改变此次 host-native C 清理的定向测试、Native/Wasm 全量测试或其他兼容门禁。

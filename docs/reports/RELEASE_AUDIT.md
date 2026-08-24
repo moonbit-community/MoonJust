@@ -18,6 +18,9 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
 - Completion: excluded by scope
 - Accepted MoonX limitation: two Linux invalid UTF-8 cwd rows are
   `not-applicable`
+- Accepted process limitation: `signals::forwarding` is an explicit Native
+  unsupported case because its upstream fixture requires indirect descendant
+  signal delivery and shared-pipe cleanup outside the direct-child contract
 - Known exceptions: release artifact-size gate and Windows Native
   `dag-1000`/`project-parameters` performance; neither is hidden or used to
   lower a threshold
@@ -39,13 +42,14 @@ Windows wide-character paths, and the documented non-UTF-8 cwd classification.
 MoonBit `extern "C"` declarations reference system ABI or approved dependency
 backends; no project C shim or new dependency was added.
 
-Local second-pass evidence: host-native 9/9, Native 1113/1113, Wasm 1097/1097,
+Local second-pass evidence: host-native 9/9, Native 1112/1112, Wasm 1096/1096,
 all-target check with warnings denied, naming and architecture checks, and the
 pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
 three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned
 gates and must be attached to the final main SHA. The macOS-only full upstream
 harness retains the pre-existing `dotenv::fifo` environment-source limitation;
-the isolated signal gate passed 14/14 on rerun, and Linux CI remains authoritative
+supported signal cases pass on rerun, while `signals::forwarding` is recorded as
+the ADR-0019 direct-child exception, and Linux CI remains authoritative
 for the FIFO case.
 
 The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,

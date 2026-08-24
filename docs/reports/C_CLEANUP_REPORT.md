@@ -3,11 +3,10 @@
 ## Scope
 
 This report records the host-native C cleanup completed on the Phase 12
-candidate branch. The exact implementation head is
-`e49b018819f10a8b3e770f82355f6fce79368ccc`, carried by Draft PR #59. The
-cleanup removes project-owned production C that duplicated filesystem,
-platform, and process-group behavior while retaining only the signal stub and
-isolated research probes explicitly approved by the plan.
+candidate branch and the direct-child process lifecycle migration delivered by
+PR #60. The cleanup removes project-owned production C that duplicated
+filesystem, platform, and process-group behavior while retaining only the
+signal stub and isolated research probes explicitly approved by the plan.
 
 Production C source after the cleanup:
 
@@ -69,7 +68,8 @@ concurrent readers and does not restore group cleanup to change that behavior.
 
 ## Cross-platform verification
 
-The exact-head GitHub run `32705322439` completed successfully for:
+The exact-head CI evidence for this change is recorded on PR #60. The relevant
+host checks include:
 
 - `Quality gates`
 - `Verify gate`
@@ -98,8 +98,8 @@ Local second-pass checks on macOS also passed:
 ```text
 moon fmt --check
 moon check --target all --warn-list +73 --deny-warn
-moon test --target native --no-parallelize  # 1113/1113
-moon test --target wasm --no-parallelize    # 1097/1097
+moon test --target native --no-parallelize  # 1112/1112
+moon test --target wasm --no-parallelize    # 1096/1096
 python3 tools/quality/check_naming.py
 python3 tools/quality/check_naming_test.py
 python3 tools/upstream/verify_manifest.py

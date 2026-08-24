@@ -37,6 +37,9 @@ NATIVE_SIGNAL_TESTS = {
     "signals::interrupt_shebang",
     "signals::forwarding",
 }
+DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS = {
+    "signals::forwarding",
+}
 NATIVE_SIGINFO_SYSTEMS = {"Darwin", "DragonFly", "FreeBSD", "iOS", "NetBSD", "OpenBSD"}
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 DIAGNOSTIC_KEYWORDS = {
@@ -774,9 +777,37 @@ def execute_native_signal_gate(
     signal_artifact.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, object]] = []
     combined: list[str] = []
+    runnable = expected - DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS
     passed: set[str] = set()
+    skipped: set[str] = set()
     for name in sorted(expected):
         slug = name.replace("::", "__")
+        if name in DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS:
+            skipped.add(name)
+            records.append(
+                {
+                    "schema_version": 1,
+                    "upstream_commit": UPSTREAM_COMMIT,
+                    "upstream_name": name,
+                    "command": None,
+                    "returncode": None,
+                    "timed_out": False,
+                    "orphan_pids": [],
+                    "passed": False,
+                    "status": "unsupported",
+                    "reason": (
+                        "The upstream scenario requires TERM delivery to an "
+                        "indirect recipe descendant. ADR-0019 retains only "
+                        "direct-child lifecycle ownership."
+                    ),
+                    "log": None,
+                }
+            )
+            combined.append(
+                f"===== {name} =====\n"
+                "skipped: unsupported under the direct-child lifecycle contract\n"
+            )
+            continue
         signal_run_id = f"{os.getpid()}-{slug}"
         command = [
             str(executable),
@@ -841,9 +872,14 @@ def execute_native_signal_gate(
         ),
         encoding="utf-8",
     )
-    if passed != expected or any(record["orphan_pids"] for record in records):
+    if passed != runnable or any(
+        record["orphan_pids"] for record in records
+        if record.get("status") != "unsupported"
+    ):
         details = []
         for record in records:
+            if record.get("status") == "unsupported":
+                continue
             if record["passed"] and not record["orphan_pids"]:
                 continue
             details.append(
@@ -853,7 +889,7 @@ def execute_native_signal_gate(
                 f"log={record['log']}"
             )
         fail("native signal gate failed:\n" + "\n".join(details))
-    print(f"native signals: passed={len(passed)}")
+    print(f"native signals: passed={len(passed)} skipped={len(skipped)}")
 
 
 def encode_results(
