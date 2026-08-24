@@ -269,6 +269,10 @@ jobs:
     needs: [verify, native-platforms, contract-evidence]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
+      - uses: ./.github/actions/setup-python
       - name: Enforce compatibility prerequisites
         run: python tools/verification/ci.py require-results "${{ needs.verify.result }}" "${{ needs['native-platforms'].result }}" "${{ needs['contract-evidence'].result }}"
 
