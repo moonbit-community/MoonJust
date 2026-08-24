@@ -42,7 +42,10 @@ Local second-pass evidence: host-native 9/9, Native 1118/1118, Wasm 1097/1097,
 all-target check with warnings denied, naming and architecture checks, and the
 pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
 three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned
-gates and must be attached to the final main SHA.
+gates and must be attached to the final main SHA. The macOS-only full upstream
+harness retains the pre-existing `dotenv::fifo` environment-source limitation;
+the isolated signal gate passed 14/14 on rerun, and Linux CI remains authoritative
+for the FIFO case.
 
 The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
 unchanged stable `.mbti` declarations, all-target tests, architecture and

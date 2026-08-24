@@ -120,7 +120,10 @@ python3 tools/runner.py run --mode fast
 1118/1118、全量 Wasm 1097/1097、`moon check --target all --warn-list +73
 --deny-warn`、命名/架构检查，以及上游 2,417 条注册清单和官方差分 smoke。
 Release/三平台 artifact evidence 仍须由精确 head 的 CI/RC 提供，不能由本机
-macOS 结果替代。
+macOS 结果替代。官方 signal gate 在空闲重跑中通过 14/14；完整官方 harness
+在 macOS 的 `dotenv::fifo` 仍受本机 environment-source/FIFO 能力限制，表现为
+上游测试自身的环境读取返回码差异，Linux CI 是该项的权威验证主机。该本机限制
+没有改变此次 host-native C 清理的定向测试、Native/Wasm 全量测试或其他兼容门禁。
 
 ## 性能、体积与发布例外
 
