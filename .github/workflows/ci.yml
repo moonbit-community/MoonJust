@@ -196,9 +196,7 @@ jobs:
           MOONJUST_NATIVE_CANDIDATE: ${{ github.workspace }}/_build/native/debug/build/cmd/just/just.exe
           MOONJUST_WASM_CANDIDATE: ${{ github.workspace }}/_build/shared-wasm/just.wasm
           MOONJUST_PLATFORM_SKIP_TESTS: "1"
-        run: |
-          python tools/runner.py run --mode compat --tier-only --no-build \
-            --task platform --task wasm-platform --evidence _build/verification/platform-compat.json
+        run: python tools/runner.py run --mode compat --tier-only --no-build --task platform --task wasm-platform --evidence _build/verification/platform-compat.json
       - name: Run Linux official harness
         if: matrix.os == 'ubuntu-latest'
         env:
