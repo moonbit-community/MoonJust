@@ -1,35 +1,4 @@
 ///|
-#external
-priv type NativePathPointer
-
-///|
-#borrow(pointer)
-extern "C" fn native_path_pointer_is_null(pointer : NativePathPointer) -> Int = "moonbitlang_x_fs_is_null"
-
-///|
-extern "C" fn native_buffer_new(size : Int) -> NativePathPointer = "moonbitlang_async_make_c_buffer"
-
-///|
-#borrow(pointer)
-extern "C" fn native_buffer_length(
-  pointer : NativePathPointer,
-  offset : Int,
-) -> Int = "moonbitlang_async_strlen"
-
-///|
-#borrow(pointer, destination)
-extern "C" fn native_buffer_copy(
-  pointer : NativePathPointer,
-  source_offset : Int,
-  destination : FixedArray[Byte],
-  destination_offset : Int,
-  length : Int,
-) -> Unit = "moonbitlang_async_blit_from_c"
-
-///|
-extern "C" fn native_buffer_free(pointer : NativePathPointer) -> Unit = "free"
-
-///|
 #cfg(platform="windows")
 #external
 priv type NativePathHandle
@@ -85,61 +54,109 @@ fn canonical_path_string(value : String) -> String? {
 }
 
 ///|
-#cfg(all(target="native", platform="linux"))
-#borrow(path)
-extern "C" fn native_realpath(path : Bytes) -> NativePathPointer = "canonicalize_file_name"
-
-///|
-#cfg(all(target="native", not(platform="windows"), not(platform="linux")))
-#borrow(path, resolved)
-extern "C" fn native_realpath(
+#cfg(all(target="native", not(platform="windows")))
+#borrow(path, buffer)
+extern "C" fn native_readlink(
   path : Bytes,
-  resolved : NativePathPointer,
-) -> NativePathPointer = "realpath$DARWIN_EXTSN"
+  buffer : Bytes,
+  length : Int,
+) -> Int = "readlink"
 
 ///|
-
-///|
-#cfg(platform="linux")
-fn native_realpath_bytes(path : Bytes) -> Bytes? {
-  let pointer = native_realpath(path)
-  if native_path_pointer_is_null(pointer) != 0 {
+#cfg(all(target="native", not(platform="windows")))
+fn native_readlink_value(value : String) -> String? {
+  let buffer = Bytes::make(32768, 0)
+  let path = @utf8.encode(value) + Bytes::make(1, (0).to_byte())
+  let length = native_readlink(path, buffer, buffer.length())
+  if length < 0 {
     None
   } else {
-    let length = native_buffer_length(pointer, 0)
-    let resolved : FixedArray[Byte] = FixedArray::make(length, 0)
-    native_buffer_copy(pointer, 0, resolved, 0, length)
-    native_buffer_free(pointer)
-    Some(resolved.unsafe_reinterpret_as_bytes())
-  }
-}
-
-///|
-#cfg(all(not(platform="windows"), not(platform="linux")))
-fn native_realpath_bytes(path : Bytes) -> Bytes? {
-  let buffer = native_buffer_new(32768)
-  let pointer = native_realpath(path, buffer)
-  if native_path_pointer_is_null(pointer) != 0 {
-    native_buffer_free(buffer)
-    None
-  } else {
-    let length = native_buffer_length(pointer, 0)
-    let resolved : FixedArray[Byte] = FixedArray::make(length, 0)
-    native_buffer_copy(pointer, 0, resolved, 0, length)
-    native_buffer_free(buffer)
-    Some(resolved.unsafe_reinterpret_as_bytes())
+    Some(@utf8.decode(buffer[:length].to_owned())) catch {
+      _ => None
+    }
   }
 }
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-fn canonical_path_string(value : String) -> String? {
-  let path = @utf8.encode(value) + Bytes::make(1, (0).to_byte())
-  let decoded : String? = match native_realpath_bytes(path) {
-    Some(resolved) => Some(@utf8.decode(resolved)) catch { _ => None }
-    None => None
+fn native_parent_path(value : String) -> String {
+  let path = @path.PathValue::new(value, Unix) catch { _ => return "." }
+  match path.parent() {
+    Some(parent) => parent.as_string()
+    None => "/"
   }
-  match decoded {
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn native_unix_realpath(value : String) -> String? {
+  let cwd = native_current_dir()
+  let initial = if value.has_prefix("/") {
+    value
+  } else if cwd.is_empty() {
+    value
+  } else {
+    cwd + "/" + value
+  }
+  let initial_path = @path.PathValue::new(initial, Unix) catch {
+    _ => return None
+  }
+  let mut current = initial_path.as_string()
+  for _ in 0..<40 {
+    let components : Array[String] = []
+    for component in current.split("/") {
+      if !component.is_empty() {
+        components.push("\{component}")
+      }
+    }
+    let mut resolved = "/"
+    let mut restart : String? = None
+    for index, component in components {
+      let candidate = if resolved == "/" {
+        "/" + component
+      } else {
+        resolved + "/" + component
+      }
+      match native_readlink_value(candidate) {
+        Some(target) => {
+          let base = if target.has_prefix("/") {
+            target
+          } else {
+            native_parent_path(candidate) + "/" + target
+          }
+          let suffix = if index + 1 < components.length() {
+            "/" + components[index + 1:].join("/")
+          } else {
+            ""
+          }
+          restart = Some(base + suffix)
+          break
+        }
+        None => {
+          if !@fs.path_exists(candidate) {
+            return None
+          }
+          resolved = candidate
+        }
+      }
+    }
+    match restart {
+      None => return Some(resolved)
+      Some(next) => {
+        let next_path = @path.PathValue::new(next, Unix) catch {
+          _ => return None
+        }
+        current = next_path.as_string()
+      }
+    }
+  }
+  None
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+fn canonical_path_string(value : String) -> String? {
+  match native_unix_realpath(value) {
     Some(result) => Some(result)
     None =>
       if native_cwd_nonunicode() && !value.has_prefix("/") {
