@@ -7,6 +7,29 @@ priv type NativePathPointer
 extern "C" fn native_path_pointer_is_null(pointer : NativePathPointer) -> Int = "moonbitlang_x_fs_is_null"
 
 ///|
+extern "C" fn native_buffer_new(size : Int) -> NativePathPointer = "moonbitlang_async_make_c_buffer"
+
+///|
+#borrow(pointer)
+extern "C" fn native_buffer_length(
+  pointer : NativePathPointer,
+  offset : Int,
+) -> Int = "moonbitlang_async_strlen"
+
+///|
+#borrow(pointer, destination)
+extern "C" fn native_buffer_copy(
+  pointer : NativePathPointer,
+  source_offset : Int,
+  destination : FixedArray[Byte],
+  destination_offset : Int,
+  length : Int,
+) -> Unit = "moonbitlang_async_blit_from_c"
+
+///|
+extern "C" fn native_buffer_free(pointer : NativePathPointer) -> Unit = "free"
+
+///|
 #cfg(platform="windows")
 #external
 priv type NativePathHandle
@@ -52,9 +75,9 @@ fn canonical_path_string(value : String) -> String? {
     ignore(native_close_path_handle(handle))
     let resolved = buffer[:length.to_int()].to_owned()
     if resolved.has_prefix("\\\\?\\UNC\\") {
-      Some("\\\\" + resolved[8:])
+      Some("\\\\" + resolved[8:].to_owned())
     } else if resolved.has_prefix("\\\\?\\") {
-      Some(resolved[4:])
+      Some(resolved[4:].to_owned())
     } else {
       Some(resolved)
     }
@@ -62,45 +85,68 @@ fn canonical_path_string(value : String) -> String? {
 }
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
+#cfg(all(target="native", platform="linux"))
+#borrow(path)
+extern "C" fn native_realpath(path : Bytes) -> NativePathPointer = "canonicalize_file_name"
+
+///|
+#cfg(all(target="native", not(platform="windows"), not(platform="linux")))
 #borrow(path, resolved)
 extern "C" fn native_realpath(
   path : Bytes,
-  resolved : Bytes,
-) -> NativePathPointer = "realpath"
+  resolved : NativePathPointer,
+) -> NativePathPointer = "realpath$DARWIN_EXTSN"
+
+///|
+
+///|
+#cfg(platform="linux")
+fn native_realpath_bytes(path : Bytes) -> Bytes? {
+  let pointer = native_realpath(path)
+  if native_path_pointer_is_null(pointer) != 0 {
+    None
+  } else {
+    let length = native_buffer_length(pointer, 0)
+    let resolved : FixedArray[Byte] = FixedArray::make(length, 0)
+    native_buffer_copy(pointer, 0, resolved, 0, length)
+    native_buffer_free(pointer)
+    Some(resolved.unsafe_reinterpret_as_bytes())
+  }
+}
+
+///|
+#cfg(all(not(platform="windows"), not(platform="linux")))
+fn native_realpath_bytes(path : Bytes) -> Bytes? {
+  let buffer = native_buffer_new(32768)
+  let pointer = native_realpath(path, buffer)
+  if native_path_pointer_is_null(pointer) != 0 {
+    native_buffer_free(buffer)
+    None
+  } else {
+    let length = native_buffer_length(pointer, 0)
+    let resolved : FixedArray[Byte] = FixedArray::make(length, 0)
+    native_buffer_copy(pointer, 0, resolved, 0, length)
+    native_buffer_free(buffer)
+    Some(resolved.unsafe_reinterpret_as_bytes())
+  }
+}
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
 fn canonical_path_string(value : String) -> String? {
-  let resolved = Bytes::make(32768, 0)
-  let pointer = native_realpath(
-    @utf8.encode(value) + Bytes::make(1, (0).to_byte()),
-    resolved,
-  )
-  if native_path_pointer_is_null(pointer) != 0 {
-    if native_cwd_nonunicode() && !value.has_prefix("/") {
-      native_warn_nonunicode_justfile()
-      Some(value)
-    } else {
-      None
-    }
-  } else {
-    let mut length = 0
-    while length < resolved.length() && resolved[length] != 0 {
-      length += 1
-    }
-    let decoded : String? = Some(@utf8.decode(resolved[:length])) catch {
-      _ => None
-    }
-    match decoded {
-      Some(result) => Some(result)
-      None =>
-        if native_cwd_nonunicode() && !value.has_prefix("/") {
-          native_warn_nonunicode_justfile()
-          Some(value)
-        } else {
-          None
-        }
-    }
+  let path = @utf8.encode(value) + Bytes::make(1, (0).to_byte())
+  let decoded : String? = match native_realpath_bytes(path) {
+    Some(resolved) => Some(@utf8.decode(resolved)) catch { _ => None }
+    None => None
+  }
+  match decoded {
+    Some(result) => Some(result)
+    None =>
+      if native_cwd_nonunicode() && !value.has_prefix("/") {
+        native_warn_nonunicode_justfile()
+        Some(value)
+      } else {
+        None
+      }
   }
 }

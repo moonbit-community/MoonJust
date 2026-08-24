@@ -14,7 +14,16 @@ async fn read_bounded_source_native(
   }
   defer file.close()
   let read_limit = max_bytes + 1
-  let probed_size = file.size() catch { _ => 0L }
+  // A size probe can block or fail on FIFOs and other special files. Only
+  // regular files need a size hint; all sources still use bounded reads.
+  let regular_file = @fs.is_file(path.as_string()) catch { _ => false }
+  let probed_size = if regular_file {
+    file.size() catch {
+      _ => 0L
+    }
+  } else {
+    0L
+  }
   let size_hint = if probed_size > 0L && probed_size < read_limit.to_int64() {
     probed_size.to_int()
   } else {

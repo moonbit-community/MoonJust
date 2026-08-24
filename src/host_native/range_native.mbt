@@ -150,6 +150,31 @@ fn read_file_range_value(
 }
 
 ///|
+// Special files such as FIFOs cannot be seeked. Read them as a stream so the
+// first open is also the only open; reopening after a failed size probe would
+// lose a one-shot writer and turn a valid source into a misleading access
+// error.
+fn read_nonregular_file_stream_value(value : String) -> Bytes? {
+  let path = RangeNativePath::new(value)
+  let file = native_open_read(path)
+  guard native_file_is_null(file) == 0 else { return None }
+  defer ignore(native_close_file(file))
+  let result = Buffer()
+  while true {
+    let chunk = Bytes::make(64 * 1024, 0)
+    let count = native_read_file(chunk, 1, chunk.length(), file)
+    if count < 0 {
+      return None
+    }
+    if count == 0 {
+      break
+    }
+    result.write_bytes(chunk[:count])
+  }
+  Some(result.to_bytes())
+}
+
+///|
 #cfg(platform="windows")
 fn native_access_value(path : RangeNativePath) -> Bool {
   match path {
@@ -167,5 +192,9 @@ fn native_access_value(path : RangeNativePath) -> Bool {
 
 ///|
 fn read_file_stream_value(value : String) -> Bytes? {
+  let regular_file = @fs.is_file(value) catch { _ => false }
+  if !regular_file {
+    return read_nonregular_file_stream_value(value)
+  }
   Some(@fs.read_file_to_bytes(value) catch { _ => return None })
 }

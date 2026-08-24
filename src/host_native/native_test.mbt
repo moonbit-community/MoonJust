@@ -33,6 +33,11 @@ extern "C" fn test_stat(path : Bytes, metadata : Bytes) -> Int = "stat"
 extern "C" fn test_symlink(target : Bytes, link_path : Bytes) -> Int = "symlink"
 
 ///|
+#cfg(not(platform="windows"))
+#borrow(path)
+extern "C" fn test_mkfifo(path : Bytes, mode : Int) -> Int = "mkfifo"
+
+///|
 #cfg(platform="windows")
 fn set_readonly_for_test(path : @path.PathValue, make_readonly : Bool) -> Int {
   let value = test_file_attributes(path.as_string())
@@ -189,6 +194,34 @@ async test "native source reader retains at most limit plus one byte" {
   assert_eq(@host.HostSourceReader::read_source(host, path, 4), b"01234")
   assert_eq(@host.HostSourceReader::read_source(host, path, 0), b"0")
   @fs.remove_file(path.as_string())
+}
+
+///|
+#cfg(not(platform="windows"))
+async test "native source reader streams named pipes" {
+  @async.with_task_group() <| group => {
+    let host = NativeFs::new()
+    let path = @path.PathValue::new(".moonjust-native-dotenv-fifo", Unix)
+    if @fs.path_exists(path.as_string()) {
+      @fs.remove_file(path.as_string())
+    }
+    let encoded = @utf8.encode(path.as_string()) + Bytes::make(1, (0).to_byte())
+    assert_eq(test_mkfifo(encoded, 0o600), 0)
+    group.add_defer(() => @fs.remove_file(path.as_string()))
+    assert_true(@host.HostFs::file_exists(host, path))
+    let metadata = @host.HostFs::metadata(host, path)
+    assert_false(metadata.is_file())
+    assert_false(metadata.is_directory())
+    group.spawn_bg() <| () => {
+      let writer = @async_fs.open(path.as_string(), mode=WriteOnly)
+      defer writer.close()
+      writer.write(b"DOTENV_KEY=foo\n")
+    }
+    assert_eq(
+      @host.HostSourceReader::read_source(host, path, 1024),
+      b"DOTENV_KEY=foo\n",
+    )
+  }
 }
 
 ///|
