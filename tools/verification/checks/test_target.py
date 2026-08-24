@@ -8,6 +8,10 @@ import subprocess
 import sys
 
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> int:
     if len(sys.argv) != 2 or sys.argv[1] not in {"native", "wasm"}:
         raise SystemExit("usage: test_target.py native|wasm")
