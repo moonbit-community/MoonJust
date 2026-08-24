@@ -11,36 +11,10 @@ async test "signal status keeps the direct child result without a fixed registry
 }
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
-test "process group helper validates payload without taking process ownership" {
-  assert_eq(process_group_exec_ffi(b"", 0), 22)
-  assert_eq(process_group_exec_ffi(b"\x00", 1), 22)
-  assert_eq(
-    process_group_payload(["a b", "", "c\\d"][:]),
-    b"a b\x00\x00c\\d\x00",
-  )
-  assert_eq(process_group_exec_payload([]), None)
-  assert_eq(process_group_exec_payload(["just", "wrong", "sh"]), None)
-  assert_eq(
-    process_group_exec_payload(["just", "--moonjust-process-group-exec", ""]),
-    None,
-  )
-  assert_eq(
-    process_group_exec_payload([
-      "just", "--moonjust-process-group-exec", "sh", "bad\u{0000}arg",
-    ]),
-    None,
-  )
-  assert_eq(
-    process_group_exec_payload([
-      "just", "--moonjust-process-group-exec", "sh", "-c", "echo ok",
-    ]),
-    Some(b"sh\x00-c\x00echo ok\x00"),
-  )
-}
-
-///|
 test "process status mapping retains only captured streams" {
+  assert_false(process_group_exec_requested())
+  enable_process_group_boundary()
+  assert_eq(exec_process_group_from_args(), 95)
   let captured = try! @host.CommandSpec::new("echo", [])
   captured.set_stdout(Capture)
   captured.set_stderr(Capture)
@@ -76,23 +50,6 @@ test "signal policy names and inert requests are deterministic" {
   assert_eq(signal_name(99), "SIG99")
   prepare_signal_forwarding()
   assert_eq(signal_process_status(7), 7)
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-test "process group boundary validates environment and payload" {
-  let previous = @env.get_env_var("MOONJUST_INTERNAL_PROCESS_GROUP")
-  @env.unset_env_var("MOONJUST_INTERNAL_PROCESS_GROUP")
-  defer (match previous {
-    Some(value) => @env.set_env_var("MOONJUST_INTERNAL_PROCESS_GROUP", value)
-    None => @env.unset_env_var("MOONJUST_INTERNAL_PROCESS_GROUP")
-  })
-  assert_false(process_group_exec_requested())
-  @env.set_env_var("MOONJUST_INTERNAL_PROCESS_GROUP", "1")
-  assert_false(process_group_exec_requested())
-  @env.unset_env_var("MOONJUST_INTERNAL_PROCESS_GROUP")
-  assert_false(process_group_boundary_is_enabled())
-  assert_eq(exec_process_group_from_args(), 22)
 }
 
 ///|
@@ -151,44 +108,6 @@ async test "process stream matrix drains inherited and captured pipes" {
       }
     }
   }
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-test "native process classification recognizes supported shells" {
-  for program in ["sh", "BASH", "/usr/bin/dash", "fish"] {
-    assert_true(is_shell_program(program))
-  }
-  assert_false(is_shell_program("python"))
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-test "process group request follows the enabled boundary policy" {
-  process_group_boundary_enabled.val = false
-  assert_false(process_group_requested(false))
-  enable_process_group_boundary()
-  defer {
-    process_group_boundary_enabled.val = false
-  }
-  assert_true(process_group_requested(false))
-  ignore(process_group_requested(true))
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-test "literal shell noops do not need a process-group trampoline" {
-  process_group_boundary_enabled.val = false
-  assert_false(process_group_requested_for(false, "/bin/sh", ["-cu", ":"]))
-  enable_process_group_boundary()
-  defer {
-    process_group_boundary_enabled.val = false
-  }
-  assert_false(process_group_requested_for(false, "/bin/sh", ["-cu", ":"]))
-  assert_true(
-    process_group_requested_for(false, "/bin/sh", ["-cu", "printf ok"]),
-  )
-  assert_true(process_group_requested_for(false, "/bin/sh", ["-c", ":"]))
 }
 
 ///|
@@ -378,10 +297,7 @@ async test "Windows command materialization covers cwd and command switches" {
 
 ///|
 #cfg(target="wasm")
-async test "portable process and signal stubs remain inert" {
-  assert_false(process_group_exec_requested())
-  enable_process_group_boundary()
-  assert_eq(exec_process_group_from_args(), 95)
+async test "portable signal stubs remain inert" {
   prepare_signal_forwarding()
   @async.with_task_group() <| group => {
     assert_eq(configure_signal_forwarding(group, true), None)
@@ -687,7 +603,6 @@ async test "native process helpers forward pipes and classify spawn failures" {
       group,
       "/bin/sh",
       ["-c", "printf forwarded"],
-      false,
       Map([]),
       true,
       @stdio.stdin,
@@ -706,21 +621,6 @@ async test "native process helpers forward pipes and classify spawn failures" {
     assert_eq(captured, b"")
     assert_false(limited)
     assert_eq(process.wait(), 0)
-  }
-
-  @async.with_task_group() <| group => {
-    let process = @process.spawn(
-      group,
-      "/bin/sh",
-      ["-c", ":"],
-      stdin=@stdio.stdin,
-      stdout=@stdio.stdout,
-      stderr=@stdio.stderr,
-      cwd=".",
-      cancel_handler=@process.graceful_cancel(timeout=100),
-      no_wait=true,
-    )
-    assert_false(wait_for_process_group(process, process.pid))
   }
 
   let non_executable = "moonjust-coverage-not-executable"
@@ -819,17 +719,11 @@ async test "native process helper coverage drains inherited output and stdin" {
   let mixed_result = try! run_process_with_output_limit(mixed, 1024)
   assert_eq(mixed_result.termination(), Exited(0))
   assert_eq(mixed_result.stderr(), b"")
-  assert_eq(
-    grouped_environment({ "A": "1" })["MOONJUST_INTERNAL_PROCESS_GROUP"],
-    "1",
-  )
-  let executable = current_executable_for_group()
-  assert_true(executable.length() > 0)
 }
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-async test "native process helper forwards inherited streams and validates groups" {
+async test "native process helper forwards inherited streams" {
   try! process_coverage_mutex.acquire()
   defer process_coverage_mutex.release()
   let output = ProcessAdapter::new()
@@ -845,52 +739,6 @@ async test "native process helper forwards inherited streams and validates group
   stderr.set_stderr(Inherit)
   let stderr_result = try! run_process_with_output_limit(stderr, 64)
   assert_eq(stderr_result.termination(), Exited(0))
-  assert_eq(process_group_id(999999), 0)
-  assert_eq(signal_process_group(-1, 0), 22)
-  assert_false(process_group_alive(-1))
-  try! cleanup_process_group(-1)
-  try! cleanup_process_group_protected(-1)
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-async test "group executable resolution and launch assembly are deterministic" {
-  try! process_coverage_mutex.acquire()
-  defer process_coverage_mutex.release()
-  let directory = "moonjust-coverage-bin"
-  try! @async_fs.mkdir(directory, permission=0o700)
-  defer remove_windows_command_script(directory)
-  let executable = directory + "/moonjust-tool"
-  try! @async_fs.write_file(executable, b"", permission=0o700)
-  defer remove_windows_command_script(executable)
-  assert_eq(
-    resolve_group_executable("/absolute/just", "", "/workspace"),
-    "/absolute/just",
-  )
-  assert_eq(
-    resolve_group_executable("bin/just", "", "/workspace"),
-    "/workspace/bin/just",
-  )
-  assert_eq(
-    resolve_group_executable("moonjust-tool", directory, "/workspace"),
-    executable,
-  )
-  assert_eq(
-    resolve_group_executable("missing", directory, "/workspace"),
-    "missing",
-  )
-  assert_eq(resolve_group_executable("missing", "", "/workspace"), "missing")
-  assert_eq(resolve_group_executable(directory, "", "."), directory)
-  @async.with_task_group() <| group => {
-    assert_eq(configure_signal_forwarding(group, true), None)
-    guard signal_runtime.val is Some(state) else {
-      abort("signal runtime was not initialized")
-    }
-    state.write.close()
-    @async.sleep(0)
-    state.read.close()
-    signal_runtime.val = None
-  }
 }
 
 ///|

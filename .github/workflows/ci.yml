@@ -100,7 +100,7 @@ jobs:
           name: moonjust-host-async-lifecycle-linux
           path: |
             _build/host-async/process-lifecycle.jsonl
-            _build/host-async/moonjust-process-group.jsonl
+            _build/host-async/moonjust-direct-child.jsonl
           if-no-files-found: error
 
   wasm1-shared:

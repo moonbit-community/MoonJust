@@ -20,250 +20,11 @@ extern "C" fn stdio_kind(fd : @types.Fd) -> Int = "moonjust_kind_of_fd"
 fn stdio_kind(fd : @types.Fd) -> Int = "moonbitlang/async" "fd_util/kind_of_fd"
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
-const PROCESS_GROUP_TERM_TIMEOUT_MS : Int = 5000
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-const PROCESS_GROUP_POLL_MS : Int = 25
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-fn process_group_requested(inherit_stdin : Bool) -> Bool {
-  if !process_group_boundary_is_enabled() {
-    return false
-  }
-  if !inherit_stdin {
-    return true
-  }
-  try stdio_kind(@stdio.stdin.fd()) != 2 catch {
-    _ => false
-  } noraise {
-    value => value
-  }
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-/// A literal POSIX shell `:` cannot create a child process. It still runs in
-/// the real shell below, but does not need the executable trampoline used to
-/// establish an owned process group for cancellation of descendants.
-fn process_group_requested_for(
-  inherit_stdin : Bool,
-  program : String,
-  arguments : ArrayView[String],
-) -> Bool {
-  if !process_group_requested(inherit_stdin) {
-    return false
-  }
-  if is_shell_program(program) &&
-    arguments.length() == 2 &&
-    arguments[0] == "-cu" &&
-    arguments[1] == ":" {
-    return false
-  }
-  true
-}
-
-///|
-#cfg(any(target="wasm", platform="windows"))
-fn process_group_requested_for(
-  inherit_stdin : Bool,
-  _program : String,
-  _arguments : ArrayView[String],
-) -> Bool {
-  process_group_requested(inherit_stdin)
-}
-
-///|
-#cfg(any(target="wasm", platform="windows"))
-fn process_group_requested(_inherit_stdin : Bool) -> Bool {
-  false
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-fn is_shell_program(program : String) -> Bool {
-  let lower = program.to_lower()
-  lower == "sh" ||
-  lower == "bash" ||
-  lower == "dash" ||
-  lower == "zsh" ||
-  lower == "ksh" ||
-  lower == "fish" ||
-  lower.has_suffix("/sh") ||
-  lower.has_suffix("/bash") ||
-  lower.has_suffix("/dash") ||
-  lower.has_suffix("/zsh") ||
-  lower.has_suffix("/ksh") ||
-  lower.has_suffix("/fish")
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-async fn resolve_group_executable(
-  executable : String,
-  path : String,
-  current_directory : String,
-) -> String {
-  if executable.contains("/") {
-    return if executable.has_prefix("/") {
-      executable
-    } else {
-      current_directory + "/" + executable
-    }
-  }
-  for directory_view in path.split(":") {
-    let directory = directory_view.to_owned()
-    let candidate = if directory == "" {
-      current_directory + "/" + executable
-    } else {
-      directory + "/" + executable
-    }
-    let regular = try @async_fs.kind(candidate) catch {
-      _ => false
-    } noraise {
-      Regular => true
-      _ => false
-    }
-    if regular {
-      return candidate
-    }
-  }
-  executable
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-async fn current_executable_for_group() -> String {
-  resolve_group_executable(
-    @env.args().get(0).unwrap_or("just"),
-    @env.get_env_var("PATH").unwrap_or(""),
-    @env.current_dir().unwrap_or("."),
-  )
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-fn grouped_environment(
-  environment : Map[String, String],
-) -> Map[String, String] {
-  let result : Map[String, String] = Map([])
-  for entry in environment {
-    result[entry.0] = entry.1
-  }
-  result["MOONJUST_INTERNAL_PROCESS_GROUP"] = "1"
-  result
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-async fn wait_for_process_group(
-  process : @process.Process,
-  pid : Int,
-) -> Bool raise @host.HostError {
-  let attempts = PROCESS_GROUP_TERM_TIMEOUT_MS / PROCESS_GROUP_POLL_MS
-  for _ in 0..<attempts {
-    let state = process_group_id(pid)
-    if state == pid {
-      return true
-    }
-    if state == 0 && process_group_alive(pid) {
-      return true
-    }
-    if state < 0 {
-      process.cancel()
-      try process.wait() catch {
-        _ => ()
-      } noraise {
-        _ => ()
-      }
-      raise InvalidInput("failed to establish an owned Unix process group")
-    }
-    let finished = try process.try_wait() catch {
-      _ => None
-    } noraise {
-      value => value
-    }
-    if finished is Some(_) {
-      return process_group_alive(pid)
-    }
-    try @async.sleep(PROCESS_GROUP_POLL_MS) catch {
-      _ => raise InvalidInput("process-group readiness wait was cancelled")
-    } noraise {
-      _ => ()
-    }
-  }
-  process.cancel()
-  try process.wait() catch {
-    _ => ()
-  } noraise {
-    _ => ()
-  }
-  raise InvalidInput("timed out establishing an owned Unix process group")
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-async fn cleanup_process_group(group : Int) -> Unit raise @host.HostError {
-  let term = signal_process_group(group, 15)
-  if term < 0 {
-    raise InvalidInput("failed to terminate owned Unix process group")
-  }
-  let attempts = PROCESS_GROUP_TERM_TIMEOUT_MS / PROCESS_GROUP_POLL_MS
-  for _ in 0..<attempts {
-    if !process_group_alive(group) {
-      return
-    }
-    try @async.sleep(PROCESS_GROUP_POLL_MS) catch {
-      _ => raise InvalidInput("process-group cleanup wait was cancelled")
-    } noraise {
-      _ => ()
-    }
-  }
-  let kill = signal_process_group(group, 9)
-  if kill < 0 {
-    raise InvalidInput("failed to kill owned Unix process group")
-  }
-  for _ in 0..<attempts {
-    if !process_group_alive(group) {
-      return
-    }
-    try @async.sleep(PROCESS_GROUP_POLL_MS) catch {
-      _ => raise InvalidInput("process-group cleanup wait was cancelled")
-    } noraise {
-      _ => ()
-    }
-  }
-  raise InvalidInput("owned Unix process group did not terminate")
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-async fn cleanup_process_group_protected(
-  group : Int,
-) -> Unit raise @host.HostError {
-  try @async.protect_from_cancel(() => cleanup_process_group(group)) catch {
-    @host.HostError::InvalidInput(message) => raise InvalidInput(message)
-    _ => raise InvalidInput("protected Unix process-group cleanup failed")
-  } noraise {
-    _ => ()
-  }
-}
-
-///|
 pub fn ProcessAdapter::new() -> ProcessAdapter {
   { output_mutex: Mutex() }
 }
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
-priv enum ObservedProcess {
-  Managed(process~ : @process.Process, pid~ : Int, process_group~ : Int?)
-}
-
-///|
-#cfg(any(target="wasm", platform="windows"))
 priv enum ObservedProcess {
   Managed(@process.Process)
 }
@@ -274,7 +35,6 @@ async fn[X] spawn_observed_process(
   group : @async.TaskGroup[X],
   program : String,
   arguments : ArrayView[String],
-  group_process : Bool,
   environment : Map[String, String],
   inherit_environment : Bool,
   stdin : &@process.ProcessInput,
@@ -282,25 +42,11 @@ async fn[X] spawn_observed_process(
   stderr : &@process.ProcessOutput,
   cwd : String,
 ) -> ObservedProcess {
-  let grouped = group_process && is_shell_program(program)
-  let (launch_program, launch_arguments, launch_environment) = if grouped {
-    let helper_arguments = ["--moonjust-process-group-exec", program]
-    for argument in arguments {
-      helper_arguments.push(argument)
-    }
-    (
-      current_executable_for_group(),
-      helper_arguments,
-      grouped_environment(environment),
-    )
-  } else {
-    (program, arguments.to_owned(), environment)
-  }
   let process = @process.spawn(
     group,
-    launch_program,
-    launch_arguments,
-    extra_env=launch_environment,
+    program,
+    arguments,
+    extra_env=environment,
     inherit_env=inherit_environment,
     stdin~,
     stdout~,
@@ -320,20 +66,7 @@ async fn[X] spawn_observed_process(
     "\" && " +
     quoted.join(" ")
   add_signal_child(pid, description)
-  let process_group = if grouped {
-    let ready = {
-      errdefer remove_signal_child(pid)
-      wait_for_process_group(process, pid)
-    }
-    if ready {
-      Some(pid)
-    } else {
-      None
-    }
-  } else {
-    None
-  }
-  Managed(process~, pid~, process_group~)
+  Managed(process)
 }
 
 ///|
@@ -342,7 +75,6 @@ async fn[X] spawn_observed_process(
   group : @async.TaskGroup[X],
   program : String,
   arguments : ArrayView[String],
-  _group_process : Bool,
   environment : Map[String, String],
   inherit_environment : Bool,
   stdin : &@process.ProcessInput,
@@ -371,33 +103,19 @@ async fn[X] spawn_observed_process(
 #cfg(all(target="native", not(platform="windows")))
 #warnings("-fragile_catch_all")
 async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
-  let Managed(process~, pid~, process_group~) = self
+  let Managed(process) = self
+  let pid = process.pid
   defer remove_signal_child(pid)
-  let status = {
-    errdefer (match process_group {
-      Some(group) => cleanup_process_group_protected(group)
-      None => ()
-    })
-    process.wait() catch {
-      error => {
-        let signal = caught_signal()
-        if @async.is_cancellation_error(error) && signal is Some(number) {
-          match process_group {
-            Some(group) => cleanup_process_group_protected(group)
-            None => ()
-          }
-          return -(256 + number)
-        }
-        raise error
+  let status = process.wait() catch {
+    error => {
+      let signal = caught_signal()
+      if @async.is_cancellation_error(error) && signal is Some(number) {
+        return -(256 + number)
       }
+      raise error
     }
   }
-  match process_group {
-    Some(group) => cleanup_process_group_protected(group)
-    None => ()
-  }
-  let result = signal_process_status(status)
-  result
+  signal_process_status(status)
 }
 
 ///|
@@ -410,7 +128,7 @@ async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 fn ObservedProcess::cancel(self : ObservedProcess) -> Unit {
-  let Managed(process~, ..) = self
+  let Managed(process) = self
   process.cancel()
 }
 
@@ -1006,11 +724,6 @@ async fn run_process_with_output_limit(
       let merge_regular = stdout_regular &&
         stderr_regular &&
         @stdio.stdout.fd() == @stdio.stderr.fd()
-      let group_process = process_group_requested_for(
-        command.inherits_stdin(),
-        program,
-        arguments,
-      )
       let child_stdin = if command.inherits_stdin() {
         None
       } else {
@@ -1041,7 +754,6 @@ async fn run_process_with_output_limit(
           group,
           program,
           arguments,
-          group_process,
           environment,
           command.inherits_environment(),
           @stdio.stdin,
@@ -1054,7 +766,6 @@ async fn run_process_with_output_limit(
           group,
           program,
           arguments,
-          group_process,
           environment,
           command.inherits_environment(),
           child_stdin.unwrap(),

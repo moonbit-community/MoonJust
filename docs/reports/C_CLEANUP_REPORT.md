@@ -5,14 +5,13 @@
 This report records the host-native C cleanup completed on the Phase 12
 candidate branch. The exact implementation head is
 `e49b018819f10a8b3e770f82355f6fce79368ccc`, carried by Draft PR #59. The
-cleanup removes project-owned production C that duplicated filesystem and
-platform behavior while retaining only the process/signal stubs and isolated
-research probes explicitly approved by the plan.
+cleanup removes project-owned production C that duplicated filesystem,
+platform, and process-group behavior while retaining only the signal stub and
+isolated research probes explicitly approved by the plan.
 
 Tracked project C sources after the cleanup:
 
 ```text
-src/host_process/process_group.c
 src/host_process/signal_forward.c
 spikes/host-async/process_lifecycle/process_lifecycle.c
 spikes/host-async/signal_probe/signal_probe.c
@@ -47,15 +46,21 @@ rg -n 'native-stub|moonjust_host_|extern "C"|extern "c"' src tools
 
 Results:
 
-- The tracked C inventory is exactly the four files listed above.
+- The current C inventory is exactly the three files listed above.
 - `src/host_native/moon.pkg` has no `native-stub` entries.
 - `src/host_process/moon.pkg` is the only production package with a
-  `native-stub` list, and it contains only `signal_forward.c` and
-  `process_group.c`.
+  `native-stub` list, and it contains only `signal_forward.c`.
 - The two spike packages retain their own explicitly isolated C probes.
 - No removed `moonjust_host_*` symbol remains.
 - Remaining MoonBit `extern "C"` declarations are system ABI calls or calls
   into approved `moonbitlang` backends; they are not project-owned C sources.
+
+Process execution now uses `moonbitlang/async/process` for direct-child
+creation, cancellation, wait, reap, and signal status mapping. Indirect,
+background, daemon, and detached descendants are outside the lifecycle
+contract. A descendant that retains a shared stdout/stderr pipe can therefore
+keep the reader open after the direct child has been reaped; the adapter keeps
+concurrent readers and does not restore group cleanup to change that behavior.
 
 ## Cross-platform verification
 
@@ -88,7 +93,7 @@ Local second-pass checks on macOS also passed:
 ```text
 moon fmt --check
 moon check --target all --warn-list +73 --deny-warn
-moon test --target native --no-parallelize  # 1119/1119
+moon test --target native --no-parallelize  # 1113/1113
 moon test --target wasm --no-parallelize    # 1097/1097
 python3 tools/quality/check_naming.py
 python3 tools/quality/check_naming_test.py

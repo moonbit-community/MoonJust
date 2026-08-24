@@ -38,8 +38,7 @@ fi
 
 if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon -C "$repo_root" build --target native cmd/just; fi
 moonjust="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
-process_group_evidence="$repo_root/_build/host-async/moonjust-process-group.jsonl"
-python3 "$spike/check_moonjust_process_group.py" \
+direct_child_evidence="$repo_root/_build/host-async/moonjust-direct-child.jsonl"
+python3 "$spike/check_moonjust_process_lifecycle.py" \
   --executable "$moonjust" \
-  --output "$process_group_evidence" \
-  --repetitions 20
+  --output "$direct_child_evidence"
