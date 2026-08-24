@@ -1,11 +1,11 @@
 ///|
-fn evaluator_coverage_span() -> @source.Span {
+fn evaluator_behavior_span() -> @source.Span {
   @source.Span::origin(@source.SourceId::new(9920))
 }
 
 ///|
-test "evaluator whitebox coverage exercises context conversions" {
-  let span = evaluator_coverage_span()
+test "evaluator whitebox behavior exercises context conversions" {
+  let span = evaluator_behavior_span()
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let context = EvaluationContext::new(
     cwd~,
@@ -84,8 +84,8 @@ test "evaluator whitebox coverage exercises context conversions" {
 }
 
 ///|
-test "evaluator whitebox coverage exercises builtin context branches" {
-  let span = evaluator_coverage_span()
+test "evaluator whitebox behavior exercises builtin context branches" {
+  let span = evaluator_behavior_span()
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let scalar = EvaluationContext::new(cwd~, lists=true)
   let plain = EvaluationContext::new(cwd~)
@@ -133,7 +133,7 @@ test "evaluator whitebox coverage exercises builtin context branches" {
 }
 
 ///|
-test "evaluator whitebox coverage exercises style and which helpers" {
+test "evaluator whitebox behavior exercises style and which helpers" {
   assert_eq(rgb_code("abc"), Some((170, 187, 204)))
   assert_eq(rgb_code("A1b2C3"), Some((161, 178, 195)))
   assert_eq(rgb_code("12"), None)
@@ -146,7 +146,7 @@ test "evaluator whitebox coverage exercises style and which helpers" {
   }
   let linux = @host.PlatformInfo::new(Linux, "x86_64", Unix)
   let windows = @host.PlatformInfo::new(Windows, "x86_64", Windows)
-  assert_eq(which_extensions("tool", linux, None, evaluator_coverage_span()), [
+  assert_eq(which_extensions("tool", linux, None, evaluator_behavior_span()), [
     "",
   ])
   assert_eq(
@@ -154,7 +154,7 @@ test "evaluator whitebox coverage exercises style and which helpers" {
       "tool.exe",
       windows,
       Some(".EXE;.BAT"),
-      evaluator_coverage_span(),
+      evaluator_behavior_span(),
     ),
     [""],
   )
@@ -163,12 +163,12 @@ test "evaluator whitebox coverage exercises style and which helpers" {
       "tool",
       windows,
       Some(".EXE;.BAT"),
-      evaluator_coverage_span(),
+      evaluator_behavior_span(),
     ),
     ["", ".EXE", ".BAT"],
   )
   try
-    which_extensions("tool", windows, Some("EXE"), evaluator_coverage_span())
+    which_extensions("tool", windows, Some("EXE"), evaluator_behavior_span())
   catch {
     Builtin(Failure(..), ..) => ()
     _ => fail("unexpected PATHEXT error")
@@ -184,7 +184,7 @@ test "evaluator whitebox coverage exercises style and which helpers" {
     "/bin:/usr/bin",
     linux,
     None,
-    evaluator_coverage_span(),
+    evaluator_behavior_span(),
   )
   assert_eq(candidates.length(), 2)
   let direct = which_candidates(
@@ -193,7 +193,7 @@ test "evaluator whitebox coverage exercises style and which helpers" {
     "",
     linux,
     None,
-    evaluator_coverage_span(),
+    evaluator_behavior_span(),
   )
   assert_eq(direct.length(), 1)
   assert_false(
@@ -213,8 +213,8 @@ test "evaluator whitebox coverage exercises style and which helpers" {
 }
 
 ///|
-test "evaluator whitebox coverage exercises datetime and reference traversal" {
-  let span = evaluator_coverage_span()
+test "evaluator whitebox behavior exercises datetime and reference traversal" {
+  let span = evaluator_behavior_span()
   assert_eq(zero_pad(7, 3), "007")
   assert_eq(offset_text(0, true), "+00:00")
   assert_eq(offset_text(-19800, false), "-0530")
@@ -266,7 +266,7 @@ test "evaluator whitebox coverage exercises datetime and reference traversal" {
 
 ///|
 test "evaluator context accessors and builtins expose every invocation fact" {
-  let span = evaluator_coverage_span()
+  let span = evaluator_behavior_span()
   let path = try! @path.PathValue::new("/workspace/fact", Unix)
   let source_id = @source.SourceId::new(9926)
   let context = EvaluationContext::new(
@@ -377,7 +377,7 @@ test "evaluator context accessors and builtins expose every invocation fact" {
 
 ///|
 test "evaluator helper failures preserve typed boundaries" {
-  let span = evaluator_coverage_span()
+  let span = evaluator_behavior_span()
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host.FakeHost::new(
     cwd,
@@ -464,7 +464,7 @@ test "evaluator helper failures preserve typed boundaries" {
 
 ///|
 test "evaluator context failures cover missing and list-specific facts" {
-  let span = evaluator_coverage_span()
+  let span = evaluator_behavior_span()
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let lists = EvaluationContext::new(cwd~, lists=true, environment=[])
   let plain = EvaluationContext::new(cwd~, environment=[])
@@ -525,7 +525,7 @@ test "evaluator context failures cover missing and list-specific facts" {
 
 ///|
 test "non-process effects cover deterministic filesystem and host facts" {
-  let span = evaluator_coverage_span()
+  let span = evaluator_behavior_span()
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host.FakeHost::new(
     cwd,
@@ -585,7 +585,7 @@ test "non-process effects cover deterministic filesystem and host facts" {
 
 ///|
 test "non-process effects map denied capabilities and platform variants" {
-  let span = evaluator_coverage_span()
+  let span = evaluator_behavior_span()
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let context = EvaluationContext::new(cwd~, lists=true, utc_offset_seconds=0)
   let plain = EvaluationContext::new(cwd~)

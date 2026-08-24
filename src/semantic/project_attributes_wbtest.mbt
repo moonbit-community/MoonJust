@@ -1,14 +1,14 @@
 ///|
-fn semantic_coverage_source(text : String) -> @source.Source {
+fn semantic_behavior_source(text : String) -> @source.Source {
   @source.Source::from_text(
     @source.SourceId::new(9800),
-    "semantic.coverage",
+    "semantic.behavior",
     text,
   )
 }
 
 ///|
-test "semantic whitebox coverage visits platform and attribute compilation" {
+test "semantic whitebox behavior visits platform and attribute compilation" {
   for
     name in [
       "android", "dragonfly", "freebsd", "linux", "macos", "netbsd", "openbsd", "unix",
@@ -20,7 +20,7 @@ test "semantic whitebox coverage visits platform and attribute compilation" {
   assert_true(attribute_lexical_compare("b", "a") > 0)
   assert_eq(attribute_lexical_compare("a", "a"), 0)
   let ast = try! @parser.parse(
-    semantic_coverage_source(
+    semantic_behavior_source(
       "[private, doc(\"docs\"), group(\"ci\"), metadata(\"owner\"), " +
       "env(\"MODE\", \"test\"), no-cd, no-exit-message, no-quiet, parallel, " +
       "positional-arguments]\n" +
@@ -67,13 +67,13 @@ test "semantic whitebox coverage visits platform and attribute compilation" {
 }
 
 ///|
-test "semantic whitebox coverage visits project resolution and disabled paths" {
+test "semantic whitebox behavior visits project resolution and disabled paths" {
   let root = try! @path.PathValue::new("/workspace", Unix)
   let root_compilation = try! compile_source(
-    semantic_coverage_source("root:\n"),
+    semantic_behavior_source("root:\n"),
   )
   let child_compilation = try! compile_source(
-    semantic_coverage_source("child:\n"),
+    semantic_behavior_source("child:\n"),
   )
   let root_module = ProjectModule::new(
     @modulepath.ModulePath::root(),
@@ -120,7 +120,7 @@ test "semantic whitebox coverage visits project resolution and disabled paths" {
 }
 
 ///|
-fn semantic_expression_coverage_fixture() -> (
+fn semantic_expression_behavior_fixture() -> (
   @source.Span,
   @syntax.Expression,
   @syntax.Expression,
@@ -135,8 +135,8 @@ fn semantic_expression_coverage_fixture() -> (
 }
 
 ///|
-test "semantic whitebox coverage visits expression validators and const paths" {
-  let (span, string, boolean, variable) = semantic_expression_coverage_fixture()
+test "semantic whitebox behavior visits expression validators and const paths" {
+  let (span, string, boolean, variable) = semantic_expression_behavior_fixture()
   let call : @syntax.Expression = Call(
     name="assert",
     arguments=[boolean],
@@ -254,8 +254,8 @@ test "semantic whitebox coverage visits expression validators and const paths" {
 }
 
 ///|
-test "semantic whitebox coverage visits list mode and dependency validators" {
-  let (span, string, boolean, variable) = semantic_expression_coverage_fixture()
+test "semantic whitebox behavior visits list mode and dependency validators" {
+  let (span, string, boolean, variable) = semantic_expression_behavior_fixture()
   let list : @syntax.Expression = List(elements=[string], span~)
   let comparison : @syntax.Expression = Binary(
     operator=Equal,
@@ -390,7 +390,7 @@ test "semantic whitebox coverage visits list mode and dependency validators" {
 }
 
 ///|
-test "semantic whitebox coverage exercises setting and attribute branches" {
+test "semantic whitebox behavior exercises setting and attribute branches" {
   let source = @source.Source::from_text(
     @source.SourceId::new(9810),
     "settings.just",

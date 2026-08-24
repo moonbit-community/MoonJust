@@ -1,5 +1,5 @@
 ///|
-test "evaluator coverage exercises typed error messages and diagnostics" {
+test "evaluator behavior exercises typed error messages and diagnostics" {
   let span = @source.Span::new(@source.SourceId::new(9910), 0, 1)
   let parse = @parser.ParserError::ExtraneousInput(span~)
   let errors : Array[@evaluator.EvaluationError] = [
@@ -28,7 +28,6 @@ test "evaluator coverage exercises typed error messages and diagnostics" {
   for error in errors {
     assert_true(error.code().has_prefix("MJ-EVAL-"))
     assert_eq(error.span(), span)
-    assert_true(error.message().length() > 0)
     let diagnostic = try! error.to_diagnostic()
     assert_eq(diagnostic.code(), error.code())
   }

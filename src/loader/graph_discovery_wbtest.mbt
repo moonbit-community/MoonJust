@@ -1,5 +1,5 @@
 ///|
-fn loader_coverage_host() -> @host.FakeHost {
+fn loader_behavior_host() -> @host.FakeHost {
   @host.FakeHost::new(
     try! @path.PathValue::new("/workspace", Unix),
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
@@ -7,7 +7,7 @@ fn loader_coverage_host() -> @host.FakeHost {
 }
 
 ///|
-test "loader whitebox coverage visits path and candidate helpers" {
+test "loader whitebox behavior visits path and candidate helpers" {
   let root = try! @path.PathValue::new("/workspace/project", Unix)
   let parent = try! @path.PathValue::new("/workspace", Unix)
   assert_eq(source_directory(root), parent)
@@ -21,7 +21,7 @@ test "loader whitebox coverage visits path and candidate helpers" {
   assert_true(filename_lexical_compare("b", "a") > 0)
   assert_eq(filename_lexical_compare("same", "same"), 0)
 
-  let host = loader_coverage_host()
+  let host = loader_behavior_host()
   let file = try! @path.PathValue::new("/workspace/tool.just", Unix)
   host.put_file(file, b"tool:\n")
   let candidates : Array[@path.PathValue] = []
@@ -36,14 +36,14 @@ test "loader whitebox coverage visits path and candidate helpers" {
 }
 
 ///|
-test "loader whitebox coverage resolves explicit and implicit modules" {
+test "loader whitebox behavior resolves explicit and implicit modules" {
   let source = @source.Source::from_text(
     @source.SourceId::new(9600),
     "module.just",
     "mod explicit 'modules/explicit.just'\nmod implicit\n",
   )
   let ast = try! @parser.parse(source)
-  let host = loader_coverage_host()
+  let host = loader_behavior_host()
   let root = try! @path.PathValue::new("/workspace/module.just", Unix)
   let explicit_path = try! @path.PathValue::new(
     "/workspace/modules/explicit.just",
@@ -100,8 +100,8 @@ test "loader whitebox coverage resolves explicit and implicit modules" {
 }
 
 ///|
-test "loader whitebox coverage visits candidate filtering and missing modules" {
-  let host = loader_coverage_host()
+test "loader whitebox behavior visits candidate filtering and missing modules" {
+  let host = loader_behavior_host()
   let directory = try! @path.PathValue::new("/workspace", Unix)
   let plain = directory.join(try! @path.PathValue::new("tools", Unix))
   host.put_file(plain, b"not a directory\n")
@@ -137,8 +137,8 @@ test "loader whitebox coverage visits candidate filtering and missing modules" {
 }
 
 ///|
-async test "loader whitebox coverage visits async platform skips and host errors" {
-  let host = loader_coverage_host()
+async test "loader whitebox behavior visits async platform skips and host errors" {
+  let host = loader_behavior_host()
   let root = try! @path.PathValue::new("/workspace/async.just", Unix)
   host.put_file(
     root, b"[windows]\nimport 'missing.just'\n[linux]\nimport? 'optional.just'\nroot:\n",
@@ -160,8 +160,8 @@ async test "loader whitebox coverage visits async platform skips and host errors
 }
 
 ///|
-async test "loader whitebox coverage traverses async imports and modules" {
-  let host = loader_coverage_host()
+async test "loader whitebox behavior traverses async imports and modules" {
+  let host = loader_behavior_host()
   let root = try! @path.PathValue::new("/workspace/async-graph.just", Unix)
   let imported = try! @path.PathValue::new("/workspace/imported.just", Unix)
   let module_file = try! @path.PathValue::new("/workspace/tools.just", Unix)
@@ -189,7 +189,7 @@ async test "loader whitebox coverage traverses async imports and modules" {
 }
 
 ///|
-test "loader whitebox coverage exercises source metadata and home routing" {
+test "loader whitebox behavior exercises source metadata and home routing" {
   let stdin = try! load_stdin(
     b"root:\n",
     @source.SourceId::new(9703),
@@ -214,7 +214,7 @@ test "loader whitebox coverage exercises source metadata and home routing" {
   assert_true(markdown.source().length() > 0)
   assert_true(is_markdown_path(markdown.path()))
 
-  let host = loader_coverage_host()
+  let host = loader_behavior_host()
   let candidate = try! @path.PathValue::new("/workspace/candidate.just", Unix)
   host.put_file(candidate, b"candidate:\n")
   let candidates : Array[@path.PathValue] = []
@@ -244,7 +244,7 @@ test "loader whitebox coverage exercises source metadata and home routing" {
 }
 
 ///|
-test "loader whitebox coverage rejects invalid sources and incompatible paths" {
+test "loader whitebox behavior rejects invalid sources and incompatible paths" {
   let unix = try! @path.PathValue::new("/workspace", Unix)
   let windows = try! @path.PathValue::new("C:\\workspace", Windows)
   assert_false(path_is_within(unix, windows))
@@ -268,7 +268,7 @@ test "loader whitebox coverage rejects invalid sources and incompatible paths" {
     _ => fail("expected invalid Markdown source")
   }
 
-  let host = loader_coverage_host()
+  let host = loader_behavior_host()
   let plain = try! @path.PathValue::new("/workspace/plain", Unix)
   host.put_file(plain, b"not a directory\n")
   let candidates : Array[@path.PathValue] = []
@@ -277,8 +277,8 @@ test "loader whitebox coverage rejects invalid sources and incompatible paths" {
 }
 
 ///|
-async test "loader whitebox coverage maps async parse sources and optional imports" {
-  let host = loader_coverage_host()
+async test "loader whitebox behavior maps async parse sources and optional imports" {
+  let host = loader_behavior_host()
   let invalid = try! @path.PathValue::new("/workspace/invalid.just", Unix)
   host.put_file(invalid, b"run: (\n")
   try load_async(host, invalid, @source.SourceId::new(9720)) catch {
@@ -298,9 +298,9 @@ async test "loader whitebox coverage maps async parse sources and optional impor
 }
 
 ///|
-test "loader whitebox coverage maps denied source and environment access" {
+test "loader whitebox behavior maps denied source and environment access" {
   let path = try! @path.PathValue::new("/workspace/denied.just", Unix)
-  let filesystem = loader_coverage_host()
+  let filesystem = loader_behavior_host()
   filesystem.deny(FsRead)
   try load(filesystem, path, @source.SourceId::new(9730)) catch {
     Host(CapabilityDenied(FsRead)) => ()
@@ -309,7 +309,7 @@ test "loader whitebox coverage maps denied source and environment access" {
     _ => fail("expected denied source read")
   }
 
-  let environment = loader_coverage_host()
+  let environment = loader_behavior_host()
   environment.deny(Environment)
   try load_from_current_dir(environment, @source.SourceId::new(9731)) catch {
     Host(CapabilityDenied(Environment)) => ()

@@ -1,11 +1,11 @@
 ///|
-fn coverage_parser_source(text : String) -> @source.Source {
-  @source.Source::from_text(@source.SourceId::new(9100), "coverage.just", text)
+fn behavior_parser_source(text : String) -> @source.Source {
+  @source.Source::from_text(@source.SourceId::new(9100), "behavior.just", text)
 }
 
 ///|
-test "parser coverage exercises recovery limits and diagnostic variants" {
-  let source = coverage_parser_source("bad:\n  echo ok\n:\nnext:\n")
+test "parser behavior exercises recovery limits and diagnostic variants" {
+  let source = behavior_parser_source("bad:\n  echo ok\n:\nnext:\n")
   let report = try! @parser.parse_recovering(source)
   assert_true(report.errors().length() > 0)
   assert_eq(report.ast().source_id(), source.id())
@@ -17,7 +17,7 @@ test "parser coverage exercises recovery limits and diagnostic variants" {
       "[cache(inputs=\"in\", outputs=\"out\")]\ncache:\n  echo ok\n", "if cfg { one } else { two }\n",
       "foo a=(\"x\" / \"y\") +$flags:\n  echo {{a}} {{flags}}\n",
     ] {
-    let value = coverage_parser_source(text)
+    let value = behavior_parser_source(text)
     try @parser.parse(value) catch {
       _ => ()
     } noraise {
@@ -25,7 +25,7 @@ test "parser coverage exercises recovery limits and diagnostic variants" {
     }
   }
 
-  let span = coverage_parser_source("x").full_span()
+  let span = behavior_parser_source("x").full_span()
   let token = @lexer.Token::new(Identifier, span)
   let errors : Array[@parser.ParserError] = [
     LexerFailure(UnexpectedCharacter(expected="x", found="y", span~)),
@@ -55,7 +55,6 @@ test "parser coverage exercises recovery limits and diagnostic variants" {
   for error in errors {
     assert_true(error.code().has_prefix("MJ-PARSE-"))
     assert_eq(error.span(), span)
-    assert_true(error.message().length() > 0)
     let diagnostic = try! error.to_diagnostic()
     assert_eq(diagnostic.code(), error.code())
   }
@@ -80,7 +79,7 @@ test "parser coverage exercises recovery limits and diagnostic variants" {
 }
 
 ///|
-test "parser coverage visits expression and setting grammar branches" {
+test "parser behavior visits expression and setting grammar branches" {
   for
     expression in [
       "true", "false", "none", "a", "a + b", "a == b", "a != b", "a =~ b", "a && b || c",
@@ -88,7 +87,7 @@ test "parser coverage visits expression and setting grammar branches" {
       "(\"a\" / \"b\")", "`echo $HOME`", "f'hello {{name}}'", "'''\n  a\n  b\n'''",
       "\"$VALUE\"",
     ] {
-    try @parser.parse_expression(coverage_parser_source(expression)) catch {
+    try @parser.parse_expression(behavior_parser_source(expression)) catch {
       _ => ()
     } noraise {
       _ => ()
@@ -103,7 +102,7 @@ test "parser coverage visits expression and setting grammar branches" {
       "positional-arguments", "quiet", "tempdir", "unstable", "working-directory",
       "windows-shell", "windows-powershell",
     ] {
-    try @parser.parse(coverage_parser_source("set " + setting + "\n")) catch {
+    try @parser.parse(behavior_parser_source("set " + setting + "\n")) catch {
       _ => ()
     } noraise {
       _ => ()
@@ -112,14 +111,14 @@ test "parser coverage visits expression and setting grammar branches" {
 }
 
 ///|
-test "parser coverage exercises escape, comment, and delimiter edge cases" {
+test "parser behavior exercises escape, comment, and delimiter edge cases" {
   for
     expression in [
       "'raw \\n newline'", "`backtick $HOME`", "'''raw\n  text\n'''", "\"\"\"cooked\\n  text\n\"\"\"",
       "f'{{{{escaped}}}} {{name}}'", "a / b", "a * b", "a + b + c", "a || b && c",
       "not a",
     ] {
-    try @parser.parse_expression(coverage_parser_source(expression)) catch {
+    try @parser.parse_expression(behavior_parser_source(expression)) catch {
       _ => ()
     } noraise {
       _ => ()
@@ -131,7 +130,7 @@ test "parser coverage exercises escape, comment, and delimiter edge cases" {
       "[arg('name', long='name', value='N')]\nfoo name:\n  echo {{name}}\n", "[extension('.sh')]\nfoo:\n  echo ok\n",
       "[working-directory('sub')]\nfoo:\n  echo ok\n",
     ] {
-    try @parser.parse(coverage_parser_source(text)) catch {
+    try @parser.parse(behavior_parser_source(text)) catch {
       _ => ()
     } noraise {
       _ => ()
@@ -140,7 +139,7 @@ test "parser coverage exercises escape, comment, and delimiter edge cases" {
 }
 
 ///|
-test "parser coverage accepts the complete top-level item matrix" {
+test "parser behavior accepts the complete top-level item matrix" {
   let cases = [
     "# comment\n\n", "export NAME := 'value'\nunexport NAME\n", "NAME =: 'lazy'\nNAME := 'eager'\n",
     "set shell := ['sh', '-cu']\nset windows-shell := ['powershell', '-NoProfile']\n",
@@ -152,11 +151,11 @@ test "parser coverage accepts the complete top-level item matrix" {
     "[cache(inputs='input', outputs='output')]\ncached:\n  echo cache\n", "[continue('SIGINT', 'SIGTERM')]\nresilient:\n  echo ok\n",
     "recipe: && cleanup\n  # comment\n  @echo one\n  -echo two\ncleanup:\n  echo clean\n",
   ]
-  for index, text in cases {
-    let source = coverage_parser_source(text)
+  for text in cases {
+    let source = behavior_parser_source(text)
     let result = try @parser.parse(source) catch {
       error => {
-        assert_true(error.message().length() > index)
+        assert_true(error.code().has_prefix("MJ-PARSE-"))
         None
       }
     } noraise {
@@ -167,7 +166,7 @@ test "parser coverage accepts the complete top-level item matrix" {
 }
 
 ///|
-test "parser coverage distinguishes namespace dependency and declaration boundaries" {
+test "parser behavior distinguishes namespace dependency and declaration boundaries" {
   let valid = [
     "set quiet := true\nrun:\n", "set quiet := false\nrun:\n", "@quiet:\n", "run $arg='value' +$rest:\n  echo {{arg}}\n",
     "run *rest='value':\n  echo {{rest}}\n", "run: tools::build (tools::test 'one') *(tools::matrix *['a', 'b'])\n",

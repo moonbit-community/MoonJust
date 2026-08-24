@@ -1,8 +1,8 @@
 ///|
-fn application_coverage_source() -> @source.Source {
+fn application_behavior_source() -> @source.Source {
   @source.Source::from_text(
     @source.SourceId::new(9950),
-    "coverage.just",
+    "behavior.just",
     "set lists\nset export\nset dotenv-filename := ['.env', '.env.local']\n" +
     "set shell := ['sh', '-cu']\n" +
     "_private := 'hidden'\npublic := 'value'\n" +
@@ -15,12 +15,12 @@ fn application_coverage_source() -> @source.Source {
 }
 
 ///|
-test "application whitebox coverage exercises inspect JSON and query renderers" {
-  let source = application_coverage_source()
+test "application whitebox behavior exercises inspect JSON and query renderers" {
+  let source = application_behavior_source()
   let compilation = try
     @semantic.compile_source(source, allow_unstable=true)
   catch {
-    error => fail("coverage source compile failed: \{Repr(error)}")
+    error => fail("behavior source compile failed: \{Repr(error)}")
   } noraise {
     value => value
   }
@@ -257,8 +257,8 @@ test "application whitebox coverage exercises inspect JSON and query renderers" 
 }
 
 ///|
-test "application whitebox coverage exercises query and evaluation edge branches" {
-  let source = application_coverage_source()
+test "application whitebox behavior exercises query and evaluation edge branches" {
+  let source = application_behavior_source()
   let compilation = try! @semantic.compile_source(source, allow_unstable=true)
   let loaded = try! @loader.load_stdin(@utf8.encode(source.text()), source.id())
   let ast = loaded.ast()
@@ -447,7 +447,7 @@ test "application whitebox coverage exercises query and evaluation edge branches
 }
 
 ///|
-fn application_coverage_project(text : String) -> @semantic.ProjectCompilation {
+fn application_behavior_project(text : String) -> @semantic.ProjectCompilation {
   let compilation = try! @semantic.compile_source(
     @source.Source::from_text(@source.SourceId::new(9960), "project.just", text),
     allow_unstable=true,
@@ -459,7 +459,7 @@ fn application_coverage_project(text : String) -> @semantic.ProjectCompilation {
 }
 
 ///|
-test "application whitebox coverage exercises argument routing helpers" {
+test "application whitebox behavior exercises argument routing helpers" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let context = ApplicationContext::new(cwd, stdin=b"root:\n")
   let search = try! @cli.parse_arguments([], {})
@@ -522,7 +522,7 @@ test "application whitebox coverage exercises argument routing helpers" {
 }
 
 ///|
-test "application whitebox coverage exercises planning selections" {
+test "application whitebox behavior exercises planning selections" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host.FakeHost::new(
     cwd,
@@ -597,7 +597,7 @@ test "application whitebox coverage exercises planning selections" {
   assert_true(options.explain())
   assert_eq(try! cache_directory(cwd).as_string(), "/workspace/.justcache")
 
-  let project = application_coverage_project("root:\n")
+  let project = application_behavior_project("root:\n")
   let directories = try! @workdir.WorkingDirectoryModel::from_stdin(cwd)
   assert_eq(
     try! project_module_base(
@@ -640,7 +640,7 @@ test "application whitebox coverage exercises planning selections" {
 }
 
 ///|
-test "application whitebox coverage exercises global format and interactive helpers" {
+test "application whitebox behavior exercises global format and interactive helpers" {
   let cwd = try! @path.PathValue::new("/workspace/project/sub", Unix)
   let host = @host.FakeHost::new(
     cwd,
@@ -716,7 +716,7 @@ test "application whitebox coverage exercises global format and interactive help
 }
 
 ///|
-test "application whitebox coverage preserves process and evaluation exit contracts" {
+test "application whitebox behavior preserves process and evaluation exit contracts" {
   let span = @source.Span::origin(@source.SourceId::new(9960))
   let previous = @env.get_env_var("MOONJUST_OS")
   @env.set_env_var("MOONJUST_OS", "windows")
@@ -775,7 +775,7 @@ test "application whitebox coverage preserves process and evaluation exit contra
 }
 
 ///|
-test "application whitebox coverage normalizes diagnostic source display paths" {
+test "application whitebox behavior normalizes diagnostic source display paths" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   for
     row in [
@@ -810,9 +810,9 @@ test "application whitebox coverage normalizes diagnostic source display paths" 
 }
 
 ///|
-test "application whitebox coverage exercises platform context and setting evaluation" {
+test "application whitebox behavior exercises platform context and setting evaluation" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
-  let project = application_coverage_project(
+  let project = application_behavior_project(
     "set shell := ['bash', '-eu']\n" +
     "set tempdir := '.tmp'\n" +
     "set dotenv-filename := ['.env']\n" +

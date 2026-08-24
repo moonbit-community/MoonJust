@@ -1,8 +1,8 @@
 ///|
-fn executor_coverage_recipe(text : String) -> @syntax.Recipe {
+fn executor_behavior_recipe(text : String) -> @syntax.Recipe {
   let source = @source.Source::from_text(
     @source.SourceId::new(9920),
-    "executor.coverage",
+    "executor.behavior",
     text,
   )
   let compilation = try! @semantic.compile_source(source, allow_unstable=true)
@@ -38,7 +38,7 @@ test "executor output formatting covers color and timestamp directives" {
 }
 
 ///|
-test "executor coverage closes formatting and script boundary branches" {
+test "executor behavior closes formatting and script boundary branches" {
   assert_true(parse_shebang("#!/bin/sh ").unwrap().argument is None)
   let no_argument = parse_shebang("#!/bin/sh \t").unwrap()
   assert_eq(no_argument.interpreter, "/bin/sh")
@@ -78,7 +78,7 @@ test "executor coverage closes formatting and script boundary branches" {
 
 ///|
 test "executor script and line helpers preserve source alignment" {
-  let recipe = executor_coverage_recipe(
+  let recipe = executor_behavior_recipe(
     "[script]\nrun:\n  #!/bin/sh\n  echo ok\n",
   )
   assert_false(recipe_has_explicit_script_interpreter(recipe))
@@ -105,7 +105,7 @@ test "executor script and line helpers preserve source alignment" {
 }
 
 ///|
-test "executor whitebox coverage visits planning helpers and environment exports" {
+test "executor whitebox behavior visits planning helpers and environment exports" {
   let source = @source.Source::from_text(
     @source.SourceId::new(9921),
     "executor.helpers",
@@ -167,7 +167,7 @@ test "executor whitebox coverage visits planning helpers and environment exports
 }
 
 ///|
-test "executor whitebox coverage reports dependency evaluation errors" {
+test "executor whitebox behavior reports dependency evaluation errors" {
   let span = @source.Span::new(@source.SourceId::new(9927), 0, 1)
   let dependency = @syntax.Dependency::new(
     "run",
@@ -187,8 +187,8 @@ test "executor whitebox coverage reports dependency evaluation errors" {
 }
 
 ///|
-test "executor whitebox coverage plans comments, continuations, and dry runs" {
-  let recipe = executor_coverage_recipe(
+test "executor whitebox behavior plans comments, continuations, and dry runs" {
+  let recipe = executor_behavior_recipe(
     "run:\n  # comment\n  echo first \\\n  echo second\n  -echo ignored\n",
   )
   let environment = @evaluator.Environment::new()
@@ -231,7 +231,7 @@ test "executor whitebox coverage plans comments, continuations, and dry runs" {
 }
 
 ///|
-async test "executor whitebox coverage evaluates recipe shell, interpreter, cwd, env, and cache" {
+async test "executor whitebox behavior evaluates recipe shell, interpreter, cwd, env, and cache" {
   let source = @source.Source::from_text(
     @source.SourceId::new(9922),
     "executor.attributes",
@@ -320,13 +320,13 @@ async test "executor whitebox coverage evaluates recipe shell, interpreter, cwd,
 }
 
 ///|
-fn executor_coverage_line_fixture(
+fn executor_behavior_line_fixture(
   text : String,
 ) -> (@semantic.Compilation, @syntax.Recipe) raise {
   let compilation = @semantic.compile_source(
     @source.Source::from_text(
       @source.SourceId::new(9935),
-      "executor-line-coverage.just",
+      "executor-line-behavior.just",
       text,
     ),
   )
@@ -334,7 +334,7 @@ fn executor_coverage_line_fixture(
 }
 
 ///|
-fn executor_coverage_command(
+fn executor_behavior_command(
   shell : @environment.ShellConfiguration,
   cwd : @path.PathValue,
   command : String,
@@ -360,7 +360,7 @@ test "executor line engines distinguish ignored child signals and interruption" 
       for interrupted in [false, true] {
         let prefix = if ignored { "-" } else { "" }
         let command = if interrupted { "interrupt" } else { "signal" }
-        let (_, recipe) = executor_coverage_line_fixture(
+        let (_, recipe) = executor_behavior_line_fixture(
           "run:\n  " + prefix + command + "\n",
         )
         let host = @host.FakeHost::new(
@@ -373,7 +373,7 @@ test "executor line engines distinguish ignored child signals and interruption" 
           @host.ProcessResult::from_signal(Terminate, b"", b"")
         }
         host.expect_process(
-          executor_coverage_command(shell, cwd, command),
+          executor_behavior_command(shell, cwd, command),
           output,
         )
         try {
@@ -405,7 +405,7 @@ test "executor line engines distinguish ignored child signals and interruption" 
 test "executor line engines map denied process capabilities" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
-  let (_, recipe) = executor_coverage_line_fixture("run:\n  echo denied\n")
+  let (_, recipe) = executor_behavior_line_fixture("run:\n  echo denied\n")
   for effectful in [false, true] {
     let host = @host.FakeHost::new(
       cwd,
@@ -444,7 +444,7 @@ test "executor line engines map denied process capabilities" {
 }
 
 ///|
-test "executor whitebox coverage exercises option and plan value contracts" {
+test "executor whitebox behavior exercises option and plan value contracts" {
   let options = ExecutionOptions::new(
       dry_run=true,
       quiet=true,
@@ -537,7 +537,7 @@ test "executor whitebox coverage exercises option and plan value contracts" {
 }
 
 ///|
-test "executor whitebox coverage exercises planned value accessors" {
+test "executor whitebox behavior exercises planned value accessors" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
   let platform = @host.PlatformInfo::new(Linux, "x86_64", Unix)
@@ -725,7 +725,7 @@ async test "executor async planner preserves attributes dependencies and cache m
   )
   let source = @source.Source::from_text(
     @source.SourceId::new(9930),
-    "executor-async-coverage.just",
+    "executor-async-behavior.just",
     "set lists\nset export\nset positional-arguments\nset ignore-comments\n" +
     "[parallel, doc('Run the build'), confirm('Proceed?'), no-quiet, exit-message, continue('SIGINT'), env('MODE', 'test'), working-directory('sub')]\n" +
     "run arg='default' +rest: (first 'one') (second 'two') && cleanup\n" +
@@ -773,7 +773,7 @@ async test "executor async planner preserves attributes dependencies and cache m
 
   let cached_source = @source.Source::from_text(
     @source.SourceId::new(9931),
-    "executor-cache-coverage.just",
+    "executor-cache-behavior.just",
     "[script]\n[cache(inputs='input', outputs='output', extra='tag')]\n" +
     "cached:\n  echo cache\n",
   )
@@ -987,7 +987,7 @@ async test "executor async planner expands mapped dependencies and explain pream
     let compilation = @semantic.compile_source(
       @source.Source::from_text(
         @source.SourceId::new(9934),
-        "executor-mapped-coverage.just",
+        "executor-mapped-behavior.just",
         source_text,
       ),
       allow_unstable=true,

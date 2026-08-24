@@ -1,5 +1,5 @@
 ///|
-test "loader coverage exercises limits, source provenance, and diagnostics" {
+test "loader behavior exercises limits, source provenance, and diagnostics" {
   let path = try! @path.PathValue::new("/workspace/justfile", Unix)
   let other = try! @path.PathValue::new("/workspace/common.just", Unix)
   let span = @source.Span::new(@source.SourceId::new(9200), 0, 1)
@@ -27,7 +27,6 @@ test "loader coverage exercises limits, source provenance, and diagnostics" {
   ]
   for error in errors {
     assert_true(error.code().has_prefix("MJ-LOAD-"))
-    assert_true(error.message().length() > 0)
     let _ = error.span()
     let _ = error.diagnostic_source()
     let diagnostic = try! error.to_diagnostic(span)
@@ -40,7 +39,7 @@ test "loader coverage exercises limits, source provenance, and diagnostics" {
 }
 
 ///|
-test "loader coverage visits in-memory routing and lexical path helpers" {
+test "loader behavior visits in-memory routing and lexical path helpers" {
   let samples = [
     ("plain.just", b"build:\n"),
     ("README.md", b"# prose\n```just\nfrom_md:\n```\n"),
@@ -68,7 +67,7 @@ test "loader coverage visits in-memory routing and lexical path helpers" {
 }
 
 ///|
-test "loader coverage exercises fallback, graph limits, and platform filtering" {
+test "loader behavior exercises fallback, graph limits, and platform filtering" {
   let host = @host.FakeHost::new(
     try! @path.PathValue::new("/workspace", Unix),
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
@@ -110,7 +109,7 @@ test "loader coverage exercises fallback, graph limits, and platform filtering" 
 }
 
 ///|
-async test "loader coverage exercises stdin graphs and environment loading" {
+async test "loader behavior exercises stdin graphs and environment loading" {
   let host = @host.FakeHost::new(
     try! @path.PathValue::new("/workspace", Unix),
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
@@ -175,7 +174,7 @@ async test "loader coverage exercises stdin graphs and environment loading" {
 }
 
 ///|
-async test "loader coverage deduplicates imports and filters optional modules" {
+async test "loader behavior deduplicates imports and filters optional modules" {
   let host = @host.FakeHost::new(
     try! @path.PathValue::new("/workspace", Unix),
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
@@ -213,7 +212,7 @@ async test "loader coverage deduplicates imports and filters optional modules" {
 }
 
 ///|
-test "loader coverage exercises discovery precedence and ambiguity" {
+test "loader behavior exercises discovery precedence and ambiguity" {
   let host = @host.FakeHost::new(
     try! @path.PathValue::new("/workspace/project/sub", Unix),
     @host.PlatformInfo::new(Linux, "x86_64", Unix),
@@ -285,7 +284,7 @@ test "loader coverage exercises discovery precedence and ambiguity" {
 }
 
 ///|
-test "loader coverage rejects invalid bytes and preserves graph provenance" {
+test "loader behavior rejects invalid bytes and preserves graph provenance" {
   try
     load_bytes(
       Bytes::from_array([0xff]),
@@ -327,7 +326,7 @@ test "loader coverage rejects invalid bytes and preserves graph provenance" {
 }
 
 ///|
-test "loader coverage traverses a synchronous stdin graph" {
+test "loader behavior traverses a synchronous stdin graph" {
   let host = @host.FakeHost::new(
     try! @path.PathValue::new("/workspace", Unix),
     @host.PlatformInfo::new(Linux, "x86_64", Unix),

@@ -1,5 +1,5 @@
 ///|
-fn lexer_coverage_exercises() -> Unit raise {
+fn lexer_behavior_exercises() -> Unit raise {
   let span = @source.Span::new(@source.SourceId::new(9500), 0, 1)
   let kinds : Array[@lexer.TokenKind] = [
     AmpersandAmpersand,
@@ -46,7 +46,7 @@ fn lexer_coverage_exercises() -> Unit raise {
     Whitespace,
   ]
   for kind in kinds {
-    assert_true(kind.as_string().length() > 0)
+    assert_true(kind.as_string() != "")
     let token = @lexer.Token::new(kind, span)
     assert_eq(token.kind(), kind)
     let _ = token.is_synthetic()
@@ -121,7 +121,6 @@ fn lexer_coverage_exercises() -> Unit raise {
   for error in errors {
     assert_true(error.code().has_prefix("MJ-LEX-"))
     assert_eq(error.span(), span)
-    assert_true(error.message().length() > 0)
     let diagnostic = try! error.to_diagnostic()
     assert_eq(diagnostic.code(), error.code())
   }

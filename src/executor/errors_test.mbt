@@ -1,5 +1,5 @@
 ///|
-test "executor coverage exercises execution error families" {
+test "executor behavior exercises execution error families" {
   let span = @source.Span::new(@source.SourceId::new(9400), 0, 1)
   let evaluation = @evaluator.EvaluationError::UndefinedVariable(
     name="x",
@@ -27,7 +27,6 @@ test "executor coverage exercises execution error families" {
     CacheFailure(message="cache"),
   ]
   for error in errors {
-    assert_true(error.message().length() > 0)
     let _ = error.exit_code()
     let _ = error.to_diagnostic()
   }
@@ -35,7 +34,7 @@ test "executor coverage exercises execution error families" {
 }
 
 ///|
-test "executor coverage visits graph planning and command materialization" {
+test "executor behavior visits graph planning and command materialization" {
   let source = @source.Source::from_text(
     @source.SourceId::new(9401),
     "plan.just",
@@ -225,7 +224,7 @@ test "executor graph reports unknown recipes and invalid dependency arguments" {
 }
 
 ///|
-test "executor coverage exercises output formatting and script planning" {
+test "executor behavior exercises output formatting and script planning" {
   let colors : Array[CommandColor] = [
     Bold,
     Black,

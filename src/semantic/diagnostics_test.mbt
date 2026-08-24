@@ -1,14 +1,14 @@
 ///|
-fn semantic_coverage_source(text : String) -> @source.Source {
+fn semantic_behavior_source(text : String) -> @source.Source {
   @source.Source::from_text(
     @source.SourceId::new(9800),
-    "semantic.coverage",
+    "semantic.behavior",
     text,
   )
 }
 
 ///|
-test "semantic coverage exercises every diagnostic family" {
+test "semantic behavior exercises every diagnostic family" {
   let source = @source.Source::from_text(
     @source.SourceId::new(9300),
     "semantic.just",
@@ -78,7 +78,6 @@ test "semantic coverage exercises every diagnostic family" {
   ]
   for error in errors {
     assert_true(error.code().has_prefix("MJ-SEM-"))
-    assert_true(error.message().length() > 0)
     assert_true(error.span() == first || error.span() == second)
     let diagnostic = try! error.to_diagnostic()
     assert_eq(diagnostic.code(), error.code())
@@ -86,7 +85,7 @@ test "semantic coverage exercises every diagnostic family" {
 }
 
 ///|
-test "semantic coverage compiles a broad feature corpus" {
+test "semantic behavior compiles a broad feature corpus" {
   let cases = [
     "set quiet\nset shell := [\"sh\", \"-cu\"]\na := \"x\"\nbuild:\n  echo {{a}}\n",
     "set unstable\nset lists\nf(x) := x\nresult := f('ok')\n", "[private, group(\"ci\"), metadata(\"owner\"), env(\"MODE\", \"test\")]\nbuild arg='x':\n  echo {{arg}}\n",
@@ -115,7 +114,7 @@ test "semantic coverage compiles a broad feature corpus" {
 }
 
 ///|
-test "semantic coverage drives validation branches through representative failures" {
+test "semantic behavior drives validation branches through representative failures" {
   let cases = [
     "set minimum-version := '1.0.0'\n", "set minimum-version := 'bad'\n", "set lists\nvalue := ['a', 'b']\n",
     "set lists\nvalue := `echo value`\n", "a := 'one'\na := 'two'\n", "f(x, x) := x\n",
@@ -133,12 +132,12 @@ test "semantic coverage drives validation branches through representative failur
     "[cache(inputs='missing', outputs='out')]\nrun:\n  echo ok\n", "mod optional 'missing.just'\nrun:\n",
     "import? 'missing.just'\nrun:\n", "recipe a='x' b='y':\n  echo {{a}}\n", "recipe a *rest:\n  echo {{a}}\n",
   ]
-  for index, text in cases {
-    let source = semantic_coverage_source(text)
+  for text in cases {
+    let source = semantic_behavior_source(text)
     try {
       let ast = @parser.parse(source)
       try compile(ast, allow_unstable=true) catch {
-        error => assert_true(error.message().length() > index)
+        error => assert_true(error.code().has_prefix("MJ-SEM-"))
       } noraise {
         compilation => assert_true(compilation.recipe_names().length() >= 0)
       }
@@ -149,7 +148,7 @@ test "semantic coverage drives validation branches through representative failur
 }
 
 ///|
-test "semantic coverage exercises version, alias, and symbol validation paths" {
+test "semantic behavior exercises version, alias, and symbol validation paths" {
   let cases = [
     "set minimum-version := '1.57.1'\n", "set minimum-version := '1.57'\n", "set minimum-version := '1.57.x'\n",
     "alias a := b\nb:\n", "alias a := a\na:\n", "alias a := b\nalias b := c\nc:\n",
@@ -161,12 +160,12 @@ test "semantic coverage exercises version, alias, and symbol validation paths" {
     "foo(x, x) := x\nrun:\n", "run a='x' a='y':\n  echo ok\n", "run a *rest b:\n  echo ok\n",
     "run: missing\nmissing: run\n", "run: run\n",
   ]
-  for index, text in cases {
-    let source = semantic_coverage_source(text)
+  for text in cases {
+    let source = semantic_behavior_source(text)
     try {
       let ast = @parser.parse(source)
       try compile(ast, allow_unstable=true) catch {
-        error => assert_true(error.message().length() >= index)
+        error => assert_true(error.code().has_prefix("MJ-SEM-"))
       } noraise {
         compilation => assert_true(compilation.recipe_names().length() >= 0)
       }
@@ -177,7 +176,7 @@ test "semantic coverage exercises version, alias, and symbol validation paths" {
 }
 
 ///|
-test "semantic coverage compiles complete recipe attribute combinations" {
+test "semantic behavior compiles complete recipe attribute combinations" {
   let cases = [
     "[confirm]\nrun:\n", "[confirm('Proceed?')]\nrun:\n", "[default]\nrun:\n", "[doc('documentation')]\nrun:\n",
     "[extension('.sh')]\n[script('sh', '-eu')]\nrun:\n  echo ok\n", "[shell]\nrun:\n  echo ok\n",

@@ -1,15 +1,15 @@
 ///|
-fn parser_coverage_parser(text : String) -> Parser {
+fn parser_behavior_parser(text : String) -> Parser {
   let source = @source.Source::from_text(
     @source.SourceId::new(9700),
-    "coverage.just",
+    "behavior.just",
     text,
   )
   Parser::new(source, try! @lexer.lex(source), ParserLimits::default())
 }
 
 ///|
-test "parser whitebox coverage visits attribute and cursor branches" {
+test "parser whitebox behavior visits attribute and cursor branches" {
   for name in attribute_names() {
     assert_true(known_attribute(name))
   }
@@ -28,7 +28,7 @@ test "parser whitebox coverage visits attribute and cursor branches" {
   }
   assert_false(attribute_requires_literal("private"))
 
-  let parser = parser_coverage_parser("foo:\n")
+  let parser = parser_behavior_parser("foo:\n")
   let _ = parser.peek_kind()
   assert_true(parser.peek_kind_at(0) is Some(_))
   assert_true(parser.peek_kind_at(100) is None)
@@ -42,7 +42,7 @@ test "parser whitebox coverage visits attribute and cursor branches" {
 }
 
 ///|
-test "parser whitebox coverage visits string normalization and expansion" {
+test "parser whitebox behavior visits string normalization and expansion" {
   assert_eq(unindent_string("\n  one\n    two\n"), "one\n  two\n")
   assert_eq(unindent_string("one\n\n two\n"), "one\n\n two\n")
   for raw in ["'x'", "\"x\"", "`x`", "'''x'''", "\"\"\"x\"\"\""] {
@@ -69,7 +69,7 @@ test "parser whitebox coverage visits string normalization and expansion" {
 }
 
 ///|
-test "parser whitebox coverage visits top-level grammar predicates" {
+test "parser whitebox behavior visits top-level grammar predicates" {
   for name in setting_names() {
     assert_true(setting_known(name))
     let _ = setting_is_boolean(name)

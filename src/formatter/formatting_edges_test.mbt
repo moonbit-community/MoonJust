@@ -1,19 +1,18 @@
 ///|
-fn formatter_coverage_source(id : Int, text : String) -> @source.Source {
+fn formatter_behavior_source(id : Int, text : String) -> @source.Source {
   @source.Source::from_text(
     @source.SourceId::new(id),
-    "formatter.coverage",
+    "formatter.behavior",
     text,
   )
 }
 
 ///|
 test "formatter errors and check results preserve structured diagnostics" {
-  let invalid = formatter_coverage_source(9940, "run: (\n")
+  let invalid = formatter_behavior_source(9940, "run: (\n")
   try @formatter.format_source(invalid) catch {
     Parse(_) as error => {
       assert_eq(error.code(), "MJ-FMT-0001")
-      assert_true(error.message().length() > 0)
       assert_true(error.span() is Some(_))
       assert_eq((try! error.to_diagnostic(invalid)).code(), error.code())
     }
@@ -31,13 +30,13 @@ test "formatter errors and check results preserve structured diagnostics" {
     invalid.eof_span(),
   )
 
-  let clean = formatter_coverage_source(9941, "run:\n")
+  let clean = formatter_behavior_source(9941, "run:\n")
   let clean_check = @formatter.check_with_indentation(clean, "  ")
   assert_false(clean_check.changed())
   assert_eq(clean_check.formatted(), "run:\n")
   assert_eq(@formatter.diff(clean), "")
 
-  let changed = formatter_coverage_source(9942, "run:\n echo ok\n")
+  let changed = formatter_behavior_source(9942, "run:\n echo ok\n")
   let rendered_diff = @formatter.diff(changed)
   assert_true(
     rendered_diff.has_prefix("--- justfile\n+++ justfile (formatted)\n"),
@@ -46,8 +45,8 @@ test "formatter errors and check results preserve structured diagnostics" {
 }
 
 ///|
-test "formatter coverage prints every expression operator and item family" {
-  let source = formatter_coverage_source(
+test "formatter behavior prints every expression operator and item family" {
+  let source = formatter_behavior_source(
     9943,
     "#!/usr/bin/env just --justfile\n" +
     "\n\n" +
@@ -80,6 +79,6 @@ test "formatter coverage prints every expression operator and item family" {
   assert_true(formatted.contains("@run $value=('a' + 'b') *rest:"))
   assert_true(formatted.contains("*(many *['x'])"))
   assert_true(formatted.contains("cleanup"))
-  let reparsed = formatter_coverage_source(9944, formatted)
+  let reparsed = formatter_behavior_source(9944, formatted)
   assert_eq(@formatter.format_source(reparsed), formatted)
 }

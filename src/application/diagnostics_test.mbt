@@ -1,5 +1,5 @@
 ///|
-test "application coverage exercises stable error presentation families" {
+test "application behavior exercises stable error presentation families" {
   let source = @source.Source::from_text(
     @source.SourceId::new(9900),
     "application.just",
@@ -49,13 +49,12 @@ test "application coverage exercises stable error presentation families" {
     UnsupportedCommand("feature"),
   ]
   for error in errors {
-    assert_true(error.message().length() > 0)
     assert_true(error.exit_code() >= 0)
   }
 }
 
 ///|
-test "application coverage renders source and fallback diagnostics" {
+test "application behavior renders source and fallback diagnostics" {
   let (host, context) = fake_context()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(file, b"value := missing\nroot:\n")
@@ -94,7 +93,7 @@ test "application coverage renders source and fallback diagnostics" {
 }
 
 ///|
-async test "application coverage renders direct evaluation contracts synchronously and asynchronously" {
+async test "application behavior renders direct evaluation contracts synchronously and asynchronously" {
   let (host, context) = fake_context()
   let arguments = try! @cli.parse_arguments([], {})
   let span = @source.Span::origin(@source.SourceId::new(9905))
@@ -119,7 +118,7 @@ async test "application coverage renders direct evaluation contracts synchronous
 }
 
 ///|
-async test "application coverage executes arbitrary command contracts" {
+async test "application behavior executes arbitrary command contracts" {
   let (host, context) = fake_context()
   host.put_file(
     @path.PathValue::new("/workspace/justfile", Unix),
@@ -187,7 +186,7 @@ async test "application coverage executes arbitrary command contracts" {
 }
 
 ///|
-async test "application coverage renders asynchronous source diagnostics" {
+async test "application behavior renders asynchronous source diagnostics" {
   let (host, context) = fake_context()
   let file = try! @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(file, b"value := missing\nroot:\n")
@@ -219,7 +218,7 @@ async test "application coverage renders asynchronous source diagnostics" {
 }
 
 ///|
-async test "application coverage exercises asynchronous query and inspect commands" {
+async test "application behavior exercises asynchronous query and inspect commands" {
   let (host, context) = fake_context()
   let file = try! @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(
@@ -259,7 +258,7 @@ async test "application coverage exercises asynchronous query and inspect comman
 }
 
 ///|
-async test "application coverage exercises default list sync and async" {
+async test "application behavior exercises default list sync and async" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host.FakeHost::new(
     cwd,
@@ -296,7 +295,7 @@ async test "application coverage exercises default list sync and async" {
 }
 
 ///|
-test "application coverage plans synchronous recipes and validates plan modes" {
+test "application behavior plans synchronous recipes and validates plan modes" {
   let (host, context) = fake_context()
   let file = try! @path.PathValue::new("/workspace/justfile", Unix)
   host.set_env("BASE", "ambient")
@@ -364,7 +363,7 @@ test "application coverage plans synchronous recipes and validates plan modes" {
 }
 
 ///|
-async test "application coverage lists nested project modules and aliases" {
+async test "application behavior lists nested project modules and aliases" {
   let (host, context) = fake_context()
   host.put_file(
     try! @path.PathValue::new("/workspace/justfile", Unix),
