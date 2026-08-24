@@ -12,10 +12,10 @@ especially for argv[0], `just_executable()`, help, and release packaging.
 ## Decision
 
 - The product and module are named **MoonJust**.
-- The MoonBit module is `moonbit-community/MoonJust`.
+- The MoonBit module is `ZSeanYves/MoonJust`.
 - The only executable package is `cmd/just`.
 - The intended Mooncakes coordinate is
-  `moonbit-community/MoonJust/cmd/just`.
+  `ZSeanYves/MoonJust/cmd/just`.
 - Native release artifacts expose the executable name `just` when used as a
   compatibility replacement.
 - Documentation always identifies the project as an independent

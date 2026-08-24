@@ -17,14 +17,14 @@ if [ -n "${MOONJUST_NATIVE_CANDIDATE:-}" ] || [ -n "${MOONJUST_WASM_CANDIDATE:-}
 else
   python3 "$repo_root/tools/upstream/run_official_harness.py"
 fi
-moon test --target native internal/cli
-moon test --target native internal/application
-moon test --target native internal/formatter
-moon test --target native internal/loader
-moon test --target wasm internal/cli
-moon test --target wasm internal/application
-moon test --target wasm internal/formatter
-moon test --target wasm internal/loader
+moon test --target native src/cli
+moon test --target native src/application
+moon test --target native src/formatter
+moon test --target native src/loader
+moon test --target wasm src/cli
+moon test --target wasm src/application
+moon test --target wasm src/formatter
+moon test --target wasm src/loader
 
 if [ -z "${MOONJUST_ORACLE_CANDIDATE:-}" ]; then "$repo_root/tools/upstream/build_oracle.sh" >/dev/null; fi
 upstream="$repo_root/_build/upstream/just-1.57.0/source"

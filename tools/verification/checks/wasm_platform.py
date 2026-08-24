@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 
 
-EXPECTED_VERSION = "moonjust 0.7.0-alpha.1"
+EXPECTED_VERSION = "moonjust v0.1.0"
 
 
 def fail(message: str) -> int:

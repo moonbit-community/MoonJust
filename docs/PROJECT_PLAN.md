@@ -7,7 +7,7 @@
 
 > 文档状态：已接受执行基线 v1.0
 > 编制日期：2026-08-04
-> 最近严格复核：2026-08-13；Phase 0-11 已完成并通过全部阶段出口。Phase 11 由 [PR #43](https://github.com/moonbit-community/MoonJust/pull/43) 交付，并由 [PR #44](https://github.com/moonbit-community/MoonJust/pull/44)、[PR #45](https://github.com/moonbit-community/MoonJust/pull/45) 和 [PR #46](https://github.com/moonbit-community/MoonJust/pull/46) 完成远程复核修复；审计闭合基线 `ec960b5a` 的 protected-main CI [31697473589](https://github.com/moonbit-community/MoonJust/actions/runs/31697473589) 与非发布候选工作流 [31698189163](https://github.com/moonbit-community/MoonJust/actions/runs/31698189163) 均通过。完整结论见 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。
+> 最近严格复核：2026-08-24；Phase 0-12 已完成功能、兼容、测试治理和文档收口。Phase 12 的源码布局、身份和测试治理结果见 [`PHASE_12_REPORT.md`](reports/PHASE_12_REPORT.md) 与 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)；体积门禁和 Windows Native 性能例外仍显式保留。
 > 目标产品：用 MoonBit 实现与 `just` 基本兼容的跨平台命令运行器
 > 上游兼容基线：`casey/just` `1.57.0`，提交 `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
 > 必须支持的 MoonBit 目标：`native`、`wasm`（wasm1，由 `moonx`/`moonrun` 承载）
@@ -32,13 +32,13 @@ MoonJust 不是对上游 Rust 源码逐文件机械翻译，而是对 `just` 用
 ### 2.1 本地仓库
 
 - 工作目录：`/Users/winter/Documents/Moonbit/MoonJust`。
-- 模块名：`moonbit-community/MoonJust`，模块与应用候选版本
-  `0.7.0-alpha.1`，许可证 `Apache-2.0`。
+- 模块名：`ZSeanYves/MoonJust`，Moon 模块版本 `0.1.0`，产品/标签版本
+  `v0.1.0`，许可证 `Apache-2.0`。
 - 必须支持目标：`native` 和 `wasm`（wasm1）；当前首选目标仍为 `wasm`。
 - Phase 0-2 已建立治理与兼容基线、`cmd/just` smoke、Native/wasm1 测试、差分 harness、Source/Span/Host 契约和完整 justfile lexer。
 - Phase 3-5 已于 2026-08-06 完成严格 remediation，Phase 6-7 已于 2026-08-08 完成并通过出口，Phase 8 已于 2026-08-10 完成执行预览，Phase 9 已于 2026-08-11 完成并通过最终远程 CI；Phase 10-11 已于 2026-08-13 完成本地实现、远端 CI、二次严格复核、合并和 protected-main CI。Phase 11 的非发布候选制品与 OIDC 证明工作流亦已通过。逐项证据、目标矩阵和机器门禁见各阶段报告及 [`RELEASE_AUDIT.md`](reports/RELEASE_AUDIT.md)。
 - pre-commit 与 GitHub Actions 共用 `python3 tools/runner.py run --mode verify` 的确定性质量门禁，并增加三平台 Native smoke。
-- 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`。
+- 工作目录 `/Users/winter/Documents/Moonbit/MoonJust` 是独立 Git 仓库，远程为 `moonbit-community/MoonJust`；MoonBit 模块坐标单独使用 `ZSeanYves/MoonJust`。
 
 ### 2.2 工具链
 
@@ -719,14 +719,22 @@ complete。候选工作流仅上传临时制品并生成 OIDC 证明；本阶段
 第 3.3 节规则在 RC 前明确收缩为 Linux x86_64、macOS arm64 和 Windows
 x86_64；不得以模拟结果替代，待官方恢复支持并通过真实 runner 后再扩展。
 
-### Phase 12：Beta、RC 和 GA
+### Phase 12：收口状态
 
-| PR/里程碑 | 内容 | 出口条件 |
-| --- | --- | --- |
-| `0.8.0-beta.1` | feature freeze、公开 API freeze 候选 | Tier A 功能完成，差分只剩已登记缺陷 |
-| `0.9.0-rc.1` | 安全/性能/兼容审计 | 0 P0/P1；所有平台和 MoonX 门禁通过 |
-| `0.9.x-rc.n` | 只修缺陷、文档和发布流程 | 连续 14 天无新 P0/P1；无 flaky gate |
-| `1.0.0` | GA | 第 3.3 节全部满足，release checklist 完成并归档证据 |
+Phase 12 的功能、上游兼容、跨平台行为、稳定 API、测试治理、源码布局、
+命名检查、文档和发布审计已完成。`ZSeanYves/MoonJust/api` 的 `.mbti`
+声明集合保持不变；`cmd/just` 是主要交付物。体积约为冻结绿色基线 1.1x，
+体积门禁暂不处理；Windows `dag-1000` 与 `project-parameters` 性能仍是
+明确例外。Linux MoonX 两个非 UTF-8 cwd 场景保持 `not-applicable`，completion
+继续排除。完整出口协议和二次复检清单见
+[`docs/reports/PHASE_12_REPORT.md`](reports/PHASE_12_REPORT.md)。
+
+本阶段的 C 清理已完成：生产 host-native 的 `platform.c`、`realpath.c` 和
+`transaction.c` 已由 MoonBit native/portable 适配层及标准库/系统 ABI 调用替换。
+项目自有跟踪 C 仅保留 `src/host_process` 的 process/signal 桩与
+`spikes/host-async` 的两个调研探针；`.mooncakes` 和生成目录中的第三方/缓存
+文件不属于项目 C 清单。原子写入、权限继承、canonicalize、范围读取、非 UTF-8
+cwd 分类和 Native/Wasm 行为测试均保留。
 
 ## 11. PR 规范
 

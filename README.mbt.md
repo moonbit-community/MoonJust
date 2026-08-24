@@ -169,11 +169,11 @@ Wasm inspection adapter receives only the capabilities its policy allows.
 | Path | Responsibility |
 | --- | --- |
 | `api/` | stable public library facade and build metadata |
-| `internal/source`, `internal/diagnostic`, `internal/path` | target-independent source coordinates, diagnostics and lexical paths |
-| `internal/lexer`, `internal/parser`, `internal/syntax`, `internal/formatter` | language front end and Markdown tangle |
-| `internal/semantic`, `internal/loader`, `internal/evaluator`, `internal/builtin` | compilation, graph loading, evaluation and typed builtins |
-| `internal/host`, `internal/host_native`, `internal/host_wasm` | explicit host contracts and platform adapters |
-| `internal/cli`, `internal/application`, `internal/invocation`, `internal/workdir`, `internal/environment` | CLI, invocation, working-directory and environment models |
+| `src/source`, `src/diagnostic`, `src/path` | target-independent source coordinates, diagnostics and lexical paths |
+| `src/lexer`, `src/parser`, `src/syntax`, `src/formatter` | language front end and Markdown tangle |
+| `src/semantic`, `src/loader`, `src/evaluator`, `src/builtin` | compilation, graph loading, evaluation and typed builtins |
+| `src/host`, `src/host_native`, `src/host_wasm` | explicit host contracts and platform adapters |
+| `src/cli`, `src/application`, `src/invocation`, `src/workdir`, `src/environment` | CLI, invocation, working-directory and environment models |
 | `cmd/just` | Native/wasm1 executable composition root |
 | `compat/` | machine-readable compatibility inventories and area contracts |
 | `tests/upstream/` | pinned upstream corpus, ownership map and provenance |

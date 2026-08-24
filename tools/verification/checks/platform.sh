@@ -12,12 +12,12 @@ fail() {
 }
 
 if [ "${MOONJUST_PLATFORM_SKIP_TESTS:-0}" != 1 ]; then
-  moon test --target native internal/host
-  moon test --target native internal/host_native
-  moon test --target native internal/host_process
-  moon test --target native internal/environment
-  moon test --target native internal/executor
-  moon test --target native internal/application
+  moon test --target native src/host
+  moon test --target native src/host_native
+  moon test --target native src/host_process
+  moon test --target native src/environment
+  moon test --target native src/executor
+  moon test --target native src/application
 fi
 if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build cmd/just --target native >/dev/null; fi
 cli="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
@@ -196,7 +196,7 @@ tr -d '\r' <"$work/env-stdin.stdout" | grep -qx 'platform-stdin-env' || fail "JU
 (cd "$work" && JUST_JUSTFILE=- run_cli env-override --justfile justfile alpha </dev/null >env-override.stdout 2>env-override.stderr)
 tr -d '\r' <"$work/env-override.stdout" | grep -qx 'platform-choice' || fail "argv justfile did not override JUST_JUSTFILE"
 (cd "$work" && JUST_ALLOW_MISSING=1 JUST_DRY_RUN=1 JUST_QUIET=1 run_cli env-version --version </dev/null >env-version.stdout 2>env-version.stderr)
-grep -q '^moonjust 0.7.0-alpha.1' "$work/env-version.stdout" || fail "--version did not override unsupported environment diagnostics"
+grep -q '^moonjust v0.1.0' "$work/env-version.stdout" || fail "--version did not override unsupported environment diagnostics"
 
 (cd "$work" && run_cli script script >script.stdout 2>script.stderr)
 tr -d '\r' <"$work/script.stdout" | grep -qx 'platform-script' || fail "platform script did not execute"

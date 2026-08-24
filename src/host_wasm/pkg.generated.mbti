@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/src/host_wasm"
+
+import {
+  "ZSeanYves/MoonJust/src/host",
+  "ZSeanYves/MoonJust/src/path",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct ExecutionFs {
+  reads : ReadOnlyFs
+}
+pub fn ExecutionFs::new() -> Self
+pub impl @host.HostAsyncScriptTemp for ExecutionFs
+pub impl @host.HostAtomicFs for ExecutionFs
+pub impl @host.HostCacheStore for ExecutionFs
+pub impl @host.HostFs for ExecutionFs
+pub impl @host.HostSourceReader for ExecutionFs
+pub impl @host.HostTemp for ExecutionFs
+
+pub struct PortableHost {
+  marker : Unit
+}
+pub fn PortableHost::new() -> Self
+pub impl @host.HostClock for PortableHost
+pub impl @host.HostEnv for PortableHost
+pub impl @host.HostFs for PortableHost
+pub impl @host.HostPlatform for PortableHost
+pub impl @host.HostRandom for PortableHost
+pub impl @host.HostSourceReader for PortableHost
+pub impl @host.HostTerminal for PortableHost
+
+pub struct ReadOnlyFs {
+  inner : PortableHost
+}
+pub fn ReadOnlyFs::new() -> Self
+pub impl @host.HostAtomicFs for ReadOnlyFs
+pub impl @host.HostFs for ReadOnlyFs
+pub impl @host.HostSourceReader for ReadOnlyFs
+pub impl @host.HostTemp for ReadOnlyFs
+
+// Type aliases
+
+// Traits

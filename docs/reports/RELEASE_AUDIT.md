@@ -1,12 +1,57 @@
 # Release readiness audit
 
-> **Superseded historical audit.** This report preserves the evidence and
-> conclusions recorded at the Phase 11 audit closure. It is not current
-> compatibility or release-readiness evidence. The schema-v4 verifier now
-> rejects the former shared-anchor accounting: `verify_manifest.py --release`
-> reports 568 registrations without independent evidence. The active status is
-> stated in the repository README and the machine-readable files under
-> `tests/upstream/just-1.57.0/`.
+## Current Phase 12 entry
+
+This is the current audit entry for the `main` branch after the Phase 12
+source-layout and release-identity closeout. The complete functional and
+platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md).
+
+- Upstream: `just 1.57.0`, commit
+  `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
+- Module: `ZSeanYves/MoonJust`, Moon metadata `0.1.0`, product/tag `v0.1.0`
+- Stable facade: `ZSeanYves/MoonJust/api`
+- Repository URL: `https://github.com/moonbit-community/MoonJust`
+- Layout: implementation packages under `src/*`; no repository `internal/*`
+- Main pre-close baseline: `6ac1e27ee288957fa9ec956d6847d60e56d8ba09`
+- Final main head: the commit containing this audit entry; its full SHA must be
+  taken from the post-push exact-head CI/RC evidence
+- Completion: excluded by scope
+- Accepted MoonX limitation: two Linux invalid UTF-8 cwd rows are
+  `not-applicable`
+- Known exceptions: release artifact-size gate and Windows Native
+  `dag-1000`/`project-parameters` performance; neither is hidden or used to
+  lower a threshold
+
+## C cleanup closure
+
+The Phase 12 native-host C cleanup removed the project-owned `platform.c`,
+`realpath.c`, and `transaction.c`. The only tracked project C sources are now
+the two process/signal stubs under `src/host_process` and the two explicitly
+isolated `spikes/host-async` probes. Third-party `.mooncakes` sources and
+generated `_build` files are excluded from this inventory.
+
+The replacement keeps canonical path resolution, range reads, exclusive
+temporary creation, full synchronization, atomic overwrite/no-overwrite,
+permission inheritance, read-only rejection, executable handling, cleanup,
+Windows wide-character paths, and the documented non-UTF-8 cwd classification.
+`api/pkg.generated.mbti` has no declaration or byte changes. The remaining
+MoonBit `extern "C"` declarations reference system ABI or approved dependency
+backends; no project C shim or new dependency was added.
+
+Local second-pass evidence: host-native 9/9, Native 1119/1119, Wasm 1097/1097,
+all-target check with warnings denied, naming and architecture checks, and the
+pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
+three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned
+gates and must be attached to the final main SHA. The macOS-only full upstream
+harness retains the pre-existing `dotenv::fifo` environment-source limitation;
+the isolated signal gate passed 14/14 on rerun, and Linux CI remains authoritative
+for the FIFO case.
+
+The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
+unchanged stable `.mbti` declarations, all-target tests, architecture and
+naming checks, and a clean stale-path/duplicate-artifact audit. The historical
+Phase 0-11 evidence below is retained as an immutable index; it is not a
+replacement for the current exact-head evidence.
 
 - Review period: 2026-08-04 through 2026-08-13
 - Historical scope: Phase 0 through Phase 11
@@ -18,7 +63,7 @@
 - Accepted specification: [`PROJECT_PLAN.md`](../PROJECT_PLAN.md)
 - Upstream baseline: `just 1.57.0` at
   `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`
-- MoonJust candidate identity: `0.7.0-alpha.1`
+- MoonJust candidate identity: `v0.1.0`
 - Required targets: Native and wasm1 through `moonrun`/`moonx`; Native smoke on Ubuntu, macOS and Windows
 
 ## Audit rule

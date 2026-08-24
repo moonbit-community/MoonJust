@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/src/host_native"
+
+import {
+  "ZSeanYves/MoonJust/src/host",
+  "ZSeanYves/MoonJust/src/path",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct NativeFs {
+  marker : Unit
+}
+pub fn NativeFs::new() -> Self
+pub impl @host.HostAtomicFs for NativeFs
+pub impl @host.HostClock for NativeFs
+pub impl @host.HostEnv for NativeFs
+pub impl @host.HostExecutable for NativeFs
+pub impl @host.HostFs for NativeFs
+pub impl @host.HostPlatform for NativeFs
+pub impl @host.HostRandom for NativeFs
+pub impl @host.HostScriptTemp for NativeFs
+pub impl @host.HostSourceReader for NativeFs
+pub impl @host.HostTemp for NativeFs
+pub impl @host.HostTerminal for NativeFs
+
+// Type aliases
+
+// Traits

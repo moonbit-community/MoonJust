@@ -2,8 +2,8 @@
 
 The executable guide and documentation tests are in
 [`api/API.mbt.md`](../api/API.mbt.md). The only stable library package is
-`moonbit-community/MoonJust/api`; all implementation packages live below
-`internal/` and are outside the module's public boundary.
+`ZSeanYves/MoonJust/api`; all implementation packages live below
+`src/` and are outside the module's stable public boundary.
 
 The stable operations are:
 

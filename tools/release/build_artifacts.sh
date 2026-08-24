@@ -93,9 +93,9 @@ else
   wasm_source="$target_dir/wasm/release/build/cmd/just/just.wasm"
   [ -f "$wasm_source" ] || release_fail "wasm1 release executable is missing"
 fi
-wasm_dir="$out_root/assets/moonbit-community/MoonJust@$version/cmd/just"
+wasm_dir="$out_root/assets/ZSeanYves/MoonJust@$version/cmd/just"
 case "$wasm_dir" in
-  "$out_root"/assets/moonbit-community/MoonJust@*/cmd/just) rm -rf -- "$wasm_dir" ;;
+  "$out_root"/assets/ZSeanYves/MoonJust@*/cmd/just) rm -rf -- "$wasm_dir" ;;
   *) release_fail "refusing to reset unexpected wasm asset path: $wasm_dir" ;;
 esac
 mkdir -p "$wasm_dir"
@@ -124,10 +124,10 @@ cat >"$out_root/build-$platform.json" <<EOF
   "native_sha256": "$native_digest",
   "archive": "$(basename "$archive")",
   "archive_sha256": "$archive_digest",
-  "wasm_asset": "assets/moonbit-community/MoonJust@$version/cmd/just/just.wasm",
+  "wasm_asset": "assets/ZSeanYves/MoonJust@$version/cmd/just/just.wasm",
   "wasm_sha256": "$wasm_digest",
-  "wasm_sbom": "assets/moonbit-community/MoonJust@$version/cmd/just/sbom.cdx.json",
-  "wasm_provenance": "assets/moonbit-community/MoonJust@$version/cmd/just/provenance.intoto.json"
+  "wasm_sbom": "assets/ZSeanYves/MoonJust@$version/cmd/just/sbom.cdx.json",
+  "wasm_provenance": "assets/ZSeanYves/MoonJust@$version/cmd/just/provenance.intoto.json"
 }
 EOF
 

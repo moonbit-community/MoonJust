@@ -22,28 +22,28 @@ AREAS = {
     "parser-formatter": (
         "parser::tests::",
         "src/parser.rs",
-        "internal/parser/upstream_contract_test.mbt",
+        "src/parser/upstream_contract_test.mbt",
     ),
     "lexer": (
         "lexer::tests::",
         "src/lexer.rs",
-        "internal/lexer/upstream_contract_test.mbt",
+        "src/lexer/upstream_contract_test.mbt",
     ),
 }
 TANGLE_SOURCE = "src/tangle.rs"
-TANGLE_SUITE = "internal/formatter/upstream_tangle_contract_test.mbt"
+TANGLE_SUITE = "src/formatter/upstream_tangle_contract_test.mbt"
 CLEAN_SOURCE = "src/clean.rs"
-CLEAN_SUITE = "internal/path/upstream_clean_contract_test.mbt"
+CLEAN_SUITE = "src/path/upstream_clean_contract_test.mbt"
 LIST_SOURCE = "src/list.rs"
-LIST_SUITE = "internal/application/upstream_list_contract_wbtest.mbt"
+LIST_SUITE = "src/application/upstream_list_contract_wbtest.mbt"
 VALUE_SOURCE = "src/value.rs"
-VALUE_SUITE = "internal/value/upstream_contract_test.mbt"
+VALUE_SUITE = "src/value/upstream_contract_test.mbt"
 UNINDENT_SOURCE = "src/unindent.rs"
-UNINDENT_SUITE = "internal/parser/upstream_unindent_contract_wbtest.mbt"
+UNINDENT_SUITE = "src/parser/upstream_unindent_contract_wbtest.mbt"
 CONFIG_SOURCE = "src/config.rs"
-CONFIG_SUITE = "internal/cli/upstream_config_contract_test.mbt"
+CONFIG_SUITE = "src/cli/upstream_config_contract_test.mbt"
 INVOCATION_SOURCE = "src/invocation_parser.rs"
-INVOCATION_SUITE = "internal/invocation/upstream_contract_test.mbt"
+INVOCATION_SUITE = "src/invocation/upstream_contract_test.mbt"
 CONFIG_CONTRACT_NAMES = {
     "color_never",
     "color_always",
@@ -1536,11 +1536,11 @@ def generate(repo: Path, upstream: Path, output: Path, check: bool) -> int:
                 if isinstance(case.get("test_anchor"), dict)
                 and case["test_anchor"].get("suite")
                 in {
-                    "internal/semantic/remaining_contract_test.mbt",
-                    "internal/executor/remaining_contract_test.mbt",
-                    "internal/evaluator/remaining_contract_test.mbt",
-                    "internal/cli/remaining_contract_test.mbt",
-                    "internal/loader/remaining_contract_test.mbt",
+                    "src/semantic/remaining_contract_test.mbt",
+                    "src/executor/remaining_contract_test.mbt",
+                    "src/evaluator/remaining_contract_test.mbt",
+                    "src/cli/remaining_contract_test.mbt",
+                    "src/loader/remaining_contract_test.mbt",
                 }
             ]
         ),

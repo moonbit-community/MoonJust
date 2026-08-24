@@ -381,6 +381,7 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
     fast = (
         task("format", "moon", "fmt", "--check", stage="fast"),
         task("architecture", "./tools/verification/checks/architecture.sh", stage="fast"),
+        task("naming", sys.executable, "tools/quality/check_naming.py", stage="fast"),
         task(
             "check",
             "moon",

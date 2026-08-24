@@ -25,8 +25,8 @@ cmp -s "$expected" "$work/upstream.stderr" || {
   fail "ordinary-line oracle changed"
 }
 
-moon test --target native internal/executor
-moon test --target wasm internal/executor
+moon test --target native src/executor
+moon test --target wasm src/executor
 
 cli_native="${MOONJUST_NATIVE_CANDIDATE:-$repo_root/_build/native/debug/build/cmd/just/just.exe}"
 cli_wasm="${MOONJUST_WASM_CANDIDATE:-$repo_root/_build/wasm/debug/build/cmd/just/just.wasm}"

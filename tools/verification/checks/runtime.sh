@@ -18,16 +18,16 @@ check_parallel_output() {
     fail "$2 parallel output did not contain each completed task exactly once"
 }
 
-moon test --target native internal/scheduler
-moon test --target native internal/cache
-moon test --target native internal/runtime
-moon test --target native internal/host_native
-moon test --target native internal/host_process
-moon test --target wasm internal/scheduler
-moon test --target wasm internal/cache
-moon test --target wasm internal/runtime
-moon test --target wasm internal/host_wasm
-moon test --target wasm internal/host_process
+moon test --target native src/scheduler
+moon test --target native src/cache
+moon test --target native src/runtime
+moon test --target native src/host_native
+moon test --target native src/host_process
+moon test --target wasm src/scheduler
+moon test --target wasm src/cache
+moon test --target wasm src/runtime
+moon test --target wasm src/host_wasm
+moon test --target wasm src/host_process
 
 if [ -z "${MOONJUST_NATIVE_CANDIDATE:-}" ]; then moon build cmd/just --target native >/dev/null; fi
 if [ -z "${MOONJUST_WASM_CANDIDATE:-}" ]; then moon build cmd/just --target wasm >/dev/null; fi

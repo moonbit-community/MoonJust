@@ -65,10 +65,10 @@ native="$work/_build/native/release/build/cmd/just/just.exe"
 wasm="$work/_build/wasm/release/build/cmd/just/just.wasm"
 [ -x "$native" ] || release_fail "cold source-package Native rebuild is missing"
 [ -f "$wasm" ] || release_fail "cold source-package wasm1 rebuild is missing"
-"$native" --version | grep -q "^moonjust $version " || \
+"$native" --version | grep -q "^moonjust v$version " || \
   release_fail "cold source-package version differs"
 moonrun --policy "$work/policies/deny.toml" "$wasm" -- --version | \
-  grep -q "^moonjust $version " || release_fail "cold source-package wasm version differs"
+  grep -q "^moonjust v$version " || release_fail "cold source-package wasm version differs"
 "$native" --list --justfile "$work/tests/fixtures/query/justfile" | \
   grep -q '^Available recipes:$' || release_fail "cold Native query corpus differs"
 "$native" --justfile "$work/tests/fixtures/execution/line.justfile" build | \
