@@ -106,6 +106,12 @@ NATIVE_SIGNAL_TESTS = {
     "signals::forwarding",
     "signals::siginfo_prints_current_process",
 }
+ASYNC_ONLY_LIVE_SIGNAL_TESTS = {
+    "choose::chooser_signal_exit_code_is_propagated",
+    "no_exit_message::signal_exit_message_not_suppressed",
+    "no_exit_message::signal_exit_message_setting_suppressed",
+    "no_exit_message::signal_exit_message_suppressed",
+}
 DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS = {
     "signals::forwarding",
 }
@@ -1095,11 +1101,17 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 recorded.get("native"),
                 recorded.get("wasm1"),
             }
-            if (
-                recorded.get("official") == "passed"
-                and recorded.get("disposition")
-                in {"exact", "diagnostic-exact"}
+            is_exact = (
+                recorded.get("disposition") in {"exact", "diagnostic-exact"}
                 and classifications <= {"exact", "diagnostic-exact"}
+            )
+            is_async_only_approved = (
+                recorded.get("disposition") == "approved-difference"
+                and recorded.get("upstream_name") in ASYNC_ONLY_LIVE_SIGNAL_TESTS
+                and recorded.get("native") == "approved-difference"
+            )
+            if recorded.get("official") == "passed" and (
+                is_exact or is_async_only_approved
             ):
                 harness_evidence.add(recorded["upstream_name"])
         elif recorded.get("disposition") == "verified-differential" and (
