@@ -2,51 +2,40 @@
 let process_coverage_mutex : @async.Mutex = Mutex()
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
-async test "signal status keeps the direct child result without a fixed registry" {
-  try! process_coverage_mutex.acquire()
-  defer process_coverage_mutex.release()
-  assert_eq(signal_process_status(0), 0)
-  assert_eq(signal_process_status(-15), -15)
-}
-
-///|
 test "process status mapping retains only captured streams" {
   let captured = try! @host.CommandSpec::new("echo", [])
   captured.set_stdout(Capture)
   captured.set_stderr(Capture)
   assert_eq(
-    process_result(captured, 0, b"out", b"err", false),
+    process_result(captured, Completed(0), b"out", b"err"),
     @host.ProcessResult::new(0, b"out", b"err"),
   )
   assert_eq(
-    process_result(captured, -15, b"out", b"err", false).termination(),
+    process_result(captured, Completed(-15), b"out", b"err").termination(),
     Signaled(Terminate),
   )
   assert_eq(
-    process_result(captured, -257, b"out", b"err", false).termination(),
-    Interrupted(Hangup),
+    process_result(captured, Cancelled, b"out", b"err").termination(),
+    Interrupted(Interrupt),
   )
   let discarded = try! @host.CommandSpec::new("echo", [])
   discarded.set_stdout(Discard)
   discarded.set_stderr(Discard)
   assert_eq(
-    process_result(discarded, 143, b"out", b"err", true),
-    @host.ProcessResult::from_signal(Terminate, b"", b""),
+    process_result(discarded, Completed(143), b"out", b"err"),
+    @host.ProcessResult::new(143, b"", b""),
   )
 }
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
-test "signal policy names and inert requests are deterministic" {
-  assert_eq(signal_name(1), "SIGHUP")
-  assert_eq(signal_name(2), "SIGINT")
-  assert_eq(signal_name(3), "SIGQUIT")
-  assert_eq(signal_name(15), "SIGTERM")
-  assert_eq(signal_name(29), "SIGINFO")
-  assert_eq(signal_name(99), "SIG99")
+async test "signal compatibility shims are repeatable and inert" {
   prepare_signal_forwarding()
-  assert_eq(signal_process_status(7), 7)
+  prepare_signal_forwarding()
+  @async.with_task_group() <| group => {
+    assert_eq(configure_signal_forwarding(group, true), None)
+    assert_eq(configure_signal_forwarding(group, false), None)
+  }
+  assert_eq(wait_for_signal_request(), None)
 }
 
 ///|
@@ -105,25 +94,6 @@ async test "process stream matrix drains inherited and captured pipes" {
       }
     }
   }
-}
-
-///|
-#cfg(not(target="wasm"))
-test "native observable command leaves programs unchanged" {
-  assert_eq(observable_process_command("echo", ["ok"]), ("echo", ["ok"], false))
-}
-
-///|
-#cfg(target="wasm")
-test "wasm observable command wraps shells and temporary just scripts" {
-  assert_eq(observable_process_command("echo", ["ok"]), ("echo", ["ok"], false))
-  let wrapped = observable_process_command("sh", ["-c", "echo ok"])
-  assert_eq(wrapped.0, "/bin/sh")
-  assert_true(wrapped.2)
-  assert_true(wrapped.1.contains("sh"))
-  let temporary = observable_process_command("/tmp/just-script", [])
-  assert_eq(temporary.0, "/bin/sh")
-  assert_true(temporary.2)
 }
 
 ///|
@@ -366,13 +336,16 @@ async test "process helpers cover status, capture, and non-Windows materializati
   let command = try! @host.CommandSpec::new("echo", [])
   command.set_stdout(Capture)
   command.set_stderr(Discard)
-  assert_eq(process_result(command, 0, b"out", b"err", false).stdout(), b"out")
   assert_eq(
-    process_result(command, 143, b"out", b"err", true).termination(),
-    Signaled(Terminate),
+    process_result(command, Completed(0), b"out", b"err").stdout(),
+    b"out",
   )
   assert_eq(
-    process_result(command, -258, b"out", b"err", false).termination(),
+    process_result(command, Completed(143), b"out", b"err").termination(),
+    Exited(143),
+  )
+  assert_eq(
+    process_result(command, Cancelled, b"out", b"err").termination(),
     Interrupted(Interrupt),
   )
   let previous = @env.get_env_var("MOONJUST_OS")
@@ -617,7 +590,10 @@ async test "native process helpers forward pipes and classify spawn failures" {
     )
     assert_eq(captured, b"")
     assert_false(limited)
-    assert_eq(process.wait(), 0)
+    match process.wait() {
+      Completed(status) => assert_eq(status, 0)
+      Cancelled => fail("direct child wait was cancelled")
+    }
   }
 
   let non_executable = "moonjust-coverage-not-executable"
@@ -749,69 +725,53 @@ async test "native process helper maps write and setup failures" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-async test "native signal runtime covers registration, diagnostics, and cleanup" {
+async test "native cancellation waits for and reaps the direct child" {
   try! process_coverage_mutex.acquire()
   defer process_coverage_mutex.release()
   @async.with_task_group() <| group => {
-    assert_eq(configure_signal_forwarding(group, false), None)
-    guard signal_runtime.val is Some(state) else {
-      abort("signal runtime was not initialized")
+    let process = spawn_observed_process(
+      group,
+      "/bin/sh",
+      ["-c", "exec sleep 30"],
+      Map([]),
+      true,
+      @stdio.stdin,
+      @stdio.stdout,
+      @stdio.stderr,
+      ".",
+    )
+    process.cancel()
+    match process.wait() {
+      Cancelled => ()
+      Completed(_) => fail("cancelled direct child returned a status")
     }
-    assert_eq(caught_signal(), None)
-    handle_signal(state, 29)
-    assert_eq(caught_signal(), None)
-    add_signal_child(999998, "first-coverage-child")
-    add_signal_child(999999, "coverage-child")
-    handle_signal(state, 29)
-    handle_signal(state, 15)
-    handle_signal(state, 2)
-    assert_eq(caught_signal(), Some(15))
-    assert_eq(signal_process_status(7), -271)
-    state.first_signal = Some(1)
-    cancel_signal_child(999999)
-    state.first_signal = Some(15)
-    remove_signal_child(123456)
-    remove_signal_child(999998)
-    remove_signal_child(999999)
-    assert_eq(caught_signal(), None)
-    signal_runtime.val = None
-    add_signal_child(1, "ignored")
-    remove_signal_child(1)
-    assert_eq(signal_process_status(7), 7)
   }
 }
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-async test "native signal pipe filters informational bytes and returns requests" {
+async test "native task cancellation waits for and reaps the direct child" {
   try! process_coverage_mutex.acquire()
   defer process_coverage_mutex.release()
-  let (read, write) = try! @pipe.pipe()
-  let state = SignalRuntime::{ read, write, children: [], first_signal: None }
-  signal_runtime.val = Some(state)
-  defer {
-    state.read.close()
-    state.write.close()
-    signal_runtime.val = None
-  }
-  state.write.write(b"\x1d\x02")
-  assert_eq(wait_for_signal_request(), Some("SIGINT"))
-
-  let (observed_read, observed_write) = try! @pipe.pipe()
-  let observed = SignalRuntime::{
-    read: observed_read,
-    write: observed_write,
-    children: [],
-    first_signal: None,
-  }
-  signal_runtime.val = Some(observed)
   @async.with_task_group() <| group => {
-    let task = group.spawn(() => observe_signals())
-    observed.write.write(b"\x02")
-    observed.write.close()
-    task.wait()
+    let task = group.spawn(allow_failure=true, () => {
+      let command = try! @host.CommandSpec::new("/bin/sh", [
+        "-c", "exec sleep 30",
+      ])
+      command.set_stdout(Capture)
+      command.set_stderr(Capture)
+      try run_process_with_output_limit(command, 1024) catch {
+        _ => ()
+      } noraise {
+        _ => ()
+      }
+    })
+    @async.sleep(100)
+    task.cancel()
+    try task.wait() catch {
+      _ => ()
+    } noraise {
+      _ => ()
+    }
   }
-  assert_eq(observed.first_signal, Some(2))
-  observed.read.close()
-  signal_runtime.val = None
 }

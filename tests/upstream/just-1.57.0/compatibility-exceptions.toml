@@ -1,6 +1,44 @@
 schema_version = 1
 upstream_commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
 
+[async_only_signal_policy]
+tracking = "ADR-0020"
+reason = "Live Unix signal identity and forwarding behavior are approved differences; direct-child wait/reap remains a hard lifecycle gate."
+evidence = [
+  "docs/adr/0020-async-only-signal-semantics.md",
+  "tools/verification/checks/signal_policy.py",
+  "tools/upstream/run_official_harness.py",
+]
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "choose::chooser_signal_exit_code_is_propagated"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal identity and signal-specific exit-code normalization; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
+[[exceptions]]
+test = "no_exit_message::signal_exit_message_not_suppressed"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal diagnostics; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
+[[exceptions]]
+test = "no_exit_message::signal_exit_message_setting_suppressed"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal diagnostics; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
+[[exceptions]]
+test = "no_exit_message::signal_exit_message_suppressed"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal diagnostics; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
 [[exceptions]]
 test = "changelog::print_changelog"
 classification = "product-identity"

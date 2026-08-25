@@ -21,7 +21,6 @@ import dependency_fingerprint
 
 SCHEMA_VERSION = 2
 BASELINE_KIND = "dependency-normalized-merge-base"
-TOOLCHAIN_COMPATIBILITY_PATCHES = ("async-021-fd-kind-symbol",)
 _RUN_CONTEXT: dict[str, object] = {}
 
 
@@ -175,70 +174,6 @@ def stage_archive(
     )
 
 
-def apply_toolchain_compatibility_patches(work: Path) -> list[dict[str, object]]:
-    """Apply explicit, auditable shims for removed async ABI symbols.
-
-    The patch is only applied to the temporary extracted merge-base tree. It
-    does not modify the candidate tree or any third-party registry source.
-    """
-    process_candidates = (
-        work / "src/host_process/process.mbt",
-        work / "src/host_process/process.mbt",
-    )
-    process = next((path for path in process_candidates if path.is_file()), None)
-    if process is None:
-        return []
-    source = process.read_text(encoding="utf-8")
-    if "moonbitlang_async_kind_of_fd" not in source:
-        return []
-
-    c_candidates = (
-        process.parent / "signal_forward.c",
-        work / "src/host_process/signal_forward.c",
-    )
-    c_source = next((path for path in c_candidates if path.is_file()), None)
-    if c_source is None:
-        raise RuntimeError(
-            "async-021-fd-kind-symbol requires the merge-base signal_forward.c"
-        )
-    c_text = c_source.read_text(encoding="utf-8")
-    if "moonbitlang_async_kind_of_fd" in c_text:
-        return []
-    shim = r'''
-
-/* Compatibility shim for the async 0.20 fd-kind symbol. The merge-base
- * process adapter is normalized to async 0.21, which no longer exports this
- * private helper. Keep this patch local to the extracted baseline tree. */
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/stat.h>
-#endif
-MOONBIT_FFI_EXPORT
-#ifdef _WIN32
-int32_t moonbitlang_async_kind_of_fd(HANDLE handle) {
-  return GetFileType(handle) == FILE_TYPE_DISK;
-}
-#else
-int32_t moonbitlang_async_kind_of_fd(int32_t fd) {
-  struct stat info;
-  return fstat(fd, &info) == 0 && S_ISREG(info.st_mode);
-}
-#endif
-'''
-    c_source.write_text(c_text.rstrip() + shim, encoding="utf-8")
-    return [
-        {
-            "id": "async-021-fd-kind-symbol",
-            "file": str(c_source.relative_to(work)),
-            "reason": (
-                "merge-base process adapter references the private async 0.20 "
-                "fd-kind symbol removed in async 0.21"
-            ),
-        }
-    ]
-
-
 def baseline_work_path(repo: Path, platform_name: str) -> Path:
     if not platform_name or any(
         not (character.isalnum() or character in "-_")
@@ -295,7 +230,6 @@ def main() -> int:
     dependency_hash = dependency_fingerprint.dependency_fingerprint(dependency_records)
     _RUN_CONTEXT["dependency_set"] = dependency_records
     _RUN_CONTEXT["dependency_fingerprint"] = dependency_hash
-    _RUN_CONTEXT["toolchain_compatibility_patches"] = []
     base_record: dict[str, object] = {
         "schema_version": SCHEMA_VERSION,
         "kind": BASELINE_KIND,
@@ -308,7 +242,6 @@ def main() -> int:
         "moon_tree": run(["moon", "tree"], cwd=repo, records=commands),
         "dependency_set": dependency_records,
         "dependency_fingerprint": dependency_hash,
-        "toolchain_compatibility_patches": [],
         "commands": commands,
     }
     work = baseline_work_path(repo, args.platform)
@@ -318,19 +251,6 @@ def main() -> int:
     try:
         extract_commit(repo, commit, work)
         dependency_fingerprint.normalize_direct_dependencies(work / "moon.mod", dependency_records)
-        compatibility_patches = apply_toolchain_compatibility_patches(work)
-        unknown_patches = sorted(
-            str(patch.get("id"))
-            for patch in compatibility_patches
-            if patch.get("id") not in TOOLCHAIN_COMPATIBILITY_PATCHES
-        )
-        if unknown_patches:
-            raise RuntimeError(
-                "unregistered baseline compatibility patches: "
-                + ", ".join(unknown_patches)
-            )
-        _RUN_CONTEXT["toolchain_compatibility_patches"] = compatibility_patches
-        base_record["toolchain_compatibility_patches"] = compatibility_patches
         environment = os.environ.copy()
         environment.update({"MOON_DEP_CACHE": "off", "MOON_BUILD_CACHE": "off"})
         environment.setdefault("SOURCE_DATE_EPOCH", "0")
@@ -518,9 +438,6 @@ if __name__ == "__main__":
                 "platform": _RUN_CONTEXT.get("platform"),
                 "dependency_set": _RUN_CONTEXT.get("dependency_set", []),
                 "dependency_fingerprint": _RUN_CONTEXT.get("dependency_fingerprint"),
-                "toolchain_compatibility_patches": _RUN_CONTEXT.get(
-                    "toolchain_compatibility_patches", []
-                ),
                 "commands": _RUN_CONTEXT.get("commands", []),
             }
             output.parent.mkdir(parents=True, exist_ok=True)

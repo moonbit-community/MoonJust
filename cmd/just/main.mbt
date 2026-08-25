@@ -79,7 +79,10 @@ async fn request_response(
             @cli.ApplicationResponse::success(
               stdout=@utf8.encode("{\"signal\":\"" + signal + "\"}"),
             )
-          None => failure("error: invalid request", 2)
+          None =>
+            failure(
+              "error: signal observation is unavailable in async-only mode", 2,
+            )
         },
       )
     _ => ()
@@ -540,48 +543,29 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 async fn main {
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
-  let signal_request = argv.length() == 2 &&
-    argv[0] == "--request" &&
-    argv[1] == "\"signal\""
-  @async.protect_from_cancel(() => {
-    @async.with_task_group() <| group => {
-      match @host_process.configure_signal_forwarding(group, !signal_request) {
-        Some(InvalidInput(message)) => {
-          @stdio.stderr.write(@utf8.encode(message + "\n"))
-          runtime_exit(1)
-        }
-        Some(_) => {
-          @stdio.stderr.write(
-            @utf8.encode("failed to initialize signal forwarding\n"),
-          )
-          runtime_exit(1)
-        }
-        None => ()
-      }
-      let environment_host = runtime_environment_host()
-      let parsed = try {
-        let environment = parse_environment(environment_host)
-        Some(@cli.parse_arguments(argv, environment))
-      } catch {
-        _ => None
-      }
-      let stdin = if parsed is Some(arguments) &&
-        !arguments.flag("help") &&
-        !arguments.flag("version") &&
-        arguments.value("justfile") == Some("-") {
-        read_stdin_source_bounded(
-          @lexer.LexerLimits::default().max_source_bytes(),
-        ) catch {
-          _ => b""
-        }
-      } else {
-        b""
-      }
-      emit_response(run_cli(runtime_host(), environment_host, argv, stdin)) catch {
-        _ => runtime_exit(1)
-      }
+  @async.with_task_group() <| group => {
+    ignore(@host_process.configure_signal_forwarding(group, false))
+    let environment_host = runtime_environment_host()
+    let parsed = try {
+      let environment = parse_environment(environment_host)
+      Some(@cli.parse_arguments(argv, environment))
+    } catch {
+      _ => None
     }
-  })
+    let stdin = if parsed is Some(arguments) &&
+      !arguments.flag("help") &&
+      !arguments.flag("version") &&
+      arguments.value("justfile") == Some("-") {
+      read_stdin_source_bounded(
+        @lexer.LexerLimits::default().max_source_bytes(),
+      ) catch {
+        _ => b""
+      }
+    } else {
+      b""
+    }
+    emit_response(run_cli(runtime_host(), environment_host, argv, stdin))
+  }
 }
 
 ///|
@@ -668,6 +652,21 @@ async test "cli rejects malformed and unsupported requests" {
   )
   assert_eq(missing.exit_code(), 0)
   assert_eq(missing.stdout(), b"{\"environment-variable\":null}")
+}
+
+///|
+async test "cli signal request reports async-only policy" {
+  let response = run_cli(
+    test_host(false),
+    test_host(false),
+    ["--request", "\"signal\""],
+    b"",
+  )
+  assert_eq(response.exit_code(), 2)
+  assert_eq(
+    response.stderr(),
+    b"error: signal observation is unavailable in async-only mode\n",
+  )
 }
 
 ///|

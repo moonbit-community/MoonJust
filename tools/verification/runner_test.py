@@ -116,10 +116,8 @@ class RunnerTest(unittest.TestCase):
     def test_windows_platform_tasks_do_not_use_shell(self) -> None:
         commands = runner.mode_commands("verify")
         self.assertIn((sys.executable, "tools/verification/checks/test_target.py", "native"), commands)
-        self.assertIn(("./tools/spikes/check_host_async.sh",), commands)
         for command in commands:
-            if command != ("./tools/spikes/check_host_async.sh",):
-                self.assertFalse(command and command[0].endswith(".sh"), command)
+            self.assertFalse(command and command[0].endswith(".sh"), command)
 
     def test_windows_oracle_artifact_uses_exe_suffix(self) -> None:
         with mock.patch.object(runner.platform, "system", return_value="Windows"):

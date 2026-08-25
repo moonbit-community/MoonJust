@@ -4,10 +4,8 @@ import {
   "moonbitlang/async/fs" @async_fs,
   "moonbitlang/async/io",
   "moonbitlang/async/process",
-  "moonbitlang/async/pipe",
   "moonbitlang/async/signal",
   "moonbitlang/async/stdio",
-  "moonbitlang/async/types",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
@@ -19,6 +17,5 @@ import {
 supported_targets = "-all+native+wasm"
 
 options(
-  "native-stub": [ "signal_forward.c" ],
   targets: { "process_native_test.mbt": [ "native", "llvm" ] },
 )

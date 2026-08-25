@@ -66,9 +66,7 @@ jobs:
         run: moon version --all
 
       - name: Refresh dependencies
-        run: |
-          moon update
-          moon -C spikes/host-async update
+        run: moon update
 
       - name: Cache pinned upstream oracle
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -92,16 +90,6 @@ jobs:
           path: |
             _build/verification/verify.json
             _build/verification/registry/*.json
-          if-no-files-found: error
-
-      - name: Upload async lifecycle evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: moonjust-host-async-lifecycle-linux
-          path: |
-            _build/host-async/process-lifecycle.jsonl
-            _build/host-async/moonjust-direct-child.jsonl
           if-no-files-found: error
 
   wasm1-shared:
