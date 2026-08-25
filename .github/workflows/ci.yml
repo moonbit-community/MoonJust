@@ -29,7 +29,7 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
-      - run: moon update
+      - run: bash .github/scripts/moon-update.sh
       - name: Run fast tier
         run: python tools/runner.py run --mode fast --evidence _build/verification/fast.json
       - name: Validate exact-head evidence
@@ -66,7 +66,7 @@ jobs:
         run: moon version --all
 
       - name: Refresh dependencies
-        run: moon update
+        run: bash .github/scripts/moon-update.sh
 
       - name: Cache pinned upstream oracle
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -107,7 +107,7 @@ jobs:
           version: latest
       - name: Ensure MoonX entry point
         run: python tools/release/ensure_moonx.py
-      - run: moon update
+      - run: bash .github/scripts/moon-update.sh
       - run: moon install
       - name: Build wasm1 once on Ubuntu
         run: moon build --frozen --release --strip --target wasm cmd/just
@@ -161,7 +161,7 @@ jobs:
 
       - name: Refresh dependencies
         run: |
-          moon update
+          bash .github/scripts/moon-update.sh
           moon install
 
       - name: Download shared wasm1 asset
@@ -234,7 +234,7 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
-      - run: moon update
+      - run: bash .github/scripts/moon-update.sh
       - run: moon install
       - name: Execute every unique contract on native and wasm1
         run: python tools/runner.py run --mode release --tier-only --task contracts --evidence _build/verification/contracts.json
@@ -277,7 +277,7 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
-      - run: moon update
+      - run: bash .github/scripts/moon-update.sh
       - run: moon install
       - name: Measure Native coverage
         run: python tools/runner.py coverage --target native
@@ -305,7 +305,7 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
         with:
           version: latest
-      - run: moon update
+      - run: bash .github/scripts/moon-update.sh
       - run: moon install
       - name: Measure Wasm coverage
         run: python tools/runner.py coverage --target wasm
@@ -345,7 +345,7 @@ jobs:
           version: latest
       - run: python tools/release/ensure_moonx.py
       - run: |
-          moon update
+          bash .github/scripts/moon-update.sh
           moon install
       - name: Run report-only benchmark
         run: python tools/runner.py measure --report-only --cold-warm --output _build/performance/results.json
