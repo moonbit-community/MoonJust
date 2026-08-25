@@ -24,7 +24,7 @@ wasm_policy = "execute policy permits spawn/temp scripts; inspect policy denies 
 remote_ci = "pass: PR #37 run 31393683064"
 
 [evidence]
-executor_gate = "tools/verification/checks/executor.sh"
+executor_gate = "tools/verification/checks/compatibility_checks.py executor"
 security_audit = "docs/reports/RELEASE_AUDIT.md"
 upstream_smoke = "tests/fixtures/execution"
 native_signal_gate = "tools/upstream/run_official_harness.py"

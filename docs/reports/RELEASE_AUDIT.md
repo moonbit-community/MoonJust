@@ -29,6 +29,14 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
 - CI orchestration uses Python 3.11 with native Windows path and artifact
   handling. The host async lifecycle observation remains Unix-only and is
   recorded as `not-applicable` on Windows.
+- Non-host-async Shell helpers, Git Bash fallbacks, and old release wrappers
+  have been removed. The active verification surface is `tools/runner.py`,
+  dedicated Python tools, and the explicitly retained Unix-only host-async
+  observation harness.
+- Coverage merges Native/Wasm raw reports in the evidence aggregation job and
+  gates only overall coverage at 80%. Three-platform benchmarks are report-only
+  and validate execution, complete samples, and provenance without a timing
+  threshold.
 
 ## C cleanup closure
 
@@ -60,7 +68,7 @@ authoritative performance as a release gate.
 
 The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
 unchanged stable `.mbti` declarations, all-target tests, architecture and
-naming checks, and a clean stale-path/duplicate-artifact audit. The historical
+naming checks, Python-only helper audit, and a clean stale-path/duplicate-artifact audit. The historical
 Phase 0-11 evidence below is retained as an immutable index; it is not a
 replacement for the current exact-head evidence.
 

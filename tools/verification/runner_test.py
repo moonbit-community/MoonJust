@@ -110,24 +110,16 @@ class RunnerTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 runner.validate_evidence(path, "c" * 40)
 
-    def test_windows_compatibility_helper_is_preserved_for_manual_callers(self) -> None:
-        with mock.patch.object(runner.platform, "system", return_value="Windows"):
-            command = runner.executable_command(("./tools/verification/checks/platform.sh",))
-            self.assertTrue(command[0].lower().endswith(("bash", "bash.exe")))
-            self.assertEqual(command[1], "./tools/verification/checks/platform.sh")
-
     def test_windows_oracle_uses_python(self) -> None:
-        with mock.patch.object(runner.platform, "system", return_value="Windows"):
-            self.assertEqual(runner.oracle_build_command()[1], "tools/upstream/build_oracle.py")
+        self.assertEqual(runner.oracle_build_command()[1], "tools/upstream/build_oracle.py")
 
     def test_windows_platform_tasks_do_not_use_shell(self) -> None:
-        with mock.patch.object(runner.platform, "system", return_value="Windows"):
-            commands = runner.mode_commands("verify")
-            self.assertIn((sys.executable, "tools/verification/checks/test_target.py", "native"), commands)
-            self.assertIn(("./tools/spikes/check_host_async.sh",), commands)
-            for command in commands:
-                if command != ("./tools/spikes/check_host_async.sh",):
-                    self.assertFalse(command and command[0].endswith(".sh"), command)
+        commands = runner.mode_commands("verify")
+        self.assertIn((sys.executable, "tools/verification/checks/test_target.py", "native"), commands)
+        self.assertIn(("./tools/spikes/check_host_async.sh",), commands)
+        for command in commands:
+            if command != ("./tools/spikes/check_host_async.sh",):
+                self.assertFalse(command and command[0].endswith(".sh"), command)
 
     def test_windows_oracle_artifact_uses_exe_suffix(self) -> None:
         with mock.patch.object(runner.platform, "system", return_value="Windows"):

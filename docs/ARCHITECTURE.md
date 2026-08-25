@@ -82,7 +82,7 @@ the facade. Every public change is reviewed through generated
 ## Architecture tests
 
 CI enforces all-target type checking, Native/wasm tests, generated interface
-stability, and `tools/verification/checks/architecture.sh`. The architecture check rejects
+stability, and `tools/verification/checks/architecture.py`. The architecture check rejects
 target-specific FFI, conditional compilation, async implementation, and host
 adapter imports in completed pure-core packages. The `host` package may declare
 an async capability, but runtime imports and implementations remain confined to

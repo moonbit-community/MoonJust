@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """MoonJust's single, provenance-first verification and measurement runner.
 
-The runner deliberately keeps orchestration in one place.  Existing shell and
-Python programs are treated as implementation probes; CI and local users only
-call this module.  Every invocation records the exact checked-out commit,
+The runner deliberately keeps orchestration in one place.  Dedicated Python
+programs are treated as implementation probes; CI and local users only call
+this module.  Every invocation records the exact checked-out commit,
 build inputs, commands, and artifact hashes in evidence schema v2.
 """
 
@@ -134,14 +134,6 @@ def relative_command(repo: Path, argv: Sequence[str]) -> list[str]:
         except ValueError:
             result.append(item)
     return result
-
-
-def executable_command(argv: Command) -> Command:
-    """Run shell probes through Git Bash on Windows, preserving direct exec elsewhere."""
-    if platform.system() == "Windows" and argv and argv[0].lower().endswith(".sh"):
-        git_bash = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git" / "bin" / "bash.exe"
-        return (str(git_bash) if git_bash.is_file() else "bash", *argv)
-    return argv
 
 
 def write_process_output(value: str, stream: object) -> None:
@@ -446,15 +438,15 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
             depends_on=("wasm-tests",),
             stage="compat",
         ),
-        task("query", sys.executable, "tools/verification/checks/legacy.py", "query", depends_on=("native-tests", "wasm-tests"), stage="compat"),
-        task("hostfs", sys.executable, "tools/verification/checks/legacy.py", "hostfs", depends_on=("wasm-tests",), stage="compat"),
-        task("dotenv", sys.executable, "tools/verification/checks/legacy.py", "dotenv", depends_on=("native-tests",), stage="compat"),
-        task("invocation", sys.executable, "tools/verification/checks/legacy.py", "invocation", depends_on=("native-tests",), stage="compat"),
-        task("workdir", sys.executable, "tools/verification/checks/legacy.py", "workdir", depends_on=("native-tests", "wasm-tests"), stage="compat"),
-        task("environment", sys.executable, "tools/verification/checks/legacy.py", "environment", depends_on=("native-tests",), stage="compat"),
-        task("executor", sys.executable, "tools/verification/checks/legacy.py", "executor", depends_on=("native-tests",), stage="compat"),
-        task("runtime", sys.executable, "tools/verification/checks/legacy.py", "runtime", depends_on=("native-tests", "wasm-tests"), stage="compat"),
-        task("inspect", sys.executable, "tools/verification/checks/legacy.py", "inspect", depends_on=("wasm-tests",), stage="compat"),
+        task("query", sys.executable, "tools/verification/checks/compatibility_checks.py", "query", depends_on=("native-tests", "wasm-tests"), stage="compat"),
+        task("hostfs", sys.executable, "tools/verification/checks/compatibility_checks.py", "hostfs", depends_on=("wasm-tests",), stage="compat"),
+        task("dotenv", sys.executable, "tools/verification/checks/compatibility_checks.py", "dotenv", depends_on=("native-tests",), stage="compat"),
+        task("invocation", sys.executable, "tools/verification/checks/compatibility_checks.py", "invocation", depends_on=("native-tests",), stage="compat"),
+        task("workdir", sys.executable, "tools/verification/checks/compatibility_checks.py", "workdir", depends_on=("native-tests", "wasm-tests"), stage="compat"),
+        task("environment", sys.executable, "tools/verification/checks/compatibility_checks.py", "environment", depends_on=("native-tests",), stage="compat"),
+        task("executor", sys.executable, "tools/verification/checks/compatibility_checks.py", "executor", depends_on=("native-tests",), stage="compat"),
+        task("runtime", sys.executable, "tools/verification/checks/compatibility_checks.py", "runtime", depends_on=("native-tests", "wasm-tests"), stage="compat"),
+        task("inspect", sys.executable, "tools/verification/checks/compatibility_checks.py", "inspect", depends_on=("wasm-tests",), stage="compat"),
         task(
             "official-harness",
             sys.executable,
@@ -611,7 +603,7 @@ def prepare_measurement_builds(repo: Path, execute: bool = True) -> list[dict[st
 
 def run_task(task_item: Task, repo: Path, env: dict[str, str]) -> dict[str, object]:
     started = time.perf_counter_ns()
-    argv = executable_command(task_item.command)
+    argv = task_item.command
     result = subprocess.run(
         argv,
         cwd=repo,

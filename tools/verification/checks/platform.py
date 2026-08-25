@@ -13,9 +13,15 @@ sys.path = [entry for entry in sys.path if Path(entry or ".").resolve() != Path(
 import platform as host_platform
 
 
-def run(cli: Path, cwd: Path, *args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+def run(
+    cli: Path,
+    cwd: Path,
+    *args: str,
+    input_text: str | None = None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [str(cli), *args], cwd=cwd, input=input_text, capture_output=True, text=True,
+        [str(cli), *args], cwd=cwd, env=env, input=input_text, capture_output=True, text=True,
         encoding="utf-8", errors="replace", check=False,
     )
 
@@ -48,6 +54,12 @@ def main() -> int:
         result = run(cli, work, "--justfile", str(work / "justfile"), "alpha")
         if result.returncode != 0 or "platform-choice" not in result.stdout:
             raise SystemExit("platform recipe dispatch failed")
+        entry_env = os.environ.copy()
+        entry_env["JUST_YES"] = "1"
+        entry_env["JUST_JUSTFILE"] = str(work / "justfile")
+        selected = run(cli, work, "alpha", env=entry_env)
+        if selected.returncode != 0 or "platform-choice" not in selected.stdout:
+            raise SystemExit("environment entry-point selection failed")
     print(f"Platform gate passed ({expected}/{host_platform.machine().lower()}, Native CLI)")
     return 0
 

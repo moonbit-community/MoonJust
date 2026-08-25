@@ -4,17 +4,17 @@ The harness executes a pinned upstream `just` binary and a MoonJust
 binary in separate copies of the same fixture. It captures raw and normalized
 stdout/stderr, exit status, and the resulting filesystem tree.
 
-Run the harness self-test on every platform with a POSIX shell:
+Run the harness self-test on every platform through Python:
 
 ```bash
-./tools/differential/self_test.sh
+python3 tools/differential/self_test.py
 ```
 
-Run the ten baseline cases against real binaries:
+Run the full baseline manifest against real binaries:
 
 ```bash
 moon build --target native cmd/just
-./tools/differential/run.sh \
+python3 tools/differential/run.py \
   --upstream /path/to/just-1.57.0/target/debug/just \
   --candidate _build/native/debug/build/cmd/just/just.exe
 ```
@@ -37,7 +37,7 @@ Permissions, mtimes, process trees, signals, and TTY behavior are added in the
 platform harness; the baseline snapshot must not be cited as evidence for those
 surfaces.
 
-CI runs `tools/differential/real_smoke.sh`, which builds the pinned upstream
+CI runs `tools/differential/real_smoke.py`, which builds the pinned upstream
 source oracle and the current Native candidate before executing every baseline
 case. Cases outside the implemented compatibility surface may remain explicit
 `XDIFF` entries, but an

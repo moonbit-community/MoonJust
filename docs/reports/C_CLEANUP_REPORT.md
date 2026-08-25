@@ -3,8 +3,8 @@
 ## Scope
 
 This report records the host-native C cleanup completed on the Phase 12
-candidate branch and the direct-child process lifecycle migration delivered by
-PR #60. The cleanup removes project-owned production C that duplicated
+candidate branch, the direct-child process lifecycle migration delivered by
+PR #60, and the subsequent CI/script migration. The cleanup removes project-owned production C that duplicated
 filesystem, platform, and process-group behavior while retaining only the
 signal stub and isolated research probes explicitly approved by the plan.
 
@@ -68,8 +68,10 @@ concurrent readers and does not restore group cleanup to change that behavior.
 
 ## Cross-platform verification
 
-The exact-head CI evidence for this change is recorded on PR #60. The relevant
-host checks include:
+The C/process cleanup evidence was recorded on PR #60. The current CI policy is
+maintained by the Python-only verification path and the exact-head main run
+`32761267363` (the final head for this report must be checked again after this
+documentation/script change). The relevant host checks include:
 
 - `Quality gates`
 - `Verify gate`
@@ -108,15 +110,26 @@ python3 tools/upstream/verify_manifest.py
 `api/pkg.generated.mbti` remains byte-identical to the preceding candidate
 (`3df9b3d67626be98551e1ca45e417d64315dda2c956e0e1027405c01064efa98`).
 
-## Remaining release gates
+## Current CI and helper-script policy
 
-The PR event intentionally skipped production coverage, hosted performance
-trend, aggregate release evidence, and release artifact upload steps. Those
-remain CI/Release Candidate responsibilities and were not inferred from the
-local macOS run. The known independent exceptions remain the artifact-size
-gate and Windows Native performance for `dag-1000` and
-`project-parameters`; this C cleanup does not lower or hide those gates.
+All CI orchestration and compatibility gates now enter through Python 3.11,
+`tools/runner.py`, or a dedicated Python tool. Non-host-async Shell helpers and
+the old release wrappers were deleted; Windows CI does not start Git Bash.
+The only retained Shell files are the explicitly Unix-only host-async
+observation harness under `tools/spikes/` and `spikes/host-async/`.
 
-No merge or push to `main` is part of this report. The report and the two
-existing ADR document changes are delivered on the feature branch for the
-next exact-head CI/RC decision.
+Production coverage merges Native and Wasm raw reports in the release-evidence
+job and gates only overall coverage at 80%. Changed-line, area, and package
+baseline values remain report fields. Main and manual release benchmark jobs
+run on Linux, macOS, and Windows in report-only mode; they require complete
+samples, successful execution, and provenance, but impose no fixed timing
+threshold.
+
+The direct-child process contract remains unchanged: indirect, background,
+daemon, and detached descendants are outside lifecycle guarantees, and a
+descendant holding a shared stdout/stderr pipe may delay reader EOF after the
+direct child has been reaped.
+
+Artifact size, release evidence, and exact-head CI remain explicit release
+checks. This report does not treat historical timing exceptions or old Shell
+entrypoints as current policy.
