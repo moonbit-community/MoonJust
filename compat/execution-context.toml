@@ -23,11 +23,11 @@ wasm_policy = "pass: writable transaction policy is isolated from the read-only 
 [evidence]
 native_tests = 246
 wasm_tests = 243
-hostfs_gate = "tools/verification/checks/hostfs.sh"
-dotenv_gate = "tools/verification/checks/dotenv.sh"
-invocation_gate = "tools/verification/checks/invocation.sh"
-working_directory_gate = "tools/verification/checks/workdir.sh"
-environment_gate = "tools/verification/checks/environment.sh"
+hostfs_gate = "tools/verification/checks/compatibility_checks.py hostfs"
+dotenv_gate = "tools/verification/checks/compatibility_checks.py dotenv"
+invocation_gate = "tools/verification/checks/compatibility_checks.py invocation"
+working_directory_gate = "tools/verification/checks/compatibility_checks.py workdir"
+environment_gate = "tools/verification/checks/compatibility_checks.py environment"
 upstream_corpus = "tests/upstream/just-1.57.0/execution-context.toml"
 upstream_covered_registrations = 188
 upstream_unverified_registrations = 0

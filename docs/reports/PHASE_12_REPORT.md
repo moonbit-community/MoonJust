@@ -12,6 +12,10 @@ Phase 12 的功能、兼容、测试治理、源码布局、稳定 API、文档�
 工作流必须
 使用 CI 提供的 head SHA，不能使用 merge SHA、默认分支 SHA 或缺失 SHA。
 
+本报告的当前 CI 附录已同步到 Python 编排方案：CI、发布和兼容性入口统一
+使用 Python 3.11，Windows 从 checkout 到 evidence 聚合不启动 Git Bash；除
+host-async Unix-only 观察 harness 外，旧 Shell 辅助脚本和 wrapper 已删除。
+
 ## 固定基线与身份
 
 - 上游：`just 1.57.0`
@@ -137,13 +141,22 @@ macOS 结果替代。官方 signal gate 除上述明确 unsupported 场景外均
 上游测试自身的环境读取返回码差异，Linux CI 是该项的权威验证主机。该本机限制
 没有改变此次 host-native C 清理的定向测试、Native/Wasm 全量测试或其他兼容门禁。
 
-## 性能、体积与发布例外
+## 当前 CI 覆盖率与性能策略
 
-本阶段不继续处理体积和 Windows Native 性能。当前候选体积约为冻结绿色
-基线的 1.1x，体积门禁保持独立可见，不降低阈值。Windows `dag-1000` 与
-`project-parameters` 的性能问题保留为已知例外；它们不改变功能或跨平台
-兼容结论。权威性能应使用云端 RC workflow 的冷启动/warm 交错数据，不以
-维护者个人电脑绝对延迟作为发布事实。
+当前 Native/Wasm 覆盖率 raw report 在 release-evidence job 中合并，只对
+overall coverage 的 80% 阈值设失败条件；changed-line、area 和 package
+baseline 继续输出但不构成门禁。main push 和手动 release 在三平台执行
+report-only benchmark，检查执行成功、样本完整、schema、artifact hash、
+commit 和 toolchain provenance，不检查固定耗时或 baseline ratio。
+
+体积和发布 artifact 仍由三平台 release job 独立验证。历史阶段中记录的
+性能基线、Linux authoritative runner 或 Windows workload 例外属于当时的
+历史事实，不是当前发布契约。
+
+当前三平台主线证据基线为 CI run `32761267363`：Native smoke、共享 wasm1、
+coverage overall `82.82%`、三平台 report-only benchmark、artifact size 和
+aggregate release evidence 均通过。脚本迁移后的新 head 仍需由 exact-head
+CI 重新产生同类 evidence。
 
 ## 远端出口
 

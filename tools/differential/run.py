@@ -344,7 +344,9 @@ def bounded_difference(kind: str, fields: set[str]) -> bool:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--upstream", type=Path, required=True)
+    parser.add_argument("--upstream-script", type=Path)
     parser.add_argument("--candidate", type=Path)
+    parser.add_argument("--candidate-script", type=Path)
     parser.add_argument("--candidate-native", type=Path)
     parser.add_argument("--candidate-wasm", type=Path)
     parser.add_argument("--moonrun", default="moonrun")
@@ -367,12 +369,14 @@ def main() -> int:
         fail(f"upstream binary is not executable: {upstream_path}")
     if native_path is None and args.candidate_wasm is None:
         fail("at least one candidate is required")
-    commands = [Command("upstream", (str(upstream_path),))]
+    upstream_argv = (str(upstream_path),) + ((str(args.upstream_script.resolve()),) if args.upstream_script else ())
+    commands = [Command("upstream", upstream_argv)]
     if native_path is not None:
         native_path = native_path.resolve()
         if not native_path.is_file() or not os.access(native_path, os.X_OK):
             fail(f"Native candidate is not executable: {native_path}")
-        commands.append(Command("native", (str(native_path),)))
+        native_argv = (str(native_path),) + ((str(args.candidate_script.resolve()),) if args.candidate_script else ())
+        commands.append(Command("native", native_argv))
     if args.candidate_wasm is not None:
         wasm_path = args.candidate_wasm.resolve()
         if not wasm_path.is_file():

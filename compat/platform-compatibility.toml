@@ -33,8 +33,8 @@ macos = "pass: local macOS aarch64 gate, remediation PR CI and protected-main CI
 windows = "pass: remediation PR CI and protected-main CI"
 
 [evidence]
-compatibility_gate = "tools/verification/checks/compatibility.sh"
-platform_gate = "tools/verification/checks/platform.sh"
+compatibility_gate = "tools/verification/checks/compatibility.py"
+platform_gate = "tools/verification/checks/platform.py"
 case_manifest = "tests/upstream/just-1.57.0/platform-compatibility-cases.jsonl"
 markdown_adr = "docs/adr/0017-markdown-tangle-final-implementation.md"
 completion_report = "docs/reports/PHASE_10_REPORT.md"

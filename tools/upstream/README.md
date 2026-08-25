@@ -1,19 +1,19 @@
 # Upstream snapshot tools
 
-`generate_snapshot.sh` verifies the pinned `just 1.57.0` commit, compiles its
+`generate_snapshot.py` verifies the pinned `just 1.57.0` commit, compiles its
 test targets, and generates the sorted registration list used by the
 compatibility mapping.
 
 Use an existing checkout:
 
 ```bash
-./tools/upstream/generate_snapshot.sh /path/to/just-1.57.0
+python3 tools/upstream/generate_snapshot.py /path/to/just-1.57.0
 ```
 
 Or let the script create and clean a temporary clone:
 
 ```bash
-./tools/upstream/generate_snapshot.sh
+python3 tools/upstream/generate_snapshot.py
 ```
 
 The command fails rather than updating the snapshot if the commit or expected
@@ -40,7 +40,7 @@ python3 tools/upstream/test_map.py
 The real oracle is built from the same pinned source with:
 
 ```bash
-./tools/upstream/build_oracle.sh
+python3 tools/upstream/build_oracle.py
 ```
 
 The builder verifies the annotated tag's peeled commit, `Cargo.lock` digest,

@@ -35,11 +35,11 @@ moonx = "0.1.0"
 [evidence]
 release_gate = ".github/workflows/release.yml (aggregate evidence job)"
 release_evidence = "tools/release/generate_release_evidence.py --strict"
-policy_gate = "tools/release/check_policies.sh"
-artifact_builder = "tools/release/build_artifacts.sh"
+policy_gate = "tools/release/check_policies.py"
+artifact_builder = "tools/release/build_artifacts.py"
 artifact_verifier = "tools/release/verify_bundle.py"
 supply_chain_verifier = "tools/release/verify_supply_chain.py"
-upgrade_rehearsal = "tools/release/rehearse_upgrade.sh"
+upgrade_rehearsal = "tools/release/rehearse_upgrade_orchestrator.py"
 release_workflow = ".github/workflows/release.yml"
 
 [remote_evidence]
