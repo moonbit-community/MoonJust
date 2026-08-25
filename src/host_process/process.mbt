@@ -11,13 +11,12 @@ pub struct ProcessAdapter {
 const MAX_CAPTURED_STREAM_BYTES : Int = 16 * 1024 * 1024
 
 ///|
-#cfg(target="native")
-extern "C" fn stdio_kind(fd : @types.Fd) -> Int = "moonjust_kind_of_fd"
-
-///|
-#cfg(target="wasm")
-#unsafe_skip_stub_check
-fn stdio_kind(fd : @types.Fd) -> Int = "moonbitlang/async" "fd_util/kind_of_fd"
+fn[X] stdio_is_regular(fd : X) -> Bool {
+  // async keeps fd classification internal. Unknown inherited streams must
+  // remain direct streams rather than being reclassified by a MoonJust FFI.
+  ignore(fd)
+  false
+}
 
 ///|
 pub fn ProcessAdapter::new() -> ProcessAdapter {
@@ -30,7 +29,12 @@ priv enum ObservedProcess {
 }
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
+priv enum WaitOutcome {
+  Completed(Int)
+  Cancelled
+}
+
+///|
 async fn[X] spawn_observed_process(
   group : @async.TaskGroup[X],
   program : String,
@@ -52,88 +56,38 @@ async fn[X] spawn_observed_process(
     stdout~,
     stderr~,
     cwd~,
-    cancel_handler=CancellationHandler(cancel_signal_child),
+    cancel_handler=@process.graceful_cancel(timeout=5000),
     no_wait=true,
   )
-  let pid = process.pid
-  let quoted : Array[String] = []
-  quoted.push("\"" + program.replace_all(old="\"", new="\\\"") + "\"")
-  for argument in arguments {
-    quoted.push("\"" + argument.replace_all(old="\"", new="\\\"") + "\"")
-  }
-  let description = "cd \"" +
-    cwd.replace_all(old="\"", new="\\\"") +
-    "\" && " +
-    quoted.join(" ")
-  add_signal_child(pid, description)
   Managed(process)
 }
 
 ///|
-#cfg(any(target="wasm", platform="windows"))
-async fn[X] spawn_observed_process(
-  group : @async.TaskGroup[X],
-  program : String,
-  arguments : ArrayView[String],
-  environment : Map[String, String],
-  inherit_environment : Bool,
-  stdin : &@process.ProcessInput,
-  stdout : &@process.ProcessOutput,
-  stderr : &@process.ProcessOutput,
-  cwd : String,
-) -> ObservedProcess {
-  Managed(
-    @process.spawn(
-      group,
-      program,
-      arguments,
-      extra_env=environment,
-      inherit_env=inherit_environment,
-      stdin~,
-      stdout~,
-      stderr~,
-      cwd~,
-      cancel_handler=@process.graceful_cancel(timeout=5000),
-      no_wait=true,
-    ),
-  )
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
 #warnings("-fragile_catch_all")
-async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
+async fn ObservedProcess::wait(self : ObservedProcess) -> WaitOutcome {
   let Managed(process) = self
-  let pid = process.pid
-  defer remove_signal_child(pid)
   let status = process.wait() catch {
     error => {
-      let signal = caught_signal()
-      if @async.is_cancellation_error(error) && signal is Some(number) {
-        return -(256 + number)
+      if @async.is_cancellation_error(error) {
+        process.cancel()
+        ignore(
+          @async.protect_from_cancel(() => {
+            try process.wait() catch {
+              _ => 0
+            } noraise {
+              value => value
+            }
+          }),
+        )
+        return Cancelled
       }
       raise error
     }
   }
-  signal_process_status(status)
+  Completed(status)
 }
 
 ///|
-#cfg(any(target="wasm", platform="windows"))
-async fn ObservedProcess::wait(self : ObservedProcess) -> Int {
-  let Managed(process) = self
-  process.wait()
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-fn ObservedProcess::cancel(self : ObservedProcess) -> Unit {
-  let Managed(process) = self
-  process.cancel()
-}
-
-///|
-#cfg(any(target="wasm", platform="windows"))
 fn ObservedProcess::cancel(self : ObservedProcess) -> Unit {
   let Managed(process) = self
   process.cancel()
@@ -558,47 +512,6 @@ async fn resolve_process_program(program : String, cwd : String) -> String {
 }
 
 ///|
-#cfg(not(target="wasm"))
-fn observable_process_command(
-  program : String,
-  arguments : ArrayView[String],
-) -> (String, Array[String], Bool) {
-  (program, arguments.to_owned(), false)
-}
-
-///|
-#cfg(target="wasm")
-fn observable_process_command(
-  program : String,
-  arguments : ArrayView[String],
-) -> (String, Array[String], Bool) {
-  let shell = program == "sh" ||
-    program == "bash" ||
-    program == "dash" ||
-    program == "zsh" ||
-    program == "ksh" ||
-    program == "fish" ||
-    program.has_suffix("/sh") ||
-    program.has_suffix("/bash") ||
-    program.has_suffix("/dash") ||
-    program.has_suffix("/zsh") ||
-    program.has_suffix("/ksh") ||
-    program.has_suffix("/fish")
-  let temporary_script = program.contains("/just") && program.contains("/")
-  if !shell && !temporary_script {
-    return (program, arguments.to_owned(), false)
-  }
-  let wrapped_arguments = [
-    "-c", "{ \"$@\" 0<&4 2>&3 3>&- 4<&- & child=$!; wait \"$child\"; status=$?; exit \"$status\"; } 3>&2 4<&0 2>/dev/null",
-    "moonjust-signal-wrapper", program,
-  ]
-  for argument in arguments {
-    wrapped_arguments.push(argument)
-  }
-  ("/bin/sh", wrapped_arguments, true)
-}
-
-///|
 async fn read_bounded_process_output(
   output_mutex : @async.Mutex,
   reader : @process.ReadFromProcess,
@@ -644,33 +557,27 @@ async fn read_bounded_process_output(
 ///|
 fn process_result(
   command : @host.CommandSpec,
-  status : Int,
+  outcome : WaitOutcome,
   stdout : Bytes,
   stderr : Bytes,
-  signal_observable : Bool,
 ) -> @host.ProcessResult {
   let captured_stdout = if command.stdout() == Capture { stdout } else { b"" }
   let captured_stderr = if command.stderr() == Capture { stderr } else { b"" }
-  if status <= -257 {
-    @host.ProcessResult::from_interruption(
-      signal_from_number(-status - 256),
-      captured_stdout,
-      captured_stderr,
-    )
-  } else if status < 0 {
-    @host.ProcessResult::from_signal(
-      signal_from_status(status),
-      captured_stdout,
-      captured_stderr,
-    )
-  } else if signal_observable && status == 143 {
-    @host.ProcessResult::from_signal(
-      Terminate,
-      captured_stdout,
-      captured_stderr,
-    )
-  } else {
-    @host.ProcessResult::new(status, captured_stdout, captured_stderr)
+  match outcome {
+    Cancelled =>
+      @host.ProcessResult::from_interruption(
+        Interrupt,
+        captured_stdout,
+        captured_stderr,
+      )
+    Completed(status) if status < 0 =>
+      @host.ProcessResult::from_signal(
+        signal_from_status(status),
+        captured_stdout,
+        captured_stderr,
+      )
+    Completed(status) =>
+      @host.ProcessResult::new(status, captured_stdout, captured_stderr)
   }
 }
 
@@ -700,18 +607,17 @@ async fn run_process_with_output_limit(
         command.environment(),
         command.inherits_environment(),
       )
-      let (program, arguments, signal_observable) = observable_process_command(
-        wrapped_program, wrapped_arguments,
-      )
+      let program = wrapped_program
+      let arguments = wrapped_arguments
       let (stdout_reader, stdout_target) = @process.read_from_process()
       let (stderr_reader, stderr_target) = @process.read_from_process()
       let stdout_regular = if command.stdout() == Inherit {
-        stdio_kind(@stdio.stdout.fd()) == 1
+        stdio_is_regular(@stdio.stdout.fd())
       } else {
         false
       }
       let stderr_regular = if command.stderr() == Inherit {
-        stdio_kind(@stdio.stderr.fd()) == 1
+        stdio_is_regular(@stdio.stderr.fd())
       } else {
         false
       }
@@ -720,7 +626,7 @@ async fn run_process_with_output_limit(
       let merge_regular = stdout_regular &&
         stderr_regular &&
         @stdio.stdout.fd() == @stdio.stderr.fd()
-      let (status, stdout_task, stderr_task, signal_observable) = @async.with_task_group() <| child_group => {
+      let (outcome, stdout_task, stderr_task) = @async.with_task_group() <| child_group => {
         match temporary_script {
           Some(path) =>
             child_group.add_defer(() => remove_windows_command_script(path))
@@ -822,15 +728,8 @@ async fn run_process_with_output_limit(
             }),
           )
         }
-        let status = try process.wait() catch {
-          _ => {
-            process.cancel()
-            None
-          }
-        } noraise {
-          value => Some(value)
-        }
-        (status, stdout_task, stderr_task, signal_observable)
+        let outcome = process.wait()
+        (outcome, stdout_task, stderr_task)
       }
       let (stdout, stdout_limited) = match stdout_task {
         Some(reader) => reader.wait()
@@ -840,9 +739,7 @@ async fn run_process_with_output_limit(
         Some(reader) => reader.wait()
         None => (b"", false)
       }
-      (
-        status, stdout, stderr, stdout_limited, stderr_limited, signal_observable,
-      )
+      (outcome, stdout, stderr, stdout_limited, stderr_limited)
     }
   catch {
     @host.HostError::InvalidInput(message) => raise InvalidInput(message)
@@ -864,17 +761,13 @@ async fn run_process_with_output_limit(
   } noraise {
     value => value
   }
-  let (status, stdout, stderr, stdout_limited, stderr_limited, signal_observable
-  ) = collected
+  let (outcome, stdout, stderr, stdout_limited, stderr_limited) = collected
   if stdout_limited || stderr_limited {
     raise InvalidInput(
       "process captured output exceeded the \{output_limit}-byte per-stream limit",
     )
   }
-  guard status is Some(status) else {
-    raise InvalidInput("process execution failed")
-  }
-  process_result(command, status, stdout, stderr, signal_observable)
+  process_result(command, outcome, stdout, stderr)
 }
 
 ///|

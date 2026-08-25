@@ -22,6 +22,7 @@ class VerifyManifestTest(unittest.TestCase):
             "tracking": "ADR-0019",
             "evidence": [
                 "docs/adr/0019-direct-child-process-lifecycle.md",
+                "docs/adr/0020-async-only-signal-semantics.md",
                 "tools/upstream/run_official_harness.py",
             ],
         }

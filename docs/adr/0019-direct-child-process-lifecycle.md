@@ -50,10 +50,11 @@ The production contract becomes:
 6. MoonJust does not promise to terminate detached, daemonized, regrouped, or
    otherwise indirect descendants.
 
-This ADR does not change the Unix signal-observation design in
-`signal_forward.c`. Signal capture and the just-specific HUP/INT/QUIT/TERM
-policy remain a separate decision until async exposes the required signal
-event or cancellation-cause surface.
+The signal-observation reservation in this ADR is superseded by
+ADR-0020. MoonJust now uses async-owned cancellation signals and does not
+install a signal handler, create a signal pipe, observe raw signal ordering, or
+forward TERM itself. The direct-child lifecycle decision in this ADR remains
+in force.
 
 ## Scope of removal
 
@@ -69,10 +70,9 @@ The implementation change covered by this ADR removes:
 The process adapter will retain one `ObservedProcess` representation backed by
 `@process.Process`. No public API or generated interface changes are allowed.
 
-`signal_forward.c` currently also contains a native file-descriptor kind helper.
-That helper must be moved behind an existing async/host capability or isolated
-in a separately reviewed adapter before the file is removed in a later signal
-change. It is not silently duplicated in this migration.
+The former signal stub also contained a file-descriptor kind helper. ADR-0020
+removed that project-owned C path; inherited stdio is conservatively treated as
+a non-regular stream when the public async API cannot classify its descriptor.
 
 ## Lifecycle and output rules
 
@@ -136,8 +136,9 @@ Trade-offs:
 - ordinary indirect descendants may survive after their direct shell exits;
 - a descendant may keep a shared output pipe open;
 - detached or regrouped descendants cannot be guaranteed to terminate;
-- signal handling remains a separate native concern until async gains a
-  suitable observation API.
+- signal identity, TERM forwarding, first-signal ordering, SIGINFO, and
+  signal-specific diagnostics are not part of the MoonJust contract; their
+  live-harness differences are recorded by ADR-0020.
 
 These trade-offs are part of the proposed compatibility contract and must be
 visible in the platform and release evidence rather than hidden by broad

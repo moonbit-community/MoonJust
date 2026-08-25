@@ -49,9 +49,8 @@ host 和 executor 实现类型不会泄漏到 facade。
 生产 `src/host_native/platform.c`、`realpath.c` 和 `transaction.c` 已删除，
 对应能力迁移到 MoonBit native/portable 文件，并只通过系统标准 ABI 或已批准的
 `moonbitlang/async`/`moonbitlang/x/fs` 后端完成平台调用。本轮后的生产 C 清单
-严格为：
-
-- `src/host_process/signal_forward.c`
+为空。ADR-0020 删除了最后一个生产 signal stub；host-async 验证包的 C
+文件仍是历史/隔离验证代码，不纳入生产清单。
 
 host-async 验证包另保留两个隔离探针：
 
@@ -71,15 +70,17 @@ git ls-files '*.c' '*.h'
 rg -n 'native-stub|moonjust_host_|extern "C"|extern "c"' src tools
 ```
 
-审计结果：删除的 `moonjust_host_*` 符号和 `src/host_native` native-stub 均为
-零；生产 `native-stub` 只保留 `signal_forward.c`，另有两个 spike 包保留
-隔离探针。外部 libc 符号声明属于 MoonBit FFI 适配，不是项目自有 C 文件或
-新增第三方依赖。
+审计结果：生产 C 文件和 production `native-stub` 均为零；另有两个 spike
+包保留隔离探针。外部 libc 符号声明属于 MoonBit FFI 适配，不是项目自有 C
+文件或新增第三方依赖。
 
 进程生命周期已统一为 `moonbitlang/async/process` 的直接子进程契约：创建、
-取消、等待、reap、退出码和信号映射由 adapter 保留，间接、后台、daemon 或
-detached descendant 不属于清理保证。共享 stdout/stderr pipe 仍可能被
-descendant 持有，因此 pipe reader 的 EOF 与 direct-child wait/reap 分开观测。
+取消、等待、reap、退出码和 direct-child signal status mapping 由 adapter
+保留。MoonJust 不安装 signal handler、不创建 signal pipe、不记录 first raw
+signal，也不承诺 TERM forwarding、`[continue]`、SIGINFO 或 signal-specific
+diagnostics。间接、后台、daemon 或 detached descendant 不属于清理保证；共享
+stdout/stderr pipe 仍可能被 descendant 持有，因此 pipe reader 的 EOF 与
+direct-child wait/reap 分开观测。
 
 ## 测试治理与命名
 
@@ -121,8 +122,8 @@ moon info
 moon fmt
 moon fmt --check
 moon check --target all --warn-list +73 --deny-warn
-moon test --target native       # 1112 passed, 0 failed
-moon test --target wasm         # 1096 passed, 0 failed
+moon test --target native       # 1110 passed, 0 failed
+moon test --target wasm         # 1097 passed, 0 failed
 python3 tools/quality/check_naming.py
 python3 tools/quality/check_naming_test.py
 python3 tools/runner.py run --mode fast
@@ -133,10 +134,12 @@ python3 tools/runner.py run --mode fast
 仍按同一 runner 和精确 SHA 协议执行。
 
 本次迁移后的二次本地复检还通过了 host_native 定向 9/9、全量 Native
-1112/1112、全量 Wasm 1096/1096、`moon check --target all --warn-list +73
+1110/1110、全量 Wasm 1097/1097、`moon check --target all --warn-list +73
 --deny-warn`、命名/架构检查，以及上游 2,417 条注册清单和官方差分 smoke。
 Release/三平台 artifact evidence 仍须由精确 head 的 CI/RC 提供，不能由本机
-macOS 结果替代。官方 signal gate 除上述明确 unsupported 场景外均通过；完整官方 harness
+macOS 结果替代。官方 signal gate 生成 async-only policy evidence；除
+`signals::forwarding` 的 direct-child limitation 外，其余 live signal 差异均按
+ADR-0020 记录为 approved differences；完整官方 harness
 在 macOS 的 `dotenv::fifo` 仍受本机 environment-source/FIFO 能力限制，表现为
 上游测试自身的环境读取返回码差异，Linux CI 是该项的权威验证主机。该本机限制
 没有改变此次 host-native C 清理的定向测试、Native/Wasm 全量测试或其他兼容门禁。

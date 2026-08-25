@@ -100,24 +100,6 @@ class BuildSizeBaselineTest(unittest.TestCase):
         self.assertEqual(records[0]["phase"], "baseline-build-native")
         self.assertEqual(records[0]["returncode"], 2)
 
-    def test_async_021_abi_patch_is_explicit_and_local(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="moonjust-abi-patch-") as temporary:
-            root = Path(temporary)
-            source_dir = root / "src/host_process"
-            source_dir.mkdir(parents=True)
-            (source_dir / "process.mbt").write_text(
-                'extern "C" fn kind(fd : Int) -> Int = "moonbitlang_async_kind_of_fd"\n',
-                encoding="utf-8",
-            )
-            c_file = source_dir / "signal_forward.c"
-            c_file.write_text("#include <moonbit.h>\n", encoding="utf-8")
-            patches = size_baseline.apply_toolchain_compatibility_patches(root)
-            self.assertEqual([patch["id"] for patch in patches], [
-                "async-021-fd-kind-symbol",
-            ])
-            self.assertIn("moonbitlang_async_kind_of_fd", c_file.read_text())
-            self.assertEqual(size_baseline.apply_toolchain_compatibility_patches(root), [])
-
     def test_lexscan_failure_is_not_treated_as_infrastructure(self) -> None:
         error = RuntimeError("error: [4222] Invalid lexscan target")
         self.assertEqual(

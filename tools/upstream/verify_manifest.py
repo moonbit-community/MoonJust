@@ -21,6 +21,21 @@ EXPECTED_TEST_LIST_SHA256 = "34773c9c59398fe3ac490aa7239b3c33a7b615159ff59b1e85d
 MAP_SCHEMA_VERSION = 4
 HARNESS_SCHEMA_VERSION = 4
 CONTRACT_SCHEMA_VERSIONS = {1, 2}
+ASYNC_SIGNAL_APPROVED_DIFFERENCES = {
+    "signal-identity",
+    "term-forwarding",
+    "first-signal-ordering",
+    "continue-behavior",
+    "siginfo-observation",
+    "signal-specific-diagnostics",
+    "exact-exit-code",
+}
+ASYNC_ONLY_LIVE_SIGNAL_TESTS = {
+    "choose::chooser_signal_exit_code_is_propagated",
+    "no_exit_message::signal_exit_message_not_suppressed",
+    "no_exit_message::signal_exit_message_setting_suppressed",
+    "no_exit_message::signal_exit_message_suppressed",
+}
 VERIFIED_DISPOSITIONS = {"verified-differential", "verified-contract"}
 OWNER_AREAS = {
     "lexer",
@@ -134,6 +149,7 @@ RELEASE_APPROVED_DIFFERENCES = {
         "tracking": "ADR-0019",
         "evidence": {
             "docs/adr/0019-direct-child-process-lifecycle.md",
+            "docs/adr/0020-async-only-signal-semantics.md",
             "tools/upstream/run_official_harness.py",
         },
     },
@@ -146,6 +162,72 @@ def root() -> Path:
 
 def fail(message: str) -> None:
     raise ValueError(message)
+
+
+def validate_async_signal_evidence(path: Path) -> None:
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    expected = {
+        row["upstream_name"]
+        for row in (
+            json.loads(line)
+            for line in (root() / "tests/upstream/just-1.57.0/test-map.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
+        if row["upstream_name"].startswith("signals::")
+        or row["upstream_name"] in ASYNC_ONLY_LIVE_SIGNAL_TESTS
+    }
+    expect(
+        {row.get("upstream_name") for row in rows} == expected,
+        "async-only signal evidence test set changed",
+    )
+    for row in rows:
+        name = row.get("upstream_name")
+        expect(row.get("schema_version") == 1, f"signal evidence schema changed for {name}")
+        expect(row.get("policy") == "async-only", f"signal evidence policy changed for {name}")
+        expect(row.get("upstream_commit") == EXPECTED_COMMIT, f"signal evidence commit changed for {name}")
+        differences = set(row.get("approved_differences", []))
+        expect(
+            differences <= ASYNC_SIGNAL_APPROVED_DIFFERENCES,
+            f"signal evidence has an unapproved difference for {name}",
+        )
+        if name == "signals::forwarding":
+            expect(
+                row.get("status") == "approved-difference"
+                and row.get("candidate_started") is False,
+                "signals::forwarding must remain the direct-child exception",
+            )
+            continue
+        if name in ASYNC_ONLY_LIVE_SIGNAL_TESTS:
+            expect(
+                row.get("status") in {"observed-pass", "approved-difference"}
+                and row.get("candidate_started") is True,
+                f"async-only live signal case did not run for {name}",
+            )
+        expect(row.get("candidate_started") is True, f"signal candidate did not start for {name}")
+        expect(
+            row.get("timed_out") is False
+            and row.get("orphan_pids") == []
+            and row.get("direct_child_wait_reap_completed") is True,
+            f"signal direct-child lifecycle failed for {name}",
+        )
+
+
+def validate_signal_policy_evidence(path: Path) -> None:
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    expect(
+        {row.get("scenario") for row in rows}
+        == {"normal", "direct-signal", "cancellation", "background", "detached"},
+        "signal policy scenario set changed",
+    )
+    for row in rows:
+        expect(row.get("schema_version") == 1, "signal policy schema changed")
+        expect(row.get("policy") == "async-only", "signal policy is not async-only")
+        wait_status = row.get("direct_child_wait_status")
+        expect(
+            isinstance(wait_status, dict) and wait_status.get("reaped") is True,
+            f"direct child was not reaped for {row.get('scenario')}",
+        )
 
 
 def expect(condition: bool, message: str) -> None:
@@ -290,6 +372,7 @@ def validate_harness_rows(
                 "excluded-completion",
                 "upstream-ignored",
                 "not-applicable",
+                "approved-difference",
             },
             f"harness result is not approved for {name}",
         )
@@ -336,6 +419,12 @@ def validate_harness_rows(
                         target_status in {"exact", "diagnostic-exact"},
                         f"non-exception target drifted for {name}",
                     )
+        elif disposition == "approved-difference":
+            expect(
+                target_statuses <= {"exact", "approved-difference"}
+                and "approved-difference" in target_statuses,
+                f"approved signal difference drifted for {name}",
+            )
         else:
             expect(
                 target_statuses == {disposition},
@@ -350,6 +439,7 @@ def validate_harness_rows(
                     "excluded-completion",
                     "upstream-ignored",
                     "not-applicable",
+                    "approved-difference",
                 }
             ),
             f"harness denominator is inconsistent for {name}",
@@ -435,12 +525,21 @@ def validate_map() -> None:
             if isinstance(evidence_case, str) and evidence_case.startswith("MJ-UPSTREAM-HARNESS::"):
                 harness = harness_by_name.get(name)
                 expect(harness is not None, f"{row['id']} has no official harness result")
-                expect(
-                    harness["official"] == "passed"
-                    and harness["native"] in {"exact", "diagnostic-exact"}
-                    and harness["wasm1"] in {"exact", "diagnostic-exact"},
-                    f"{row['id']} official harness result is not byte-exact",
-                )
+                if name in ASYNC_ONLY_LIVE_SIGNAL_TESTS:
+                    expect(
+                        harness["official"] == "passed"
+                        and harness["native"] == "approved-difference"
+                        and harness["wasm1"] in {"exact", "diagnostic-exact"}
+                        and harness["disposition"] == "approved-difference",
+                        f"{row['id']} async-only signal result is not approved",
+                    )
+                else:
+                    expect(
+                        harness["official"] == "passed"
+                        and harness["native"] in {"exact", "diagnostic-exact"}
+                        and harness["wasm1"] in {"exact", "diagnostic-exact"},
+                        f"{row['id']} official harness result is not byte-exact",
+                    )
                 expect(
                     evidence_case == f"MJ-UPSTREAM-HARNESS::{name}",
                     f"{row['id']} official harness case differs",
@@ -591,6 +690,28 @@ def validate() -> None:
     expect(upstream["test_inventory"]["mapping"] == "tests/upstream/just-1.57.0/test-map.jsonl", "mapping path is not pinned")
     validate_map()
     validate_differential_cases()
+    signal_evidence = repo / "_build/upstream-harness/native-signals.jsonl"
+    if signal_evidence.is_file():
+        validate_async_signal_evidence(signal_evidence)
+    signal_policy = repo / "_build/upstream-harness/signal-policy.jsonl"
+    if signal_policy.is_file():
+        validate_signal_policy_evidence(signal_policy)
+    signal_exceptions = tomllib.loads(
+        (repo / "tests/upstream/just-1.57.0/compatibility-exceptions.toml")
+        .read_text(encoding="utf-8")
+    )
+    signal_policy_metadata = signal_exceptions.get("async_only_signal_policy")
+    expect(
+        isinstance(signal_policy_metadata, dict)
+        and signal_policy_metadata.get("tracking") == "ADR-0020"
+        and signal_policy_metadata.get("targets") == ["native", "wasm1"]
+        and set(signal_policy_metadata.get("evidence", []))
+        >= {
+            "docs/adr/0020-async-only-signal-semantics.md",
+            "tools/verification/checks/signal_policy.py",
+        },
+        "async-only signal compatibility policy metadata changed",
+    )
 
     cli = load(repo / "compat/cli-options.toml")
     expect(len(cli["option"]) == 50, "CLI option inventory changed")

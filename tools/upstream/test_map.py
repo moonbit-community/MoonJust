@@ -1230,6 +1230,7 @@ def build_rows(names: list[str]) -> list[dict[str, object]]:
                 targets=["native"],
                 evidence=[
                     "docs/adr/0019-direct-child-process-lifecycle.md",
+                    "docs/adr/0020-async-only-signal-semantics.md",
                     "tools/upstream/run_official_harness.py",
                 ],
                 tracking="ADR-0019",

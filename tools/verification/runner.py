@@ -403,10 +403,6 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
             "./_build/upstream/just-1.57.0/target/release/just",
             depends_on=("differential-smoke",),
         ),
-        # This is the sole Unix-only task. It remains intentionally bound to
-        # the existing host-async harness and is recorded as not-applicable on
-        # Windows; the harness itself is out of scope for this migration.
-        task("async-spike", "./tools/spikes/check_host_async.sh", depends_on=("check",)),
         task("moon-info", "moon", "info", depends_on=("check",)),
         task("interface-diff", "git", "diff", "--exit-code", depends_on=("moon-info",)),
         task(
@@ -414,6 +410,12 @@ def task_graph(mode: str, tier_only: bool = False) -> tuple[Task, ...]:
             "./_build/native/debug/build/cmd/just/just.exe",
             "--version",
             depends_on=("native-tests",),
+        ),
+        task(
+            "signal-policy",
+            sys.executable,
+            "tools/verification/checks/signal_policy.py",
+            depends_on=("native-version",),
         ),
         task(
             "wasm-version",
@@ -776,26 +778,6 @@ def run(
             raise RuntimeError(f"task graph order is invalid for {item.name}")
         if failures and mode in {"fast", "verify"}:
             break
-        if item.name == "async-spike" and platform.system() == "Windows":
-            record = {
-                "name": item.name,
-                "stage": item.stage,
-                "command": {
-                    "argv": relative_command(repo, item.command),
-                    "cwd": ".",
-                    "env_digest": environment_digest(env),
-                },
-                "started_at_ns": time.perf_counter_ns(),
-                "duration_ms": 0.0,
-                "exit_code": None,
-                "status": "not-applicable",
-                "classification": "platform-capability",
-                "reason": "host async lifecycle evidence is Unix-only",
-            }
-            tasks.append(record)
-            task_status[item.name] = "not-applicable"
-            completed.add(item.name)
-            continue
         blocked_by = sorted(
             dependency
             for dependency in item.depends_on

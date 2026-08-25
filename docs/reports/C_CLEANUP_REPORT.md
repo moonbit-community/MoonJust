@@ -4,15 +4,11 @@
 
 This report records the host-native C cleanup completed on the Phase 12
 candidate branch, the direct-child process lifecycle migration delivered by
-PR #60, and the subsequent CI/script migration. The cleanup removes project-owned production C that duplicated
-filesystem, platform, and process-group behavior while retaining only the
-signal stub and isolated research probes explicitly approved by the plan.
+PR #60, the subsequent CI/script migration, and the async-only signal
+migration. The cleanup removes all project-owned production C; only the
+isolated research probes remain outside the production inventory.
 
-Production C source after the cleanup:
-
-```text
-src/host_process/signal_forward.c
-```
+There is no production C source after ADR-0020.
 
 The host-async validation package retains two isolated test probes:
 
@@ -50,21 +46,22 @@ rg -n 'native-stub|moonjust_host_|extern "C"|extern "c"' src tools
 
 Results:
 
-- The production C inventory is exactly `src/host_process/signal_forward.c`.
+- The production C inventory is empty.
 - `src/host_native/moon.pkg` has no `native-stub` entries.
-- `src/host_process/moon.pkg` is the only production package with a
-  `native-stub` list, and it contains only `signal_forward.c`.
+- `src/host_process/moon.pkg` has no `native-stub` entries.
 - The host-async validation package retains its two explicitly isolated C probes.
 - No removed `moonjust_host_*` symbol remains.
 - Remaining MoonBit `extern "C"` declarations are system ABI calls or calls
   into approved `moonbitlang` backends; they are not project-owned C sources.
 
 Process execution now uses `moonbitlang/async/process` for direct-child
-creation, cancellation, wait, reap, and signal status mapping. Indirect,
+creation, cancellation, wait, reap, and signal status mapping. MoonJust does
+not install a signal handler, create a signal pipe, record first raw signals,
+or provide TERM forwarding and signal-specific diagnostics. Indirect,
 background, daemon, and detached descendants are outside the lifecycle
 contract. A descendant that retains a shared stdout/stderr pipe can therefore
-keep the reader open after the direct child has been reaped; the adapter keeps
-concurrent readers and does not restore group cleanup to change that behavior.
+keep the reader open after the direct child has been reaped; direct-child wait
+and pipe-reader EOF remain separate observations.
 
 ## Cross-platform verification
 
@@ -100,8 +97,8 @@ Local second-pass checks on macOS also passed:
 ```text
 moon fmt --check
 moon check --target all --warn-list +73 --deny-warn
-moon test --target native --no-parallelize  # 1112/1112
-moon test --target wasm --no-parallelize    # 1096/1096
+moon test --target native --no-parallelize  # 1110/1110
+moon test --target wasm --no-parallelize    # 1097/1097
 python3 tools/quality/check_naming.py
 python3 tools/quality/check_naming_test.py
 python3 tools/upstream/verify_manifest.py
@@ -116,7 +113,8 @@ All CI orchestration and compatibility gates now enter through Python 3.11,
 `tools/runner.py`, or a dedicated Python tool. Non-host-async Shell helpers and
 the old release wrappers were deleted; Windows CI does not start Git Bash.
 The only retained Shell files are the explicitly Unix-only host-async
-observation harness under `tools/spikes/` and `spikes/host-async/`.
+historical observation harness under `tools/spikes/` and `spikes/host-async/`;
+it is not part of the current production verification gate.
 
 Production coverage merges Native and Wasm raw reports in the release-evidence
 job and gates only overall coverage at 80%. Changed-line, area, and package

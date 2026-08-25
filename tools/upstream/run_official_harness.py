@@ -40,6 +40,21 @@ NATIVE_SIGNAL_TESTS = {
 DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS = {
     "signals::forwarding",
 }
+ASYNC_ONLY_LIVE_SIGNAL_TESTS = {
+    "choose::chooser_signal_exit_code_is_propagated",
+    "no_exit_message::signal_exit_message_not_suppressed",
+    "no_exit_message::signal_exit_message_setting_suppressed",
+    "no_exit_message::signal_exit_message_suppressed",
+}
+ASYNC_ONLY_APPROVED_SIGNAL_DIFFERENCES = (
+    "signal-identity",
+    "term-forwarding",
+    "first-signal-ordering",
+    "continue-behavior",
+    "siginfo-observation",
+    "signal-specific-diagnostics",
+    "exact-exit-code",
+)
 NATIVE_SIGINFO_SYSTEMS = {"Darwin", "DragonFly", "FreeBSD", "iOS", "NetBSD", "OpenBSD"}
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 DIAGNOSTIC_KEYWORDS = {
@@ -94,6 +109,7 @@ RESULT_CLASSIFICATIONS = {
     "excluded-completion",
     "upstream-ignored",
     "not-applicable",
+    "approved-difference",
     "failed",
 }
 EXCEPTION_CLASSIFICATIONS = {
@@ -102,6 +118,7 @@ EXCEPTION_CLASSIFICATIONS = {
     "product-identity",
     "excluded-completion",
     "not-applicable",
+    "approved-difference",
 }
 PLATFORM_HOST_CASES = {
     "non_unicode::warn_for_non_unicode_invocation_directory",
@@ -698,6 +715,20 @@ def execute_harness(
         if status == "passed":
             statuses[name] = "exact"
             continue
+        if (
+            label == "native"
+            and name in ASYNC_ONLY_LIVE_SIGNAL_TESTS
+            and target_rule is not None
+            and target_rule["classification"] == "approved-difference"
+        ):
+            statuses[name] = "approved-difference"
+            continue
+        if label in {"native", "wasm1"} and name.startswith("signals::"):
+            # Live signal identity and forwarding are covered by the separate
+            # async-only policy evidence; static contract registrations remain
+            # in the pinned MoonBit contract corpus.
+            statuses[name] = "upstream-ignored"
+            continue
         block = blocks.get(name, "")
         if (
             target_rule is not None
@@ -743,8 +774,12 @@ def execute_native_signal_gate(
     if os.name == "nt":
         print("native signals: skipped on Windows")
         return
-    registered = {name for name in tests if name.startswith("signals::")}
-    expected = set(NATIVE_SIGNAL_TESTS)
+    registered = {
+        name
+        for name in tests
+        if name.startswith("signals::") or name in ASYNC_ONLY_LIVE_SIGNAL_TESTS
+    }
+    expected = set(NATIVE_SIGNAL_TESTS) | ASYNC_ONLY_LIVE_SIGNAL_TESTS
     if platform.system() in NATIVE_SIGINFO_SYSTEMS:
         expected.add("signals::siginfo_prints_current_process")
     if registered != expected:
@@ -757,16 +792,16 @@ def execute_native_signal_gate(
     signal_artifact.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, object]] = []
     combined: list[str] = []
-    runnable = expected - DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS
     passed: set[str] = set()
-    skipped: set[str] = set()
+    approved: set[str] = set()
     for name in sorted(expected):
         slug = name.replace("::", "__")
         if name in DIRECT_CHILD_UNSUPPORTED_SIGNAL_TESTS:
-            skipped.add(name)
+            approved.add(name)
             records.append(
                 {
                     "schema_version": 1,
+                    "policy": "async-only",
                     "upstream_commit": UPSTREAM_COMMIT,
                     "upstream_name": name,
                     "command": None,
@@ -774,18 +809,25 @@ def execute_native_signal_gate(
                     "timed_out": False,
                     "orphan_pids": [],
                     "passed": False,
-                    "status": "unsupported",
+                    "candidate_started": False,
+                    "direct_child_wait_reap_completed": False,
+                    "status": "approved-difference",
+                    "approved_differences": [
+                        "term-forwarding",
+                        "signal-specific-diagnostics",
+                    ],
                     "reason": (
                         "The upstream scenario requires TERM delivery to an "
                         "indirect recipe descendant. ADR-0019 retains only "
-                        "direct-child lifecycle ownership."
+                        "direct-child lifecycle ownership; ADR-0020 removes "
+                        "MoonJust-owned signal forwarding."
                     ),
                     "log": None,
                 }
             )
             combined.append(
                 f"===== {name} =====\n"
-                "skipped: unsupported under the direct-child lifecycle contract\n"
+                "approved difference: outside direct-child and async-only signal policy\n"
             )
             continue
         signal_run_id = f"{os.getpid()}-{slug}"
@@ -826,10 +868,15 @@ def execute_native_signal_gate(
         )
         if matched:
             passed.add(name)
+        else:
+            approved.add(name)
+        lifecycle_ok = not timed_out and not orphan_pids
+        status = "observed-pass" if matched else "approved-difference"
         (signal_artifact / f"{slug}.log").write_text(output, encoding="utf-8")
         records.append(
             {
                 "schema_version": 1,
+                "policy": "async-only",
                 "upstream_commit": UPSTREAM_COMMIT,
                 "upstream_name": name,
                 "command": command,
@@ -837,6 +884,10 @@ def execute_native_signal_gate(
                 "timed_out": timed_out,
                 "orphan_pids": orphan_pids,
                 "passed": matched,
+                "candidate_started": True,
+                "direct_child_wait_reap_completed": lifecycle_ok,
+                "status": status,
+                "approved_differences": list(ASYNC_ONLY_APPROVED_SIGNAL_DIFFERENCES),
                 "log": f"native-signals/{slug}.log",
             }
         )
@@ -852,15 +903,22 @@ def execute_native_signal_gate(
         ),
         encoding="utf-8",
     )
-    if passed != runnable or any(
-        record["orphan_pids"] for record in records
-        if record.get("status") != "unsupported"
+    if any(
+        record["timed_out"]
+        or record["orphan_pids"]
+        or not record["direct_child_wait_reap_completed"]
+        for record in records
+        if record["candidate_started"]
     ):
         details = []
         for record in records:
-            if record.get("status") == "unsupported":
+            if not record["candidate_started"]:
                 continue
-            if record["passed"] and not record["orphan_pids"]:
+            if (
+                not record["timed_out"]
+                and not record["orphan_pids"]
+                and record["direct_child_wait_reap_completed"]
+            ):
                 continue
             details.append(
                 f"{record['upstream_name']} "
@@ -869,7 +927,10 @@ def execute_native_signal_gate(
                 f"log={record['log']}"
             )
         fail("native signal gate failed:\n" + "\n".join(details))
-    print(f"native signals: passed={len(passed)} skipped={len(skipped)}")
+    print(
+        "native signals async-only: "
+        f"observed_pass={len(passed)} approved_differences={len(approved)}"
+    )
 
 
 def encode_results(
@@ -892,6 +953,8 @@ def encode_results(
             disposition = "product-identity"
         elif "not-applicable" in target_statuses:
             disposition = "not-applicable"
+        elif "approved-difference" in target_statuses:
+            disposition = "approved-difference"
         elif "diagnostic-semantic" in target_statuses:
             disposition = "diagnostic-semantic"
         elif "upstream-ignored" in target_statuses:
@@ -905,6 +968,7 @@ def encode_results(
             "product-identity",
             "upstream-ignored",
             "not-applicable",
+            "approved-difference",
         }
         rows.append(
             {

@@ -18,21 +18,22 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
 - Completion: excluded by scope
 - Accepted MoonX limitation: two Linux invalid UTF-8 cwd rows are
   `not-applicable`
-- Accepted process limitation: `signals::forwarding` is an explicit Native
-  unsupported case because its upstream fixture requires indirect descendant
-  signal delivery and shared-pipe cleanup outside the direct-child contract
+- Accepted process/signal limitation: `signals::forwarding` remains an explicit
+  Native direct-child limitation under ADR-0019, and ADR-0020 records the
+  approved async-only differences for signal identity, TERM forwarding,
+  first-signal ordering, SIGINFO, and signal-specific diagnostics
 - Current CI policy: merged Native/Wasm production coverage gates only overall
   coverage at 80%; changed-line, area and frozen package baselines are report
   fields, not failure conditions. Main and release workflows run report-only
   benchmarks on all three supported platforms and gate execution, sample
   completeness and provenance, without authoritative timing thresholds.
 - CI orchestration uses Python 3.11 with native Windows path and artifact
-  handling. The host async lifecycle observation remains Unix-only and is
-  recorded as `not-applicable` on Windows.
+  handling. The former host-async lifecycle harness remains isolated as
+  historical Unix-only evidence and is not a current release gate.
 - Non-host-async Shell helpers, Git Bash fallbacks, and old release wrappers
-  have been removed. The active verification surface is `tools/runner.py`,
-  dedicated Python tools, and the explicitly retained Unix-only host-async
-  observation harness.
+  have been removed. The active verification surface is `tools/runner.py` and
+  dedicated Python tools; the host-async observation harness remains isolated
+  historical evidence.
 - Coverage merges Native/Wasm raw reports in the evidence aggregation job and
   gates only overall coverage at 80%. Three-platform benchmarks are report-only
   and validate execution, complete samples, and provenance without a timing
@@ -41,8 +42,8 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
 ## C cleanup closure
 
 The Phase 12 native-host C cleanup removed the project-owned `platform.c`,
-`realpath.c`, and `transaction.c`. The only production project C source now is
-the signal-forwarding stub under `src/host_process`; the two explicitly
+`realpath.c`, and `transaction.c`; ADR-0020 removed the final production
+signal stub. The production project C inventory is now empty. The two explicitly
 isolated `spikes/host-async` probes remain outside production. Third-party
 `.mooncakes` sources and generated `_build` files are excluded from this
 inventory.
@@ -55,14 +56,14 @@ Windows wide-character paths, and the documented non-UTF-8 cwd classification.
 MoonBit `extern "C"` declarations reference system ABI or approved dependency
 backends; no project C shim or new dependency was added.
 
-Local second-pass evidence: host-native 9/9, Native 1112/1112, Wasm 1096/1096,
+Local second-pass evidence: host-native 9/9, Native 1110/1110, Wasm 1097/1097,
 all-target check with warnings denied, naming and architecture checks, and the
 pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
 three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned
 gates and must be attached to the final main SHA. The macOS-only full upstream
 harness retains the pre-existing `dotenv::fifo` environment-source limitation;
-supported signal cases pass on rerun, while `signals::forwarding` is recorded as
-the ADR-0019 direct-child exception, and Linux CI remains authoritative
+signal cases are recorded as async-only policy evidence, while
+`signals::forwarding` remains the ADR-0019 direct-child exception, and Linux CI remains authoritative
 for the FIFO case. The current CI workflow no longer treats Linux timing or
 authoritative performance as a release gate.
 
