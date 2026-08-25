@@ -11,6 +11,12 @@ import {
 pub(all) suberror ValueError {
   TypeMismatch(expected~ : String, actual~ : String)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ValueError::equal(Self, Self) -> Bool
+#deprecated
+pub fn ValueError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ValueError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) enum Value {
@@ -23,8 +29,14 @@ pub fn Value::as_list(Self) -> ArrayView[Self]?
 pub fn Value::as_string(Self) -> String?
 pub fn Value::display(Self) -> String
 pub fn Value::elements(Self) -> Array[String]
+#deprecated
+pub fn Value::equal(Self, Self) -> Bool
 pub fn Value::join(Self, String) -> String raise ValueError
 pub fn Value::kind(Self) -> String
+#deprecated
+pub fn Value::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn Value::to_repr(Self) -> @debug.Repr
 pub fn Value::to_string(Self) -> String
 pub fn Value::truthy(Self) -> Bool
 

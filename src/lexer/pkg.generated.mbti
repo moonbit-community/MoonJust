@@ -16,6 +16,12 @@ pub fn lex_with_limits(@source.Source, LexerLimits) -> TokenStream raise LexerEr
 pub(all) suberror LexerConfigurationError {
   InvalidLexerLimit(name~ : String, value~ : Int)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn LexerConfigurationError::equal(Self, Self) -> Bool
+#deprecated
+pub fn LexerConfigurationError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn LexerConfigurationError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror LexerError {
   UnknownStartOfToken(start~ : String, span~ : @source.Span)
@@ -36,9 +42,15 @@ pub(all) suberror LexerError {
   NestingLimitExceeded(limit~ : Int, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn LexerError::code(Self) -> String
+#deprecated
+pub fn LexerError::equal(Self, Self) -> Bool
 pub fn LexerError::message(Self) -> String
+#deprecated
+pub fn LexerError::not_equal(Self, Self) -> Bool
 pub fn LexerError::span(Self) -> @source.Span
 pub fn LexerError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+#deprecated
+pub fn LexerError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) enum DelimiterKind {
@@ -47,6 +59,12 @@ pub(all) enum DelimiterKind {
   Paren
   FormatString
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn DelimiterKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn DelimiterKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn DelimiterKind::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Keyword {
   Alias
@@ -92,8 +110,28 @@ pub(all) enum Keyword {
   WorkingDirectory
   X
 } derive(Compare, Eq, Hash, @debug.Debug)
+#deprecated
+pub fn Keyword::compare(Self, Self) -> Int
+#deprecated
+pub fn Keyword::equal(Self, Self) -> Bool
 pub fn Keyword::from_lexeme(String) -> Self?
+#deprecated
+pub fn Keyword::hash(Self) -> Int
+#deprecated
+pub fn Keyword::hash_combine(Self, Hasher) -> Unit
 pub fn Keyword::lexeme(Self) -> String
+#deprecated
+pub fn Keyword::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn Keyword::op_ge(Self, Self) -> Bool
+#deprecated
+pub fn Keyword::op_gt(Self, Self) -> Bool
+#deprecated
+pub fn Keyword::op_le(Self, Self) -> Bool
+#deprecated
+pub fn Keyword::op_lt(Self, Self) -> Bool
+#deprecated
+pub fn Keyword::to_repr(Self) -> @debug.Repr
 
 pub struct LexerLimits {
   max_source_bytes : Int
@@ -101,20 +139,32 @@ pub struct LexerLimits {
   max_nesting : Int
 } derive(Eq, @debug.Debug)
 pub fn LexerLimits::default() -> Self
+#deprecated
+pub fn LexerLimits::equal(Self, Self) -> Bool
 pub fn LexerLimits::max_nesting(Self) -> Int
 pub fn LexerLimits::max_source_bytes(Self) -> Int
 pub fn LexerLimits::max_tokens(Self) -> Int
 pub fn LexerLimits::new(Int, Int, Int) -> Self raise LexerConfigurationError
+#deprecated
+pub fn LexerLimits::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn LexerLimits::to_repr(Self) -> @debug.Repr
 
 pub struct Token {
   kind : TokenKind
   span : @source.Span
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn Token::equal(Self, Self) -> Bool
 pub fn Token::is_synthetic(Self) -> Bool
 pub fn Token::kind(Self) -> TokenKind
 pub fn Token::lexeme(Self, @source.Source) -> String raise @source.SourceError
 pub fn Token::new(TokenKind, @source.Span) -> Self
+#deprecated
+pub fn Token::not_equal(Self, Self) -> Bool
 pub fn Token::span(Self) -> @source.Span
+#deprecated
+pub fn Token::to_repr(Self) -> @debug.Repr
 
 pub(all) enum TokenKind {
   AmpersandAmpersand
@@ -161,6 +211,26 @@ pub(all) enum TokenKind {
   Whitespace
 } derive(Compare, Eq, Hash, @debug.Debug)
 pub fn TokenKind::as_string(Self) -> String
+#deprecated
+pub fn TokenKind::compare(Self, Self) -> Int
+#deprecated
+pub fn TokenKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn TokenKind::hash(Self) -> Int
+#deprecated
+pub fn TokenKind::hash_combine(Self, Hasher) -> Unit
+#deprecated
+pub fn TokenKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn TokenKind::op_ge(Self, Self) -> Bool
+#deprecated
+pub fn TokenKind::op_gt(Self, Self) -> Bool
+#deprecated
+pub fn TokenKind::op_le(Self, Self) -> Bool
+#deprecated
+pub fn TokenKind::op_lt(Self, Self) -> Bool
+#deprecated
+pub fn TokenKind::to_repr(Self) -> @debug.Repr
 
 pub struct TokenStream {
   source_id : @source.SourceId
@@ -168,6 +238,8 @@ pub struct TokenStream {
 } derive(@debug.Debug)
 pub fn TokenStream::length(Self) -> Int
 pub fn TokenStream::source_id(Self) -> @source.SourceId
+#deprecated
+pub fn TokenStream::to_repr(Self) -> @debug.Repr
 pub fn TokenStream::tokens(Self) -> ArrayView[Token]
 
 // Type aliases

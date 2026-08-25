@@ -81,6 +81,8 @@ pub fn ExecutionError::exit_code(Self) -> Int
 pub fn ExecutionError::host(@host.HostError) -> Self
 pub fn ExecutionError::message(Self) -> String
 pub fn ExecutionError::to_diagnostic(Self) -> @diagnostic.Diagnostic? raise @diagnostic.DiagnosticError
+#deprecated
+pub fn ExecutionError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct CacheDirective {
@@ -98,14 +100,20 @@ pub struct CacheDirective {
 } derive(Eq)
 pub fn CacheDirective::body(Self) -> String
 pub fn CacheDirective::environment(Self) -> ArrayView[(String, String)]
+#deprecated
+pub fn CacheDirective::equal(Self, Self) -> Bool
 pub fn CacheDirective::extension(Self) -> String
 pub fn CacheDirective::extra(Self) -> String
 pub fn CacheDirective::inputs(Self) -> ArrayView[String]
 pub fn CacheDirective::interpreter(Self) -> String
 pub fn CacheDirective::interpreter_arguments(Self) -> ArrayView[String]
+#deprecated
+pub fn CacheDirective::not_equal(Self, Self) -> Bool
 pub fn CacheDirective::outputs(Self) -> ArrayView[String]
 pub fn CacheDirective::positional(Self) -> ArrayView[String]
 pub fn CacheDirective::recipe(Self) -> String
+#deprecated
+pub fn CacheDirective::to_repr(Self) -> @debug.Repr
 pub fn CacheDirective::working_directory(Self) -> @path.PathValue
 pub impl @debug.Debug for CacheDirective
 
@@ -120,16 +128,28 @@ pub(all) enum CommandColor {
   Cyan
   White
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn CommandColor::equal(Self, Self) -> Bool
+#deprecated
+pub fn CommandColor::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CommandColor::to_repr(Self) -> @debug.Repr
 
 pub struct ConfirmationRequest {
   recipe : String
   prompt : String
   is_dependency : Bool
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ConfirmationRequest::equal(Self, Self) -> Bool
 pub fn ConfirmationRequest::is_dependency(Self) -> Bool
 pub fn ConfirmationRequest::new(String, String, Bool) -> Self
+#deprecated
+pub fn ConfirmationRequest::not_equal(Self, Self) -> Bool
 pub fn ConfirmationRequest::prompt(Self) -> String
 pub fn ConfirmationRequest::recipe(Self) -> String
+#deprecated
+pub fn ConfirmationRequest::to_repr(Self) -> @debug.Repr
 
 pub struct ExecutionOptions {
   dry_run : Bool
@@ -153,15 +173,21 @@ pub fn ExecutionOptions::color_enabled(Self) -> Bool
 pub fn ExecutionOptions::command_color(Self) -> CommandColor?
 pub fn ExecutionOptions::dry_run(Self) -> Bool
 pub fn ExecutionOptions::echo_quiet(Self) -> Bool
+#deprecated
+pub fn ExecutionOptions::equal(Self, Self) -> Bool
 pub fn ExecutionOptions::explain(Self) -> Bool
 pub fn ExecutionOptions::from_values(Bool, Bool, Bool, Bool, String?, CommandColor?) -> Self
 pub fn ExecutionOptions::guards(Self) -> Bool
 pub fn ExecutionOptions::jobs(Self) -> Int
 pub fn ExecutionOptions::new(dry_run? : Bool, quiet? : Bool, verbose? : Bool, time? : Bool, timestamp? : String, command_color? : CommandColor) -> Self
 pub fn ExecutionOptions::no_dependencies(Self) -> Bool
+#deprecated
+pub fn ExecutionOptions::not_equal(Self, Self) -> Bool
 pub fn ExecutionOptions::quiet(Self) -> Bool
 pub fn ExecutionOptions::time(Self) -> Bool
 pub fn ExecutionOptions::timestamp(Self) -> String?
+#deprecated
+pub fn ExecutionOptions::to_repr(Self) -> @debug.Repr
 pub fn ExecutionOptions::unstable(Self) -> Bool
 pub fn ExecutionOptions::verbose(Self) -> Bool
 pub fn ExecutionOptions::verbosity(Self) -> Int
@@ -192,6 +218,8 @@ pub fn ExecutionPlan::options(Self) -> ExecutionOptions
 pub fn ExecutionPlan::stderr(Self) -> BytesView
 pub fn ExecutionPlan::steps(Self) -> ArrayView[PlannedStep]
 pub fn ExecutionPlan::tasks(Self) -> ArrayView[ExecutionTask]
+#deprecated
+pub fn ExecutionPlan::to_repr(Self) -> @debug.Repr
 pub fn ExecutionPlan::with_stderr_prefix(Self, BytesView) -> Self
 pub impl @debug.Debug for ExecutionPlan
 
@@ -201,9 +229,15 @@ pub struct ExecutionReport {
   commands : Int
 } derive(Eq)
 pub fn ExecutionReport::commands(Self) -> Int
+#deprecated
+pub fn ExecutionReport::equal(Self, Self) -> Bool
 pub fn ExecutionReport::new(Bytes, Bytes, Int) -> Self
+#deprecated
+pub fn ExecutionReport::not_equal(Self, Self) -> Bool
 pub fn ExecutionReport::stderr(Self) -> BytesView
 pub fn ExecutionReport::stdout(Self) -> BytesView
+#deprecated
+pub fn ExecutionReport::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for ExecutionReport
 
 pub struct ExecutionTask {
@@ -224,6 +258,8 @@ pub fn ExecutionTask::preamble(Self) -> BytesView
 pub fn ExecutionTask::print_exit_message(Self) -> Bool
 pub fn ExecutionTask::recipe(Self) -> String
 pub fn ExecutionTask::steps(Self) -> ArrayView[PlannedStep]
+#deprecated
+pub fn ExecutionTask::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for ExecutionTask
 
 pub struct MaterializedScript {
@@ -244,11 +280,17 @@ pub struct PlannedCommand {
 } derive(Eq)
 pub fn PlannedCommand::continue_signals(Self) -> ArrayView[@host.SignalKind]
 pub fn PlannedCommand::echo(Self) -> BytesView
+#deprecated
+pub fn PlannedCommand::equal(Self, Self) -> Bool
 pub fn PlannedCommand::ignore_error(Self) -> Bool
 pub fn PlannedCommand::is_guard(Self) -> Bool
 pub fn PlannedCommand::line(Self) -> Int
+#deprecated
+pub fn PlannedCommand::not_equal(Self, Self) -> Bool
 pub fn PlannedCommand::recipe(Self) -> String
 pub fn PlannedCommand::spec(Self) -> @host.CommandSpec
+#deprecated
+pub fn PlannedCommand::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for PlannedCommand
 
 pub struct PlannedLine {
@@ -269,6 +311,8 @@ pub fn PlannedLine::continue_signals(Self) -> ArrayView[@host.SignalKind]
 pub fn PlannedLine::line(Self) -> Int
 pub fn PlannedLine::positional(Self) -> ArrayView[String]
 pub fn PlannedLine::recipe(Self) -> String
+#deprecated
+pub fn PlannedLine::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for PlannedLine
 
 pub struct PlannedScript {
@@ -287,9 +331,15 @@ pub fn PlannedScript::contents(Self) -> BytesView
 pub fn PlannedScript::continue_signals(Self) -> ArrayView[@host.SignalKind]
 pub fn PlannedScript::cwd(Self) -> @path.PathValue
 pub fn PlannedScript::environment(Self) -> ArrayView[(String, String)]
+#deprecated
+pub fn PlannedScript::equal(Self, Self) -> Bool
+#deprecated
+pub fn PlannedScript::not_equal(Self, Self) -> Bool
 pub fn PlannedScript::positional(Self) -> ArrayView[String]
 pub fn PlannedScript::quiet(Self) -> Bool
 pub fn PlannedScript::recipe(Self) -> String
+#deprecated
+pub fn PlannedScript::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for PlannedScript
 
 pub(all) enum PlannedStep {
@@ -297,6 +347,8 @@ pub(all) enum PlannedStep {
   Script(PlannedScript, Bytes)
   Line(PlannedLine)
 } derive(@debug.Debug)
+#deprecated
+pub fn PlannedStep::to_repr(Self) -> @debug.Repr
 
 pub struct ProjectModuleRuntime {
   module_path : @modulepath.ModulePath
@@ -315,6 +367,8 @@ pub fn ProjectModuleRuntime::module_path(Self) -> @modulepath.ModulePath
 pub fn ProjectModuleRuntime::new(@modulepath.ModulePath, @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ArrayView[(String, String)], ScriptConfiguration) -> Self
 pub fn ProjectModuleRuntime::process_environment(Self) -> ArrayView[(String, String)]
 pub fn ProjectModuleRuntime::shell(Self) -> @environment.ShellConfiguration
+#deprecated
+pub fn ProjectModuleRuntime::to_repr(Self) -> @debug.Repr
 
 pub struct ProjectRecipeRequest {
   module_path : @modulepath.ModulePath
@@ -322,17 +376,29 @@ pub struct ProjectRecipeRequest {
   arguments : Array[@value.Value]
 } derive(Eq, @debug.Debug)
 pub fn ProjectRecipeRequest::arguments(Self) -> ArrayView[@value.Value]
+#deprecated
+pub fn ProjectRecipeRequest::equal(Self, Self) -> Bool
 pub fn ProjectRecipeRequest::module_path(Self) -> @modulepath.ModulePath
 pub fn ProjectRecipeRequest::new(@modulepath.ModulePath, String, arguments? : Array[@value.Value]) -> Self
+#deprecated
+pub fn ProjectRecipeRequest::not_equal(Self, Self) -> Bool
 pub fn ProjectRecipeRequest::recipe(Self) -> String
+#deprecated
+pub fn ProjectRecipeRequest::to_repr(Self) -> @debug.Repr
 
 pub struct RecipeRequest {
   recipe : String
   arguments : Array[@value.Value]
 } derive(Eq, @debug.Debug)
 pub fn RecipeRequest::arguments(Self) -> ArrayView[@value.Value]
+#deprecated
+pub fn RecipeRequest::equal(Self, Self) -> Bool
 pub fn RecipeRequest::new(String, arguments? : Array[@value.Value]) -> Self
+#deprecated
+pub fn RecipeRequest::not_equal(Self, Self) -> Bool
 pub fn RecipeRequest::recipe(Self) -> String
+#deprecated
+pub fn RecipeRequest::to_repr(Self) -> @debug.Repr
 
 pub struct ScriptConfiguration {
   interpreter : @environment.ShellConfiguration
@@ -340,11 +406,17 @@ pub struct ScriptConfiguration {
   extension : String?
   platform : @host.PlatformInfo
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ScriptConfiguration::equal(Self, Self) -> Bool
 pub fn ScriptConfiguration::extension(Self) -> String?
 pub fn ScriptConfiguration::interpreter(Self) -> @environment.ShellConfiguration
 pub fn ScriptConfiguration::new(@environment.ShellConfiguration, @path.PathValue, @host.PlatformInfo, extension? : String) -> Self
+#deprecated
+pub fn ScriptConfiguration::not_equal(Self, Self) -> Bool
 pub fn ScriptConfiguration::platform(Self) -> @host.PlatformInfo
 pub fn ScriptConfiguration::temporary_directory(Self) -> @path.PathValue
+#deprecated
+pub fn ScriptConfiguration::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

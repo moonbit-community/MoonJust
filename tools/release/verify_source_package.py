@@ -88,8 +88,8 @@ def main() -> None:
         manifest = package.read("moon.mod").decode()
         if field(manifest, "name") != "ZSeanYves/MoonJust":
             fail("module name differs")
-        if not re.fullmatch(r"0\.1\.0", field(manifest, "version")):
-            fail("Release version is not 0.1.0")
+        if not re.fullmatch(r"0\.1\.1", field(manifest, "version")):
+            fail("Release version is not 0.1.1")
         if field(manifest, "readme") != "README.mbt.md":
             fail("readme metadata differs")
         if field(manifest, "repository") != "https://github.com/moonbit-community/MoonJust":

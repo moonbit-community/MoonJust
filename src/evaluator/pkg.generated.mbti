@@ -77,9 +77,15 @@ pub(all) suberror EvaluationError {
   EmptyParameter(recipe~ : String, parameter~ : String, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn EvaluationError::code(Self) -> String
+#deprecated
+pub fn EvaluationError::equal(Self, Self) -> Bool
 pub fn EvaluationError::message(Self) -> String
+#deprecated
+pub fn EvaluationError::not_equal(Self, Self) -> Bool
 pub fn EvaluationError::span(Self) -> @source.Span
 pub fn EvaluationError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+#deprecated
+pub fn EvaluationError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct EffectShell {
@@ -87,8 +93,14 @@ pub struct EffectShell {
   arguments : Array[String]
 } derive(Eq, @debug.Debug)
 pub fn EffectShell::arguments(Self) -> ArrayView[String]
+#deprecated
+pub fn EffectShell::equal(Self, Self) -> Bool
 pub fn EffectShell::new(String, Array[String]) -> Self
+#deprecated
+pub fn EffectShell::not_equal(Self, Self) -> Bool
 pub fn EffectShell::program(Self) -> String
+#deprecated
+pub fn EffectShell::to_repr(Self) -> @debug.Repr
 
 pub struct Environment {
   values : Map[String, @value.Value]
@@ -108,6 +120,8 @@ pub fn Environment::new() -> Self
 pub fn Environment::remove(Self, String) -> Unit
 pub fn Environment::set(Self, String, @value.Value) -> Unit
 pub fn Environment::set_functions(Self, FunctionEnvironment) -> Unit
+#deprecated
+pub fn Environment::to_repr(Self) -> @debug.Repr
 
 pub(all) struct EvaluationContext {
   cwd : @path.PathValue?
@@ -149,6 +163,8 @@ pub fn EvaluationContext::config_local_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::cwd(Self) -> @path.PathValue?
 pub fn EvaluationContext::data_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::data_local_directory(Self) -> @path.PathValue?
+#deprecated
+pub fn EvaluationContext::equal(Self, Self) -> Bool
 pub fn EvaluationContext::executable(Self) -> @path.PathValue?
 pub fn EvaluationContext::executable_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::for_recipe(Self, @path.PathValue, String, Bool) -> Self
@@ -163,6 +179,8 @@ pub fn EvaluationContext::module_file(Self) -> @path.PathValue?
 pub fn EvaluationContext::module_name(Self) -> String?
 pub fn EvaluationContext::module_path(Self) -> String?
 pub fn EvaluationContext::new(cwd? : @path.PathValue, recipe? : String, module_name? : String, source? : @source.SourceId, justfile? : @path.PathValue, source_file? : @path.PathValue, source_files? : ArrayView[(@source.SourceId, @path.PathValue)], module_file? : @path.PathValue, module_path? : String, executable? : @path.PathValue, executable_directory? : @path.PathValue, invocation_directory? : @path.PathValue, invocation_directory_native? : @path.PathValue, home_directory? : @path.PathValue, config_directory? : @path.PathValue, config_local_directory? : @path.PathValue, data_directory? : @path.PathValue, data_local_directory? : @path.PathValue, cache_directory? : @path.PathValue, runtime_directory? : @path.PathValue, pid? : Int, num_cpus? : Int, num_jobs? : Int, is_dependency? : Bool, lists? : Bool, utc_offset_seconds? : Int, color_mode? : String, command_color? : String, environment? : Array[(String, String)], process_environment? : Array[(String, String)]) -> Self
+#deprecated
+pub fn EvaluationContext::not_equal(Self, Self) -> Bool
 pub fn EvaluationContext::num_cpus(Self) -> Int?
 pub fn EvaluationContext::num_jobs(Self) -> Int?
 pub fn EvaluationContext::pid(Self) -> Int?
@@ -170,6 +188,8 @@ pub fn EvaluationContext::recipe(Self) -> String?
 pub fn EvaluationContext::runtime_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::source(Self) -> @source.SourceId?
 pub fn EvaluationContext::source_file(Self) -> @path.PathValue?
+#deprecated
+pub fn EvaluationContext::to_repr(Self) -> @debug.Repr
 pub fn EvaluationContext::utc_offset_seconds(Self) -> Int?
 pub fn EvaluationContext::with_process_environment(Self, ArrayView[(String, String)]) -> Self
 
@@ -179,7 +199,13 @@ pub(all) struct EvaluationLimits {
   max_output_bytes : Int
 } derive(Eq, @debug.Debug)
 pub fn EvaluationLimits::default() -> Self
+#deprecated
+pub fn EvaluationLimits::equal(Self, Self) -> Bool
 pub fn EvaluationLimits::new(Int, Int, Int) -> Self
+#deprecated
+pub fn EvaluationLimits::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn EvaluationLimits::to_repr(Self) -> @debug.Repr
 
 pub struct FunctionEnvironment {
   definitions : Map[String, @syntax.FunctionDefinition]
@@ -188,6 +214,8 @@ pub fn FunctionEnvironment::from_compilation(@semantic.Compilation) -> Self
 pub fn FunctionEnvironment::get(Self, String) -> @syntax.FunctionDefinition?
 pub fn FunctionEnvironment::names(Self) -> Array[String]
 pub fn FunctionEnvironment::new() -> Self
+#deprecated
+pub fn FunctionEnvironment::to_repr(Self) -> @debug.Repr
 
 pub struct LazyEnvironment {
   compilation : @semantic.Compilation
@@ -209,6 +237,12 @@ pub(all) enum LazyState {
   Evaluating
   Evaluated(@value.Value)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn LazyState::equal(Self, Self) -> Bool
+#deprecated
+pub fn LazyState::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn LazyState::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

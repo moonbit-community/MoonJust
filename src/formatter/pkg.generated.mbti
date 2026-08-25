@@ -38,14 +38,26 @@ pub(all) suberror FormatterError {
   InvalidInput(String)
 } derive(Eq, @debug.Debug)
 pub fn FormatterError::code(Self) -> String
+#deprecated
+pub fn FormatterError::equal(Self, Self) -> Bool
 pub fn FormatterError::message(Self) -> String
+#deprecated
+pub fn FormatterError::not_equal(Self, Self) -> Bool
 pub fn FormatterError::span(Self) -> @source.Span?
 pub fn FormatterError::to_diagnostic(Self, @source.Source) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+#deprecated
+pub fn FormatterError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror MarkdownError {
   InvalidLimit
   LimitExceeded(limit~ : Int, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn MarkdownError::equal(Self, Self) -> Bool
+#deprecated
+pub fn MarkdownError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn MarkdownError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct CheckResult {
@@ -53,14 +65,26 @@ pub struct CheckResult {
   changed : Bool
 } derive(Eq, @debug.Debug)
 pub fn CheckResult::changed(Self) -> Bool
+#deprecated
+pub fn CheckResult::equal(Self, Self) -> Bool
 pub fn CheckResult::formatted(Self) -> String
+#deprecated
+pub fn CheckResult::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CheckResult::to_repr(Self) -> @debug.Repr
 
 pub struct MarkdownLimits {
   max_lines : Int
   max_bytes : Int
 } derive(Eq, @debug.Debug)
 pub fn MarkdownLimits::default() -> Self
+#deprecated
+pub fn MarkdownLimits::equal(Self, Self) -> Bool
 pub fn MarkdownLimits::new(Int, Int) -> Self raise MarkdownError
+#deprecated
+pub fn MarkdownLimits::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn MarkdownLimits::to_repr(Self) -> @debug.Repr
 
 pub struct TangledSource {
   source : @source.Source
@@ -68,6 +92,8 @@ pub struct TangledSource {
 } derive(@debug.Debug)
 pub fn TangledSource::selected_blocks(Self) -> Int
 pub fn TangledSource::source(Self) -> @source.Source
+#deprecated
+pub fn TangledSource::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

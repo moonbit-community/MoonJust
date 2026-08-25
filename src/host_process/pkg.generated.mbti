@@ -26,6 +26,8 @@ pub struct ProcessAdapter {
   output_mutex : @async.Mutex
 }
 pub fn ProcessAdapter::new() -> Self
+pub async fn ProcessAdapter::run_process_async(Self, @host.CommandSpec) -> @host.ProcessResult raise @host.HostError
+pub async fn ProcessAdapter::write_output(Self, @host.OutputStream, Bytes) -> Int raise @host.HostError
 pub impl @host.HostAsyncOutput for ProcessAdapter
 pub impl @host.HostAsyncProcess for ProcessAdapter
 

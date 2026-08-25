@@ -18,13 +18,13 @@ publication = "repository automation prepares and attests candidates only; forma
 
 [mooncakes]
 module = "ZSeanYves/MoonJust"
-version = "0.1.0"
+version = "0.1.1"
 package = "cmd/just"
-coordinate = "ZSeanYves/MoonJust/cmd/just@0.1.0"
-wasm_asset = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/just.wasm"
-wasm_checksum = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/just.wasm.sha256"
-wasm_sbom = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/sbom.cdx.json"
-wasm_provenance = "assets/ZSeanYves/MoonJust@0.1.0/cmd/just/provenance.intoto.json"
+coordinate = "ZSeanYves/MoonJust/cmd/just@0.1.1"
+wasm_asset = "assets/ZSeanYves/MoonJust@0.1.1/cmd/just/just.wasm"
+wasm_checksum = "assets/ZSeanYves/MoonJust@0.1.1/cmd/just/just.wasm.sha256"
+wasm_sbom = "assets/ZSeanYves/MoonJust@0.1.1/cmd/just/sbom.cdx.json"
+wasm_provenance = "assets/ZSeanYves/MoonJust@0.1.1/cmd/just/provenance.intoto.json"
 
 [toolchain]
 moon = "0.1.20260803"

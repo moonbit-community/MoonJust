@@ -54,9 +54,15 @@ pub(all) suberror InvocationError {
   ArgumentPatternMismatch(recipe~ : String, parameter~ : String, argument~ : String, patterns~ : Array[String])
 } derive(Eq, @debug.Debug)
 pub fn InvocationError::code(Self) -> String
+#deprecated
+pub fn InvocationError::equal(Self, Self) -> Bool
 pub fn InvocationError::message(Self) -> String
+#deprecated
+pub fn InvocationError::not_equal(Self, Self) -> Bool
 pub fn InvocationError::span(Self) -> @source.Span?
 pub fn InvocationError::to_diagnostic(Self) -> @diagnostic.Diagnostic? raise @diagnostic.DiagnosticError
+#deprecated
+pub fn InvocationError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct ArgumentValue {
@@ -64,21 +70,39 @@ pub struct ArgumentValue {
   list : Bool
 } derive(Eq, @debug.Debug)
 pub fn ArgumentValue::elements(Self) -> ArrayView[String]
+#deprecated
+pub fn ArgumentValue::equal(Self, Self) -> Bool
 pub fn ArgumentValue::list(Self) -> Bool
+#deprecated
+pub fn ArgumentValue::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ArgumentValue::to_repr(Self) -> @debug.Repr
 
 pub struct Invocation {
   recipe : String
   arguments : Array[ArgumentValue]
 } derive(Eq, @debug.Debug)
 pub fn Invocation::arguments(Self) -> ArrayView[ArgumentValue]
+#deprecated
+pub fn Invocation::equal(Self, Self) -> Bool
+#deprecated
+pub fn Invocation::not_equal(Self, Self) -> Bool
 pub fn Invocation::recipe(Self) -> String
+#deprecated
+pub fn Invocation::to_repr(Self) -> @debug.Repr
 
 pub struct ProjectInvocation {
   module_path : @modulepath.ModulePath
   invocation : Invocation
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ProjectInvocation::equal(Self, Self) -> Bool
 pub fn ProjectInvocation::invocation(Self) -> Invocation
 pub fn ProjectInvocation::module_path(Self) -> @modulepath.ModulePath
+#deprecated
+pub fn ProjectInvocation::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ProjectInvocation::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

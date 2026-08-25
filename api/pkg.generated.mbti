@@ -22,6 +22,8 @@ pub fn version_line() -> String
 pub(all) suberror ApiError {
   InvalidSource(Array[ApiDiagnostic])
 } derive(@debug.Debug)
+#deprecated
+pub fn ApiError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct ApiDiagnostic {
@@ -40,6 +42,8 @@ pub fn ApiDiagnostic::message(Self) -> String
 pub fn ApiDiagnostic::source_name(Self) -> String
 pub fn ApiDiagnostic::start_column(Self) -> Int?
 pub fn ApiDiagnostic::start_line(Self) -> Int?
+#deprecated
+pub fn ApiDiagnostic::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

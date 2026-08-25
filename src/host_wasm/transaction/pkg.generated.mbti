@@ -15,7 +15,17 @@ import {
 pub struct PolicyFs {
   inner : @host_wasm.PortableHost
 }
+pub fn PolicyFs::canonicalize(Self, @path.PathValue) -> @path.PathValue raise @host.HostError
+pub fn PolicyFs::file_exists(Self, @path.PathValue) -> Bool raise @host.HostError
+pub fn PolicyFs::metadata(Self, @path.PathValue) -> @host.FileMetadata raise @host.HostError
 pub fn PolicyFs::new() -> Self
+pub fn PolicyFs::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise @host.HostError
+pub fn PolicyFs::read_dir(Self, @path.PathValue) -> Array[String] raise @host.HostError
+pub fn PolicyFs::read_file(Self, @path.PathValue) -> Bytes raise @host.HostError
+pub fn PolicyFs::read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise @host.HostError
+pub async fn PolicyFs::read_source(Self, @path.PathValue, Int) -> Bytes raise @host.HostError
+pub fn PolicyFs::write_file(Self, @path.PathValue, Bytes) -> Unit raise @host.HostError
+pub async fn PolicyFs::write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise @host.HostError
 pub impl @host.HostAtomicFs for PolicyFs
 pub impl @host.HostFs for PolicyFs
 pub impl @host.HostSourceReader for PolicyFs

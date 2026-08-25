@@ -12,13 +12,29 @@ pub(all) suberror PathError {
   NulByte
   FlavorMismatch(expected~ : PathFlavor, actual~ : PathFlavor)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn PathError::equal(Self, Self) -> Bool
+#deprecated
+pub fn PathError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn PathError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) enum PathFlavor {
   Unix
   Windows
 } derive(Eq, Hash, @debug.Debug)
+#deprecated
+pub fn PathFlavor::equal(Self, Self) -> Bool
+#deprecated
+pub fn PathFlavor::hash(Self) -> Int
+#deprecated
+pub fn PathFlavor::hash_combine(Self, Hasher) -> Unit
+#deprecated
+pub fn PathFlavor::not_equal(Self, Self) -> Bool
 pub fn PathFlavor::separator(Self) -> Char
+#deprecated
+pub fn PathFlavor::to_repr(Self) -> @debug.Repr
 
 pub struct PathValue {
   value : String
@@ -26,13 +42,23 @@ pub struct PathValue {
 } derive(Eq, Hash, @debug.Debug)
 pub fn PathValue::as_string(Self) -> String
 pub fn PathValue::clean(Self) -> Self
+#deprecated
+pub fn PathValue::equal(Self, Self) -> Bool
 pub fn PathValue::extension(Self) -> String?
 pub fn PathValue::file_name(Self) -> String?
 pub fn PathValue::flavor(Self) -> PathFlavor
+#deprecated
+pub fn PathValue::hash(Self) -> Int
+#deprecated
+pub fn PathValue::hash_combine(Self, Hasher) -> Unit
 pub fn PathValue::is_absolute(Self) -> Bool
 pub fn PathValue::join(Self, Self) -> Self raise PathError
 pub fn PathValue::new(String, PathFlavor) -> Self raise PathError
+#deprecated
+pub fn PathValue::not_equal(Self, Self) -> Bool
 pub fn PathValue::parent(Self) -> Self?
+#deprecated
+pub fn PathValue::to_repr(Self) -> @debug.Repr
 pub fn PathValue::without_extension(Self) -> Self
 
 // Type aliases

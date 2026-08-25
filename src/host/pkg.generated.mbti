@@ -26,6 +26,12 @@ pub(all) suberror HostError {
   ProcessMismatch(expected~ : CommandSpec, actual~ : CommandSpec)
   RandomExhausted(requested~ : Int, remaining~ : Int)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn HostError::equal(Self, Self) -> Bool
+#deprecated
+pub fn HostError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn HostError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct CacheLease {
@@ -35,7 +41,13 @@ pub struct CacheLease {
 } derive(Eq, @debug.Debug)
 pub fn CacheLease::digest(Self) -> String
 pub fn CacheLease::directory(Self) -> @path.PathValue
+#deprecated
+pub fn CacheLease::equal(Self, Self) -> Bool
 pub fn CacheLease::new(@path.PathValue, String, Int) -> Self
+#deprecated
+pub fn CacheLease::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CacheLease::to_repr(Self) -> @debug.Repr
 pub fn CacheLease::token(Self) -> Int
 
 pub struct CommandSpec {
@@ -54,9 +66,13 @@ pub fn CommandSpec::arguments(Self) -> ArrayView[String]
 pub fn CommandSpec::copy(Self) -> Self
 pub fn CommandSpec::cwd(Self) -> @path.PathValue?
 pub fn CommandSpec::environment(Self) -> ArrayView[(String, String)]
+#deprecated
+pub fn CommandSpec::equal(Self, Self) -> Bool
 pub fn CommandSpec::inherits_environment(Self) -> Bool
 pub fn CommandSpec::inherits_stdin(Self) -> Bool
 pub fn CommandSpec::new(String, Array[String]) -> Self raise HostError
+#deprecated
+pub fn CommandSpec::not_equal(Self, Self) -> Bool
 pub fn CommandSpec::program(Self) -> String
 pub fn CommandSpec::set_cwd(Self, @path.PathValue) -> Unit
 pub fn CommandSpec::set_inherit_environment(Self, Bool) -> Unit
@@ -67,6 +83,8 @@ pub fn CommandSpec::set_stdout(Self, StdioBehavior) -> Unit
 pub fn CommandSpec::stderr(Self) -> StdioBehavior
 pub fn CommandSpec::stdin(Self) -> BytesView
 pub fn CommandSpec::stdout(Self) -> StdioBehavior
+#deprecated
+pub fn CommandSpec::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for CommandSpec
 
 pub struct FakeHost {
@@ -94,31 +112,64 @@ pub struct FakeHost {
   cache_leases : Map[Int, String]
   mut cache_token : Int
 }
+pub async fn FakeHost::acquire_cache_lease(Self, @path.PathValue, String) -> CacheLease raise HostError
 pub fn FakeHost::allow(Self, HostCapability) -> Unit
 pub fn FakeHost::cache_manifest(Self, @path.PathValue, String) -> Bytes?
 pub fn FakeHost::cache_manifest_digests(Self, @path.PathValue) -> Array[String]
+pub fn FakeHost::canonicalize(Self, @path.PathValue) -> @path.PathValue raise HostError
+pub async fn FakeHost::clean_cache(Self, @path.PathValue, String?) -> Int raise HostError
+pub fn FakeHost::create_script_temp(Self, @path.PathValue, String, String, Bytes) -> @path.PathValue raise HostError
+pub async fn FakeHost::create_script_temp_async(Self, @path.PathValue, String, String, Bytes, Bool) -> @path.PathValue raise HostError
+pub fn FakeHost::create_temp_file(Self, @path.PathValue, String, Bytes) -> @path.PathValue raise HostError
+pub fn FakeHost::current_dir(Self) -> @path.PathValue raise HostError
 pub fn FakeHost::deny(Self, HostCapability) -> Unit
+pub fn FakeHost::env_entries(Self) -> Array[(String, String)] raise HostError
+pub fn FakeHost::env_get(Self, String) -> String? raise HostError
 pub fn FakeHost::executable_calls(Self) -> ArrayView[@path.PathValue]
 pub fn FakeHost::expect_process(Self, CommandSpec, ProcessResult) -> Unit
 pub fn FakeHost::fail_next_persist(Self) -> Unit
+pub fn FakeHost::file_exists(Self, @path.PathValue) -> Bool raise HostError
 pub fn FakeHost::held_cache_leases(Self) -> Int
 pub fn FakeHost::mark_available(Self, HostCapability) -> Unit
 pub fn FakeHost::mark_unavailable(Self, HostCapability) -> Unit
+pub fn FakeHost::metadata(Self, @path.PathValue) -> FileMetadata raise HostError
 pub fn FakeHost::new(@path.PathValue, PlatformInfo) -> Self
+pub fn FakeHost::now_millis(Self) -> Int64 raise HostError
 pub fn FakeHost::output_events(Self) -> ArrayView[(OutputStream, Bytes)]
 pub fn FakeHost::pending_process_expectations(Self) -> Int
+pub fn FakeHost::pending_signal(Self) -> SignalKind? raise HostError
+pub fn FakeHost::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise HostError
+pub fn FakeHost::platform_info(Self) -> PlatformInfo raise HostError
 pub fn FakeHost::process_calls(Self) -> ArrayView[CommandSpec]
 pub fn FakeHost::push_signal(Self, SignalKind) -> Unit
 pub fn FakeHost::put_file(Self, @path.PathValue, Bytes) -> Unit
+pub fn FakeHost::random_bytes(Self, Int) -> Bytes raise HostError
+pub async fn FakeHost::read_cache_manifest(Self, CacheLease) -> Bytes? raise HostError
+pub fn FakeHost::read_dir(Self, @path.PathValue) -> Array[String] raise HostError
+pub fn FakeHost::read_file(Self, @path.PathValue) -> Bytes raise HostError
+pub fn FakeHost::read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise HostError
+pub async fn FakeHost::read_source(Self, @path.PathValue, Int) -> Bytes raise HostError
+pub async fn FakeHost::release_cache_lease(Self, CacheLease) -> Unit raise HostError
+pub fn FakeHost::remove_script_temp(Self, @path.PathValue) -> Unit raise HostError
+pub async fn FakeHost::remove_script_temp_async(Self, @path.PathValue) -> Unit raise HostError
+pub fn FakeHost::remove_temp_file(Self, @path.PathValue) -> Unit raise HostError
+pub fn FakeHost::run_process(Self, CommandSpec) -> ProcessResult raise HostError
+pub async fn FakeHost::run_process_async(Self, CommandSpec) -> ProcessResult raise HostError
 pub fn FakeHost::script_temp_creations(Self) -> ArrayView[(@path.PathValue, Bytes)]
 pub fn FakeHost::seed_cache_manifest(Self, @path.PathValue, String, Bytes) -> Unit
 pub fn FakeHost::set_canonical(Self, @path.PathValue, @path.PathValue) -> Unit
 pub fn FakeHost::set_clock_millis(Self, Int64) -> Unit
 pub fn FakeHost::set_current_dir(Self, @path.PathValue) -> Unit
 pub fn FakeHost::set_env(Self, String, String) -> Unit
+pub fn FakeHost::set_executable(Self, @path.PathValue) -> Unit raise HostError
 pub fn FakeHost::set_platform(Self, PlatformInfo) -> Unit
 pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
 pub fn FakeHost::set_terminal(Self, TerminalInfo) -> Unit
+pub fn FakeHost::terminal_info(Self) -> TerminalInfo raise HostError
+pub async fn FakeHost::write_cache_manifest(Self, CacheLease, Bytes) -> Unit raise HostError
+pub fn FakeHost::write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
+pub async fn FakeHost::write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise HostError
+pub async fn FakeHost::write_output(Self, OutputStream, Bytes) -> Int raise HostError
 pub impl HostAsyncOutput for FakeHost
 pub impl HostAsyncProcess for FakeHost
 pub impl HostAsyncScriptTemp for FakeHost
@@ -143,12 +194,18 @@ pub(all) struct FileMetadata {
   size : Int64
   is_executable : Bool
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn FileMetadata::equal(Self, Self) -> Bool
 pub fn FileMetadata::is_directory(Self) -> Bool
 pub fn FileMetadata::is_executable(Self) -> Bool
 pub fn FileMetadata::is_file(Self) -> Bool
 pub fn FileMetadata::new(Bool, Bool, Int64) -> Self
 pub fn FileMetadata::new_with_executable(Bool, Bool, Int64, Bool) -> Self
+#deprecated
+pub fn FileMetadata::not_equal(Self, Self) -> Bool
 pub fn FileMetadata::size(Self) -> Int64
+#deprecated
+pub fn FileMetadata::to_repr(Self) -> @debug.Repr
 
 pub(all) enum HostCapability {
   FsRead
@@ -161,6 +218,16 @@ pub(all) enum HostCapability {
   Signal
   Platform
 } derive(Eq, Hash, @debug.Debug)
+#deprecated
+pub fn HostCapability::equal(Self, Self) -> Bool
+#deprecated
+pub fn HostCapability::hash(Self) -> Int
+#deprecated
+pub fn HostCapability::hash_combine(Self, Hasher) -> Unit
+#deprecated
+pub fn HostCapability::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn HostCapability::to_repr(Self) -> @debug.Repr
 
 pub(all) enum OperatingSystem {
   Linux
@@ -168,11 +235,27 @@ pub(all) enum OperatingSystem {
   Windows
   Other(String)
 } derive(Eq, Hash, @debug.Debug)
+#deprecated
+pub fn OperatingSystem::equal(Self, Self) -> Bool
+#deprecated
+pub fn OperatingSystem::hash(Self) -> Int
+#deprecated
+pub fn OperatingSystem::hash_combine(Self, Hasher) -> Unit
+#deprecated
+pub fn OperatingSystem::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn OperatingSystem::to_repr(Self) -> @debug.Repr
 
 pub(all) enum OutputStream {
   Stdout
   Stderr
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn OutputStream::equal(Self, Self) -> Bool
+#deprecated
+pub fn OutputStream::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn OutputStream::to_repr(Self) -> @debug.Repr
 
 pub struct PlatformInfo {
   operating_system : OperatingSystem
@@ -184,13 +267,19 @@ pub struct PlatformInfo {
   executable : String?
 } derive(Eq, @debug.Debug)
 pub fn PlatformInfo::architecture(Self) -> String
+#deprecated
+pub fn PlatformInfo::equal(Self, Self) -> Bool
 pub fn PlatformInfo::executable(Self) -> String?
 pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor, portable_runtime? : Bool, pid? : Int, num_cpus? : Int, executable? : String) -> Self
+#deprecated
+pub fn PlatformInfo::not_equal(Self, Self) -> Bool
 pub fn PlatformInfo::num_cpus(Self) -> Int?
 pub fn PlatformInfo::operating_system(Self) -> OperatingSystem
 pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
 pub fn PlatformInfo::pid(Self) -> Int?
 pub fn PlatformInfo::portable_runtime(Self) -> Bool
+#deprecated
+pub fn PlatformInfo::to_repr(Self) -> @debug.Repr
 
 #alias(ProcessOutput, deprecated)
 pub struct ProcessResult {
@@ -198,15 +287,21 @@ pub struct ProcessResult {
   stdout : Bytes
   stderr : Bytes
 } derive(Eq)
+#deprecated
+pub fn ProcessResult::equal(Self, Self) -> Bool
 pub fn ProcessResult::exit_code(Self) -> Int?
 pub fn ProcessResult::from_interruption(SignalKind, Bytes, Bytes) -> Self
 pub fn ProcessResult::from_signal(SignalKind, Bytes, Bytes) -> Self
 pub fn ProcessResult::new(Int, Bytes, Bytes) -> Self
+#deprecated
+pub fn ProcessResult::not_equal(Self, Self) -> Bool
 pub fn ProcessResult::signal(Self) -> SignalKind?
 pub fn ProcessResult::stderr(Self) -> BytesView
 pub fn ProcessResult::stdout(Self) -> BytesView
 pub fn ProcessResult::success(Self) -> Bool
 pub fn ProcessResult::termination(Self) -> ProcessTermination
+#deprecated
+pub fn ProcessResult::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for ProcessResult
 
 pub(all) enum ProcessTermination {
@@ -214,6 +309,12 @@ pub(all) enum ProcessTermination {
   Signaled(SignalKind)
   Interrupted(SignalKind)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ProcessTermination::equal(Self, Self) -> Bool
+#deprecated
+pub fn ProcessTermination::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ProcessTermination::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SignalKind {
   Interrupt
@@ -221,15 +322,27 @@ pub(all) enum SignalKind {
   Hangup
   OtherSignal(Int)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn SignalKind::equal(Self, Self) -> Bool
 pub fn SignalKind::exit_code(Self) -> Int
 pub fn SignalKind::name(Self) -> String
+#deprecated
+pub fn SignalKind::not_equal(Self, Self) -> Bool
 pub fn SignalKind::number(Self) -> Int
+#deprecated
+pub fn SignalKind::to_repr(Self) -> @debug.Repr
 
 pub(all) enum StdioBehavior {
   Capture
   Inherit
   Discard
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn StdioBehavior::equal(Self, Self) -> Bool
+#deprecated
+pub fn StdioBehavior::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn StdioBehavior::to_repr(Self) -> @debug.Repr
 
 pub struct TerminalInfo {
   stdin_is_terminal : Bool
@@ -238,10 +351,16 @@ pub struct TerminalInfo {
   color_supported : Bool
 } derive(Eq, @debug.Debug)
 pub fn TerminalInfo::color_supported(Self) -> Bool
+#deprecated
+pub fn TerminalInfo::equal(Self, Self) -> Bool
 pub fn TerminalInfo::new(Bool, Bool, Bool, Bool) -> Self
+#deprecated
+pub fn TerminalInfo::not_equal(Self, Self) -> Bool
 pub fn TerminalInfo::stderr_is_terminal(Self) -> Bool
 pub fn TerminalInfo::stdin_is_terminal(Self) -> Bool
 pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
+#deprecated
+pub fn TerminalInfo::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

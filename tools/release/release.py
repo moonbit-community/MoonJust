@@ -39,7 +39,7 @@ def target_platform() -> str:
 
 
 def require_publication_files(repo: Path, release_version: str) -> None:
-    if release_version != "0.1.0":
+    if release_version != "0.1.1":
         raise RuntimeError("module version differs from release identity")
     manifest = repo / "compat/release-readiness.toml"
     coordinate = f'coordinate = "ZSeanYves/MoonJust/cmd/just@{release_version}"'

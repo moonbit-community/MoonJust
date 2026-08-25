@@ -13,7 +13,7 @@ sys.path = [entry for entry in sys.path if Path(entry or ".").resolve() != Path(
 import platform
 
 
-EXPECTED_VERSION = "moonjust v0.1.0"
+EXPECTED_VERSION = "moonjust v0.1.1"
 
 
 def fail(message: str) -> int:
