@@ -26,3 +26,4 @@ are changed only by a new ADR that records migration and compatibility impact.
 | [0017](0017-markdown-tangle-final-implementation.md) | Markdown tangle final implementation | Accepted |
 | [0018](0018-public-api-package-location.md) | Public API package location | Accepted |
 | [0019](0019-direct-child-process-lifecycle.md) | Direct-child process lifecycle and C-free Wasm execution | Accepted |
+| [0020](0020-async-only-signal-semantics.md) | Async-only Unix signal semantics | Accepted |
