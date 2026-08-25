@@ -1,9 +1,9 @@
 # Host async spike
 
-This nested module evaluates `moonbitlang/async` as an implementation detail for
-MoonJust's Native and wasm1 host adapters. It is intentionally separate from
-the production module so an experimental dependency cannot leak into the core
-API or normal build graph.
+This nested module is a historical and isolated evaluation of
+`moonbitlang/async` for MoonJust's Native and wasm1 host adapters. It is
+intentionally separate from the production module and is not part of the
+current production build or release gate.
 
 Run on Unix-like development hosts:
 
@@ -16,11 +16,10 @@ The test uses `/bin/sh` to keep the process behavior controlled. It does not
 claim Windows coverage; Windows command and cancellation behavior requires a
 separate platform contract suite.
 
-On Linux, `check_signal_ownership.sh` verifies the boundary used by MoonJust:
-after global async cancellation signals are disabled, the application handler
-must receive HUP, INT, QUIT, and TERM. Each signal is sampled five times and
-reported separately. Any lost signal fails the spike instead of being inferred
-from the larger upstream process-tree test.
+On Linux, `check_signal_ownership.sh` records the historical signal-ownership
+boundary used during the async capability investigation. It does not describe
+the current MoonJust contract: production uses async-owned cancellation signals
+and does not install a MoonJust signal handler or raw signal observer.
 
 `check_process_lifecycle.py` records the signal-to-cancellation path and runs
 direct-child, shell-`exec`, ordinary foreground shell, and background shell
@@ -38,7 +37,7 @@ macOS it uses `lsof`. Background and detached survival, including a shared-pipe
 holder, is an explicit observation rather than a failure; the harness cleans
 the isolated session and known descendant PID afterward.
 
-The lifecycle report is authoritative only when PID observation is available.
+The lifecycle report is valid only when PID observation is available.
 If a host forbids `ps` (for example, a restricted local sandbox), the report is
 emitted with `status: infrastructure-invalid` and a non-zero exit status; this
 must not be interpreted as a lifecycle pass. Linux CI uses `/proc` and `ps` and

@@ -29,7 +29,7 @@ The current release surface is usable and auditable:
 | Invocation | positional/variadic parameters, recipe-local options, flags, repetition, patterns and stable usage errors |
 | Working directory | invocation, project, module, evaluation and recipe directory model with `no-cd` and recipe overrides |
 | Executor | bounded jobs, parallel/serial dependency fences, scripts, cache, dry-run, deterministic output/failure and cancellation cleanup |
-| Platform and terminal | real Native OS/architecture/TTY facts, signal-aware statuses, deterministic color and Unicode display width |
+| Platform and terminal | real Native OS/architecture/TTY facts, async-owned process status mapping, deterministic color and Unicode display width |
 | Interactive and Markdown | confirm/yes, chooser/editor workflows and automatic source-aware Markdown extraction |
 | Wasm boundary | separate read-only inspect and process-enabled execution policies |
 | Release engineering | validated Mooncakes source package, MoonX staging, cross-platform candidates, checksums, SBOM/provenance and upgrade rollback |
@@ -45,8 +45,9 @@ versioned, locked across processes and atomically published after output checks.
 - Required targets: `native` and `wasm` (`wasm1` under `moonrun`/`moonx`).
 - Differential results are classified as exact, diagnostic-exact,
   diagnostic-semantic, product identity, excluded completion, upstream
-  ignored, not-applicable, or failed. Product identity, excluded/ignored, and
-  explicitly not-applicable cases never enter the compatibility denominator.
+  ignored, not-applicable, approved-difference, or failed. Product identity,
+  excluded/ignored, not-applicable, and approved-difference cases never enter
+  the compatibility denominator.
 - The pinned inventory contains 2,417 rows: 1,792 verified differential cases,
   580 verified contract cases, 35 excluded completion cases, and 10 explicit
   product/upstream-internal not-applicable cases. No compatibility row remains
@@ -65,16 +66,18 @@ versioned, locked across processes and atomically published after output checks.
 - Unapproved differences fail by default. Updating the committed oracle
   requires the explicit audited command documented in
   [`tools/upstream/README.md`](tools/upstream/README.md).
-- Native signal qualification activates the pinned ignored signal suite,
-  including forwarding and SIGINFO where the host supports it.
+- Native signal qualification records async-only policy evidence. Direct-child
+  wait/reap is a hard lifecycle gate; raw signal identity, TERM forwarding,
+  first-signal ordering, SIGINFO and signal-specific diagnostics are not
+  MoonJust guarantees.
 - Main and release workflows run report-only benchmarks on Linux x86_64, macOS
   arm64 and Windows x86_64 with three cold/warm rounds. They gate execution,
   sample completeness and provenance only; timing values are trend evidence,
   not absolute performance thresholds. Production coverage keeps Native and
   Wasm raw reports and gates only the merged overall rate at 80%.
 - CI orchestration uses Python 3.11 and native path/file operations. Windows
-  jobs do not require Git Bash; the host async lifecycle observation remains a
-  Unix-only, explicitly not-applicable task.
+  jobs do not require Git Bash; the historical host-async lifecycle probes are
+  isolated and are not a current release gate.
 - Browser, arbitrary WASI, wasm-gc process execution and child-process
   sandboxing are not supported claims.
 
@@ -83,12 +86,8 @@ The complete decision record is in the
 area contracts live under [`compat/`](compat/); the pinned corpus provenance
 is in [`tests/upstream/NOTICE.md`](tests/upstream/NOTICE.md).
 
-The current platform-only closure, including CI evidence and the accepted
-MoonX host limitation, is documented in
-[`docs/reports/PLATFORM_COMPATIBILITY.md`](docs/reports/PLATFORM_COMPATIBILITY.md).
-
-The final pre-release review checklist and exact evidence coordinates are in
-[`docs/reports/FINAL_RELEASE_REVIEW.md`](docs/reports/FINAL_RELEASE_REVIEW.md).
+The current platform closure and final pre-release review are consolidated in
+[`docs/reports/PHASE_12_REPORT.md`](docs/reports/PHASE_12_REPORT.md).
 
 ## Quick start
 

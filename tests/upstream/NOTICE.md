@@ -27,7 +27,7 @@ non-Unicode host tests. MoonJust Native passes those upstream tests; the shared
 MoonX/`moonrun` host currently panics while handling the invalid host value, so
 the wasm rows are retained as a named host limitation rather than normalized to
 `exact`. The limitation is documented in
-[`docs/reports/PLATFORM_COMPATIBILITY.md`](../../docs/reports/PLATFORM_COMPATIBILITY.md).
+[`docs/reports/PHASE_12_REPORT.md`](../../docs/reports/PHASE_12_REPORT.md).
 
 Future copied or adapted fixtures must append a row:
 
