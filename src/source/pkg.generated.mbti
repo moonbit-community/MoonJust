@@ -19,6 +19,12 @@ pub(all) suberror SourceError {
   DuplicateSource(SourceId)
   MissingSource(SourceId)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn SourceError::equal(Self, Self) -> Bool
+#deprecated
+pub fn SourceError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SourceError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct Source {
@@ -44,9 +50,31 @@ pub fn Source::name(Self) -> String
 pub fn Source::slice_bytes(Self, Span) -> BytesView raise SourceError
 pub fn Source::slice_text(Self, Span) -> String raise SourceError
 pub fn Source::text(Self) -> String
+#deprecated
+pub fn Source::to_repr(Self) -> @debug.Repr
 
 pub struct SourceId(Int) derive(Compare, Eq, Hash, @debug.Debug)
+#deprecated
+pub fn SourceId::compare(Self, Self) -> Int
+#deprecated
+pub fn SourceId::equal(Self, Self) -> Bool
+#deprecated
+pub fn SourceId::hash(Self) -> Int
+#deprecated
+pub fn SourceId::hash_combine(Self, Hasher) -> Unit
 pub fn SourceId::new(Int) -> Self
+#deprecated
+pub fn SourceId::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SourceId::op_ge(Self, Self) -> Bool
+#deprecated
+pub fn SourceId::op_gt(Self, Self) -> Bool
+#deprecated
+pub fn SourceId::op_le(Self, Self) -> Bool
+#deprecated
+pub fn SourceId::op_lt(Self, Self) -> Bool
+#deprecated
+pub fn SourceId::to_repr(Self) -> @debug.Repr
 pub fn SourceId::value(Self) -> Int
 
 pub struct SourceMap {
@@ -64,8 +92,14 @@ pub struct SourcePosition {
   scalar_column : Int
 } derive(Eq, @debug.Debug)
 pub fn SourcePosition::byte_column(Self) -> Int
+#deprecated
+pub fn SourcePosition::equal(Self, Self) -> Bool
 pub fn SourcePosition::line(Self) -> Int
+#deprecated
+pub fn SourcePosition::not_equal(Self, Self) -> Bool
 pub fn SourcePosition::scalar_column(Self) -> Int
+#deprecated
+pub fn SourcePosition::to_repr(Self) -> @debug.Repr
 
 pub struct Span {
   source_id : SourceId
@@ -76,12 +110,22 @@ pub fn Span::at_end(Self) -> Self
 pub fn Span::contains(Self, Int) -> Bool
 pub fn Span::cover(Self, Self) -> Self raise SourceError
 pub fn Span::end_byte(Self) -> Int
+#deprecated
+pub fn Span::equal(Self, Self) -> Bool
+#deprecated
+pub fn Span::hash(Self) -> Int
+#deprecated
+pub fn Span::hash_combine(Self, Hasher) -> Unit
 pub fn Span::is_empty(Self) -> Bool
 pub fn Span::length(Self) -> Int
 pub fn Span::new(SourceId, Int, Int) -> Self raise SourceError
+#deprecated
+pub fn Span::not_equal(Self, Self) -> Bool
 pub fn Span::origin(SourceId) -> Self
 pub fn Span::source_id(Self) -> SourceId
 pub fn Span::start_byte(Self) -> Int
+#deprecated
+pub fn Span::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

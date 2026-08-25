@@ -34,6 +34,12 @@ pub fn unindent_string(String) -> String
 pub(all) suberror ParserConfigurationError {
   InvalidParserLimit
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ParserConfigurationError::equal(Self, Self) -> Bool
+#deprecated
+pub fn ParserConfigurationError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ParserConfigurationError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror ParserError {
   LexerFailure(@lexer.LexerError)
@@ -56,9 +62,15 @@ pub(all) suberror ParserError {
   ExtraneousInput(span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn ParserError::code(Self) -> String
+#deprecated
+pub fn ParserError::equal(Self, Self) -> Bool
 pub fn ParserError::message(Self) -> String
+#deprecated
+pub fn ParserError::not_equal(Self, Self) -> Bool
 pub fn ParserError::span(Self) -> @source.Span
 pub fn ParserError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+#deprecated
+pub fn ParserError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct ParseReport {
@@ -67,6 +79,8 @@ pub struct ParseReport {
 } derive(@debug.Debug)
 pub fn ParseReport::ast(Self) -> @syntax.Ast
 pub fn ParseReport::errors(Self) -> ArrayView[ParserError]
+#deprecated
+pub fn ParseReport::to_repr(Self) -> @debug.Repr
 
 pub struct ParserLimits {
   max_depth : Int
@@ -74,10 +88,16 @@ pub struct ParserLimits {
   max_diagnostics : Int
 } derive(Eq, @debug.Debug)
 pub fn ParserLimits::default() -> Self
+#deprecated
+pub fn ParserLimits::equal(Self, Self) -> Bool
 pub fn ParserLimits::max_depth(Self) -> Int
 pub fn ParserLimits::max_diagnostics(Self) -> Int
 pub fn ParserLimits::max_nodes(Self) -> Int
 pub fn ParserLimits::new(Int, Int, Int) -> Self raise ParserConfigurationError
+#deprecated
+pub fn ParserLimits::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ParserLimits::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

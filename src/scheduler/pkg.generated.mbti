@@ -18,6 +18,12 @@ pub(all) suberror SchedulerError {
   SelfDependency(Int)
   DependencyCycle(Array[Int])
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn SchedulerError::equal(Self, Self) -> Bool
+#deprecated
+pub fn SchedulerError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SchedulerError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct Schedule {
@@ -25,9 +31,15 @@ pub struct Schedule {
   waves : Array[Array[Int]]
   order : Array[Int]
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn Schedule::equal(Self, Self) -> Bool
 pub fn Schedule::jobs(Self) -> Int
+#deprecated
+pub fn Schedule::not_equal(Self, Self) -> Bool
 pub fn Schedule::order(Self) -> ArrayView[Int]
 pub fn Schedule::peak(Self) -> Int
+#deprecated
+pub fn Schedule::to_repr(Self) -> @debug.Repr
 pub fn Schedule::waves(Self) -> ArrayView[Array[Int]]
 
 pub struct TaskSpec {
@@ -36,9 +48,15 @@ pub struct TaskSpec {
   dependencies : Array[Int]
 } derive(Eq, @debug.Debug)
 pub fn TaskSpec::dependencies(Self) -> ArrayView[Int]
+#deprecated
+pub fn TaskSpec::equal(Self, Self) -> Bool
 pub fn TaskSpec::id(Self) -> Int
 pub fn TaskSpec::new(Int, Int, dependencies? : Array[Int]) -> Self
+#deprecated
+pub fn TaskSpec::not_equal(Self, Self) -> Bool
 pub fn TaskSpec::order(Self) -> Int
+#deprecated
+pub fn TaskSpec::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

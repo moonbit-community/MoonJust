@@ -86,6 +86,8 @@ pub(all) suberror ApplicationError {
 } derive(@debug.Debug)
 pub fn ApplicationError::exit_code(Self) -> Int
 pub fn ApplicationError::message(Self) -> String
+#deprecated
+pub fn ApplicationError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct ApplicationContext {
@@ -101,6 +103,8 @@ pub fn ApplicationContext::global_project_directory(Self) -> @path.PathValue?
 pub fn ApplicationContext::new(@path.PathValue, stdin? : Bytes, source_id? : @source.SourceId) -> Self
 pub fn ApplicationContext::source_id(Self) -> @source.SourceId
 pub fn ApplicationContext::stdin(Self) -> BytesView
+#deprecated
+pub fn ApplicationContext::to_repr(Self) -> @debug.Repr
 pub fn ApplicationContext::with_cwd(Self, @path.PathValue) -> Self
 pub fn ApplicationContext::with_global_justfile(Self, @path.PathValue, @path.PathValue) -> Self
 

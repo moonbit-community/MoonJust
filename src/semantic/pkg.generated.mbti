@@ -30,6 +30,12 @@ pub(all) suberror ProjectCompilationError {
   MissingRootModule
   DuplicateModulePath(String)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ProjectCompilationError::equal(Self, Self) -> Bool
+#deprecated
+pub fn ProjectCompilationError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ProjectCompilationError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror SemanticError {
   Parse(@parser.ParserError)
@@ -80,9 +86,15 @@ pub(all) suberror SemanticError {
   UnsupportedPlatform(name~ : String, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn SemanticError::code(Self) -> String
+#deprecated
+pub fn SemanticError::equal(Self, Self) -> Bool
 pub fn SemanticError::message(Self) -> String
+#deprecated
+pub fn SemanticError::not_equal(Self, Self) -> Bool
 pub fn SemanticError::span(Self) -> @source.Span
 pub fn SemanticError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+#deprecated
+pub fn SemanticError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct Compilation {
@@ -115,6 +127,8 @@ pub fn Compilation::recipe_names(Self) -> ArrayView[String]
 pub fn Compilation::settings(Self) -> CompiledSettings
 pub fn Compilation::source_id(Self) -> @source.SourceId
 pub fn Compilation::symbols(Self) -> ArrayView[Symbol]
+#deprecated
+pub fn Compilation::to_repr(Self) -> @debug.Repr
 pub fn Compilation::unexports(Self) -> ArrayView[String]
 pub fn Compilation::variable(Self, String) -> @syntax.Assignment?
 pub fn Compilation::variable_names(Self) -> ArrayView[String]
@@ -130,6 +144,8 @@ pub fn CompiledSettings::has(Self, String) -> Bool
 pub fn CompiledSettings::kind(Self, String) -> SettingKind?
 pub fn CompiledSettings::names(Self) -> ArrayView[String]
 pub fn CompiledSettings::span(Self, String) -> @source.Span?
+#deprecated
+pub fn CompiledSettings::to_repr(Self) -> @debug.Repr
 
 pub struct ProjectCompilation {
   module_order : Array[@modulepath.ModulePath]
@@ -159,6 +175,8 @@ pub fn ProjectCompilation::resolve_recipe(Self, @modulepath.ModulePath, String) 
 pub fn ProjectCompilation::root(Self) -> Compilation
 pub fn ProjectCompilation::source_file(Self, @modulepath.ModulePath) -> @path.PathValue?
 pub fn ProjectCompilation::source_files(Self, @modulepath.ModulePath) -> ArrayView[(@source.SourceId, @path.PathValue)]
+#deprecated
+pub fn ProjectCompilation::to_repr(Self) -> @debug.Repr
 
 pub struct ProjectModule {
   module_path : @modulepath.ModulePath
@@ -179,13 +197,21 @@ pub fn ProjectModule::module_path(Self) -> @modulepath.ModulePath
 pub fn ProjectModule::new(@modulepath.ModulePath, Compilation, @path.PathValue, source_file? : @path.PathValue, source_files? : ArrayView[(@source.SourceId, @path.PathValue)], declaration_attributes? : Array[@syntax.Attribute], declaration_doc? : String, default_recipe? : String) -> Self
 pub fn ProjectModule::source_file(Self) -> @path.PathValue?
 pub fn ProjectModule::source_files(Self) -> ArrayView[(@source.SourceId, @path.PathValue)]
+#deprecated
+pub fn ProjectModule::to_repr(Self) -> @debug.Repr
 
 pub struct ProjectRecipe {
   module_path : @modulepath.ModulePath
   recipe_name : String
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ProjectRecipe::equal(Self, Self) -> Bool
 pub fn ProjectRecipe::module_path(Self) -> @modulepath.ModulePath
+#deprecated
+pub fn ProjectRecipe::not_equal(Self, Self) -> Bool
 pub fn ProjectRecipe::recipe_name(Self) -> String
+#deprecated
+pub fn ProjectRecipe::to_repr(Self) -> @debug.Repr
 
 pub struct RecipeAttributes {
   names : Array[String]
@@ -241,6 +267,8 @@ pub fn RecipeAttributes::private(Self) -> Bool
 pub fn RecipeAttributes::script(Self) -> Bool
 pub fn RecipeAttributes::script_interpreter(Self) -> ArrayView[@syntax.Expression]
 pub fn RecipeAttributes::shell(Self) -> ArrayView[@syntax.Expression]
+#deprecated
+pub fn RecipeAttributes::to_repr(Self) -> @debug.Repr
 pub fn RecipeAttributes::working_directory(Self) -> @syntax.Expression?
 
 pub(all) enum SettingKind {
@@ -248,16 +276,28 @@ pub(all) enum SettingKind {
   Text
   Expression
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn SettingKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn SettingKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SettingKind::to_repr(Self) -> @debug.Repr
 
 pub(all) struct SettingSpec {
   name : String
   kind : SettingKind
   required : Bool
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn SettingSpec::equal(Self, Self) -> Bool
 pub fn SettingSpec::kind(Self) -> SettingKind
 pub fn SettingSpec::name(Self) -> String
 pub fn SettingSpec::new(String, SettingKind, Bool) -> Self
+#deprecated
+pub fn SettingSpec::not_equal(Self, Self) -> Bool
 pub fn SettingSpec::required(Self) -> Bool
+#deprecated
+pub fn SettingSpec::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SettingValue {
   Flag
@@ -267,16 +307,28 @@ pub(all) enum SettingValue {
 } derive(Eq, @debug.Debug)
 pub fn SettingValue::as_bool(Self) -> Bool?
 pub fn SettingValue::as_text(Self) -> String?
+#deprecated
+pub fn SettingValue::equal(Self, Self) -> Bool
+#deprecated
+pub fn SettingValue::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SettingValue::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Symbol {
   name : String
   kind : SymbolKind
   span : @source.Span
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn Symbol::equal(Self, Self) -> Bool
 pub fn Symbol::kind(Self) -> SymbolKind
 pub fn Symbol::name(Self) -> String
 pub fn Symbol::new(String, SymbolKind, @source.Span) -> Self
+#deprecated
+pub fn Symbol::not_equal(Self, Self) -> Bool
 pub fn Symbol::span(Self) -> @source.Span
+#deprecated
+pub fn Symbol::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SymbolKind {
   Variable
@@ -284,6 +336,12 @@ pub(all) enum SymbolKind {
   Recipe
   Alias
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn SymbolKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn SymbolKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SymbolKind::to_repr(Self) -> @debug.Repr
 
 pub(all) enum TargetOs {
   Linux
@@ -297,14 +355,30 @@ pub(all) enum TargetOs {
   Unix
   Other(String)
 } derive(Eq, Hash, @debug.Debug)
+#deprecated
+pub fn TargetOs::equal(Self, Self) -> Bool
+#deprecated
+pub fn TargetOs::hash(Self) -> Int
+#deprecated
+pub fn TargetOs::hash_combine(Self, Hasher) -> Unit
+#deprecated
+pub fn TargetOs::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn TargetOs::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TargetPlatform {
   operating_system : TargetOs
   is_unix : Bool
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn TargetPlatform::equal(Self, Self) -> Bool
 pub fn TargetPlatform::is_unix(Self) -> Bool
 pub fn TargetPlatform::new(TargetOs, Bool) -> Self
+#deprecated
+pub fn TargetPlatform::not_equal(Self, Self) -> Bool
 pub fn TargetPlatform::operating_system(Self) -> TargetOs
+#deprecated
+pub fn TargetPlatform::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

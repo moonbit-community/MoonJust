@@ -55,21 +55,35 @@ pub(all) suberror LoaderError {
 } derive(Eq, @debug.Debug)
 pub fn LoaderError::code(Self) -> String
 pub fn LoaderError::diagnostic_source(Self) -> @source.Source?
+#deprecated
+pub fn LoaderError::equal(Self, Self) -> Bool
 pub fn LoaderError::message(Self) -> String
+#deprecated
+pub fn LoaderError::not_equal(Self, Self) -> Bool
 pub fn LoaderError::span(Self) -> @source.Span?
 pub fn LoaderError::to_diagnostic(Self, @source.Span) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+#deprecated
+pub fn LoaderError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) struct GraphLimits {
   max_files : Int
 } derive(Eq, @debug.Debug)
 pub fn GraphLimits::default() -> Self
+#deprecated
+pub fn GraphLimits::equal(Self, Self) -> Bool
 pub fn GraphLimits::new(Int) -> Self raise LoaderError
+#deprecated
+pub fn GraphLimits::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn GraphLimits::to_repr(Self) -> @debug.Repr
 
 pub struct LoadedGraph {
   files : Array[LoadedSource]
 } derive(@debug.Debug)
 pub fn LoadedGraph::files(Self) -> ArrayView[LoadedSource]
+#deprecated
+pub fn LoadedGraph::to_repr(Self) -> @debug.Repr
 
 pub(all) struct LoadedSource {
   path : @path.PathValue
@@ -91,6 +105,8 @@ pub fn LoadedSource::parent(Self) -> @path.PathValue?
 pub fn LoadedSource::path(Self) -> @path.PathValue
 pub fn LoadedSource::relation(Self) -> SourceRelation
 pub fn LoadedSource::source(Self) -> @source.Source
+#deprecated
+pub fn LoadedSource::to_repr(Self) -> @debug.Repr
 
 pub(all) struct SearchOptions {
   filename : String
@@ -99,16 +115,28 @@ pub(all) struct SearchOptions {
   global : @path.PathValue?
 } derive(Eq, @debug.Debug)
 pub fn SearchOptions::ceiling(Self) -> @path.PathValue?
+#deprecated
+pub fn SearchOptions::equal(Self, Self) -> Bool
 pub fn SearchOptions::explicit(Self) -> @path.PathValue?
 pub fn SearchOptions::filename(Self) -> String
 pub fn SearchOptions::global(Self) -> @path.PathValue?
 pub fn SearchOptions::new(filename? : String, ceiling? : @path.PathValue?, explicit? : @path.PathValue?, global? : @path.PathValue?) -> Self
+#deprecated
+pub fn SearchOptions::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SearchOptions::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SourceRelation {
   RootSource
   ImportedSource
   ModuleSource
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn SourceRelation::equal(Self, Self) -> Bool
+#deprecated
+pub fn SourceRelation::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SourceRelation::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

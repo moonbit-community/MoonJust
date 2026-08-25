@@ -18,12 +18,24 @@ pub(all) suberror CliContractError {
   InvalidRecipeExitCode(Int)
   InvalidSignalNumber(Int)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn CliContractError::equal(Self, Self) -> Bool
+#deprecated
+pub fn CliContractError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CliContractError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror CliParseError {
   Invalid(String)
   Config(String)
   Unsupported(String)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn CliParseError::equal(Self, Self) -> Bool
+#deprecated
+pub fn CliParseError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CliParseError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct ApplicationFailure {
@@ -34,6 +46,8 @@ pub fn ApplicationFailure::diagnostic(Self) -> @diagnostic.Diagnostic
 pub fn ApplicationFailure::exit_code(Self) -> Int
 pub fn ApplicationFailure::kind(Self) -> FailureKind
 pub fn ApplicationFailure::new(FailureKind, @diagnostic.Diagnostic) -> Self raise CliContractError
+#deprecated
+pub fn ApplicationFailure::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ApplicationRequest {
   Version
@@ -44,19 +58,31 @@ pub(all) enum ApplicationRequest {
   Run(InputSelection, ReadOnlyArray[String])
 } derive(Eq, @debug.Debug)
 pub fn ApplicationRequest::arguments(Self) -> ReadOnlyArray[String]?
+#deprecated
+pub fn ApplicationRequest::equal(Self, Self) -> Bool
+#deprecated
+pub fn ApplicationRequest::not_equal(Self, Self) -> Bool
 pub fn ApplicationRequest::run(InputSelection, Array[String]) -> Self
+#deprecated
+pub fn ApplicationRequest::to_repr(Self) -> @debug.Repr
 
 pub struct ApplicationResponse {
   stdout : Bytes
   stderr : Bytes
   exit_code : Int
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn ApplicationResponse::equal(Self, Self) -> Bool
 pub fn ApplicationResponse::exit_code(Self) -> Int
 pub fn ApplicationResponse::from_failure(ApplicationFailure, @source.SourceMap) -> Self raise @diagnostic.DiagnosticError
 pub fn ApplicationResponse::new(Bytes, Bytes, Int) -> Self
+#deprecated
+pub fn ApplicationResponse::not_equal(Self, Self) -> Bool
 pub fn ApplicationResponse::stderr(Self) -> BytesView
 pub fn ApplicationResponse::stdout(Self) -> BytesView
 pub fn ApplicationResponse::success(stdout? : Bytes, stderr? : Bytes) -> Self
+#deprecated
+pub fn ApplicationResponse::to_repr(Self) -> @debug.Repr
 
 pub struct CliArguments {
   command : CommandKind
@@ -99,6 +125,12 @@ pub(all) enum CommandKind {
   ChangelogCommand
   ManCommand
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn CommandKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn CommandKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CommandKind::to_repr(Self) -> @debug.Repr
 
 pub(all) enum FailureKind {
   Usage
@@ -116,12 +148,24 @@ pub(all) enum FailureKind {
   Internal
 } derive(Eq, @debug.Debug)
 pub fn FailureKind::as_string(Self) -> String
+#deprecated
+pub fn FailureKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn FailureKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn FailureKind::to_repr(Self) -> @debug.Repr
 
 pub(all) enum InputSelection {
   Search
   Stdin
   File(@path.PathValue)
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn InputSelection::equal(Self, Self) -> Bool
+#deprecated
+pub fn InputSelection::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn InputSelection::to_repr(Self) -> @debug.Repr
 
 pub(all) enum QueryKind {
   List
@@ -131,6 +175,12 @@ pub(all) enum QueryKind {
   Dump
   Json
 } derive(Eq, @debug.Debug)
+#deprecated
+pub fn QueryKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn QueryKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn QueryKind::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 
