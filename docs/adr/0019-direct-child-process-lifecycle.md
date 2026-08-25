@@ -44,9 +44,9 @@ The production contract becomes:
 4. Cancellation must terminate the direct child gracefully according to the
    async cancellation handler, then forcefully if the handler's grace period
    expires.
-5. Terminal-generated HUP/INT/QUIT behavior follows the host's foreground
-   process-group semantics. TERM is forwarded according to MoonJust's
-   direct-child policy.
+5. Terminal-generated behavior follows the host and async cancellation
+   semantics. MoonJust does not install a handler or forward TERM itself;
+   signal-specific policy is defined by ADR-0020.
 6. MoonJust does not promise to terminate detached, daemonized, regrouped, or
    otherwise indirect descendants.
 

@@ -19,4 +19,4 @@ identities are retained for traceability.
 | Phase 9 | [`PHASE_9_REPORT.md`](PHASE_9_REPORT.md) |
 | Phase 10 | [`PHASE_10_REPORT.md`](PHASE_10_REPORT.md) |
 | Phase 11 | [`PHASE_11_REPORT.md`](PHASE_11_REPORT.md) |
-| Current platform closure | [`PLATFORM_COMPATIBILITY.md`](PLATFORM_COMPATIBILITY.md) |
+| Current release and platform closure | [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md) |

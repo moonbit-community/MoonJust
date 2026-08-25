@@ -26,7 +26,7 @@ platform conclusion is consolidated in [`PHASE_12_REPORT.md`](PHASE_12_REPORT.md
   coverage at 80%; changed-line, area and frozen package baselines are report
   fields, not failure conditions. Main and release workflows run report-only
   benchmarks on all three supported platforms and gate execution, sample
-  completeness and provenance, without authoritative timing thresholds.
+  completeness and provenance, without fixed timing thresholds.
 - CI orchestration uses Python 3.11 with native Windows path and artifact
   handling. The former host-async lifecycle harness remains isolated as
   historical Unix-only evidence and is not a current release gate.
@@ -56,16 +56,16 @@ Windows wide-character paths, and the documented non-UTF-8 cwd classification.
 MoonBit `extern "C"` declarations reference system ABI or approved dependency
 backends; no project C shim or new dependency was added.
 
-Local second-pass evidence: host-native 9/9, Native 1110/1110, Wasm 1097/1097,
+Local second-pass evidence: Native 1111/1111, Wasm 1097/1097,
 all-target check with warnings denied, naming and architecture checks, and the
 pinned 2,417-registration snapshot/differential smoke all passed. Exact-head
 three-platform artifacts, ASan/UBSan and RC release evidence remain CI-owned
 gates and must be attached to the final main SHA. The macOS-only full upstream
 harness retains the pre-existing `dotenv::fifo` environment-source limitation;
 signal cases are recorded as async-only policy evidence, while
-`signals::forwarding` remains the ADR-0019 direct-child exception, and Linux CI remains authoritative
-for the FIFO case. The current CI workflow no longer treats Linux timing or
-authoritative performance as a release gate.
+`signals::forwarding` remains the ADR-0019 direct-child exception. Linux CI
+supplies the target-platform FIFO evidence. The current CI workflow does not
+impose a fixed timing or performance gate.
 
 The active gate requires ordinary commits on `main`, exact-head CI/RC evidence,
 unchanged stable `.mbti` declarations, all-target tests, architecture and

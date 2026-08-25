@@ -57,7 +57,9 @@ The default command writes a machine-readable candidate report below
 `_build/upstream-harness/` and fails on every unapproved difference. Results
 are classified as `exact`, `diagnostic-exact`, `diagnostic-semantic`,
 `product-identity`, `excluded-completion`, `upstream-ignored`,
-`not-applicable`, or `failed`.
+`not-applicable`, `approved-difference`, or `failed`. Approved signal
+differences are bounded by ADR-0020 and do not enter the compatibility
+denominator.
 Exceptions are exact test IDs in
 `tests/upstream/just-1.57.0/compatibility-exceptions.toml`; wildcards are not
 accepted.

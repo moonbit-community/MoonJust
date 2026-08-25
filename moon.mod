@@ -19,3 +19,17 @@ import {
   "moonbitlang/x@0.5.1",
   "moonbitlang/regexp@0.3.5",
 }
+
+options(
+  exclude: [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "compat/",
+    "docs/adr/",
+    "docs/reports/",
+    "docs/spikes/",
+    "spikes/",
+    "tests/",
+    "tools/",
+  ],
+)
