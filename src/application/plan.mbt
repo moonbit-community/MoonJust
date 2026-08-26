@@ -447,11 +447,15 @@ fn compilation_supports_sync_dry_run(
   if settings.bool("guards") || settings.bool("default-script") {
     return false
   }
+  let mut has_recipe_line = false
   for recipe_name in compilation.recipe_names() {
     guard compilation.recipe(recipe_name) is Some(recipe) else { return false }
     if !recipe.attributes().is_empty() ||
       recipe_has_shebang_for_sync_check(recipe) {
       return false
+    }
+    if !recipe.lines().is_empty() {
+      has_recipe_line = true
     }
     for parameter in recipe.parameters() {
       match parameter.default_value() {
@@ -483,7 +487,7 @@ fn compilation_supports_sync_dry_run(
       }
     }
   }
-  true
+  has_recipe_line
 }
 
 ///|
