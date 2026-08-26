@@ -697,6 +697,9 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 async fn main {
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
+  // Construct the filesystem adapter before the environment snapshot. The
+  // portable adapter resets its invocation-local snapshots on construction.
+  let host = runtime_host()
   let environment_host = runtime_environment_host()
   match static_invocation_response(argv) {
     Some(response) => emit_response(response)
@@ -721,7 +724,7 @@ async fn main {
               b""
             }
             let response = run_prepared_cli(
-              runtime_host(),
+              host,
               environment_host,
               arguments,
               environment,

@@ -112,6 +112,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
   let files : Array[LoadedSource] = []
   let source_cache : Map[String, Bytes] = Map([])
   let canonical_cache : Map[String, @path.PathValue] = Map([])
+  let metadata_cache : Map[String, @host.FileMetadata] = Map([])
   let active : Set[GraphNodeKey] = Set([])
   let active_paths : Set[@path.PathValue] = Set([])
   let visited : Set[GraphNodeKey] = Set([])
@@ -221,7 +222,14 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
           if !@semantic.platform_attributes_match(value.attributes(), platform) {
             continue
           }
-          match resolve_module_file(host, path, value, environment~) {
+          match
+            resolve_module_file(
+              host,
+              path,
+              value,
+              environment~,
+              metadata_cache~,
+            ) {
             None => ()
             Some(child) =>
               visit(

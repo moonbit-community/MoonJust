@@ -10,8 +10,31 @@ pub struct PortableHost {
 }
 
 ///|
+/// These snapshots are shared by value-copied host adapters during one CLI
+/// invocation. `PortableHost::new` resets them before a new invocation, while
+/// clock and random capabilities remain uncached.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+let portable_environment_cache : Ref[Array[(String, String)]?] = Ref(None)
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+let portable_current_dir_cache : Ref[@path.PathValue?] = Ref(None)
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+let portable_platform_cache : Ref[@host.PlatformInfo?] = Ref(None)
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+let portable_terminal_cache : Ref[@host.TerminalInfo?] = Ref(None)
+
+///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub fn PortableHost::new() -> PortableHost {
+  portable_environment_cache.val = None
+  portable_current_dir_cache.val = None
+  portable_platform_cache.val = None
+  portable_terminal_cache.val = None
   { marker: () }
 }
 
@@ -258,7 +281,12 @@ pub impl @host.HostEnv for PortableHost with fn env_get(
   _self : PortableHost,
   key : String,
 ) -> String? raise @host.HostError {
-  @env.get_env_var(key)
+  for entry in portable_environment() {
+    if entry.0 == key {
+      return Some(entry.1)
+    }
+  }
+  None
 }
 
 ///|
@@ -266,10 +294,81 @@ pub impl @host.HostEnv for PortableHost with fn env_get(
 pub impl @host.HostEnv for PortableHost with fn env_entries(
   _self : PortableHost,
 ) -> Array[(String, String)] raise @host.HostError {
-  let variables = @env.get_env_vars()
-  let keys = variables.keys().collect()
-  keys.sort_by(fn(left, right) { left.compare(right) })
-  keys.map(fn(key) { (key, variables[key]) })
+  portable_environment().copy()
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn portable_environment() -> Array[(String, String)] {
+  match portable_environment_cache.val {
+    Some(value) => value
+    None => {
+      let variables = @env.get_env_vars()
+      let keys = variables.keys().collect()
+      keys.sort_by(fn(left, right) { left.compare(right) })
+      let value = keys.map(fn(key) { (key, variables[key]) })
+      portable_environment_cache.val = Some(value)
+      value
+    }
+  }
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn portable_current_dir() -> @path.PathValue raise @host.HostError {
+  match portable_current_dir_cache.val {
+    Some(value) => value
+    None => {
+      let os = portable_os()
+      let value = @path.PathValue::new(
+        @env.current_dir().unwrap_or("."),
+        portable_flavor(os),
+      ) catch {
+        _ =>
+          raise InvalidInput("current directory has an invalid representation")
+      }
+      portable_current_dir_cache.val = Some(value)
+      value
+    }
+  }
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn portable_platform() -> @host.PlatformInfo {
+  match portable_platform_cache.val {
+    Some(value) => value
+    None => {
+      let os = portable_os()
+      let value = @host.PlatformInfo::new(
+        os,
+        portable_architecture(@env.get_env_var("MOONJUST_ARCH")),
+        portable_flavor(os),
+        portable_runtime=true,
+        pid?=portable_positive_int("MOONJUST_PID"),
+        num_cpus?=portable_positive_int("MOONJUST_NUM_CPUS"),
+        executable?=match @env.get_env_var("MOONJUST_EXECUTABLE") {
+          Some(value) => Some(value)
+          None => @env.args().get(0)
+        },
+      )
+      portable_platform_cache.val = Some(value)
+      value
+    }
+  }
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn portable_terminal() -> @host.TerminalInfo {
+  match portable_terminal_cache.val {
+    Some(value) => value
+    None => {
+      let value = @host.TerminalInfo::new(false, false, false, false)
+      portable_terminal_cache.val = Some(value)
+      value
+    }
+  }
 }
 
 ///|
@@ -277,10 +376,7 @@ pub impl @host.HostEnv for PortableHost with fn env_entries(
 pub impl @host.HostEnv for PortableHost with fn current_dir(
   _self : PortableHost,
 ) -> @path.PathValue raise @host.HostError {
-  let os = portable_os()
-  @path.PathValue::new(@env.current_dir().unwrap_or("."), portable_flavor(os)) catch {
-    _ => raise InvalidInput("current directory has an invalid representation")
-  }
+  portable_current_dir()
 }
 
 ///|
@@ -311,7 +407,7 @@ pub impl @host.HostRandom for PortableHost with fn random_bytes(
 pub impl @host.HostTerminal for PortableHost with fn terminal_info(
   _self : PortableHost,
 ) -> @host.TerminalInfo raise @host.HostError {
-  @host.TerminalInfo::new(false, false, false, false)
+  portable_terminal()
 }
 
 ///|
@@ -319,17 +415,5 @@ pub impl @host.HostTerminal for PortableHost with fn terminal_info(
 pub impl @host.HostPlatform for PortableHost with fn platform_info(
   _self : PortableHost,
 ) -> @host.PlatformInfo raise @host.HostError {
-  let os = portable_os()
-  @host.PlatformInfo::new(
-    os,
-    portable_architecture(@env.get_env_var("MOONJUST_ARCH")),
-    portable_flavor(os),
-    portable_runtime=true,
-    pid?=portable_positive_int("MOONJUST_PID"),
-    num_cpus?=portable_positive_int("MOONJUST_NUM_CPUS"),
-    executable?=match @env.get_env_var("MOONJUST_EXECUTABLE") {
-      Some(value) => Some(value)
-      None => @env.args().get(0)
-    },
-  )
+  portable_platform()
 }

@@ -550,10 +550,32 @@ fn import_path(
 }
 
 ///|
+/// Metadata is scoped to one graph load. Recipes execute after the graph is
+/// discarded, so a file changed by a recipe can never be observed through it.
+fn[T : @host.HostFs] metadata_cached(
+  host : T,
+  path : @path.PathValue,
+  cache : Map[String, @host.FileMetadata],
+) -> @host.FileMetadata raise LoaderError {
+  let key = path.as_string()
+  match cache.get(key) {
+    Some(value) => value
+    None => {
+      let value = @host.HostFs::metadata(host, path) catch {
+        error => raise Host(error)
+      }
+      cache[key] = value
+      value
+    }
+  }
+}
+
+///|
 fn[T : @host.HostFs] push_existing_module_candidate(
   host : T,
   candidates : Array[@path.PathValue],
   path : @path.PathValue,
+  metadata_cache? : Map[String, @host.FileMetadata] = Map([]),
 ) -> Unit raise LoaderError {
   let exists = @host.HostFs::file_exists(host, path) catch {
     error => raise Host(error)
@@ -561,9 +583,7 @@ fn[T : @host.HostFs] push_existing_module_candidate(
   if !exists {
     return
   }
-  let metadata = @host.HostFs::metadata(host, path) catch {
-    error => raise Host(error)
-  }
+  let metadata = metadata_cached(host, path, metadata_cache)
   if !metadata.is_file() {
     return
   }
@@ -599,14 +619,15 @@ fn[T : @host.HostFs] push_module_directory_candidates(
   host : T,
   candidates : Array[@path.PathValue],
   directory : @path.PathValue,
+  metadata_cache? : Map[String, @host.FileMetadata] = Map([]),
 ) -> Unit raise LoaderError {
   let exists = @host.HostFs::file_exists(host, directory) catch {
     error => raise Host(error)
   }
   if exists {
-    let metadata = try @host.HostFs::metadata(host, directory) catch {
-      NotFound(_) => return
-      error => raise Host(error)
+    let metadata = try metadata_cached(host, directory, metadata_cache) catch {
+      Host(NotFound(_)) => return
+      error => raise error
     } noraise {
       value => value
     }
@@ -636,6 +657,7 @@ fn[T : @host.HostFs] push_module_directory_candidates(
       directory.join(child) catch {
         _ => raise Host(InvalidInput("module candidate flavor mismatch"))
       },
+      metadata_cache~,
     )
   }
 }
@@ -646,15 +668,26 @@ fn[T : @host.HostFs] resolve_module_file(
   source_path : @path.PathValue,
   definition : @syntax.Module,
   environment? : ArrayView[(String, String)] = [],
+  metadata_cache? : Map[String, @host.FileMetadata] = Map([]),
 ) -> @path.PathValue? raise LoaderError {
   let directory = source_path.parent().unwrap_or(source_path)
   let candidates : Array[@path.PathValue] = []
   match definition.path() {
     Some(literal) => {
       let explicit = import_path(source_path, literal, environment~)
-      push_existing_module_candidate(host, candidates, explicit)
+      push_existing_module_candidate(
+        host,
+        candidates,
+        explicit,
+        metadata_cache~,
+      )
       if candidates.is_empty() {
-        push_module_directory_candidates(host, candidates, explicit)
+        push_module_directory_candidates(
+          host,
+          candidates,
+          explicit,
+          metadata_cache~,
+        )
       }
     }
     None => {
@@ -670,6 +703,7 @@ fn[T : @host.HostFs] resolve_module_file(
         directory.join(direct) catch {
           _ => raise Host(InvalidInput("module candidate flavor mismatch"))
         },
+        metadata_cache~,
       )
       let module_directory = directory.join(
         @path.PathValue::new(definition.name(), directory.flavor()) catch {
@@ -678,7 +712,12 @@ fn[T : @host.HostFs] resolve_module_file(
       ) catch {
         _ => raise Host(InvalidInput("module directory flavor mismatch"))
       }
-      push_module_directory_candidates(host, candidates, module_directory)
+      push_module_directory_candidates(
+        host,
+        candidates,
+        module_directory,
+        metadata_cache~,
+      )
     }
   }
   if candidates.length() > 1 {
@@ -728,6 +767,7 @@ fn[T : @host.HostFs] build_graph(
   let files : Array[LoadedSource] = []
   let source_cache : Map[String, Bytes] = Map([])
   let canonical_cache : Map[String, @path.PathValue] = Map([])
+  let metadata_cache : Map[String, @host.FileMetadata] = Map([])
   let active : Set[GraphNodeKey] = Set([])
   let active_paths : Set[@path.PathValue] = Set([])
   let visited : Set[GraphNodeKey] = Set([])
@@ -837,7 +877,14 @@ fn[T : @host.HostFs] build_graph(
           if !@semantic.platform_attributes_match(value.attributes(), platform) {
             continue
           }
-          match resolve_module_file(host, path, value, environment~) {
+          match
+            resolve_module_file(
+              host,
+              path,
+              value,
+              environment~,
+              metadata_cache~,
+            ) {
             None => ()
             Some(child) =>
               visit(
