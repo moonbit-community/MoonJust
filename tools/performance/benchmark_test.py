@@ -151,6 +151,15 @@ class BenchmarkTest(unittest.TestCase):
             )
             self.assertIsNone(value)
 
+    def test_collect_phase_trace_keeps_probe_failures_out_of_latency_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            value = benchmark.collect_phase_trace(
+                [sys.executable, "-c", "import sys; print('probe failed', file=sys.stderr); sys.exit(3)"],
+                Path(raw),
+            )
+            self.assertEqual(value["error"], "trace command failed with exit code 3")
+            self.assertIn("probe failed", value["stderr_tail"])
+
 
 if __name__ == "__main__":
     unittest.main()

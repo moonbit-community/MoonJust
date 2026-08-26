@@ -426,10 +426,10 @@ def collect_phase_trace(command: list[str], cwd: Path) -> dict[str, object] | No
         timeout=120,
     )
     if result.returncode != 0:
-        raise RuntimeError(
-            f"trace command failed ({result.returncode}): {command!r}\n"
-            + result.stderr.decode(errors="replace")[:2000]
-        )
+        return {
+            "error": f"trace command failed with exit code {result.returncode}",
+            "stderr_tail": result.stderr.decode(errors="replace")[-2000:],
+        }
     traces: list[dict[str, object]] = []
     for line in result.stderr.decode(errors="replace").splitlines():
         if not line.startswith("MOONJUST_PERF_TRACE "):
