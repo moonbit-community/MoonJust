@@ -419,7 +419,8 @@ async fn[
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
   P : @host.HostAsyncProcess + @host.HostAsyncOutput,
 ] execute_run(
-  host : F,
+  loading_host : F,
+  execution_host : F,
   environment_host : E,
   process : P,
   arguments : @cli.CliArguments,
@@ -428,10 +429,10 @@ async fn[
 ) -> @cli.ApplicationResponse {
   let plan = try
     @application.plan_run_command_async(
-      host, environment_host, process, arguments, context,
+      loading_host, environment_host, process, arguments, context,
     )
   catch {
-    error => return application_failure(host, arguments, context, error)
+    error => return application_failure(loading_host, arguments, context, error)
   } noraise {
     value => value
   }
@@ -442,8 +443,13 @@ async fn[
       None => ()
     }
   }
+  // The portable loader cache is discarded at the execution boundary. Recipes
+  // may rewrite any path that was inspected while planning.
+  ignore(runtime_environment_host())
   let summary = try
-    @runtime.execute_plan_live(process, process, host, environment_host, plan)
+    @runtime.execute_plan_live(
+      process, process, execution_host, environment_host, plan,
+    )
   catch {
     error =>
       return if arguments.flag("quiet") || !error.show_message() {
@@ -452,7 +458,7 @@ async fn[
         let message = match error.error() {
           Evaluation(evaluation) =>
             @application.render_application_error_async(
-              host,
+              loading_host,
               arguments,
               context,
               Evaluation(evaluation),
@@ -492,7 +498,8 @@ async fn[
   F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAtomicFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] run_prepared_cli(
-  host : F,
+  loading_host : F,
+  execution_host : F,
   environment_host : E,
   arguments : @cli.CliArguments,
   environment : InvocationEnvironment,
@@ -529,7 +536,7 @@ async fn[
   perf_trace_mark(trace, "application.context")
   let context = try
     @application.resolve_global_context(
-      host, environment_host, arguments, context,
+      loading_host, environment_host, arguments, context,
     )
   catch {
     error =>
@@ -544,9 +551,10 @@ async fn[
   if arguments.command() == RunCommand {
     perf_trace_mark(trace, "application.dispatch")
     let default_list = try
-      dispatch_default_list(host, environment_host, arguments, context)
+      dispatch_default_list(loading_host, environment_host, arguments, context)
     catch {
-      error => return application_failure(host, arguments, context, error)
+      error =>
+        return application_failure(loading_host, arguments, context, error)
     } noraise {
       value => value
     }
@@ -555,16 +563,25 @@ async fn[
       None => ()
     }
     let process = @host_process.ProcessAdapter::new()
-    execute_run(host, environment_host, process, arguments, context, trace~)
+    execute_run(
+      loading_host,
+      execution_host,
+      environment_host,
+      process,
+      arguments,
+      context,
+      trace~,
+    )
   } else if arguments.command() == ChooseCommand {
     perf_trace_mark(trace, "application.dispatch")
     let process = @host_process.ProcessAdapter::new()
     let selections = try
       @application.execute_choose_command_async(
-        host, environment_host, process, arguments, context,
+        loading_host, environment_host, process, arguments, context,
       )
     catch {
-      error => return application_failure(host, arguments, context, error)
+      error =>
+        return application_failure(loading_host, arguments, context, error)
     } noraise {
       value => value
     }
@@ -572,7 +589,8 @@ async fn[
     let stderr : Array[Byte] = []
     for selection in selections {
       let response = execute_run(
-        host,
+        loading_host,
+        execution_host,
         environment_host,
         process,
         arguments.with_run_positionals(selection),
@@ -598,17 +616,19 @@ async fn[
     let process = @host_process.ProcessAdapter::new()
     try
       @application.execute_edit_command_async(
-        host, environment_host, process, arguments, context,
+        loading_host, environment_host, process, arguments, context,
       )
     catch {
-      error => application_failure(host, arguments, context, error)
+      error => application_failure(loading_host, arguments, context, error)
     } noraise {
       response => response
     }
   } else if arguments.command() == CleanCommand {
     perf_trace_mark(trace, "application.dispatch")
-    try @application.execute_clean_command(host, arguments, context) catch {
-      error => application_failure(host, arguments, context, error)
+    try
+      @application.execute_clean_command(loading_host, arguments, context)
+    catch {
+      error => application_failure(loading_host, arguments, context, error)
     } noraise {
       response => response
     }
@@ -617,9 +637,9 @@ async fn[
     arguments.command() == InitCommand {
     perf_trace_mark(trace, "application.dispatch")
     try
-      @application.execute_file_command_async(host, arguments, context)
+      @application.execute_file_command_async(loading_host, arguments, context)
     catch {
-      error => application_failure(host, arguments, context, error)
+      error => application_failure(loading_host, arguments, context, error)
     } noraise {
       response => response
     }
@@ -628,10 +648,10 @@ async fn[
     let process = @host_process.ProcessAdapter::new()
     try
       @application.execute_evaluate_command_async(
-        host, environment_host, process, arguments, context,
+        loading_host, environment_host, process, arguments, context,
       )
     catch {
-      error => application_failure(host, arguments, context, error)
+      error => application_failure(loading_host, arguments, context, error)
     } noraise {
       response => response
     }
@@ -640,25 +660,29 @@ async fn[
     let process = @host_process.ProcessAdapter::new()
     try
       @application.execute_command_command_async(
-        host, environment_host, process, arguments, context,
+        loading_host, environment_host, process, arguments, context,
       )
     catch {
-      error => application_failure(host, arguments, context, error)
+      error => application_failure(loading_host, arguments, context, error)
     } noraise {
       response => response
     }
   } else if arguments.command() == DumpCommand ||
     arguments.command() == JsonCommand {
     perf_trace_mark(trace, "application.dispatch")
-    try dispatch_inspect(host, arguments, context, environment.entries) catch {
-      error => application_failure(host, arguments, context, error)
+    try
+      dispatch_inspect(loading_host, arguments, context, environment.entries)
+    catch {
+      error => application_failure(loading_host, arguments, context, error)
     } noraise {
       response => response
     }
   } else {
     perf_trace_mark(trace, "application.dispatch")
-    try dispatch_query(host, environment_host, arguments, context) catch {
-      error => application_failure(host, arguments, context, error)
+    try
+      dispatch_query(loading_host, environment_host, arguments, context)
+    catch {
+      error => application_failure(loading_host, arguments, context, error)
     } noraise {
       response => response
     }
@@ -678,7 +702,9 @@ async fn[
   match prepare_invocation(environment_host, argv) {
     Respond(response) => response
     Ready(arguments, environment) =>
-      run_prepared_cli(host, environment_host, arguments, environment, stdin)
+      run_prepared_cli(
+        host, host, environment_host, arguments, environment, stdin,
+      )
   }
 }
 
@@ -723,14 +749,30 @@ async fn main {
             } else {
               b""
             }
-            let response = run_prepared_cli(
-              host,
-              environment_host,
-              arguments,
-              environment,
-              stdin,
-              trace~,
-            )
+            let response = if arguments.command() == RunCommand ||
+              arguments.command() == ChooseCommand {
+              // Keep execution reads isolated from the planning/load cache.
+              let execution_host = runtime_host()
+              run_prepared_cli(
+                host,
+                execution_host,
+                environment_host,
+                arguments,
+                environment,
+                stdin,
+                trace~,
+              )
+            } else {
+              run_prepared_cli(
+                host,
+                host,
+                environment_host,
+                arguments,
+                environment,
+                stdin,
+                trace~,
+              )
+            }
             match trace {
               Some(value) => {
                 value.mark("application.complete")

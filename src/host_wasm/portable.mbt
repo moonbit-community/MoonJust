@@ -29,12 +29,26 @@ let portable_platform_cache : Ref[@host.PlatformInfo?] = Ref(None)
 let portable_terminal_cache : Ref[@host.TerminalInfo?] = Ref(None)
 
 ///|
+/// Source bytes are shared by the filesystem operations used during one
+/// load. The cache is reset for every new host invocation and before recipe
+/// execution, so commands always observe files from the execution boundary.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+let portable_file_cache : Ref[Map[String, Bytes]] = Ref(Map([]))
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn portable_clear_file_cache() -> Unit {
+  portable_file_cache.val = Map([])
+}
+
+///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub fn PortableHost::new() -> PortableHost {
   portable_environment_cache.val = None
   portable_current_dir_cache.val = None
   portable_platform_cache.val = None
   portable_terminal_cache.val = None
+  portable_clear_file_cache()
   { marker: () }
 }
 
@@ -48,10 +62,23 @@ fn portable_io_error(error : @fs.IOError) -> @host.HostError {
 
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-fn portable_file_size(path : String) -> Int64 raise @host.HostError {
-  let contents = @fs.read_file_to_bytes(path) catch {
-    error => raise portable_io_error(error)
+fn portable_read_file(path : String) -> Bytes raise @host.HostError {
+  match portable_file_cache.val.get(path) {
+    Some(contents) => contents
+    None => {
+      let contents = @fs.read_file_to_bytes(path) catch {
+        error => raise portable_io_error(error)
+      }
+      portable_file_cache.val[path] = contents
+      contents
+    }
   }
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn portable_file_size(path : String) -> Int64 raise @host.HostError {
+  let contents = portable_read_file(path)
   contents.length().to_int64()
 }
 
@@ -61,9 +88,7 @@ pub impl @host.HostFs for PortableHost with fn read_file(
   _self : PortableHost,
   path : @path.PathValue,
 ) -> Bytes raise @host.HostError {
-  @fs.read_file_to_bytes(path.as_string()) catch {
-    error => raise portable_io_error(error)
-  }
+  portable_read_file(path.as_string())
 }
 
 ///|
@@ -77,9 +102,7 @@ pub impl @host.HostFs for PortableHost with fn read_file_range(
   if offset < 0L || length < 0 || offset > 0x7fff_ffffL {
     raise InvalidInput("file range must be representable and non-negative")
   }
-  let contents = @fs.read_file_to_bytes(path.as_string()) catch {
-    error => raise portable_io_error(error)
-  }
+  let contents = portable_read_file(path.as_string())
   let start = offset.to_int()
   if start >= contents.length() {
     return b""
@@ -97,6 +120,7 @@ pub impl @host.HostFs for PortableHost with fn write_file(
   @fs.write_bytes_to_file(path.as_string(), contents) catch {
     error => raise portable_io_error(error)
   }
+  portable_clear_file_cache()
 }
 
 ///|
@@ -199,7 +223,11 @@ async fn portable_read_source(
     }
     result.write_bytes(chunk)
   }
-  result.to_bytes()
+  let contents = result.to_bytes()
+  if contents.length() <= max_bytes {
+    portable_file_cache.val[path.as_string()] = contents
+  }
+  contents
 }
 
 ///|
@@ -212,10 +240,12 @@ fn portable_read_source(
   if max_bytes < 0 || max_bytes == 0x7fffffff {
     raise InvalidInput("source byte limit is invalid")
   }
-  let contents = @fs.read_file_to_bytes(path.as_string()) catch {
-    error => raise portable_io_error(error)
+  let contents = portable_read_file(path.as_string())
+  if contents.length() <= max_bytes {
+    contents
+  } else {
+    contents[:max_bytes + 1].to_owned()
   }
-  contents[:Int::min(contents.length(), max_bytes + 1)].to_owned()
 }
 
 ///|

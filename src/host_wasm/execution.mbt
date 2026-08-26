@@ -226,7 +226,12 @@ pub impl @host.HostAtomicFs for ExecutionFs with fn write_file_atomic(
         raise execution_atomic_error(error, path)
       }
     } noraise {
-      _ => return
+      _ => {
+        // Atomic writes bypass PortableHost::write_file, so invalidate the
+        // load snapshot after the rename becomes visible.
+        portable_clear_file_cache()
+        return
+      }
     }
   }
   raise InvalidInput("temporary file namespace exhausted")
