@@ -693,37 +693,41 @@ async fn main {
     Some(response) => emit_response(response)
     None => {
       let trace = perf_trace_new()
-      @host_process.prepare_signal_forwarding()
-      match prepare_invocation(environment_host, argv, trace~) {
-        Respond(response) => emit_response(response)
-        Ready(arguments, environment) => {
-          let stdin = if !arguments.flag("help") &&
-            !arguments.flag("version") &&
-            arguments.value("justfile") == Some("-") {
-            read_stdin_source_bounded(
-              @lexer.LexerLimits::default().max_source_bytes(),
-            ) catch {
-              _ => b""
+      @async.with_task_group() <| group => {
+        // Keep the async root-task signal policy used by the compatibility
+        // harness. Static requests return before this group is created.
+        ignore(@host_process.configure_signal_forwarding(group, false))
+        match prepare_invocation(environment_host, argv, trace~) {
+          Respond(response) => emit_response(response)
+          Ready(arguments, environment) => {
+            let stdin = if !arguments.flag("help") &&
+              !arguments.flag("version") &&
+              arguments.value("justfile") == Some("-") {
+              read_stdin_source_bounded(
+                @lexer.LexerLimits::default().max_source_bytes(),
+              ) catch {
+                _ => b""
+              }
+            } else {
+              b""
             }
-          } else {
-            b""
-          }
-          let response = run_prepared_cli(
-            runtime_host(),
-            environment_host,
-            arguments,
-            environment,
-            stdin,
-            trace~,
-          )
-          match trace {
-            Some(value) => {
-              value.mark("application.complete")
-              value.emit()
+            let response = run_prepared_cli(
+              runtime_host(),
+              environment_host,
+              arguments,
+              environment,
+              stdin,
+              trace~,
+            )
+            match trace {
+              Some(value) => {
+                value.mark("application.complete")
+                value.emit()
+              }
+              None => ()
             }
-            None => ()
+            emit_response(response)
           }
-          emit_response(response)
         }
       }
     }
