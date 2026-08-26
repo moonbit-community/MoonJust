@@ -410,6 +410,97 @@ fn cache_directory(
 }
 
 ///|
+/// The synchronous executor is safe for a deliberately narrow dry-run shape.
+/// Keep this predicate conservative: an unsupported expression must retain the
+/// async evaluator's effect and diagnostic behavior rather than being retried
+/// after a synchronous failure.
+fn expression_uses_effects(expression : @syntax.Expression) -> Bool {
+  match expression {
+    String(_) | Boolean(_) | Variable(_) => false
+    Backtick(_) | Call(_) => true
+    List(elements~, ..) => elements.any(expression_uses_effects)
+    Parenthesized(expression~, ..) => expression_uses_effects(expression)
+    Unary(operand~, ..) => expression_uses_effects(operand)
+    Binary(lhs~, rhs~, ..) =>
+      expression_uses_effects(lhs) || expression_uses_effects(rhs)
+    Conditional(condition~, then_branch~, else_branch~, ..) =>
+      expression_uses_effects(condition) ||
+      expression_uses_effects(then_branch) ||
+      else_branch.map(expression_uses_effects).unwrap_or(false)
+    Format(parts~, ..) =>
+      parts.any(fn(part) { expression_uses_effects(part.expression()) })
+  }
+}
+
+///|
+fn recipe_has_shebang_for_sync_check(recipe : @syntax.Recipe) -> Bool {
+  guard recipe.lines().get(0) is Some(line) else { return false }
+  guard line.fragments().get(0) is Some(Text(text~, ..)) else { return false }
+  text.has_prefix("#!")
+}
+
+///|
+fn compilation_supports_sync_dry_run(
+  compilation : @semantic.Compilation,
+) -> Bool {
+  let settings = compilation.settings()
+  if settings.bool("guards") || settings.bool("default-script") {
+    return false
+  }
+  for recipe_name in compilation.recipe_names() {
+    guard compilation.recipe(recipe_name) is Some(recipe) else { return false }
+    if !recipe.attributes().is_empty() ||
+      recipe_has_shebang_for_sync_check(recipe) {
+      return false
+    }
+    for parameter in recipe.parameters() {
+      match parameter.default_value() {
+        Some(expression) if expression_uses_effects(expression) => return false
+        _ => ()
+      }
+    }
+    for dependency in recipe.dependencies() {
+      for expression in dependency.arguments() {
+        if expression_uses_effects(expression) {
+          return false
+        }
+      }
+    }
+    for dependency in recipe.subsequent_dependencies() {
+      for expression in dependency.arguments() {
+        if expression_uses_effects(expression) {
+          return false
+        }
+      }
+    }
+    for line in recipe.lines() {
+      for fragment in line.fragments() {
+        match fragment {
+          Interpolation(expression~, ..) if expression_uses_effects(expression) =>
+            return false
+          _ => ()
+        }
+      }
+    }
+  }
+  true
+}
+
+///|
+fn project_supports_sync_dry_run(
+  project : @semantic.ProjectCompilation,
+) -> Bool {
+  if project.module_paths().length() != 1 {
+    return false
+  }
+  guard project.module_paths().get(0) is Some(path) else { return false }
+  guard project.module_compilation(path) is Some(compilation) else {
+    return false
+  }
+  compilation_supports_sync_dry_run(compilation)
+}
+
+///|
 fn project_module_base(
   project : @semantic.ProjectCompilation,
   directories : @workdir.WorkingDirectoryModel,
@@ -1838,6 +1929,47 @@ pub async fn[
       )
     }
     let requests : Array[@executor.ProjectRecipeRequest] = []
+    let sync_dry_run = arguments.flag("dry-run") &&
+      !arguments.flag("explain") &&
+      project_supports_sync_dry_run(project)
+    if sync_dry_run {
+      let plans : Array[@executor.ExecutionPlan] = []
+      for project_invocation in invocations {
+        let path = project_invocation.module_path()
+        let invocation = project_invocation.invocation()
+        let compilation = project.module_compilation(path).unwrap()
+        let global = globals[path]
+        let mut selected_runtime : @executor.ProjectModuleRuntime? = None
+        for runtime in runtimes {
+          if runtime.module_path() == path {
+            selected_runtime = Some(runtime)
+            break
+          }
+        }
+        let runtime = selected_runtime.unwrap()
+        let values = invocation_values(compilation, invocation, global)
+        let plan = @executor.plan_recipe_graph(
+          compilation,
+          [@executor.RecipeRequest::new(invocation.recipe(), arguments=values)],
+          global,
+          runtime.shell(),
+          runtime.cwd(),
+          process_environment=runtime.process_environment(),
+          options=options.with_echo_quiet(
+            options.echo_quiet() || compilation.settings().bool("quiet"),
+          ),
+        ) catch {
+          error => raise Executor(error)
+        }
+        plans.push(plan)
+      }
+      let combined = @executor.combine_execution_plans(plans)
+      let prefix = fallback_stderr.to_string()
+      if prefix == "" {
+        return combined
+      }
+      return combined.with_stderr_prefix(@utf8.encode(prefix))
+    }
     for project_invocation in invocations {
       let path = project_invocation.module_path()
       let invocation = project_invocation.invocation()
