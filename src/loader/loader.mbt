@@ -567,8 +567,13 @@ fn[T : @host.HostFs] push_existing_module_candidate(
   candidates : Array[@path.PathValue],
   path : @path.PathValue,
 ) -> Unit raise LoaderError {
+  let exists = @host.HostFs::file_exists(host, path) catch {
+    error => raise Host(error)
+  }
+  if !exists {
+    return
+  }
   let metadata = @host.HostFs::metadata(host, path) catch {
-    NotFound(_) => return
     error => raise Host(error)
   }
   if !metadata.is_file() {
@@ -607,17 +612,19 @@ fn[T : @host.HostFs] push_module_directory_candidates(
   candidates : Array[@path.PathValue],
   directory : @path.PathValue,
 ) -> Unit raise LoaderError {
-  let metadata : @host.FileMetadata? = try
-    Some(@host.HostFs::metadata(host, directory))
-  catch {
-    NotFound(_) => None
+  let exists = @host.HostFs::file_exists(host, directory) catch {
     error => raise Host(error)
-  } noraise {
-    value => value
   }
-  match metadata {
-    Some(value) if !value.is_directory() => return
-    _ => ()
+  if exists {
+    let metadata = try @host.HostFs::metadata(host, directory) catch {
+      NotFound(_) => return
+      error => raise Host(error)
+    } noraise {
+      value => value
+    }
+    if !metadata.is_directory() {
+      return
+    }
   }
   let entries = try @host.HostFs::read_dir(host, directory) catch {
     NotFound(_) => return
