@@ -443,9 +443,11 @@ async fn[
       None => ()
     }
   }
-  // The portable loader cache is discarded at the execution boundary. Recipes
-  // may rewrite any path that was inspected while planning.
-  ignore(runtime_environment_host())
+  if !arguments.flag("dry-run") {
+    // The portable loader cache is discarded at the execution boundary.
+    // Recipes may rewrite any path that was inspected while planning.
+    ignore(runtime_environment_host())
+  }
   let summary = try
     @runtime.execute_plan_live(
       process, process, execution_host, environment_host, plan,
@@ -749,8 +751,11 @@ async fn main {
             } else {
               b""
             }
-            let response = if arguments.command() == RunCommand ||
-              arguments.command() == ChooseCommand {
+            let response = if (
+                arguments.command() == RunCommand ||
+                arguments.command() == ChooseCommand
+              ) &&
+              !arguments.flag("dry-run") {
               // Keep execution reads isolated from the planning/load cache.
               let execution_host = runtime_host()
               run_prepared_cli(
