@@ -954,6 +954,7 @@ pub async fn[
     directories,
     arguments,
     platform,
+    loading_environment,
     invocation_directory,
     evaluation_target=(path, selected),
   )

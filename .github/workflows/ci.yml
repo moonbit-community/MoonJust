@@ -321,8 +321,66 @@ jobs:
           if-no-files-found: error
 
   benchmark:
-    name: Hosted benchmark (${{ matrix.platform }})
+    name: Hosted benchmark (${{ matrix.platform }}, batch ${{ matrix.batch }})
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            batch: 1
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            batch: 2
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            batch: 3
+          - os: macos-latest
+            platform: macos-aarch64
+            batch: 1
+          - os: macos-latest
+            platform: macos-aarch64
+            batch: 2
+          - os: macos-latest
+            platform: macos-aarch64
+            batch: 3
+          - os: windows-latest
+            platform: windows-x86_64
+            batch: 1
+          - os: windows-latest
+            platform: windows-x86_64
+            batch: 2
+          - os: windows-latest
+            platform: windows-x86_64
+            batch: 3
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-python
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7 # v1.23
+        with:
+          version: latest
+      - run: python tools/release/ensure_moonx.py
+      - run: |
+          bash .github/scripts/moon-update.sh
+          moon install
+      - name: Run report-only benchmark
+        run: python tools/runner.py measure --report-only --cold-warm --seed ${{ matrix.batch }} --output _build/performance/results.json
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-performance-${{ matrix.platform }}-batch-${{ matrix.batch }}
+          path: _build/performance/**
+          if-no-files-found: error
+
+  benchmark-pr:
+    name: PR benchmark (${{ matrix.platform }})
+    if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -347,20 +405,97 @@ jobs:
       - run: |
           bash .github/scripts/moon-update.sh
           moon install
-      - name: Run report-only benchmark
-        run: python tools/runner.py measure --report-only --cold-warm --output _build/performance/results.json
-      - name: Upload benchmark evidence
+      - name: Run one paired benchmark batch
+        run: python tools/runner.py measure --report-only --cold-warm --seed 100 --output _build/performance/results.json
+      - name: Upload PR performance evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: moonjust-performance-${{ matrix.platform }}
+          name: moonjust-performance-pr-${{ matrix.platform }}
           path: _build/performance/**
+          if-no-files-found: error
+
+  performance-gate-pr:
+    name: PR performance gate
+    if: github.event_name == 'pull_request' && always()
+    needs: [benchmark-pr]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-python
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          pattern: moonjust-performance-pr-*
+          path: evidence/performance
+          merge-multiple: false
+      - name: Enforce PR relative performance budget
+        if: always()
+        run: |
+          python tools/performance/check_thresholds.py \
+            --mode pr \
+            --expected-commit "$MOONJUST_EXPECTED_HEAD_SHA" \
+            --baseline compat/performance-ratio-baseline.json \
+            --report linux-x86_64=evidence/performance/moonjust-performance-pr-linux-x86_64/results.json \
+            --report macos-aarch64=evidence/performance/moonjust-performance-pr-macos-aarch64/results.json \
+            --report windows-x86_64=evidence/performance/moonjust-performance-pr-windows-x86_64/results.json \
+            --output evidence/performance/performance-gate.json
+      - name: Upload PR performance gate
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-performance-gate-pr
+          path: evidence/performance/performance-gate.json
+          if-no-files-found: error
+
+  performance-gate:
+    name: Main performance gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && always()
+    needs: [benchmark]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.MOONJUST_EXPECTED_HEAD_SHA }}
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-python
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          pattern: moonjust-performance-*-batch-*
+          path: evidence/performance
+          merge-multiple: false
+      - name: Enforce three-batch absolute performance gate
+        if: always()
+        run: |
+          python tools/performance/check_thresholds.py \
+            --mode strict \
+            --expected-commit "$MOONJUST_EXPECTED_HEAD_SHA" \
+            --report linux-x86_64=evidence/performance/moonjust-performance-linux-x86_64-batch-1/results.json \
+            --report linux-x86_64=evidence/performance/moonjust-performance-linux-x86_64-batch-2/results.json \
+            --report linux-x86_64=evidence/performance/moonjust-performance-linux-x86_64-batch-3/results.json \
+            --report macos-aarch64=evidence/performance/moonjust-performance-macos-aarch64-batch-1/results.json \
+            --report macos-aarch64=evidence/performance/moonjust-performance-macos-aarch64-batch-2/results.json \
+            --report macos-aarch64=evidence/performance/moonjust-performance-macos-aarch64-batch-3/results.json \
+            --report windows-x86_64=evidence/performance/moonjust-performance-windows-x86_64-batch-1/results.json \
+            --report windows-x86_64=evidence/performance/moonjust-performance-windows-x86_64-batch-2/results.json \
+            --report windows-x86_64=evidence/performance/moonjust-performance-windows-x86_64-batch-3/results.json \
+            --output evidence/performance/performance-gate.json
+      - name: Upload main performance gate
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: moonjust-performance-gate
+          path: evidence/performance/performance-gate.json
           if-no-files-found: error
 
   release-evidence:
     name: Aggregate release evidence
     if: github.event_name != 'pull_request' && always()
-    needs: [fast, verify, compat, wasm1-shared, native-platforms, contract-evidence, coverage-native, coverage-wasm, benchmark]
+    needs: [fast, verify, compat, wasm1-shared, native-platforms, contract-evidence, coverage-native, coverage-wasm, benchmark, performance-gate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -401,18 +536,14 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
-          name: moonjust-performance-linux-x86_64
-          path: evidence/performance/linux-x86_64
+          pattern: moonjust-performance-*-batch-*
+          path: evidence/performance
+          merge-multiple: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
-          name: moonjust-performance-macos-aarch64
-          path: evidence/performance/macos-aarch64
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        continue-on-error: true
-        with:
-          name: moonjust-performance-windows-x86_64
-          path: evidence/performance/windows-x86_64
+          name: moonjust-performance-gate
+          path: evidence/performance/gate
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
@@ -424,9 +555,9 @@ jobs:
           python tools/runner.py coverage --target merge
           python tools/performance/aggregate_cloud.py \
             --expected-sha "$MOONJUST_EXPECTED_HEAD_SHA" \
-            --report linux-x86_64=evidence/performance/linux-x86_64/results.json \
-            --report macos-aarch64=evidence/performance/macos-aarch64/results.json \
-            --report windows-x86_64=evidence/performance/windows-x86_64/results.json \
+            --report linux-x86_64=evidence/performance/moonjust-performance-linux-x86_64-batch-1/results.json \
+            --report macos-aarch64=evidence/performance/moonjust-performance-macos-aarch64-batch-1/results.json \
+            --report windows-x86_64=evidence/performance/moonjust-performance-windows-x86_64-batch-1/results.json \
             --output evidence/performance/results.json
           python tools/release/generate_release_evidence.py \
             --mode release \
@@ -459,11 +590,13 @@ jobs:
             --strict
       - name: Check prerequisite job results
         if: always()
-        run: python tools/verification/ci.py require-results "${{ needs.fast.result }}" "${{ needs.verify.result }}" "${{ needs.compat.result }}" "${{ needs['wasm1-shared'].result }}" "${{ needs['native-platforms'].result }}" "${{ needs['contract-evidence'].result }}" "${{ needs.coverage-native.result }}" "${{ needs.coverage-wasm.result }}" "${{ needs.benchmark.result }}"
+        run: python tools/verification/ci.py require-results "${{ needs.fast.result }}" "${{ needs.verify.result }}" "${{ needs.compat.result }}" "${{ needs['wasm1-shared'].result }}" "${{ needs['native-platforms'].result }}" "${{ needs['contract-evidence'].result }}" "${{ needs.coverage-native.result }}" "${{ needs.coverage-wasm.result }}" "${{ needs.benchmark.result }}" "${{ needs['performance-gate'].result }}"
       - name: Upload aggregate evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: moonjust-release-evidence
-          path: _build/release-evidence.json
+          path: |
+            _build/release-evidence.json
+            evidence/performance/gate/performance-gate.json
           if-no-files-found: error

@@ -109,17 +109,18 @@ pub impl @host.HostFs for PortableHost with fn metadata(
   let is_file = @fs.is_file(value) catch {
     error => raise portable_io_error(error)
   }
-  let is_directory = @fs.is_dir(value) catch {
-    error => raise portable_io_error(error)
-  }
   if is_file {
-    @host.FileMetadata::new_with_executable(
+    return @host.FileMetadata::new_with_executable(
       true,
       false,
       portable_file_size(value),
       true,
     )
-  } else if is_directory {
+  }
+  let is_directory = @fs.is_dir(value) catch {
+    error => raise portable_io_error(error)
+  }
+  if is_directory {
     @host.FileMetadata::new(false, true, 0L)
   } else if @fs.path_exists(value) {
     @host.FileMetadata::new(false, false, 0L)

@@ -70,11 +70,14 @@ versioned, locked across processes and atomically published after output checks.
   wait/reap is a hard lifecycle gate; raw signal identity, TERM forwarding,
   first-signal ordering, SIGINFO and signal-specific diagnostics are not
   MoonJust guarantees.
-- Main and release workflows run report-only benchmarks on Linux x86_64, macOS
-  arm64 and Windows x86_64 with three cold/warm rounds. They gate execution,
-  sample completeness and provenance only; timing values are trend evidence,
-  not absolute performance thresholds. Production coverage keeps Native and
-  Wasm raw reports and gates only the merged overall rate at 80%.
+- Main and release workflows run three independent paired benchmark batches on
+  Linux x86_64, macOS arm64 and Windows x86_64. The generated
+  `performance-gate.json` records median/p95 official ratios, sample integrity,
+  toolchain identity and explicit threshold failures. PRs run one batch and
+  enforce the accepted-ratio 5% regression budget; main and release enforce
+  the Native 1.10x/1.25x and Wasm 3.0x limits (startup 2.0x). Production
+  coverage keeps Native and Wasm raw reports and gates the merged overall rate
+  at 80%.
 - CI orchestration uses Python 3.11 and native path/file operations. Windows
   jobs do not require Git Bash; the historical host-async lifecycle probes are
   isolated and are not a current release gate.

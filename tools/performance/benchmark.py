@@ -412,6 +412,34 @@ def tool_output(command: list[str]) -> str:
     return (result.stdout + result.stderr).strip()
 
 
+def collect_phase_trace(command: list[str], cwd: Path) -> dict[str, object] | None:
+    """Collect one opt-in MoonJust phase trace without affecting latency samples."""
+    environment = benchmark_environment()
+    environment["MOONJUST_PERF_TRACE"] = "1"
+    result = subprocess.run(
+        command,
+        cwd=cwd,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        env=environment,
+        timeout=120,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"trace command failed ({result.returncode}): {command!r}\n"
+            + result.stderr.decode(errors="replace")[:2000]
+        )
+    traces: list[dict[str, object]] = []
+    for line in result.stderr.decode(errors="replace").splitlines():
+        if not line.startswith("MOONJUST_PERF_TRACE "):
+            continue
+        value = json.loads(line.removeprefix("MOONJUST_PERF_TRACE "))
+        if isinstance(value, dict) and isinstance(value.get("events"), list):
+            traces.append(value)
+    return traces[-1] if traces else None
+
+
 def baseline_metadata(path: Path | None) -> dict[str, object] | None:
     if path is None:
         return None
@@ -625,6 +653,7 @@ def main() -> int:
     early_stops: dict[str, bool] = {}
     cold_warm_results: dict[str, dict[str, dict[str, dict[str, object]]]] = {}
     cold_warm_duration = 0.0
+    phase_traces: dict[str, dict[str, dict[str, object] | None]] = {}
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
         fixtures = write_fixtures(root)
@@ -654,6 +683,9 @@ def main() -> int:
                 for kind, binary in artifacts.items()
             }
             fixtures_record[workload]["commands"] = commands
+            phase_traces[workload] = {}
+            for kind in ("candidate-native", "candidate-wasm"):
+                phase_traces[workload][kind] = collect_phase_trace(commands[kind], root)
             latency, latency_duration, latency_stopped = collect_phase(
                 "latency", workload, commands, root, args.warmups, args.samples,
                 args.seed + len(results) * 100, raw_rows, moon_toolchain,
@@ -767,6 +799,7 @@ def main() -> int:
             "semantics": "per balanced round and artifact: cold=first fresh process, then five same-command warmups, then warm=fresh process",
             "workloads": cold_warm_results,
         },
+        "phase_traces": phase_traces,
         "artifacts": {
             kind: {"path": str(path), "bytes": path.stat().st_size, "sha256": sha256(path)}
             for kind, path in artifacts.items()

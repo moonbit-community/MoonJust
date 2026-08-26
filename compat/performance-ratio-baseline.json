@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "source": {
+    "run_id": 32828127891,
+    "commit_sha": "8ae279fef0e3f445b19c57c24f34aa921165f1cb",
+    "official_commit": "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f",
+    "toolchain": "moon 0.1.20260824 / moonc 0.10.10 / moonrun 0.1.20260824",
+    "batches": 1,
+    "note": "Single accepted remote CI run; strict three-batch gates require fresh independent batches."
+  },
+  "platforms": {
+    "linux-x86_64": {
+      "startup": {"native_median": 1.548591, "native_p95": 1.610293, "wasm_median": 1.535629, "wasm_p95": 1.448064},
+      "recipes-10": {"native_median": 1.404725, "native_p95": 1.538128, "wasm_median": 27.334936, "wasm_p95": 30.665042},
+      "recipes-100": {"native_median": 1.294733, "native_p95": 1.329529, "wasm_median": 24.283904, "wasm_p95": 23.965369},
+      "recipes-1000": {"native_median": 1.065018, "native_p95": 1.056123, "wasm_median": 16.750509, "wasm_p95": 14.676433},
+      "recipes-5000": {"native_median": 0.960090, "native_p95": 1.277911, "wasm_median": 8.235649, "wasm_p95": 8.255509},
+      "check": {"native_median": 1.446393, "native_p95": 1.558759, "wasm_median": 18.459311, "wasm_p95": 18.957634},
+      "format": {"native_median": 1.431241, "native_p95": 1.453414, "wasm_median": 18.247628, "wasm_p95": 18.188298},
+      "dag-1000": {"native_median": 1.287593, "native_p95": 1.690493, "wasm_median": 15.970677, "wasm_p95": 17.119440},
+      "noops-100": {"native_median": 1.570108, "native_p95": 1.771375, "wasm_median": 3.730877, "wasm_p95": 3.967401},
+      "project-modules": {"native_median": 1.277170, "native_p95": 1.264277, "wasm_median": 25.945969, "wasm_p95": 25.025841},
+      "project-parameters": {"native_median": 1.558314, "native_p95": 1.700200, "wasm_median": 38.211666, "wasm_p95": 40.566672},
+      "project-execution": {"native_median": 1.414179, "native_p95": 1.350994, "wasm_median": 19.125534, "wasm_p95": 18.809237}
+    },
+    "macos-aarch64": {
+      "startup": {"native_median": 0.941573, "native_p95": 0.842311, "wasm_median": 0.929364, "wasm_p95": 0.859021},
+      "recipes-10": {"native_median": 0.931593, "native_p95": 1.224035, "wasm_median": 6.957518, "wasm_p95": 5.902073},
+      "recipes-100": {"native_median": 0.921648, "native_p95": 0.930146, "wasm_median": 6.915468, "wasm_p95": 10.668239},
+      "recipes-1000": {"native_median": 0.947880, "native_p95": 0.714462, "wasm_median": 7.570002, "wasm_p95": 6.952391},
+      "recipes-5000": {"native_median": 0.897007, "native_p95": 0.795749, "wasm_median": 5.404423, "wasm_p95": 4.365435},
+      "check": {"native_median": 0.984806, "native_p95": 1.003692, "wasm_median": 6.658920, "wasm_p95": 5.351138},
+      "format": {"native_median": 0.972377, "native_p95": 0.907529, "wasm_median": 6.500631, "wasm_p95": 4.969241},
+      "dag-1000": {"native_median": 1.127102, "native_p95": 1.237449, "wasm_median": 8.739123, "wasm_p95": 8.177346},
+      "noops-100": {"native_median": 1.185066, "native_p95": 1.184085, "wasm_median": 1.355075, "wasm_p95": 1.295035},
+      "project-modules": {"native_median": 0.929392, "native_p95": 0.911555, "wasm_median": 7.963604, "wasm_p95": 6.956353},
+      "project-parameters": {"native_median": 1.021573, "native_p95": 0.999640, "wasm_median": 10.662084, "wasm_p95": 10.843031},
+      "project-execution": {"native_median": 0.930803, "native_p95": 0.666647, "wasm_median": 3.397339, "wasm_p95": 2.086680}
+    },
+    "windows-x86_64": {
+      "startup": {"native_median": 1.400223, "native_p95": 1.386427, "wasm_median": 1.062321, "wasm_p95": 0.821097},
+      "recipes-10": {"native_median": 1.391148, "native_p95": 1.322381, "wasm_median": 7.715434, "wasm_p95": 7.476003},
+      "recipes-100": {"native_median": 1.282864, "native_p95": 0.900941, "wasm_median": 7.098989, "wasm_p95": 4.688528},
+      "recipes-1000": {"native_median": 1.355451, "native_p95": 1.694700, "wasm_median": 6.861738, "wasm_p95": 10.187376},
+      "recipes-5000": {"native_median": 1.513095, "native_p95": 1.691430, "wasm_median": 5.720902, "wasm_p95": 6.144108},
+      "check": {"native_median": 1.470607, "native_p95": 1.456012, "wasm_median": 6.538801, "wasm_p95": 7.164538},
+      "format": {"native_median": 1.474231, "native_p95": 1.609493, "wasm_median": 6.545779, "wasm_p95": 7.469693},
+      "dag-1000": {"native_median": 4.083591, "native_p95": 4.270831, "wasm_median": 14.927693, "wasm_p95": 14.785061},
+      "noops-100": {"native_median": 1.276350, "native_p95": 2.256365, "wasm_median": 2.072525, "wasm_p95": 1.646070},
+      "project-modules": {"native_median": 1.285769, "native_p95": 1.305146, "wasm_median": 7.909199, "wasm_p95": 10.442902},
+      "project-parameters": {"native_median": 5.158899, "native_p95": 5.438588, "wasm_median": 21.184814, "wasm_p95": 22.768468},
+      "project-execution": {"native_median": 1.648996, "native_p95": 1.815841, "wasm_median": 3.828974, "wasm_p95": 3.579358}
+    }
+  }
+}

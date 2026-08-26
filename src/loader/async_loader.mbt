@@ -40,6 +40,65 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
 }
 
 ///|
+/// Reuse bytes during one async graph load while preserving the bounded host
+/// read and Markdown tangle semantics.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+async fn[T : @host.HostFs + @host.HostSourceReader] load_async_cached(
+  host : T,
+  path : @path.PathValue,
+  canonical : @path.PathValue,
+  source_id : @source.SourceId,
+  cache : Map[String, Bytes],
+  environment : ArrayView[(String, String)],
+) -> LoadedSource raise LoaderError {
+  if is_markdown_path(path) {
+    return load_async(host, path, source_id, environment~)
+  }
+  let key = canonical.as_string()
+  match cache.get(key) {
+    Some(bytes) => {
+      let source = source_from_file_bytes(bytes, source_id, path)
+      let ast = parse_loaded_source(source, environment~)
+      {
+        path,
+        canonical_path: canonical,
+        source,
+        ast,
+        parent: None,
+        import_span: None,
+        relation: RootSource,
+        module_path: @modulepath.ModulePath::root(),
+        module_directory: source_directory(path),
+      }
+    }
+    None => {
+      let bytes = @host.HostSourceReader::read_source(
+        host,
+        path,
+        source_read_limit(),
+      ) catch {
+        error => raise Host(error)
+      }
+      let source = source_from_file_bytes(bytes, source_id, path)
+      let ast = parse_loaded_source(source, environment~)
+      let loaded = {
+        path,
+        canonical_path: canonical,
+        source,
+        ast,
+        parent: None,
+        import_span: None,
+        relation: RootSource,
+        module_path: @modulepath.ModulePath::root(),
+        module_directory: source_directory(path),
+      }
+      cache[key] = loaded.source().bytes().to_owned()
+      loaded
+    }
+  }
+}
+
+///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
   host : T,
@@ -51,6 +110,8 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
 ) -> LoadedGraph raise LoaderError {
   let root = root_source.path()
   let files : Array[LoadedSource] = []
+  let source_cache : Map[String, Bytes] = Map([])
+  let canonical_cache : Map[String, @path.PathValue] = Map([])
   let active : Set[GraphNodeKey] = Set([])
   let active_paths : Set[@path.PathValue] = Set([])
   let visited : Set[GraphNodeKey] = Set([])
@@ -67,8 +128,16 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
     let canonical = if parent is None {
       root_source.canonical_path()
     } else {
-      @host.HostFs::canonicalize(host, path) catch {
-        error => raise Host(error)
+      let key = path.as_string()
+      match canonical_cache.get(key) {
+        Some(value) => value
+        None => {
+          let value = @host.HostFs::canonicalize(host, path) catch {
+            error => raise Host(error)
+          }
+          canonical_cache[key] = value
+          value
+        }
       }
     }
     let key = { canonical_path: canonical, module_path }
@@ -90,17 +159,25 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
       )
     } else {
       let parent_directory = source_directory(parent.unwrap())
-      let canonical_parent_directory = @host.HostFs::canonicalize(
-        host, parent_directory,
-      ) catch {
-        error => raise Host(error)
+      let parent_key = parent_directory.as_string()
+      let canonical_parent_directory = match canonical_cache.get(parent_key) {
+        Some(value) => value
+        None => {
+          let value = @host.HostFs::canonicalize(host, parent_directory) catch {
+            error => raise Host(error)
+          }
+          canonical_cache[parent_key] = value
+          value
+        }
       }
       let source_path = if path_is_within(canonical_parent_directory, canonical) {
         path
       } else {
         canonical
       }
-      load_async(host, source_path, next_id, environment~).with_context(
+      load_async_cached(
+        host, source_path, canonical, next_id, source_cache, environment,
+      ).with_context(
         parent, import_span, relation, module_path, module_directory,
       )
     }

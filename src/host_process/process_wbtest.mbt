@@ -1,4 +1,35 @@
 ///|
+fn bench_windows_process_helpers(it : @bench.T, size : Int) -> Unit {
+  let command = "echo " + "value ".repeat(size)
+  let path = "C:\\tools;D:\\bin;E:\\custom"
+  it.bench(fn() {
+    it.keep(windows_program_candidates("tool", path, ".EXE;.CMD;.BAT"))
+    it.keep(windows_batch_body(command))
+    it.keep(windows_direct_command_safe(command))
+  })
+}
+
+///|
+test "bench Windows command helpers 10" (it : @bench.T) {
+  bench_windows_process_helpers(it, 10)
+}
+
+///|
+test "bench Windows command helpers 100" (it : @bench.T) {
+  bench_windows_process_helpers(it, 100)
+}
+
+///|
+test "bench Windows command helpers 1000" (it : @bench.T) {
+  bench_windows_process_helpers(it, 1000)
+}
+
+///|
+test "bench Windows command helpers 5000" (it : @bench.T) {
+  bench_windows_process_helpers(it, 5000)
+}
+
+///|
 let process_coverage_mutex : @async.Mutex = Mutex()
 
 ///|
@@ -178,6 +209,15 @@ test "process helpers cover empty and malformed Windows command cases" {
   let environment = try! @host.CommandSpec::new("echo", [])
   try! environment.add_environment("A", "one")
   assert_eq(environment_map(environment)["A"], "one")
+  assert_true(
+    windows_known_shell_noop_command("cmd.exe", ["/d", "/s", "/c", ":"]),
+  )
+  assert_false(
+    windows_known_shell_noop_command("powershell.exe", ["/d", "/s", "/c", ":"]),
+  )
+  assert_false(
+    windows_known_shell_noop_command("cmd.exe", ["/d", "/s", "/c", "::"]),
+  )
 }
 
 ///|
@@ -235,6 +275,14 @@ async test "Windows command materialization covers cwd and command switches" {
     false,
   )
   assert_eq(unchanged, ("cmd.exe", ["/d"], None))
+  let direct = try! materialize_windows_command(
+    "cmd.exe",
+    ["/d", "/s", "/c", ":"],
+    ".",
+    [],
+    false,
+  )
+  assert_eq(direct, ("cmd.exe", ["/d", "/s", "/c", ":"], None))
   let command = try! materialize_windows_command(
     "cmd.exe",
     ["/command", "echo %MISSING%", "tail"],
@@ -481,7 +529,7 @@ async test "Windows materialization covers batch and cmd argument rewrites" {
 
   let (cwd_program, cwd_arguments, cwd_path) = try! materialize_windows_command(
     "cmd.exe",
-    ["/c", "echo ok"],
+    ["/c", "echo ok & exit /b 0"],
     "coverage-dir",
     [],
     false,
@@ -497,7 +545,7 @@ async test "Windows materialization covers batch and cmd argument rewrites" {
   try
     materialize_windows_command(
       "cmd.exe",
-      ["/c", "echo fail"],
+      ["/c", "echo fail & exit /b 1"],
       "/moonjust-no-such-directory/",
       [],
       false,

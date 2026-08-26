@@ -846,6 +846,75 @@ async test "executor fast planner preserves empty fanout topology" {
 }
 
 ///|
+async test "executor dry-run planner emits output without retaining tasks" {
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "x86_64", Unix),
+  )
+  let source = @source.Source::from_text(
+    @source.SourceId::new(9935),
+    "executor-dry-run-tasks.just",
+    "root: first && cleanup\n  @echo root\nfirst:\n  @echo first\ncleanup:\n  @echo cleanup\n",
+  )
+  let compilation = try! @semantic.compile_source(source)
+  let global = try! @evaluator.evaluate_compilation(compilation)
+  let options = ExecutionOptions::new(dry_run=true)
+  let expected = try! plan_recipe_graph(
+    compilation,
+    [RecipeRequest::new("root")],
+    global,
+    shell,
+    cwd,
+    options~,
+  )
+  let actual = try! plan_recipe_graph_async(
+    host,
+    host,
+    compilation,
+    [RecipeRequest::new("root")],
+    global,
+    @evaluator.EvaluationContext::new(cwd~),
+    shell,
+    cwd,
+    ScriptConfiguration::new(
+      shell,
+      cwd,
+      @host.PlatformInfo::new(Linux, "x86_64", Unix),
+    ),
+    options~,
+  )
+  assert_eq(actual.stderr(), expected.stderr())
+  assert_true(actual.tasks().is_empty())
+
+  let empty_source = @source.Source::from_text(
+    @source.SourceId::new(9936),
+    "executor-dry-run-empty-fanout.just",
+    "root: first second\nfirst:\nsecond:\n",
+  )
+  let empty_compilation = try! @semantic.compile_source(empty_source)
+  let empty_plan = try! plan_recipe_graph_async(
+    host,
+    host,
+    empty_compilation,
+    [RecipeRequest::new("root")],
+    try! @evaluator.evaluate_compilation(empty_compilation),
+    @evaluator.EvaluationContext::new(cwd~),
+    shell,
+    cwd,
+    ScriptConfiguration::new(
+      shell,
+      cwd,
+      @host.PlatformInfo::new(Linux, "x86_64", Unix),
+    ),
+    options~,
+  )
+  assert_true(empty_plan.tasks().is_empty())
+  assert_true(empty_plan.stderr().is_empty())
+}
+
+///|
 test "executor empty fanout helper rejects effectful recipes" {
   fn compile_fixture(text) -> @semantic.Compilation raise {
     @semantic.compile_source(

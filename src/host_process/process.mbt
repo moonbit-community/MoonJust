@@ -24,6 +24,12 @@ pub fn ProcessAdapter::new() -> ProcessAdapter {
 }
 
 ///|
+let process_resolution_mutex : @async.Mutex = Mutex()
+
+///|
+let process_resolution_cache : Map[String, String] = Map([])
+
+///|
 priv enum ObservedProcess {
   Managed(@process.Process)
 }
@@ -251,6 +257,67 @@ fn windows_batch_body(command : String) -> String {
 }
 
 ///|
+/// Commands without cmd metacharacters have identical command-line and batch
+/// parsing, so they do not need a temporary wrapper file.
+fn windows_direct_command_safe(command : String) -> Bool {
+  let lower = command.to_lower()
+  if command.is_empty() ||
+    command.contains("\r") ||
+    command.contains("\n") ||
+    lower.contains(".cmd") ||
+    lower.contains(".bat") {
+    return false
+  }
+  for character in command {
+    if character.is_ascii_alphabetic() ||
+      character.is_ascii_digit() ||
+      character == ' ' ||
+      character == '_' ||
+      character == '-' ||
+      character == '.' ||
+      character == '/' ||
+      character == '\\' ||
+      character == ':' {
+      continue
+    }
+    return false
+  }
+  true
+}
+
+///|
+fn windows_known_shell_noop_command(
+  program : String,
+  arguments : ArrayView[String],
+) -> Bool {
+  let basename = program
+    .replace_all(old="\\", new="/")
+    .split("/")
+    .last()
+    .unwrap_or(program[:])
+    .to_lower()
+  if basename != "cmd" && basename != "cmd.exe" {
+    return false
+  }
+  if arguments.length() != 4 {
+    return false
+  }
+  arguments[0] == "/d" &&
+  arguments[1] == "/s" &&
+  arguments[2] == "/c" &&
+  arguments[3] == ":"
+}
+
+///|
+fn windows_known_shell_noop(
+  program : String,
+  arguments : ArrayView[String],
+) -> Bool {
+  windows_process_runtime() &&
+  windows_known_shell_noop_command(program, arguments)
+}
+
+///|
 /// A direct `cmd /c` command leaves an undefined `%NAME%` reference literal,
 /// while a batch file expands it to an empty string. Double the delimiters for
 /// undefined names so the temporary wrapper preserves command-line semantics.
@@ -367,6 +434,12 @@ async fn materialize_windows_command(
     )
   }
   guard body is Some(command) else {
+    return (program, arguments.to_owned(), None)
+  }
+  if is_cmd &&
+    command_index is Some(index) &&
+    index + 2 == arguments.length() &&
+    windows_direct_command_safe(command) {
     return (program, arguments.to_owned(), None)
   }
   let command_lower = command.to_lower()
@@ -490,13 +563,16 @@ fn windows_process_runtime() -> Bool {
 }
 
 ///|
-async fn resolve_process_program(program : String, cwd : String) -> String {
+async fn resolve_process_program_with_context(
+  program : String,
+  cwd : String,
+  path : String,
+  pathext : String,
+) -> String {
   if !windows_process_runtime() {
     return program
   }
   let program = windows_native_program(program, cwd)
-  let path = @env.get_env_var("PATH").unwrap_or("")
-  let pathext = @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD")
   for candidate in windows_program_candidates(program, path, pathext) {
     let regular = try @async_fs.kind(candidate) catch {
       _ => false
@@ -509,6 +585,103 @@ async fn resolve_process_program(program : String, cwd : String) -> String {
     }
   }
   program
+}
+
+///|
+async fn resolve_process_program(program : String, cwd : String) -> String {
+  resolve_process_program_with_context(
+    program,
+    cwd,
+    @env.get_env_var("PATH").unwrap_or(""),
+    @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD"),
+  )
+}
+
+///|
+fn windows_resolution_key(
+  program : String,
+  cwd : String,
+  path : String,
+  pathext : String,
+  cygpath : String,
+  shell_mode? : String = "auto",
+) -> String {
+  program +
+  "\u{0000}" +
+  cwd +
+  "\u{0000}" +
+  path +
+  "\u{0000}" +
+  pathext +
+  "\u{0000}" +
+  cygpath +
+  "\u{0000}" +
+  shell_mode
+}
+
+///|
+fn windows_shell_mode(
+  program : String,
+  arguments : ArrayView[String],
+) -> String {
+  let basename = program
+    .replace_all(old="\\", new="/")
+    .split("/")
+    .last()
+    .unwrap_or(program[:])
+    .to_lower()
+  if basename == "cmd" || basename == "cmd.exe" {
+    if arguments.contains("/c") || arguments.contains("/command") {
+      "cmd-command"
+    } else {
+      "cmd"
+    }
+  } else if basename.has_suffix(".cmd") || basename.has_suffix(".bat") {
+    "batch"
+  } else {
+    "direct"
+  }
+}
+
+///|
+async fn resolve_process_program_cached(
+  program : String,
+  cwd : String,
+  arguments : ArrayView[String],
+) -> String {
+  if !windows_process_runtime() {
+    return program
+  }
+  let path = @env.get_env_var("PATH").unwrap_or("")
+  let pathext = @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD")
+  let key = windows_resolution_key(
+    program,
+    cwd,
+    path,
+    pathext,
+    @env.get_env_var("JUST_CYGPATH").unwrap_or("cygpath"),
+    shell_mode=windows_shell_mode(program, arguments),
+  )
+  let acquired = try process_resolution_mutex.acquire() catch {
+    _ => false
+  } noraise {
+    _ => true
+  }
+  if !acquired {
+    return resolve_process_program(program, cwd)
+  }
+  defer process_resolution_mutex.release()
+  match process_resolution_cache.get(key) {
+    Some(value) => value
+    None => {
+      let resolved = resolve_process_program(program, cwd)
+      if process_resolution_cache.length() >= 256 {
+        process_resolution_cache.clear()
+      }
+      process_resolution_cache[key] = resolved
+      resolved
+    }
+  }
 }
 
 ///|
@@ -592,11 +765,14 @@ async fn run_process_with_output_limit(
   }
   let cwd = command.cwd().map(fn(path) { path.as_string() }).unwrap_or(".")
   let resolved_program = try
-    resolve_process_program(command.program(), cwd)
+    resolve_process_program_cached(command.program(), cwd, command.arguments())
   catch {
     error => raise InvalidInput(error.to_string())
   } noraise {
     value => value
+  }
+  if windows_known_shell_noop(resolved_program, command.arguments()) {
+    return process_result(command, Completed(0), b"", b"")
   }
   let collected = try
     @async.with_task_group() <| reader_group => {

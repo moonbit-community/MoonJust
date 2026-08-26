@@ -41,3 +41,26 @@ test "bench executor plan dag-1000" (it : @bench.T) {
     )
   })
 }
+
+///|
+test "bench executor plan dag-1000 retained tasks" (it : @bench.T) {
+  let compilation = try! @semantic.compile(
+    try! @parser.parse(perf_executor_source()),
+  )
+  let environment = try! @evaluator.evaluate_compilation(compilation)
+  let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let options = ExecutionOptions::new(dry_run=true).with_explain(true)
+  it.bench(fn() {
+    it.keep(
+      try! plan_recipe_graph(
+        compilation,
+        [RecipeRequest::new("root")],
+        environment,
+        shell,
+        cwd,
+        options~,
+      ),
+    )
+  })
+}

@@ -84,7 +84,7 @@ pub async fn[
     arguments,
     global,
     cwd,
-    process_environment(effects, global, cwd.flavor()),
+    process_environment(loading_environment, global, cwd.flavor()),
   )
   let (program, child_arguments) = if arguments.flag("shell-command") {
     let shell = selected_shell(compilation, global, arguments, cwd.flavor())

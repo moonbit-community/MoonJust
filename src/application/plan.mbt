@@ -798,20 +798,18 @@ fn invocation_values(
 }
 
 ///|
-fn[T : @host.HostEnv] process_environment(
-  host : T,
+fn process_environment(
+  entries : ArrayView[(String, String)],
   global : @evaluator.Environment,
   flavor : @path.PathFlavor,
   unexports? : ArrayView[String] = [],
-) -> Array[(String, String)] raise ApplicationError {
+) -> Array[(String, String)] {
   let mode : @environment.EnvNameMode = if flavor == Windows {
     AsciiInsensitive
   } else {
     Sensitive
   }
-  let table = @environment.snapshot(host, name_mode=mode) catch {
-    error => raise Host(error)
-  }
+  let table = @environment.EnvTable::from_entries(entries, name_mode=mode)
   for name in unexports {
     table.remove(name)
   }
@@ -1286,7 +1284,7 @@ pub fn[F : @host.HostFs, E : @host.HostEnv + @host.HostTerminal] plan_run_comman
     )
     let shell = selected_shell(compilation, global, arguments, cwd.flavor())
     let environment = process_environment(
-      environment_host,
+      loading_environment,
       global,
       cwd.flavor(),
       unexports=compilation.unexports(),
@@ -1421,6 +1419,7 @@ async fn[
   directories : @workdir.WorkingDirectoryModel,
   arguments : @cli.CliArguments,
   platform : @host.PlatformInfo,
+  loading_environment : ArrayView[(String, String)],
   invocation_directory : @path.PathValue,
   targets? : ArrayView[(@modulepath.ModulePath, String)],
   evaluation_target? : (@modulepath.ModulePath, String?),
@@ -1459,7 +1458,7 @@ async fn[
       None => []
     }
     let ambient = process_environment(
-      effects,
+      loading_environment,
       seed,
       base.flavor(),
       unexports=compilation.unexports(),
@@ -1711,6 +1710,7 @@ pub async fn[
       directories,
       arguments,
       platform,
+      loading_environment,
       invocation_directory,
       targets~,
     )
@@ -1758,7 +1758,7 @@ pub async fn[
         evaluation_cwd.flavor(),
       )
       let environment = process_environment(
-        effects,
+        loading_environment,
         global,
         evaluation_cwd.flavor(),
         unexports=compilation.unexports(),

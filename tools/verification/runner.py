@@ -837,6 +837,7 @@ def run_measurement(
     output: Path | None = None,
     report_only: bool = False,
     cold_warm: bool = False,
+    seed: int | None = None,
 ) -> int:
     """Run the existing statistically strict sampler through the unified CLI."""
     started_at = time.time()
@@ -861,6 +862,8 @@ def run_measurement(
         command_line.append("--report-only")
     if cold_warm:
         command_line.append("--cold-warm")
+    if seed is not None:
+        command_line += ["--seed", str(seed)]
     if workload not in {"all", ""}:
         command_line += ["--workload", workload]
     result = subprocess.run(command_line, cwd=repo, check=False)
@@ -980,6 +983,7 @@ def main() -> int:
         action="store_true",
         help="measure real-project cold and warmed process starts in balanced rounds",
     )
+    measure_parser.add_argument("--seed", type=int)
 
     coverage_parser = subparsers.add_parser("coverage")
     coverage_parser.add_argument("--target", choices=("native", "wasm", "merge"), required=True)
@@ -1026,6 +1030,7 @@ def main() -> int:
             args.output.resolve() if args.output else None,
             args.report_only,
             args.cold_warm,
+            args.seed,
         )
     if args.subcommand == "coverage":
         return run_coverage(repo, args.target, args.base)

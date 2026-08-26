@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tempfile
 import unittest
 from collections import Counter
@@ -128,6 +129,27 @@ class BenchmarkTest(unittest.TestCase):
             environment = benchmark.benchmark_environment()
         self.assertEqual(environment["MOONJUST_OS"], "windows")
         self.assertEqual(environment["MOONJUST_ARCH"], "amd64")
+
+    def test_collect_phase_trace_parses_only_the_trace_record(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            command = [
+                sys.executable,
+                "-c",
+                "import sys; print('MOONJUST_PERF_TRACE {\"events\":[{\"stage\":\"application.plan\",\"elapsed_ms\":3}]}', file=sys.stderr)",
+            ]
+            value = benchmark.collect_phase_trace(command, root)
+            self.assertEqual(
+                value,
+                {"events": [{"stage": "application.plan", "elapsed_ms": 3}]},
+            )
+
+    def test_collect_phase_trace_returns_none_for_static_output(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            value = benchmark.collect_phase_trace(
+                [sys.executable, "-c", "print('version')"], Path(raw)
+            )
+            self.assertIsNone(value)
 
 
 if __name__ == "__main__":

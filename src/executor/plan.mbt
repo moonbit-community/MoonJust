@@ -691,6 +691,7 @@ fn plan_plain_empty_fanout(
   tasks : Array[ExecutionTask],
   ran : Map[String, Int],
   options : ExecutionOptions,
+  retain_tasks? : Bool = true,
 ) -> Int? {
   if options.no_dependencies() ||
     options.explain() ||
@@ -727,6 +728,15 @@ fn plan_plain_empty_fanout(
     return None
   }
   let module_name = module_path.as_string()
+  if !retain_tasks {
+    for child_name in child_names {
+      let key = module_name + "\u{0000}" + execution_key(child_name, [])
+      ran[key] = 0
+    }
+    let key = module_name + "\u{0000}" + execution_key(name, [])
+    ran[key] = 0
+    return Some(0)
+  }
   let print_exit_message = !compilation.settings().bool("no-exit-message")
   let mut fence = entry_dependencies.to_owned()
   for child_name in child_names {
@@ -1173,11 +1183,21 @@ async fn[
     error => raise Invocation(error)
   }
   let attributes = compilation.recipe_attributes(name)
+  let retain_tasks = !(options.dry_run() && !options.explain())
 
   match
     plan_plain_empty_fanout(
-      compilation, recipe, attributes, name, display_name, module_path, entry_dependencies,
-      tasks, ran, options,
+      compilation,
+      recipe,
+      attributes,
+      name,
+      display_name,
+      module_path,
+      entry_dependencies,
+      tasks,
+      ran,
+      options,
+      retain_tasks~,
     ) {
     Some(value) => return value
     None => ()
@@ -1193,6 +1213,10 @@ async fn[
     (no_dependencies || recipe.dependencies().is_empty()) &&
     (no_dependencies || recipe.subsequent_dependencies().is_empty())
   if plain_empty {
+    if !retain_tasks {
+      ran[key] = 0
+      return 0
+    }
     stack.push(key)
     let task_dependencies : Array[Int] = []
     for dependency in entry_dependencies {
@@ -1502,20 +1526,22 @@ async fn[
     }
   }
   let task_dependencies : Array[Int] = []
-  let selected_dependencies = if dependency_terminals.is_empty() {
-    entry_dependencies
-  } else if parallel {
-    dependency_terminals
-  } else {
-    serial_fence
-  }
-  for dependency in selected_dependencies {
-    if !task_dependencies.contains(dependency) {
-      task_dependencies.push(dependency)
+  if retain_tasks {
+    let selected_dependencies = if dependency_terminals.is_empty() {
+      entry_dependencies
+    } else if parallel {
+      dependency_terminals
+    } else {
+      serial_fence
+    }
+    for dependency in selected_dependencies {
+      if !task_dependencies.contains(dependency) {
+        task_dependencies.push(dependency)
+      }
     }
   }
-  let task_id = tasks.length()
-  let preamble = if options.explain() {
+  let task_id = if retain_tasks { tasks.length() } else { 0 }
+  let preamble = if retain_tasks && options.explain() {
     match compilation.recipe_doc(name) {
       Some(doc) => {
         let text = "#### " + doc
@@ -1530,31 +1556,33 @@ async fn[
   } else {
     b""
   }
-  tasks.push(
-    match cache {
-      Some(value) =>
-        ExecutionTask::new(
-          task_id,
-          task_id,
-          display_name,
-          task_steps,
-          task_dependencies,
-          cache=value,
-          print_exit_message~,
-          preamble~,
-        )
-      None =>
-        ExecutionTask::new(
-          task_id,
-          task_id,
-          display_name,
-          task_steps,
-          task_dependencies,
-          print_exit_message~,
-          preamble~,
-        )
-    },
-  )
+  if retain_tasks {
+    tasks.push(
+      match cache {
+        Some(value) =>
+          ExecutionTask::new(
+            task_id,
+            task_id,
+            display_name,
+            task_steps,
+            task_dependencies,
+            cache=value,
+            print_exit_message~,
+            preamble~,
+          )
+        None =>
+          ExecutionTask::new(
+            task_id,
+            task_id,
+            display_name,
+            task_steps,
+            task_dependencies,
+            print_exit_message~,
+            preamble~,
+          )
+      },
+    )
+  }
   let subsequent_ran : Map[String, Int] = Map([])
   let subsequent_dependencies : Array[@syntax.Dependency] = if options.no_dependencies() {
     []
@@ -1587,7 +1615,9 @@ async fn[
     parallel,
   )
   ignore(stack.pop())
-  let terminal = if subsequent_terminals.is_empty() {
+  let terminal = if !retain_tasks {
+    0
+  } else if subsequent_terminals.is_empty() {
     task_id
   } else if parallel && subsequent_terminals.length() > 1 {
     let barrier_id = tasks.length()

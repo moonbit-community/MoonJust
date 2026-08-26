@@ -1,12 +1,79 @@
 ///|
+priv struct InvocationEnvironment {
+  entries : Array[(String, String)]
+  values : Map[String, String]
+}
+
+///|
+/// Optional coarse-grained timing for remote performance experiments. The
+/// default path does not allocate this record or write diagnostics.
+priv struct PerfTrace {
+  started : Int64
+  events : Array[(String, Int64)]
+}
+
+///|
+fn perf_trace_new() -> PerfTrace? {
+  match @env.get_env_var("MOONJUST_PERF_TRACE") {
+    Some("1") => Some({ started: @async.now(), events: [] })
+    _ => None
+  }
+}
+
+///|
+fn PerfTrace::mark(self : PerfTrace, name : String) -> Unit {
+  self.events.push((name, @async.now() - self.started))
+}
+
+///|
+async fn PerfTrace::emit(self : PerfTrace) -> Unit {
+  let fields : Array[String] = []
+  for event in self.events {
+    fields.push(
+      "{\"stage\":\"" +
+      event.0 +
+      "\",\"elapsed_ms\":" +
+      event.1.to_string() +
+      "}",
+    )
+  }
+  try
+    @stdio.stderr.write(
+      @utf8.encode(
+        "MOONJUST_PERF_TRACE {\"events\":[" + fields.join(",") + "]}\n",
+      ),
+    )
+  catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  }
+}
+
+///|
+fn perf_trace_mark(trace : PerfTrace?, name : String) -> Unit {
+  match trace {
+    Some(value) => value.mark(name)
+    None => ()
+  }
+}
+
+///|
 fn[E : @host.HostEnv] parse_environment(
   environment_host : E,
-) -> Map[String, String] raise @host.HostError {
+) -> InvocationEnvironment raise @host.HostError {
+  let entries = @host.HostEnv::env_entries(environment_host)
   let environment : Map[String, String] = Map([])
-  for entry in @host.HostEnv::env_entries(environment_host) {
+  for entry in entries {
     environment[entry.0] = entry.1
   }
-  environment
+  { entries, values: environment }
+}
+
+///|
+priv enum PreparedInvocation {
+  Ready(@cli.CliArguments, InvocationEnvironment)
+  Respond(@cli.ApplicationResponse)
 }
 
 ///|
@@ -36,9 +103,39 @@ const JUST_MAN_HEADER : String =
   #|[options] [recipe [arguments...]]
 
 ///|
-#cfg(all(target="native", not(platform="windows")))
-fn init {
-  @host_process.prepare_signal_forwarding()
+fn static_invocation_response(
+  argv : ArrayView[String],
+) -> @cli.ApplicationResponse? {
+  if argv.length() != 1 {
+    return None
+  }
+  match argv[0] {
+    "--help" | "-h" =>
+      Some(
+        @cli.ApplicationResponse::success(
+          stdout=@utf8.encode(@cli.render_help()),
+        ),
+      )
+    "--version" | "-V" =>
+      Some(
+        @cli.ApplicationResponse::success(
+          stdout=@utf8.encode(@moonjust.version_line() + "\n"),
+        ),
+      )
+    "--changelog" =>
+      Some(
+        @cli.ApplicationResponse::success(
+          stdout=@utf8.encode(MOONJUST_CHANGELOG + "\n"),
+        ),
+      )
+    "--man" =>
+      Some(
+        @cli.ApplicationResponse::success(
+          stdout=@utf8.encode(JUST_MAN_HEADER + "\n"),
+        ),
+      )
+    _ => None
+  }
 }
 
 ///|
@@ -120,6 +217,50 @@ async fn request_response(
     }
   }
   Some(@cli.ApplicationResponse::success(stdout=@utf8.encode(response)))
+}
+
+///|
+async fn[E : @host.HostEnv + @host.HostPlatform] prepare_invocation(
+  environment_host : E,
+  argv : ArrayView[String],
+  trace? : PerfTrace? = None,
+) -> PreparedInvocation {
+  match static_invocation_response(argv) {
+    Some(response) => return Respond(response)
+    None => ()
+  }
+  let environment = try parse_environment(environment_host) catch {
+    error =>
+      return Respond(
+        failure("error: failed to read process environment: \{Repr(error)}", 1),
+      )
+  } noraise {
+    value => value
+  }
+  perf_trace_mark(trace, "cli.environment")
+  if argv.length() == 2 && argv[0] == "--request" {
+    let windows = try
+      @host.HostPlatform::platform_info(environment_host)
+    catch {
+      _ => false
+    } noraise {
+      value => value.operating_system() == Windows
+    }
+    match request_response(argv, environment.values, windows) {
+      Some(response) => return Respond(response)
+      None => ()
+    }
+  }
+  let arguments = try @cli.parse_arguments(argv, environment.values) catch {
+    Invalid(message) => return Respond(failure(message, 2))
+    Config(message) => return Respond(failure(message, 1))
+    Unsupported(name) =>
+      return Respond(failure("error: option '\{name}' is not supported yet", 2))
+  } noraise {
+    value => value
+  }
+  perf_trace_mark(trace, "cli.parse")
+  Ready(arguments, environment)
 }
 
 ///|
@@ -274,6 +415,7 @@ async fn[
   process : P,
   arguments : @cli.CliArguments,
   context : @application.ApplicationContext,
+  trace? : PerfTrace? = None,
 ) -> @cli.ApplicationResponse {
   let plan = try
     @application.plan_run_command_async(
@@ -284,6 +426,7 @@ async fn[
   } noraise {
     value => value
   }
+  perf_trace_mark(trace, "application.plan")
   if !arguments.flag("yes") {
     match confirm_execution(plan) {
       Some(response) => return response
@@ -312,6 +455,7 @@ async fn[
   } noraise {
     value => value
   }
+  perf_trace_mark(trace, "runtime.execute")
   if summary.commands() >= 0 {
     @cli.ApplicationResponse::success()
   } else {
@@ -338,38 +482,14 @@ fn append_response(
 async fn[
   F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAtomicFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-] run_cli(
+] run_prepared_cli(
   host : F,
   environment_host : E,
-  argv : ArrayView[String],
+  arguments : @cli.CliArguments,
+  environment : InvocationEnvironment,
   stdin : Bytes,
+  trace? : PerfTrace? = None,
 ) -> @cli.ApplicationResponse {
-  let environment = try parse_environment(environment_host) catch {
-    error =>
-      return failure(
-        "error: failed to read process environment: \{Repr(error)}",
-        1,
-      )
-  } noraise {
-    value => value
-  }
-  let windows = try @host.HostPlatform::platform_info(environment_host) catch {
-    _ => false
-  } noraise {
-    value => value.operating_system() == Windows
-  }
-  match request_response(argv, environment, windows) {
-    Some(response) => return response
-    None => ()
-  }
-  let arguments = try @cli.parse_arguments(argv, environment) catch {
-    Invalid(message) => return failure(message, 2)
-    Config(message) => return failure(message, 1)
-    Unsupported(name) =>
-      return failure("error: option '\{name}' is not supported yet", 2)
-  } noraise {
-    value => value
-  }
   if arguments.flag("help") {
     return @cli.ApplicationResponse::success(
       stdout=@utf8.encode(@cli.render_help()),
@@ -397,6 +517,7 @@ async fn[
     value => value
   }
   let context = @application.ApplicationContext::new(cwd, stdin~)
+  perf_trace_mark(trace, "application.context")
   let context = try
     @application.resolve_global_context(
       host, environment_host, arguments, context,
@@ -411,8 +532,8 @@ async fn[
   } noraise {
     value => value
   }
-  let process = @host_process.ProcessAdapter::new()
   if arguments.command() == RunCommand {
+    perf_trace_mark(trace, "application.dispatch")
     let default_list = try
       dispatch_default_list(host, environment_host, arguments, context)
     catch {
@@ -424,8 +545,11 @@ async fn[
       Some(response) => return response
       None => ()
     }
-    execute_run(host, environment_host, process, arguments, context)
+    let process = @host_process.ProcessAdapter::new()
+    execute_run(host, environment_host, process, arguments, context, trace~)
   } else if arguments.command() == ChooseCommand {
+    perf_trace_mark(trace, "application.dispatch")
+    let process = @host_process.ProcessAdapter::new()
     let selections = try
       @application.execute_choose_command_async(
         host, environment_host, process, arguments, context,
@@ -444,6 +568,7 @@ async fn[
         process,
         arguments.with_run_positionals(selection),
         context,
+        trace~,
       )
       append_response(stdout, stderr, response)
       if response.exit_code() != 0 {
@@ -460,6 +585,8 @@ async fn[
       0,
     )
   } else if arguments.command() == EditCommand {
+    perf_trace_mark(trace, "application.dispatch")
+    let process = @host_process.ProcessAdapter::new()
     try
       @application.execute_edit_command_async(
         host, environment_host, process, arguments, context,
@@ -470,6 +597,7 @@ async fn[
       response => response
     }
   } else if arguments.command() == CleanCommand {
+    perf_trace_mark(trace, "application.dispatch")
     try @application.execute_clean_command(host, arguments, context) catch {
       error => application_failure(host, arguments, context, error)
     } noraise {
@@ -478,6 +606,7 @@ async fn[
   } else if arguments.command() == CheckCommand ||
     arguments.command() == FormatCommand ||
     arguments.command() == InitCommand {
+    perf_trace_mark(trace, "application.dispatch")
     try
       @application.execute_file_command_async(host, arguments, context)
     catch {
@@ -486,6 +615,8 @@ async fn[
       response => response
     }
   } else if arguments.command() == EvaluateCommand {
+    perf_trace_mark(trace, "application.dispatch")
+    let process = @host_process.ProcessAdapter::new()
     try
       @application.execute_evaluate_command_async(
         host, environment_host, process, arguments, context,
@@ -496,6 +627,8 @@ async fn[
       response => response
     }
   } else if arguments.command() == CommandCommand {
+    perf_trace_mark(trace, "application.dispatch")
+    let process = @host_process.ProcessAdapter::new()
     try
       @application.execute_command_command_async(
         host, environment_host, process, arguments, context,
@@ -507,24 +640,36 @@ async fn[
     }
   } else if arguments.command() == DumpCommand ||
     arguments.command() == JsonCommand {
-    let inspect_environment = try
-      @host.HostEnv::env_entries(environment_host)
-    catch {
-      error => return failure("error: host operation failed: \{Repr(error)}", 1)
-    } noraise {
-      value => value
-    }
-    try dispatch_inspect(host, arguments, context, inspect_environment) catch {
+    perf_trace_mark(trace, "application.dispatch")
+    try dispatch_inspect(host, arguments, context, environment.entries) catch {
       error => application_failure(host, arguments, context, error)
     } noraise {
       response => response
     }
   } else {
+    perf_trace_mark(trace, "application.dispatch")
     try dispatch_query(host, environment_host, arguments, context) catch {
       error => application_failure(host, arguments, context, error)
     } noraise {
       response => response
     }
+  }
+}
+
+///|
+async fn[
+  F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAtomicFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
+] run_cli(
+  host : F,
+  environment_host : E,
+  argv : ArrayView[String],
+  stdin : Bytes,
+) -> @cli.ApplicationResponse {
+  match prepare_invocation(environment_host, argv) {
+    Respond(response) => response
+    Ready(arguments, environment) =>
+      run_prepared_cli(host, environment_host, arguments, environment, stdin)
   }
 }
 
@@ -543,28 +688,45 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 async fn main {
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
-  @async.with_task_group() <| group => {
-    ignore(@host_process.configure_signal_forwarding(group, false))
-    let environment_host = runtime_environment_host()
-    let parsed = try {
-      let environment = parse_environment(environment_host)
-      Some(@cli.parse_arguments(argv, environment))
-    } catch {
-      _ => None
-    }
-    let stdin = if parsed is Some(arguments) &&
-      !arguments.flag("help") &&
-      !arguments.flag("version") &&
-      arguments.value("justfile") == Some("-") {
-      read_stdin_source_bounded(
-        @lexer.LexerLimits::default().max_source_bytes(),
-      ) catch {
-        _ => b""
+  let environment_host = runtime_environment_host()
+  match static_invocation_response(argv) {
+    Some(response) => emit_response(response)
+    None => {
+      let trace = perf_trace_new()
+      @host_process.prepare_signal_forwarding()
+      match prepare_invocation(environment_host, argv, trace~) {
+        Respond(response) => emit_response(response)
+        Ready(arguments, environment) => {
+          let stdin = if !arguments.flag("help") &&
+            !arguments.flag("version") &&
+            arguments.value("justfile") == Some("-") {
+            read_stdin_source_bounded(
+              @lexer.LexerLimits::default().max_source_bytes(),
+            ) catch {
+              _ => b""
+            }
+          } else {
+            b""
+          }
+          let response = run_prepared_cli(
+            runtime_host(),
+            environment_host,
+            arguments,
+            environment,
+            stdin,
+            trace~,
+          )
+          match trace {
+            Some(value) => {
+              value.mark("application.complete")
+              value.emit()
+            }
+            None => ()
+          }
+          emit_response(response)
+        }
       }
-    } else {
-      b""
     }
-    emit_response(run_cli(runtime_host(), environment_host, argv, stdin))
   }
 }
 
@@ -602,6 +764,16 @@ async test "cli renders help and release metadata without process access" {
   assert_eq(man.exit_code(), 0)
   assert_true((try! @utf8.decode(man.stdout())).contains(".TH just 1"))
   assert_eq(host.process_calls().length(), 0)
+}
+
+///|
+async test "single static options do not enumerate the environment" {
+  let host = test_host(false)
+  host.deny(Environment)
+  for option in ["--help", "-h", "--version", "-V", "--changelog", "--man"] {
+    assert_eq(run_cli(host, host, [option], b"").exit_code(), 0)
+  }
+  assert_eq(run_cli(host, host, ["--version", "extra"], b"").exit_code(), 1)
 }
 
 ///|

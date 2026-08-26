@@ -12,7 +12,12 @@ import {
 
 import {
   "ZSeanYves/MoonJust/src/path",
+  "moonbitlang/core/bench",
 } for "test"
+
+import {
+  "moonbitlang/core/bench",
+} for "wbtest"
 
 supported_targets = "-all+native+wasm"
 
