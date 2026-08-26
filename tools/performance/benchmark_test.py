@@ -144,6 +144,29 @@ class BenchmarkTest(unittest.TestCase):
                 {"events": [{"stage": "application.plan", "elapsed_ms": 3}]},
             )
 
+    def test_collect_phase_trace_merges_detail_events(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            script = (
+                "import sys; "
+                "print('MOONJUST_PERF_DETAIL {\"events\":[{\"stage\":\"run.load\",\"elapsed_ms\":2}]}', file=sys.stderr); "
+                "print('MOONJUST_PERF_TRACE {\"events\":[{\"stage\":\"application.plan\",\"elapsed_ms\":3}]}', file=sys.stderr)"
+            )
+            value = benchmark.collect_phase_trace(
+                [sys.executable, "-c", script], root
+            )
+            self.assertEqual(
+                value,
+                {
+                    "events": [
+                        {"stage": "application.plan", "elapsed_ms": 3}
+                    ],
+                    "detail_events": [
+                        {"stage": "run.load", "elapsed_ms": 2}
+                    ],
+                },
+            )
+
     def test_collect_phase_trace_returns_none_for_static_output(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             value = benchmark.collect_phase_trace(

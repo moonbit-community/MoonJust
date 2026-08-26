@@ -1870,33 +1870,44 @@ pub async fn[
   arguments : @cli.CliArguments,
   context : ApplicationContext,
 ) -> @cli.ApplicationResponse? raise ApplicationError {
+  clear_prepared_run_project()
   guard arguments.command() == RunCommand else { return None }
   let (arguments, context) = search_prefixed_invocation(arguments, context)
   let platform = @host.HostPlatform::platform_info(terminal_host) catch {
     error => raise Host(error)
   }
+  perf_detail_mark("run.preflight.platform")
   let semantic_platform = semantic_target_platform(platform)
   let loading_environment = @host.HostEnv::env_entries(terminal_host) catch {
     error => raise Host(error)
   }
-  let (graph, _) = load_graph_input_with_directories_async(
+  perf_detail_mark("run.preflight.environment")
+  let (graph, directories) = load_graph_input_with_directories_async(
     host,
     arguments,
     context,
     platform=semantic_platform,
     environment=loading_environment,
   )
+  perf_detail_mark("run.preflight.load")
   let project = compile_loaded_graph(
     graph,
     allow_unstable=arguments.flag("unstable"),
     platform=semantic_platform,
   )
+  perf_detail_mark("run.preflight.compile")
   guard default_list_module_path(project, arguments.positional()) is Some(path) else {
+    cache_prepared_run_project(
+      arguments, context, platform, loading_environment, graph, directories, project,
+    )
     return None
   }
   let compilation = project.module_compilation(path).unwrap()
   if !arguments.flag("default-list") &&
     !compilation.settings().bool("default-list") {
+    cache_prepared_run_project(
+      arguments, context, platform, loading_environment, graph, directories, project,
+    )
     return None
   }
   let color = match arguments.value("color").unwrap_or("auto") {
@@ -2070,10 +2081,12 @@ pub async fn[
   let platform = @host.HostPlatform::platform_info(terminal_host) catch {
     error => raise Host(error)
   }
+  perf_detail_mark("query.platform")
   let semantic_platform = semantic_target_platform(platform)
   let loading_environment = @host.HostEnv::env_entries(terminal_host) catch {
     error => raise Host(error)
   }
+  perf_detail_mark("query.environment")
   let (graph, _) = load_graph_input_with_directories_async(
     host,
     arguments,
@@ -2081,11 +2094,13 @@ pub async fn[
     platform=semantic_platform,
     environment=loading_environment,
   )
+  perf_detail_mark("query.load")
   let project = compile_loaded_graph(
     graph,
     allow_unstable=arguments.flag("unstable"),
     platform=semantic_platform,
   )
+  perf_detail_mark("query.compile")
   validate_project_variable_overrides(project, arguments)
   let color = match arguments.value("color").unwrap_or("auto") {
     "always" => true
@@ -2099,6 +2114,8 @@ pub async fn[
     _ => raise Query("invalid --color value")
   }
   let output = query_project_text(graph, project, arguments, color)
+  perf_detail_mark("query.render")
+  ignore(perf_detail_emit() catch { _ => () })
   let stderr = if arguments.command() == SummaryCommand &&
     !arguments.flag("quiet") &&
     output == "\n" {

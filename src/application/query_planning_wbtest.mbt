@@ -1022,3 +1022,65 @@ test "dotenv merge updates duplicates only when override is enabled" {
     ("A", "old"),
   ])
 }
+
+///|
+async test "portable prepared run project is consumed once" {
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let file = try! @path.PathValue::new("/workspace/justfile", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "wasm32", Unix, portable_runtime=true),
+  )
+  host.put_file(file, b"build:\n")
+  let arguments = try! @cli.parse_arguments(["--dry-run", "build"], {})
+  let context = ApplicationContext::new(cwd)
+  assert_eq(
+    try! execute_default_list_command_async(host, host, arguments, context),
+    None,
+  )
+
+  host.put_file(file, b"invalid source\n")
+  ignore(try! plan_run_command_async(host, host, host, arguments, context))
+  try plan_run_command_async(host, host, host, arguments, context) catch {
+    Load(_) => ()
+    error => fail("unexpected second planning error: \{Repr(error)}")
+  } noraise {
+    _ => fail("prepared project cache was reused more than once")
+  }
+}
+
+///|
+async test "default list preflight clears an older prepared project" {
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let file = try! @path.PathValue::new("/workspace/justfile", Unix)
+  let host = @host.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, "wasm32", Unix, portable_runtime=true),
+  )
+  let context = ApplicationContext::new(cwd)
+  let run = try! @cli.parse_arguments(["--dry-run", "build"], {})
+  host.put_file(file, b"build:\n")
+  assert_eq(
+    try! execute_default_list_command_async(host, host, run, context),
+    None,
+  )
+
+  host.put_file(file, b"set default-list\nlist:\n")
+  assert_true(
+    (try! execute_default_list_command_async(
+      host,
+      host,
+      try! @cli.parse_arguments([], {}),
+      context,
+    ))
+    is Some(_),
+  )
+  host.put_file(file, b"invalid source\n")
+  try plan_run_command_async(host, host, host, run, context) catch {
+    Load(_) => ()
+    error =>
+      fail("unexpected planning error after default list: \{Repr(error)}")
+  } noraise {
+    _ => fail("default list preflight left an older prepared project cached")
+  }
+}

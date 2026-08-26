@@ -431,13 +431,23 @@ def collect_phase_trace(command: list[str], cwd: Path) -> dict[str, object] | No
             "stderr_tail": result.stderr.decode(errors="replace")[-2000:],
         }
     traces: list[dict[str, object]] = []
+    detail_events: list[dict[str, object]] = []
     for line in result.stderr.decode(errors="replace").splitlines():
         if not line.startswith("MOONJUST_PERF_TRACE "):
+            if line.startswith("MOONJUST_PERF_DETAIL "):
+                value = json.loads(line.removeprefix("MOONJUST_PERF_DETAIL "))
+                if isinstance(value, dict) and isinstance(value.get("events"), list):
+                    detail_events.extend(value["events"])
             continue
         value = json.loads(line.removeprefix("MOONJUST_PERF_TRACE "))
         if isinstance(value, dict) and isinstance(value.get("events"), list):
             traces.append(value)
-    return traces[-1] if traces else None
+    if not traces and not detail_events:
+        return None
+    result_value = traces[-1] if traces else {"events": []}
+    if detail_events:
+        result_value = {**result_value, "detail_events": detail_events}
+    return result_value
 
 
 def baseline_metadata(path: Path | None) -> dict[str, object] | None:

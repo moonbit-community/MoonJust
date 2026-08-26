@@ -1605,6 +1605,7 @@ async fn[
       dotenv_shell,
       path.is_root(),
     )
+    perf_detail_mark("run.global.dotenv")
     let evaluation_environment = merge_dotenv_entries(
       merge_dotenv_entries(ambient, inherited_dotenv, true),
       dotenv,
@@ -1707,6 +1708,7 @@ async fn[
     ) catch {
       error => raise Evaluation(error)
     }
+    perf_detail_mark("run.global.evaluate")
     globals[path] = global
   }
   (globals, dotenv_by_module)
@@ -1734,38 +1736,64 @@ pub async fn[
   let platform = @host.HostPlatform::platform_info(effects) catch {
     error => raise Host(error)
   }
+  perf_detail_mark("run.platform")
   let loading_environment = @host.HostEnv::env_entries(effects) catch {
     error => raise Host(error)
   }
+  perf_detail_mark("run.environment")
   let mut current_context = context
   let mut fallback_depth = 0
   let fallback_stderr = StringBuilder()
   while true {
-    let (graph, directories) = load_graph_input_with_directories_async(
-      filesystem,
-      arguments,
-      current_context,
-      platform=semantic_target_platform(platform),
-      environment=loading_environment,
-    )
-    let project = compile_loaded_graph(
-      graph,
-      allow_unstable=arguments.flag("unstable"),
-      platform=semantic_target_platform(platform),
-    ) catch {
-      Semantic(error) if fallback_depth > 0 => {
-        for file in graph.files() {
-          if file.source().id() == error.span().source_id() {
-            raise ContextualSemantic(
-              error~,
-              source=file.source(),
-              cwd=current_context.cwd(),
-            )
-          }
-        }
-        raise Semantic(error)
+    let prepared = if fallback_depth == 0 {
+      take_prepared_run_project(
+        arguments, current_context, platform, loading_environment,
+      )
+    } else {
+      None
+    }
+    let (graph, directories) = match prepared {
+      Some((graph, directories, _)) => {
+        perf_detail_mark("run.preloaded")
+        (graph, directories)
       }
-      error => raise error
+      None => {
+        let value = load_graph_input_with_directories_async(
+          filesystem,
+          arguments,
+          current_context,
+          platform=semantic_target_platform(platform),
+          environment=loading_environment,
+        )
+        perf_detail_mark("run.load")
+        value
+      }
+    }
+    let project = match prepared {
+      Some((_, _, project)) => project
+      None => {
+        let value = compile_loaded_graph(
+          graph,
+          allow_unstable=arguments.flag("unstable"),
+          platform=semantic_target_platform(platform),
+        ) catch {
+          Semantic(error) if fallback_depth > 0 => {
+            for file in graph.files() {
+              if file.source().id() == error.span().source_id() {
+                raise ContextualSemantic(
+                  error~,
+                  source=file.source(),
+                  cwd=current_context.cwd(),
+                )
+              }
+            }
+            raise Semantic(error)
+          }
+          error => raise error
+        }
+        perf_detail_mark("run.compile")
+        value
+      }
     }
     validate_project_const_settings(project, arguments, platform.path_flavor())
     validate_no_recipe_variable_cycles(project)
@@ -1822,6 +1850,7 @@ pub async fn[
     } noraise {
       value => value
     }
+    perf_detail_mark("run.invocations")
     let invocation_directory = shell_invocation_directory(
       process, directories, arguments, platform,
     )
@@ -1837,6 +1866,7 @@ pub async fn[
       invocation_directory,
       targets~,
     )
+    perf_detail_mark("run.globals")
     let invocations = @invocation.parse_project_invocations_in_environments(
       project,
       arguments.positional(),
@@ -1852,6 +1882,7 @@ pub async fn[
         invocations.length().to_string(),
       )
     }
+    perf_detail_mark("run.runtime_setup")
     let timestamp = selected_timestamp(effects, arguments)
     let color_enabled = selected_color_active(effects, arguments)
     let command_color = selected_command_color(arguments, color_enabled)
@@ -1968,6 +1999,8 @@ pub async fn[
         plans.push(plan)
       }
       let combined = @executor.combine_execution_plans(plans)
+      perf_detail_mark("run.sync_plan")
+      ignore(perf_detail_emit() catch { _ => () })
       let prefix = fallback_stderr.to_string()
       if prefix == "" {
         return combined
@@ -2015,6 +2048,8 @@ pub async fn[
     ) catch {
       error => raise Executor(error)
     }
+    perf_detail_mark("run.async_plan")
+    ignore(perf_detail_emit() catch { _ => () })
     let prefix = fallback_stderr.to_string()
     if prefix == "" {
       return combined

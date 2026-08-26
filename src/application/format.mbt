@@ -368,9 +368,18 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] exe
   match arguments.command() {
     CheckCommand => {
       let loaded = load_input_async(host, arguments, context)
-      format_check_response(loaded, arguments)
+      perf_detail_mark("file.load")
+      let response = format_check_response(loaded, arguments)
+      perf_detail_mark("file.format")
+      ignore(perf_detail_emit() catch { _ => () })
+      response
     }
-    FormatCommand => format_response_async(host, arguments, context)
+    FormatCommand => {
+      let response = format_response_async(host, arguments, context)
+      perf_detail_mark("file.format")
+      ignore(perf_detail_emit() catch { _ => () })
+      response
+    }
     InitCommand => init_response_async(host, arguments, context)
     command => raise UnsupportedCommand("\{Repr(command)}")
   }

@@ -20,6 +20,8 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
   "moonbitlang/core/string",
+  "moonbitlang/async",
+  "moonbitlang/async/stdio",
 }
 
 import {
@@ -31,3 +33,10 @@ import {
 import {
   "moonbitlang/core/bench",
 } for "wbtest"
+
+options(
+  targets: {
+    "perf_trace.mbt": [ "native", "wasm" ],
+    "perf_trace_stub.mbt": [ "wasm-gc", "js" ],
+  },
+)
