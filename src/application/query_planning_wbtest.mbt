@@ -1,4 +1,17 @@
 ///|
+test "windows drive paths convert without a cygpath process" {
+  let drive = try! @path.PathValue::new("C:\\Users\\runner\\repo", Windows)
+  assert_eq(
+    windows_drive_path_to_unix(drive),
+    Some(try! @path.PathValue::new("/c/Users/runner/repo", Unix)),
+  )
+  let unc = try! @path.PathValue::new("\\\\server\\share", Windows)
+  assert_eq(windows_drive_path_to_unix(unc), None)
+  let relative = try! @path.PathValue::new("repo\\sub", Windows)
+  assert_eq(windows_drive_path_to_unix(relative), None)
+}
+
+///|
 fn application_behavior_source() -> @source.Source {
   @source.Source::from_text(
     @source.SourceId::new(9950),

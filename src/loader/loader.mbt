@@ -435,22 +435,10 @@ fn[T : @host.HostFs] load_cached(
       }
     }
     None => {
-      let bytes = @host.HostFs::read_file(host, path) catch {
-        error => raise Host(error)
-      }
-      let source = source_from_file_bytes(bytes, source_id, path)
-      let ast = parse_loaded_source(source, environment~)
-      let loaded = {
-        path,
-        canonical_path: canonical,
-        source,
-        ast,
-        parent: None,
-        import_span: None,
-        relation: RootSource,
-        module_path: @modulepath.ModulePath::root(),
-        module_directory: source_directory(path),
-      }
+      // Keep the first read on the established loader path. Besides retaining
+      // exact error ordering, this avoids changing host behavior for module
+      // candidates whose canonical path is only a planning hint.
+      let loaded = load(host, path, source_id, environment~)
       cache[key] = loaded.source().bytes().to_owned()
       loaded
     }

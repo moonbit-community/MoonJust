@@ -59,6 +59,15 @@ fn perf_trace_mark(trace : PerfTrace?, name : String) -> Unit {
 }
 
 ///|
+#cfg(all(target="native", not(platform="windows")))
+fn init {
+  // The native launcher must install the process-wide signal disposition
+  // before the async root task starts. Static requests still avoid all host
+  // and process setup in `main`, but retain this compatibility policy.
+  @host_process.prepare_signal_forwarding()
+}
+
+///|
 fn[E : @host.HostEnv] parse_environment(
   environment_host : E,
 ) -> InvocationEnvironment raise @host.HostError {

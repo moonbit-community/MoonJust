@@ -629,6 +629,27 @@ fn project_evaluation_context(
 }
 
 ///|
+fn windows_drive_path_to_unix(path : @path.PathValue) -> @path.PathValue? {
+  let text = path.as_string()
+  let characters = text.to_array()
+  guard characters.length() >= 3 && characters[1] == ':' else { return None }
+  guard characters[2] == '\\' || characters[2] == '/' else { return None }
+  let drive = characters[0]
+  guard drive.is_ascii_alphabetic() else { return None }
+  let lower_drive = (if drive.is_ascii_uppercase() {
+    (drive.to_int() + 32).to_char().unwrap()
+  } else {
+    drive
+  }).to_string()
+  let rest = text[2:].to_owned().replace_all(old="\\", new="/")
+  Some(
+    @path.PathValue::new("/" + lower_drive + rest, Unix) catch {
+      _ => return None
+    },
+  )
+}
+
+///|
 async fn[P : @host.HostAsyncProcess] shell_invocation_directory(
   process : P,
   directories : @workdir.WorkingDirectoryModel,
@@ -638,6 +659,13 @@ async fn[P : @host.HostAsyncProcess] shell_invocation_directory(
   let native = directories.invocation_directory()
   if platform.operating_system() != Windows {
     return native
+  }
+  // cygpath is only needed for UNC/MSYS mount paths. Ordinary drive paths
+  // have a deterministic conversion that avoids a helper process during
+  // every dry-run plan while preserving the Unix-facing builtin value.
+  match windows_drive_path_to_unix(native) {
+    Some(value) => return value
+    None => ()
   }
   let program = arguments.value("cygpath").unwrap_or("cygpath")
   let spec = @host.CommandSpec::new(program, ["--unix", native.as_string()]) catch {
