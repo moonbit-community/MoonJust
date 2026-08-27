@@ -741,6 +741,11 @@ pub fn validate_project_compilation(
   for path in project.module_paths() {
     let compilation = project.module_compilation(path).unwrap()
     for recipe_name in compilation.recipe_names() {
+      let recipe = compilation.recipe(recipe_name).unwrap()
+      if recipe.dependencies().is_empty() &&
+        recipe.subsequent_dependencies().is_empty() {
+        continue
+      }
       validate_project_recipe(
         project,
         { module_path: path, recipe_name },
