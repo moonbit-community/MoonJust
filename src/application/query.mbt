@@ -254,6 +254,55 @@ fn validate_module_name_conflicts(
 }
 
 ///|
+fn single_root_default_recipe(compilation : @semantic.Compilation) -> String? {
+  let first = compilation.recipe_names().get(0).map(fn(name) { name })
+  for name in compilation.recipe_names() {
+    match compilation.recipe_attributes(name) {
+      Some(attributes) if attributes.names().contains("default") =>
+        return Some(name)
+      _ => ()
+    }
+  }
+  first
+}
+
+///|
+fn compile_single_root_graph(
+  loaded : @loader.LoadedSource,
+  allow_unstable : Bool,
+  platform : @semantic.TargetPlatform,
+) -> @semantic.ProjectCompilation? raise ApplicationError {
+  for item in loaded.ast().items() {
+    match item {
+      Import(_) | Module(_) => return None
+      _ => ()
+    }
+  }
+  let compilation = @semantic.compile(
+    loaded.ast(),
+    platform~,
+    allow_unstable~,
+    defer_recipe_linking=false,
+  ) catch {
+    error => raise Semantic(error)
+  }
+  let source_file = loaded.path()
+  let project = @semantic.ProjectCompilation::new([
+    @semantic.ProjectModule::new(
+      @modulepath.ModulePath::root(),
+      compilation,
+      loaded.module_directory(),
+      source_file~,
+      source_files=[(loaded.source().id(), source_file)],
+      default_recipe?=single_root_default_recipe(compilation),
+    ),
+  ]) catch {
+    error => raise Project(error)
+  }
+  Some(project)
+}
+
+///|
 fn compile_loaded_graph(
   graph : @loader.LoadedGraph,
   allow_unstable? : Bool = false,
@@ -265,6 +314,12 @@ fn compile_loaded_graph(
   let entries : Array[@semantic.ProjectModule] = []
   let absent_modules : Array[@modulepath.ModulePath] = []
   let files = graph.files()
+  if files.length() == 1 && files[0].relation() == RootSource {
+    match compile_single_root_graph(files[0], allow_unstable, platform) {
+      Some(project) => return project
+      None => ()
+    }
+  }
   validate_module_name_conflicts(files, platform)
   for index, loaded in files {
     if loaded.relation() != RootSource && loaded.relation() != ModuleSource {
