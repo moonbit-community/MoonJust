@@ -210,7 +210,22 @@ async fn portable_read_source(
   }
   defer file.close()
   let read_limit = max_bytes + 1
-  let result = Buffer(size_hint=Int::min(read_limit, 64 * 1024))
+  // Regular files can provide an exact allocation hint without changing the
+  // bounded stream semantics used for FIFOs and other special files.
+  let regular_file = @fs.is_file(path.as_string()) catch { _ => false }
+  let probed_size = if regular_file {
+    file.size() catch {
+      _ => 0L
+    }
+  } else {
+    0L
+  }
+  let size_hint = if probed_size > 0L && probed_size < read_limit.to_int64() {
+    probed_size.to_int()
+  } else {
+    Int::min(read_limit, 64 * 1024)
+  }
+  let result = Buffer(size_hint~)
   while result.length() < read_limit {
     let chunk = file.read_some(
       max_len=Int::min(read_limit - result.length(), 64 * 1024),
