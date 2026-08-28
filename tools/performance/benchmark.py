@@ -220,6 +220,26 @@ def median_ci_half_width(values: list[float]) -> float | None:
     return 1.58 * statistics.pstdev(values) / math.sqrt(len(values)) / median
 
 
+def bootstrap_median_interval(
+    values: list[float],
+    seed: int,
+    resamples: int = 2_000,
+) -> tuple[float, float]:
+    """Return a deterministic percentile bootstrap interval for a median."""
+    if not values:
+        raise ValueError("bootstrap interval requires at least one value")
+    generator = random.Random(seed)
+    count = len(values)
+    medians = sorted(
+        statistics.median(generator.choices(values, k=count))
+        for _ in range(resamples)
+    )
+    return (
+        medians[math.floor(0.025 * resamples)],
+        medians[math.ceil(0.975 * resamples) - 1],
+    )
+
+
 def stable_window(values: list[float], window: int = 5) -> bool:
     if len(values) < window:
         return False
@@ -454,6 +474,24 @@ def command_for(
     )
 
 
+def wasm_postlink_commands(
+    reference: Path,
+    optimized: Path,
+    fixture: Path,
+    arguments: list[str],
+    moonrun: str,
+    policy: Path,
+) -> dict[str, list[str]]:
+    """Build the paired commands used to isolate post-link optimization."""
+    return {
+        kind: command_for(kind, artifact, fixture, arguments, moonrun, policy)
+        for kind, artifact in {
+            "raw-wasm": reference,
+            "optimized-wasm": optimized,
+        }.items()
+    }
+
+
 def runtime_probe_commands(
     artifacts: dict[str, Path],
     empty_fixture: Path,
@@ -683,6 +721,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--official", type=Path, required=True)
     parser.add_argument("--native", type=Path, required=True)
     parser.add_argument("--wasm", type=Path, required=True)
+    parser.add_argument(
+        "--wasm-reference",
+        type=Path,
+        help="unoptimized Wasm artifact for a same-run post-link A/B experiment",
+    )
     parser.add_argument("--policy", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--raw-output", type=Path)
@@ -703,7 +746,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    for name in ("official", "native", "wasm", "policy", "output"):
+    for name in ("official", "native", "wasm", "wasm_reference", "policy", "output"):
         value = getattr(args, name)
         if value is not None:
             setattr(args, name, value.resolve())
@@ -733,6 +776,18 @@ def main() -> int:
         wasm_optimizer = wasm_optimizer_metadata(args.wasm)
     except ValueError as error:
         environment_errors.append(str(error))
+    if args.wasm_reference is not None:
+        if not args.wasm_reference.is_file():
+            environment_errors.append(
+                f"Wasm reference artifact is missing: {args.wasm_reference}"
+            )
+        elif (
+            wasm_optimizer is not None
+            and wasm_optimizer.get("input_sha256") != sha256(args.wasm_reference)
+        ):
+            environment_errors.append(
+                "Wasm reference hash differs from the optimizer input hash"
+            )
     official_commit = os.environ.get("MOONJUST_OFFICIAL_COMMIT", OFFICIAL_COMMIT)
     if official_commit != OFFICIAL_COMMIT:
         environment_errors.append(
@@ -753,6 +808,9 @@ def main() -> int:
     runtime_probe_commands_record: dict[str, dict[str, list[str]]] = {}
     runtime_probe_duration = 0.0
     runtime_probe_early_stops: dict[str, bool] = {}
+    wasm_postlink_results: dict[str, dict[str, object]] = {}
+    wasm_postlink_duration = 0.0
+    wasm_postlink_early_stops: dict[str, bool] = {}
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
         fixtures = write_fixtures(root)
@@ -831,6 +889,59 @@ def main() -> int:
                     for kind in artifacts
                 }
 
+        if args.wasm_reference is not None and args.wasm_reference.is_file():
+            postlink_artifacts = {
+                "raw-wasm": args.wasm_reference,
+                "optimized-wasm": args.wasm,
+            }
+            postlink_hashes = {
+                kind: sha256(path) for kind, path in postlink_artifacts.items()
+            }
+            for index, (workload, (fixture, arguments)) in enumerate(
+                selected_fixtures.items()
+            ):
+                commands = wasm_postlink_commands(
+                    args.wasm_reference,
+                    args.wasm,
+                    fixture,
+                    arguments,
+                    moonrun,
+                    args.policy,
+                )
+                latency, duration, stopped = collect_phase(
+                    "latency",
+                    f"wasm-postlink/{workload}",
+                    commands,
+                    root,
+                    args.warmups,
+                    MIN_LATENCY_SAMPLES,
+                    args.seed + 20_000 + index * 100,
+                    raw_rows,
+                    moon_toolchain,
+                    postlink_hashes,
+                )
+                wasm_postlink_duration += duration
+                wasm_postlink_early_stops[workload] = stopped
+                paired_ratios = [
+                    float(optimized) / float(reference)
+                    for reference, optimized in zip(
+                        latency["raw-wasm"], latency["optimized-wasm"], strict=True
+                    )
+                ]
+                interval = bootstrap_median_interval(
+                    paired_ratios, args.seed + 30_000 + index
+                )
+                wasm_postlink_results[workload] = {
+                    kind: summarize([float(value) for value in latency[kind]], [])
+                    for kind in postlink_artifacts
+                }
+                wasm_postlink_results[workload]["optimized_over_raw"] = {
+                    "median_ratio": statistics.median(paired_ratios),
+                    "confidence": "95%",
+                    "confidence_interval": list(interval),
+                    "paired_samples": len(paired_ratios),
+                }
+
         empty_fixture = root / "runtime-probe-empty.just"
         write_fixture(empty_fixture, "")
         runtime_probe_commands_record = runtime_probe_commands(
@@ -882,6 +993,10 @@ def main() -> int:
         for kind, summary in values.items():
             if int(summary.get("latency_samples", 0)) < MIN_LATENCY_SAMPLES:
                 failures.append(f"runtime probe {probe}/{kind} has incomplete latency samples")
+    for workload, values in wasm_postlink_results.items():
+        comparison = values.get("optimized_over_raw", {})
+        if int(comparison.get("paired_samples", 0)) != MIN_LATENCY_SAMPLES:
+            failures.append(f"Wasm post-link comparison {workload} has incomplete samples")
 
     infrastructure_invalid = bool(environment_errors)
     args.raw_output.write_text(
@@ -930,6 +1045,8 @@ def main() -> int:
             "cold_warm_duration_seconds": cold_warm_duration,
             "runtime_probe_duration_seconds": runtime_probe_duration,
             "runtime_probe_early_stops": runtime_probe_early_stops,
+            "wasm_postlink_duration_seconds": wasm_postlink_duration,
+            "wasm_postlink_early_stops": wasm_postlink_early_stops,
         },
         "cold_warm": {
             "enabled": args.cold_warm,
@@ -943,6 +1060,31 @@ def main() -> int:
             "purpose": "separate Wasm runtime, environment, stdin, and file-load fixed costs from package compute",
             "commands": runtime_probe_commands_record,
             "workloads": runtime_probe_results,
+        },
+        "wasm_postlink": {
+            "enabled": args.wasm_reference is not None,
+            "gate_enforced": False,
+            "purpose": "isolate wasm-opt -O2 from runner and toolchain changes with paired samples",
+            "reference_input_verified": (
+                args.wasm_reference is not None
+                and args.wasm_reference.is_file()
+                and wasm_optimizer is not None
+                and wasm_optimizer.get("input_sha256") == sha256(args.wasm_reference)
+            ),
+            "samples_per_artifact": MIN_LATENCY_SAMPLES,
+            "artifacts": {
+                kind: {
+                    "path": str(path),
+                    "bytes": path.stat().st_size,
+                    "sha256": sha256(path),
+                }
+                for kind, path in {
+                    "raw-wasm": args.wasm_reference,
+                    "optimized-wasm": args.wasm,
+                }.items()
+                if path is not None and path.is_file()
+            },
+            "workloads": wasm_postlink_results,
         },
         "phase_traces": phase_traces,
         "artifacts": {

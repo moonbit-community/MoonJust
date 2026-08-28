@@ -880,15 +880,24 @@ def run_measurement(
     # native target uses `just.exe` on every host.
     _, native, _ = build_spec(repo, "native", "release")
     _, wasm, _ = build_spec(repo, "wasm1", "release")
+    wasm_reference = (
+        repo
+        / "_build/.moonjust-wasm-raw/wasm/release/build/cmd/just/just.wasm"
+    )
     official = official_artifact(repo)
     policy = repo / "policies/execute.toml"
-    if not all(path.is_file() for path in (native, wasm, official, policy)):
-        raise RuntimeError("release measurement requires official, Native, Wasm, and policy artifacts")
+    if not all(
+        path.is_file() for path in (native, wasm, wasm_reference, official, policy)
+    ):
+        raise RuntimeError(
+            "release measurement requires official, Native, raw/optimized Wasm, and policy artifacts"
+        )
     output = output or repo / "_build/performance/results.json"
     raw_report = output.with_suffix(".raw.json")
     command_line = [
         sys.executable, "tools/performance/benchmark.py",
         "--official", str(official), "--native", str(native), "--wasm", str(wasm),
+        "--wasm-reference", str(wasm_reference),
         "--policy", str(policy), "--output", str(raw_report), "--raw-output", str(output.with_suffix(".jsonl")),
     ]
     if report_only:

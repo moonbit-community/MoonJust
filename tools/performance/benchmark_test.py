@@ -103,6 +103,36 @@ class BenchmarkTest(unittest.TestCase):
             ["--justfile", "empty.just", "--summary"],
         )
 
+    def test_wasm_postlink_commands_compare_raw_and_optimized_artifacts(self) -> None:
+        commands = benchmark.wasm_postlink_commands(
+            Path("raw.wasm"),
+            Path("optimized.wasm"),
+            Path("input.just"),
+            ["--summary"],
+            "moonrun",
+            Path("policy.toml"),
+        )
+        self.assertEqual(set(commands), {"raw-wasm", "optimized-wasm"})
+        self.assertEqual(
+            commands["raw-wasm"],
+            [
+                "moonrun",
+                "--policy",
+                "policy.toml",
+                "raw.wasm",
+                "--justfile",
+                "input.just",
+                "--summary",
+            ],
+        )
+
+    def test_bootstrap_median_interval_is_deterministic(self) -> None:
+        first = benchmark.bootstrap_median_interval([0.8, 0.9, 1.0], 1570)
+        second = benchmark.bootstrap_median_interval([0.8, 0.9, 1.0], 1570)
+        self.assertEqual(first, second)
+        self.assertLessEqual(first[0], 0.9)
+        self.assertGreaterEqual(first[1], 0.9)
+
     def test_cold_warm_phase_records_three_conditions_per_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
