@@ -302,6 +302,19 @@ def main() -> int:
             records=commands,
             phase="baseline-build-wasm",
         )
+        run(
+            [
+                sys.executable,
+                str(repo / "tools/release/optimize_wasm.py"),
+                "--input",
+                str(wasm_dir / "wasm/release/build/cmd/just/just.wasm"),
+                "--cache",
+                str(repo / "_build/tooling/binaryen"),
+            ],
+            env=environment,
+            records=commands,
+            phase="baseline-optimize-wasm",
+        )
         native = native_dir / "native/release/build/cmd/just/just.exe"
         wasm = wasm_dir / "wasm/release/build/cmd/just/just.wasm"
         if not native.is_file() or not wasm.is_file():
@@ -370,6 +383,19 @@ def main() -> int:
             env=environment,
             records=commands,
             phase="baseline-build-repeat-wasm",
+        )
+        run(
+            [
+                sys.executable,
+                str(repo / "tools/release/optimize_wasm.py"),
+                "--input",
+                str(wasm_dir / "wasm/release/build/cmd/just/just.wasm"),
+                "--cache",
+                str(repo / "_build/tooling/binaryen"),
+            ],
+            env=environment,
+            records=commands,
+            phase="baseline-optimize-repeat-wasm",
         )
         stage_archive(repo, work, native, args.platform, archive, records=commands)
         second_hashes = {

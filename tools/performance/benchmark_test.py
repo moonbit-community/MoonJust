@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
+import json
 import sys
 import tempfile
 import unittest
@@ -150,6 +152,27 @@ class BenchmarkTest(unittest.TestCase):
             value = benchmark.read_evidence(path)
             self.assertEqual(value["schema_version"], 4)
             self.assertEqual(value["legacy_schema_version"], 2)
+
+    def test_wasm_optimizer_metadata_binds_optimizer_to_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            artifact = Path(raw) / "candidate.wasm"
+            artifact.write_bytes(b"\0asm\x01\0\0\0")
+            sidecar = artifact.with_name(artifact.name + ".optimizer.json")
+            sidecar.write_text(
+                json.dumps(
+                    {
+                        "optimizer_version": "wasm-opt version 132 (version_132)",
+                        "arguments": ["-O2"],
+                        "output_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            value = benchmark.wasm_optimizer_metadata(artifact)
+            self.assertEqual(value["arguments"], ["-O2"])
+            artifact.write_bytes(b"changed")
+            with self.assertRaisesRegex(ValueError, "output hash differs"):
+                benchmark.wasm_optimizer_metadata(artifact)
 
     def test_shadow_result_sets_ignore_measurement_values(self) -> None:
         fixtures = {"fixtures": {"startup": {"commands": {"native": ["just", "--justfile", "/tmp/moonjust-benchmark-old/input.just"]}}}}

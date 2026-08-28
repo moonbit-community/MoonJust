@@ -42,6 +42,20 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def release_wasm_optimizer_valid(artifact: Path) -> bool:
+    optimizer = artifact.with_name(artifact.name + ".optimizer.json")
+    try:
+        value = json.loads(optimizer.read_text(encoding="utf-8"))
+        return (
+            isinstance(value, dict)
+            and value.get("optimizer_version")
+            == "wasm-opt version 132 (version_132)"
+            and value.get("output_sha256") == sha256(artifact)
+        )
+    except (OSError, json.JSONDecodeError):
+        return False
+
+
 def canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
 
@@ -288,6 +302,10 @@ class BuildRegistry:
                 pass
         existing_artifact = existing.get("artifact")
         existing_artifact_record = existing_artifact if isinstance(existing_artifact, dict) else {}
+        release_wasm = (
+            fields.get("target") == "wasm1" and fields.get("profile") == "release"
+        )
+        companion_valid = not release_wasm or release_wasm_optimizer_valid(artifact)
         valid = (
             existing.get("schema_version") == EVIDENCE_SCHEMA_VERSION
             and existing.get("key") == key
@@ -295,6 +313,7 @@ class BuildRegistry:
             and existing.get("command") == list(command_line)
             and artifact.is_file()
             and existing_artifact_record.get("sha256") == sha256(artifact)
+            and companion_valid
         )
         built = False
         build_error: subprocess.CalledProcessError | None = None
@@ -304,6 +323,10 @@ class BuildRegistry:
                     subprocess.run(command_line, cwd=cwd, check=True)
                     if not artifact.is_file():
                         raise RuntimeError(f"build did not produce {artifact}")
+                    if release_wasm and not release_wasm_optimizer_valid(artifact):
+                        raise RuntimeError(
+                            f"release wasm build did not produce valid optimizer metadata for {artifact}"
+                        )
                 except subprocess.CalledProcessError as error:
                     build_error = error
             built = True
@@ -528,12 +551,22 @@ def build_spec(repo: Path, target: str, profile: str) -> tuple[Command, Path, st
     else:
         target_dir = repo / "_build" / "coverage-build"
         profile_args = ("--enable-coverage", "--target-dir", str(target_dir))
-    command_line = ("moon", "build", *profile_args, "--target", moon_target, "cmd/just")
+    if target == "wasm1" and profile == "release":
+        command_line = (
+            sys.executable,
+            "tools/release/build_wasm.py",
+            "--repo",
+            ".",
+        )
+    else:
+        command_line = ("moon", "build", *profile_args, "--target", moon_target, "cmd/just")
     build_root = target_dir or repo / "_build"
     moon_profile = "release" if profile == "release" else "debug"
     extension = "just.wasm" if target == "wasm1" else "just.exe"
     artifact = build_root / moon_target / moon_profile / "build/cmd/just" / extension
     flags = " ".join(profile_args)
+    if target == "wasm1" and profile == "release":
+        flags += "; wasm-opt 132 -O2"
     return command_line, artifact, flags
 
 

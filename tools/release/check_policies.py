@@ -7,6 +7,7 @@ import argparse
 import pathlib
 import re
 import subprocess
+import sys
 import tempfile
 
 
@@ -25,7 +26,7 @@ def main() -> int:
     parser.add_argument("--repo", type=pathlib.Path, default=pathlib.Path(__file__).resolve().parents[2])
     args = parser.parse_args()
     repo = args.repo.resolve()
-    run(repo, "moon", "build", "--release", "--strip", "--target", "wasm", "cmd/just")
+    run(repo, sys.executable, "tools/release/build_wasm.py", "--repo", str(repo))
     wasm = repo / "_build/wasm/release/build/cmd/just/just.wasm"
     if not wasm.is_file():
         raise SystemExit("wasm policy artifact is missing")

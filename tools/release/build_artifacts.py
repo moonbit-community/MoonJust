@@ -15,6 +15,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+import optimize_wasm
+
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -94,16 +96,28 @@ def main() -> int:
     wasm_source = args.wasm_asset.resolve() if args.wasm_asset else None
     if wasm_source is None:
         wasm_build = out / "wasm-build"
-        run(repo, "moon", "build", "--frozen", "--release", "--strip", "--target", "wasm", "--target-dir", str(wasm_build), "cmd/just", env=env)
+        run(
+            repo,
+            sys.executable,
+            "tools/release/build_wasm.py",
+            "--repo",
+            str(repo),
+            "--target-dir",
+            str(wasm_build),
+            env=env,
+        )
         wasm_source = wasm_build / "wasm" / "release" / "build" / "cmd/just" / "just.wasm"
     if not wasm_source.is_file():
         raise RuntimeError(f"wasm1 release executable is missing: {wasm_source}")
+    optimize_wasm.read_optimizer_metadata(wasm_source)
     wasm_dir = out / "assets" / f"ZSeanYves/MoonJust@{release_version}" / "cmd/just"
     if wasm_dir.exists():
         shutil.rmtree(wasm_dir)
     wasm_dir.mkdir(parents=True, exist_ok=True)
     wasm = wasm_dir / "just.wasm"
     shutil.copy2(wasm_source, wasm)
+    optimizer = optimize_wasm.optimizer_metadata_path(wasm)
+    shutil.copy2(optimize_wasm.optimizer_metadata_path(wasm_source), optimizer)
     (wasm_dir / "just.wasm.sha256").write_text(f"{sha256(wasm)}  just.wasm\n", encoding="utf-8")
     run(repo, sys.executable, "tools/release/generate_supply_chain.py", "--repo", str(repo), "--artifact", str(wasm), "--target", "wasm1", "--out", str(wasm_dir))
     run(repo, sys.executable, "tools/release/verify_supply_chain.py", "--repo", str(repo), "--artifact", str(wasm), "--target", "wasm1", "--sbom", str(wasm_dir / "sbom.cdx.json"), "--provenance", str(wasm_dir / "provenance.intoto.json"))
@@ -111,6 +125,7 @@ def main() -> int:
         "schema_version": 1, "version": release_version, "commit": commit, "platform": target,
         "native_sha256": native_digest, "archive": archive.name, "archive_sha256": archive_digest,
         "wasm_asset": f"assets/ZSeanYves/MoonJust@{release_version}/cmd/just/just.wasm", "wasm_sha256": sha256(wasm),
+        "wasm_optimizer": f"assets/ZSeanYves/MoonJust@{release_version}/cmd/just/just.wasm.optimizer.json",
         "wasm_sbom": f"assets/ZSeanYves/MoonJust@{release_version}/cmd/just/sbom.cdx.json",
         "wasm_provenance": f"assets/ZSeanYves/MoonJust@{release_version}/cmd/just/provenance.intoto.json",
     }, indent=2, sort_keys=True) + "\n", encoding="utf-8")

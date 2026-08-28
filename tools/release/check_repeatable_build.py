@@ -8,6 +8,7 @@ import os
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -26,7 +27,14 @@ def build(repo: pathlib.Path, target: pathlib.Path) -> tuple[pathlib.Path, pathl
         env=environment,
     )
     subprocess.run(
-        ["moon", "build", "--frozen", "--release", "--strip", "--target", "wasm", "--target-dir", str(target), "cmd/just"],
+        [
+            sys.executable,
+            "tools/release/build_wasm.py",
+            "--repo",
+            str(repo),
+            "--target-dir",
+            str(target),
+        ],
         cwd=repo,
         check=True,
         env=environment,

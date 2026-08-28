@@ -70,11 +70,39 @@ class RunnerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             runner.build_key({"commit_sha": "abc"})
 
+    def test_release_wasm_registry_requires_optimizer_sidecar(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            artifact = root / "candidate.wasm"
+            command = (
+                sys.executable,
+                "-c",
+                (
+                    "from pathlib import Path; "
+                    f"Path({str(artifact)!r}).write_bytes(b'wasm')"
+                ),
+            )
+            fields = {
+                "commit_sha": "a" * 40,
+                "tree_sha": "b" * 40,
+                "target": "wasm1",
+                "host_triple": "test",
+                "profile": "release",
+                "compiler_flags": "wasm-opt 132 -O2",
+                "moon_toolchain_digest": "moon",
+                "moon_toolchain": "moon",
+                "dependency_graph_digest": "deps",
+                "source_input_digest": "source",
+            }
+            registry = runner.BuildRegistry(root / "registry", root)
+            with self.assertRaisesRegex(RuntimeError, "optimizer metadata"):
+                registry.ensure(fields, command, artifact, root)
+
     def test_build_spec_is_target_and_profile_specific(self) -> None:
         command, artifact, flags = runner.build_spec(Path("/repo"), "wasm1", "release")
-        self.assertEqual(command[:3], ("moon", "build", "--frozen"))
-        self.assertIn("--target", command)
-        self.assertEqual(command[command.index("--target") + 1], "wasm")
+        self.assertEqual(
+            command[1:], ("tools/release/build_wasm.py", "--repo", ".")
+        )
         self.assertTrue(str(artifact).endswith("_build/wasm/release/build/cmd/just/just.wasm"))
         self.assertIn("--strip", flags)
 

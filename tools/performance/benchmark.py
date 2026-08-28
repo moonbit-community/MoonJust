@@ -48,6 +48,24 @@ def text_or_none(path: Path) -> str | None:
         return None
 
 
+def wasm_optimizer_metadata(artifact: Path) -> dict[str, object]:
+    sidecar = artifact.with_name(artifact.name + ".optimizer.json")
+    try:
+        value = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"invalid wasm optimizer metadata {sidecar}: {error}") from error
+    if not isinstance(value, dict):
+        raise ValueError(f"wasm optimizer metadata is not an object: {sidecar}")
+    if value.get("optimizer_version") != "wasm-opt version 132 (version_132)":
+        raise ValueError(f"wasm optimizer version is not pinned: {sidecar}")
+    arguments = value.get("arguments")
+    if not isinstance(arguments, list) or "-O2" not in arguments:
+        raise ValueError(f"wasm optimizer arguments are incomplete: {sidecar}")
+    if value.get("output_sha256") != sha256(artifact):
+        raise ValueError(f"wasm optimizer output hash differs: {sidecar}")
+    return value
+
+
 def cpuinfo_field(cpuinfo: str | None, name: str) -> str | None:
     if cpuinfo is None:
         return None
@@ -710,6 +728,11 @@ def main() -> int:
 
     machine = machine_fingerprint()
     environment_errors: list[str] = []
+    wasm_optimizer: dict[str, object] | None = None
+    try:
+        wasm_optimizer = wasm_optimizer_metadata(args.wasm)
+    except ValueError as error:
+        environment_errors.append(str(error))
     official_commit = os.environ.get("MOONJUST_OFFICIAL_COMMIT", OFFICIAL_COMMIT)
     if official_commit != OFFICIAL_COMMIT:
         environment_errors.append(
@@ -873,6 +896,7 @@ def main() -> int:
             "official_commit": official_commit,
             "official_commit_verified": official_commit == OFFICIAL_COMMIT,
             "candidate_commit": candidate_commit,
+            "wasm_optimizer": wasm_optimizer,
         },
         "machine": machine,
         "moon": moon_toolchain,

@@ -37,12 +37,12 @@ jobs:
         env:
           MOON_DEP_CACHE: "off"
           MOON_BUILD_CACHE: "off"
-        run: moon -C baseline-source build --frozen --release --strip --target wasm --target-dir _build/repeat-1 cmd/just
+        run: python evidence-tools/tools/release/build_wasm.py --repo baseline-source --target-dir _build/repeat-1
       - name: Build wasm1 repeat 2 without shared build cache
         env:
           MOON_DEP_CACHE: "off"
           MOON_BUILD_CACHE: "off"
-        run: moon -C baseline-source build --frozen --release --strip --target wasm --target-dir _build/repeat-2 cmd/just
+        run: python evidence-tools/tools/release/build_wasm.py --repo baseline-source --target-dir _build/repeat-2
       - name: Stage and verify baseline wasm1
         run: python evidence-tools/tools/verification/ci.py stage-baseline-wasm --repo baseline-source --source baseline-source/_build/repeat-1/wasm/release/build/cmd/just/just.wasm --repeat baseline-source/_build/repeat-2/wasm/release/build/cmd/just/just.wasm --out _build/shared-wasm
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

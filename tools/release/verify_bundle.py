@@ -142,6 +142,7 @@ def main() -> None:
         "archive_sha256": archive_digest,
         "wasm_asset": f"assets/ZSeanYves/MoonJust@{version}/cmd/just/just.wasm",
         "wasm_sha256": "pending",
+        "wasm_optimizer": f"assets/ZSeanYves/MoonJust@{version}/cmd/just/just.wasm.optimizer.json",
         "wasm_sbom": f"assets/ZSeanYves/MoonJust@{version}/cmd/just/sbom.cdx.json",
         "wasm_provenance": f"assets/ZSeanYves/MoonJust@{version}/cmd/just/provenance.intoto.json",
     }
@@ -153,6 +154,24 @@ def main() -> None:
         fail("build record differs from repository and artifacts")
     if checksum(pathlib.Path(f"{wasm}.sha256"), wasm.name) != sha256(wasm):
         fail("wasm asset checksum differs")
+    optimizer = archive.parent / expected_record["wasm_optimizer"]
+    if not optimizer.is_file():
+        fail("wasm optimizer metadata is missing")
+    optimizer_value = json.loads(optimizer.read_text(encoding="utf-8"))
+    if optimizer_value.get("optimizer_version") != "wasm-opt version 132 (version_132)":
+        fail("wasm optimizer version differs")
+    if optimizer_value.get("arguments") != [
+        "--enable-simd",
+        "--enable-bulk-memory",
+        "--enable-bulk-memory-opt",
+        "--enable-reference-types",
+        "--enable-multivalue",
+        "--enable-nontrapping-float-to-int",
+        "-O2",
+    ]:
+        fail("wasm optimizer arguments differ")
+    if optimizer_value.get("output_sha256") != sha256(wasm):
+        fail("wasm optimizer output hash differs")
     wasm_sbom = archive.parent / expected_record["wasm_sbom"]
     wasm_provenance = archive.parent / expected_record["wasm_provenance"]
     if not wasm_sbom.is_file() or not wasm_provenance.is_file():

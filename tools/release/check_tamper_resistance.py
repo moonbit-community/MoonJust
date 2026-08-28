@@ -187,6 +187,13 @@ def main() -> None:
         sidecar.write_text(f"{'0' * 64}  just.wasm\n")
         expect_rejected(repo, archive, args.platform, "wasm checksum tampering")
 
+        archive = prepare(source, root / "wasm-optimizer", args.platform)
+        optimizer = next((archive.parent / "assets").rglob("just.wasm.optimizer.json"))
+        data = json.loads(optimizer.read_text())
+        data["output_sha256"] = "0" * 64
+        optimizer.write_text(json.dumps(data) + "\n")
+        expect_rejected(repo, archive, args.platform, "wasm optimizer tampering")
+
         archive = prepare(source, root / "wasm-provenance", args.platform)
         provenance = next((archive.parent / "assets").rglob("provenance.intoto.json"))
         data = json.loads(provenance.read_text())

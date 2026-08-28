@@ -57,14 +57,14 @@ jobs:
         env:
           MOON_DEP_CACHE: "off"
           MOON_BUILD_CACHE: "off"
-        run: moon build --frozen --release --strip --target wasm cmd/just
+        run: python tools/release/build_wasm.py --repo .
       - name: Build no-strip wasm1 analysis sibling
         run: moon build --frozen --release --no-strip --target wasm --target-dir _build/size-debug cmd/just
       - name: Rebuild stripped wasm1 without cache
         env:
           MOON_DEP_CACHE: "off"
           MOON_BUILD_CACHE: "off"
-        run: moon build --frozen --release --strip --target wasm --target-dir _build/wasm-repeat cmd/just
+        run: python tools/release/build_wasm.py --repo . --target-dir _build/wasm-repeat
       - name: Build release staging and no-strip analysis sibling
         env:
           MOONJUST_REQUIRE_CLEAN: "1"

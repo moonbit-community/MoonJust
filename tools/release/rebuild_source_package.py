@@ -99,6 +99,18 @@ def main() -> int:
         )
         native = work / "_build/native/release/build/cmd/just/just.exe"
         wasm = work / "_build/wasm/release/build/cmd/just/just.wasm"
+        subprocess.run(
+            [
+                sys.executable,
+                str(repo / "tools/release/optimize_wasm.py"),
+                "--input",
+                str(wasm),
+                "--cache",
+                str(repo / "_build/tooling/binaryen"),
+            ],
+            check=True,
+            env={**os.environ, **environment},
+        )
         if not native.is_file() or not wasm.is_file():
             raise SystemExit("cold source-package artifact is missing")
         smoke(native, wasm, work, release_version)

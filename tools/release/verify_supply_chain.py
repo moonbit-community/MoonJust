@@ -89,7 +89,10 @@ def dependencies(repo: pathlib.Path) -> set[tuple[str, str]]:
     return result
 
 
-def toolchain() -> dict[str, str]:
+def toolchain(
+    artifact: pathlib.Path | None = None,
+    target: str | None = None,
+) -> dict[str, str]:
     output = subprocess.run(
         ["moon", "version", "--all"], check=True, text=True, capture_output=True
     ).stdout.splitlines()
@@ -104,6 +107,15 @@ def toolchain() -> dict[str, str]:
         ["moonx", "--version"], check=True, text=True, capture_output=True
     ).stdout.strip()
     values["moonx"] = moonx.removeprefix("moonx ")
+    if target == "wasm1" and artifact is not None:
+        sidecar = artifact.with_name(artifact.name + ".optimizer.json")
+        optimizer = json.loads(sidecar.read_text(encoding="utf-8"))
+        version = optimizer.get("optimizer_version")
+        if version != "wasm-opt version 132 (version_132)":
+            fail("wasm optimizer metadata is missing or unpinned")
+        if optimizer.get("output_sha256") != digest(artifact):
+            fail("wasm optimizer metadata does not bind the artifact")
+        values["wasm-opt"] = version.removeprefix("wasm-opt ")
     return values
 
 
@@ -257,7 +269,7 @@ def main() -> int:
     invocation = predicate.get("runDetails", {}).get("metadata", {}).get("invocationId")
     if invocation != f"urn:uuid:{expected_build_uuid}":
         fail("provenance invocation identity differs")
-    expected_toolchain = toolchain()
+    expected_toolchain = toolchain(args.artifact, args.target)
     tools = definition.get("internalParameters", {}).get("toolchain", {})
     if tools != expected_toolchain:
         fail("provenance toolchain differs from the verifier toolchain")

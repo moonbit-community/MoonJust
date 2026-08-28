@@ -21,6 +21,28 @@ def digest(path: Path) -> str:
     return value.hexdigest()
 
 
+def optimizer_sidecar(path: Path) -> Path:
+    return path.with_name(path.name + ".optimizer.json")
+
+
+def optimizer_metadata(path: Path) -> dict[str, object]:
+    sidecar = optimizer_sidecar(path)
+    try:
+        value = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit(f"wasm optimizer metadata is invalid: {sidecar}: {error}") from error
+    if not isinstance(value, dict):
+        raise SystemExit(f"wasm optimizer metadata is not an object: {sidecar}")
+    if value.get("optimizer_version") != "wasm-opt version 132 (version_132)":
+        raise SystemExit(f"wasm optimizer version is not pinned: {sidecar}")
+    arguments = value.get("arguments")
+    if not isinstance(arguments, list) or "-O2" not in arguments:
+        raise SystemExit(f"wasm optimizer arguments are incomplete: {sidecar}")
+    if value.get("output_sha256") != digest(path):
+        raise SystemExit(f"wasm optimizer output hash differs: {sidecar}")
+    return value
+
+
 def run(repo: Path, *argv: str, capture: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(list(argv), cwd=repo, check=True, text=True, capture_output=capture)
 
@@ -33,8 +55,13 @@ def version(repo: Path) -> str:
 
 
 def shared_wasm(repo: Path, source: Path, debug: Path, repeat: Path, out: Path) -> int:
+    source_metadata = optimizer_metadata(source)
+    repeat_metadata = optimizer_metadata(repeat)
+    if source_metadata != repeat_metadata:
+        raise SystemExit("repeated wasm optimization metadata differs")
     out.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, out / "just.wasm")
+    shutil.copy2(optimizer_sidecar(source), optimizer_sidecar(out / "just.wasm"))
     shutil.copy2(debug, out / "just.debug.wasm")
     (out / "just.wasm.sha256").write_text(f"{digest(out / 'just.wasm')}  just.wasm\n", encoding="utf-8")
     run(repo, sys.executable, "tools/release/check_repeatable_artifacts.py", "--platform", "wasm1",
@@ -43,12 +70,17 @@ def shared_wasm(repo: Path, source: Path, debug: Path, repeat: Path, out: Path) 
 
 
 def baseline_wasm(repo: Path, source: Path, repeat: Path, out: Path) -> int:
+    source_metadata = optimizer_metadata(source)
+    repeat_metadata = optimizer_metadata(repeat)
+    if source_metadata != repeat_metadata:
+        raise SystemExit("repeated baseline wasm optimization metadata differs")
     out.mkdir(parents=True, exist_ok=True)
     source_hash = digest(source)
     repeat_hash = digest(repeat)
     if source_hash != repeat_hash:
         raise SystemExit("baseline wasm builds are not byte-identical")
     shutil.copy2(source, out / "just.wasm")
+    shutil.copy2(optimizer_sidecar(source), optimizer_sidecar(out / "just.wasm"))
     shutil.copy2(repeat, out / "just.repeat.wasm")
     (out / "just.wasm.sha256").write_text(
         f"{source_hash}  just.wasm\n", encoding="utf-8"
@@ -87,6 +119,7 @@ def verify_shared(asset: Path, sidecar: Path) -> int:
     fields = sidecar.read_text(encoding="utf-8").split()
     if fields != [digest(asset), "just.wasm"]:
         raise SystemExit("shared wasm1 checksum mismatch")
+    optimizer_metadata(asset)
     return 0
 
 

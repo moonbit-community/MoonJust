@@ -110,11 +110,14 @@ jobs:
       - run: bash .github/scripts/moon-update.sh
       - run: moon install
       - name: Build wasm1 once on Ubuntu
-        run: moon build --frozen --release --strip --target wasm cmd/just
+        run: python tools/release/build_wasm.py --repo .
       - name: Build no-strip wasm1 analysis sibling
         run: moon build --frozen --release --no-strip --target wasm --target-dir _build/size-debug cmd/just
       - name: Rebuild stripped wasm1 without cache
-        run: MOON_DEP_CACHE=off MOON_BUILD_CACHE=off moon build --frozen --release --strip --target wasm --target-dir _build/wasm-repeat cmd/just
+        env:
+          MOON_DEP_CACHE: "off"
+          MOON_BUILD_CACHE: "off"
+        run: python tools/release/build_wasm.py --repo . --target-dir _build/wasm-repeat
       - name: Stage and hash wasm1
         run: |
           python tools/verification/ci.py stage-shared-wasm \

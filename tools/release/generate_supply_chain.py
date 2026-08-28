@@ -60,7 +60,10 @@ def dependency_license(path: pathlib.Path) -> str:
     raise SystemExit(f"dependency license metadata is missing: {path}")
 
 
-def toolchain() -> dict[str, str]:
+def toolchain(
+    artifact: pathlib.Path | None = None,
+    target: str | None = None,
+) -> dict[str, str]:
     output = subprocess.run(
         ["moon", "version", "--all"], check=True, text=True, capture_output=True
     ).stdout.splitlines()
@@ -75,6 +78,15 @@ def toolchain() -> dict[str, str]:
         ["moonx", "--version"], check=True, text=True, capture_output=True
     ).stdout.strip()
     values["moonx"] = moonx.removeprefix("moonx ")
+    if target == "wasm1" and artifact is not None:
+        sidecar = artifact.with_name(artifact.name + ".optimizer.json")
+        optimizer = json.loads(sidecar.read_text(encoding="utf-8"))
+        version = optimizer.get("optimizer_version")
+        if version != "wasm-opt version 132 (version_132)":
+            raise SystemExit("wasm optimizer metadata is missing or unpinned")
+        if optimizer.get("output_sha256") != digest(artifact):
+            raise SystemExit("wasm optimizer metadata does not bind the artifact")
+        values["wasm-opt"] = version.removeprefix("wasm-opt ")
     return values
 
 
@@ -211,7 +223,7 @@ def main() -> int:
                     "version": module_version,
                 },
                 "internalParameters": {
-                    "toolchain": toolchain(),
+                    "toolchain": toolchain(artifact, args.target),
                     "reproducibility": {
                         "SOURCE_DATE_EPOCH": "0",
                         "ZERO_AR_DATE": "1",
