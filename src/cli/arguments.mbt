@@ -1262,20 +1262,37 @@ fn parse_explicit_file_fast_path(
   argv : ArrayView[String],
   env : Map[String, String],
 ) -> CliArguments? {
-  guard (argv.length() == 3 || argv.length() == 4) &&
-    (argv[0] == "--justfile" || argv[0] == "-f") else {
+  guard argv.length() >= 3 && (argv[0] == "--justfile" || argv[0] == "-f") else {
     return None
-  }
-  let (command, flags) = match argv[2:] {
-    ["--summary"] => (SummaryCommand, { "summary": true })
-    ["--fmt"] => (FormatCommand, { "fmt": true })
-    ["--fmt", "--check"] => (CheckCommand, { "fmt": true, "check": true })
-    _ => return None
   }
   for name, _ in env {
     if name.has_prefix("JUST_") {
       return None
     }
+  }
+  let mut command = RunCommand
+  let flags : Map[String, Bool] = Map([])
+  let positional : Array[String] = []
+  if argv.length() == 3 && argv[2] == "--summary" {
+    command = SummaryCommand
+    flags["summary"] = true
+  } else if argv.length() == 3 && argv[2] == "--fmt" {
+    command = FormatCommand
+    flags["fmt"] = true
+  } else if argv.length() == 4 && argv[2] == "--fmt" && argv[3] == "--check" {
+    command = CheckCommand
+    flags["fmt"] = true
+    flags["check"] = true
+  } else if argv.length() >= 4 &&
+    argv[2] == "--dry-run" &&
+    !argv[3].has_prefix("-") &&
+    !argv[3].contains("=") {
+    flags["dry-run"] = true
+    positional.append(argv[3:])
+  } else if !argv[2].has_prefix("-") && !argv[2].contains("=") {
+    positional.append(argv[2:])
+  } else {
+    return None
   }
   Some({
     command,
@@ -1292,7 +1309,7 @@ fn parse_explicit_file_fast_path(
       "list-prefix": ["    "],
       "timestamp-format": ["%H:%M:%S"],
     },
-    positional: [],
+    positional,
     variable_overrides: [],
     shell_arguments: None,
   })

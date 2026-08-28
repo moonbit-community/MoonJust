@@ -159,6 +159,30 @@ test "argparse composition preserves query flags and values" {
   )
   assert_true(configured.flag("unsorted"))
   assert_eq(configured.value("justfile"), Some("custom.just"))
+  let run = try! parse_arguments(
+    ["--justfile", "custom.just", "build", "release"],
+    {},
+  )
+  assert_eq(run.command(), RunCommand)
+  assert_eq(run.positional(), ["build", "release"])
+  let dry = try! parse_arguments(
+    ["--justfile", "custom.just", "--dry-run", "build", "release"],
+    {},
+  )
+  assert_true(dry.flag("dry-run"))
+  assert_eq(dry.positional(), ["build", "release"])
+  let overridden = try! parse_arguments(
+    ["--justfile", "custom.just", "MODE=ci", "build"],
+    {},
+  )
+  assert_eq(overridden.variable_overrides(), [("MODE", "ci")])
+  assert_eq(overridden.positional(), ["build"])
+  let quiet = try! parse_arguments(
+    ["--justfile", "custom.just", "--quiet", "build"],
+    {},
+  )
+  assert_true(quiet.flag("quiet"))
+  assert_eq(quiet.positional(), ["build"])
 }
 
 ///|
