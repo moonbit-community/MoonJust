@@ -1258,14 +1258,19 @@ fn normalize_argparse_error(message : String) -> String {
 }
 
 ///|
-fn parse_summary_fast_path(
+fn parse_explicit_file_fast_path(
   argv : ArrayView[String],
   env : Map[String, String],
 ) -> CliArguments? {
-  guard argv.length() == 3 &&
-    (argv[0] == "--justfile" || argv[0] == "-f") &&
-    argv[2] == "--summary" else {
+  guard (argv.length() == 3 || argv.length() == 4) &&
+    (argv[0] == "--justfile" || argv[0] == "-f") else {
     return None
+  }
+  let (command, flags) = match argv[2:] {
+    ["--summary"] => (SummaryCommand, { "summary": true })
+    ["--fmt"] => (FormatCommand, { "fmt": true })
+    ["--fmt", "--check"] => (CheckCommand, { "fmt": true, "check": true })
+    _ => return None
   }
   for name, _ in env {
     if name.has_prefix("JUST_") {
@@ -1273,8 +1278,8 @@ fn parse_summary_fast_path(
     }
   }
   Some({
-    command: SummaryCommand,
-    flags: { "summary": true },
+    command,
+    flags,
     counts: Map([]),
     values: {
       "alias-style": ["right"],
@@ -1299,7 +1304,7 @@ pub fn parse_arguments(
   argv : ArrayView[String],
   env : Map[String, String],
 ) -> CliArguments raise CliParseError {
-  match parse_summary_fast_path(argv, env) {
+  match parse_explicit_file_fast_path(argv, env) {
     Some(arguments) => return arguments
     None => ()
   }

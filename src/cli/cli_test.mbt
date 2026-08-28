@@ -141,6 +141,18 @@ test "argparse composition preserves query flags and values" {
   assert_eq(summary.value("list-heading"), Some("Available recipes:\n"))
   assert_eq(summary.value("list-prefix"), Some("    "))
   assert_eq(summary.value("timestamp-format"), Some("%H:%M:%S"))
+  let format = try! parse_arguments(["-f", "custom.just", "--fmt"], {})
+  assert_eq(format.command(), FormatCommand)
+  assert_true(format.flag("fmt"))
+  assert_eq(format.value("justfile"), Some("custom.just"))
+  let check = try! parse_arguments(
+    ["--justfile", "custom.just", "--fmt", "--check"],
+    {},
+  )
+  assert_eq(check.command(), CheckCommand)
+  assert_true(check.flag("fmt"))
+  assert_true(check.flag("check"))
+  assert_eq(check.value("justfile"), Some("custom.just"))
   let configured = try! parse_arguments(
     ["--justfile", "custom.just", "--summary"],
     { "JUST_UNSORTED": "1" },
