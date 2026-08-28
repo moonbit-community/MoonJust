@@ -25,7 +25,7 @@ pub fn TargetPlatform::new(
   operating_system : TargetOs,
   is_unix : Bool,
 ) -> TargetPlatform {
-  { operating_system, is_unix }
+  { operating_system, is_unix, }
 }
 
 ///|
@@ -68,7 +68,7 @@ pub fn SettingSpec::new(
   kind : SettingKind,
   required : Bool,
 ) -> SettingSpec {
-  { name, kind, required }
+  { name, kind, required, }
 }
 
 ///|
@@ -154,6 +154,18 @@ pub struct CompiledSettings {
   ordered : Array[String]
   spans : Map[String, @source.Span]
 } derive(Debug)
+
+///|
+let shared_empty_compiled_settings : CompiledSettings = {
+  values: Map([]),
+  ordered: [],
+  spans: Map([]),
+}
+
+///|
+fn empty_compiled_settings() -> CompiledSettings {
+  shared_empty_compiled_settings
+}
 
 ///|
 pub fn CompiledSettings::names(self : CompiledSettings) -> ArrayView[String] {
@@ -335,5 +347,5 @@ fn compile_settings(
       }
     }
   }
-  { values, ordered, spans }
+  { values, ordered, spans, }
 }

@@ -24,13 +24,18 @@ priv struct Lexer {
 
 ///|
 fn Lexer::new(source : @source.Source, limits : LexerLimits) -> Lexer {
+  let token_capacity = if source.length() >= 1024 {
+    Int::min(limits.max_tokens(), source.length() / 4 + 1)
+  } else {
+    0
+  }
   {
     source,
     bytes: source.bytes(),
     offset: 0,
     line: 1,
     column: 0,
-    tokens: [],
+    tokens: Array::new(capacity=token_capacity),
     delimiters: [],
     interpolations: [],
     indentation: [""],
@@ -462,7 +467,7 @@ fn Lexer::run(self : Lexer) -> TokenStream raise LexerError {
   }
   self.emit_empty(Eof)
   self.raise_limit_error()
-  { source_id: self.source.id(), tokens: self.tokens }
+  { source_id: self.source.id(), tokens: self.tokens, }
 }
 
 ///|

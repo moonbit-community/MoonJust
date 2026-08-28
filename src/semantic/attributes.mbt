@@ -214,34 +214,37 @@ fn attribute_lexical_compare(left : String, right : String) -> Int {
 }
 
 ///|
+let shared_empty_recipe_attributes : RecipeAttributes = {
+  names: [],
+  platforms: [],
+  private: false,
+  doc: None,
+  doc_expression: None,
+  groups: [],
+  working_directory: None,
+  shell: [],
+  script: false,
+  script_interpreter: [],
+  confirm: false,
+  confirm_prompt: None,
+  default_value: None,
+  continue_signals: [],
+  env: [],
+  exit_message: false,
+  extension: None,
+  metadata: [],
+  no_cd: false,
+  no_exit_message: false,
+  no_quiet: false,
+  parallel: false,
+  positional_arguments: false,
+  arg: [],
+  cache: [],
+}
+
+///|
 fn empty_recipe_attributes() -> RecipeAttributes {
-  {
-    names: [],
-    platforms: [],
-    private: false,
-    doc: None,
-    doc_expression: None,
-    groups: [],
-    working_directory: None,
-    shell: [],
-    script: false,
-    script_interpreter: [],
-    confirm: false,
-    confirm_prompt: None,
-    default_value: None,
-    continue_signals: [],
-    env: [],
-    exit_message: false,
-    extension: None,
-    metadata: [],
-    no_cd: false,
-    no_exit_message: false,
-    no_quiet: false,
-    parallel: false,
-    positional_arguments: false,
-    arg: [],
-    cache: [],
-  }
+  shared_empty_recipe_attributes
 }
 
 ///|

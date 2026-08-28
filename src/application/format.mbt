@@ -37,15 +37,15 @@ fn format_check_response(
   arguments : @cli.CliArguments,
 ) -> @cli.ApplicationResponse raise ApplicationError {
   let indentation = formatting_indentation(arguments, loaded.ast())
-  let result = @formatter.check_with_indentation(loaded.source(), indentation) catch {
+  let formatted = @formatter.format_with_indentation(loaded.ast(), indentation) catch {
     error => raise Format(error)
   }
-  if result.changed() {
+  if formatted != loaded.source().text() {
     if arguments.flag("quiet") {
       return @cli.ApplicationResponse::new(b"", b"", 1)
     }
     let color = arguments.value("color") == Some("always")
-    let diff = format_diff(loaded.source().text(), result.formatted(), color)
+    let diff = format_diff(loaded.source().text(), formatted, color)
     let stderr = if color {
       "\u{001b}[1;31merror\u{001b}[0m: \u{001b}[1mformatted justfile differs from original\u{001b}[0m\n"
     } else {
@@ -84,20 +84,19 @@ fn[T : @host.HostFs + @host.HostTemp] format_response(
   let selection = input_selection(arguments, context.cwd().flavor())
   let loaded = load_input(host, arguments, context)
   let indentation = formatting_indentation(arguments, loaded.ast())
-  let result = @formatter.check_with_indentation(loaded.source(), indentation) catch {
+  let formatted = @formatter.format_with_indentation(loaded.ast(), indentation) catch {
     error => raise Format(error)
   }
   match selection {
-    Stdin =>
-      @cli.ApplicationResponse::success(stdout=@utf8.encode(result.formatted()))
+    Stdin => @cli.ApplicationResponse::success(stdout=@utf8.encode(formatted))
     File(_) | Search if @loader.is_markdown_path(loaded.path()) =>
-      @cli.ApplicationResponse::success(stdout=@utf8.encode(result.formatted()))
+      @cli.ApplicationResponse::success(stdout=@utf8.encode(formatted))
     Search | File(_) => {
-      if result.changed() {
+      if formatted != loaded.source().text() {
         @host.write_file_atomic(
           host,
           loaded.canonical_path(),
-          @utf8.encode(result.formatted()),
+          @utf8.encode(formatted),
         ) catch {
           PermissionDenied(_, detail=_) =>
             raise WriteJustfile(
@@ -127,20 +126,19 @@ async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] format_
   let selection = input_selection(arguments, context.cwd().flavor())
   let loaded = load_input_async(host, arguments, context)
   let indentation = formatting_indentation(arguments, loaded.ast())
-  let result = @formatter.check_with_indentation(loaded.source(), indentation) catch {
+  let formatted = @formatter.format_with_indentation(loaded.ast(), indentation) catch {
     error => raise Format(error)
   }
   match selection {
-    Stdin =>
-      @cli.ApplicationResponse::success(stdout=@utf8.encode(result.formatted()))
+    Stdin => @cli.ApplicationResponse::success(stdout=@utf8.encode(formatted))
     File(_) | Search if @loader.is_markdown_path(loaded.path()) =>
-      @cli.ApplicationResponse::success(stdout=@utf8.encode(result.formatted()))
+      @cli.ApplicationResponse::success(stdout=@utf8.encode(formatted))
     Search | File(_) => {
-      if result.changed() {
+      if formatted != loaded.source().text() {
         @host.HostAtomicFs::write_file_atomic(
           host,
           loaded.canonical_path(),
-          @utf8.encode(result.formatted()),
+          @utf8.encode(formatted),
           true,
         ) catch {
           PermissionDenied(_, detail=_) =>

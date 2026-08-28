@@ -424,6 +424,9 @@ fn semantic_span_offsets(
 ///|
 fn validate_parameters(recipe : @syntax.Recipe) -> Unit raise SemanticError {
   let parameters = recipe.parameters()
+  if parameters.is_empty() {
+    return
+  }
   let option_parameters = recipe_option_parameter_names(recipe)
   let names : Set[String] = Set([])
   let mut saw_default = false
@@ -920,8 +923,9 @@ fn validate_shell_recipe_indentation(
 }
 
 ///|
-/// Compile an AST into an immutable, ordered semantic model.
-pub fn compile(
+/// Compile the complete language after the portable empty-recipe path has
+/// rejected the input.
+fn compile_full(
   ast : @syntax.Ast,
   platform? : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
   allow_unstable? : Bool = false,
@@ -948,18 +952,22 @@ pub fn compile(
   let variables : Array[@syntax.Assignment] = []
   let functions : Array[@syntax.FunctionDefinition] = []
   let recipes : Array[@syntax.Recipe] = []
+  let recipe_map : Map[String, @syntax.Recipe] = Map([])
+  let ordered_recipe_names : Array[String] = []
+  let attribute_map : Map[String, RecipeAttributes] = Map([])
   // Keep the validated attributes aligned with recipes so later semantic
   // passes do not reparse the same attribute list.
   let recipe_attributes : Array[RecipeAttributes] = []
   let aliases : Array[@syntax.Alias] = []
   let unexports : Array[String] = []
   let symbols : Array[Symbol] = []
-  let recipe_spans : Map[String, @source.Span] = Map([])
+  let duplicate_recipe_names : Set[String] = Set([])
   let variable_spans : Map[String, @source.Span] = Map([])
   let function_spans : Map[String, @source.Span] = Map([])
   let alias_spans : Map[String, @source.Span] = Map([])
   let alias_names : Map[String, String] = Map([])
   let recipe_docs : Map[String, String] = Map([])
+  let mut recipes_have_dependencies = false
   let mut pending_docs : Array[String] = []
   let mut pending_attributes : Array[@syntax.Attribute] = []
   for item in ast.items() {
@@ -1065,13 +1073,13 @@ pub fn compile(
           !compile_attributes(value.attributes()).matches(platform) {
           continue
         }
-        match recipe_spans.get(value.name()) {
-          Some(first) =>
+        match recipe_map.get(value.name()) {
+          Some(first_recipe) =>
             raise SymbolRedefinition(
               name=value.name(),
               first_kind="recipe",
               second_kind="alias",
-              first~,
+              first=first_recipe.span(),
               second=semantic_name_span(value.span(), value.name(), offset=6),
             )
           None => ()
@@ -1099,6 +1107,7 @@ pub fn compile(
       }
       Recipe(value) => {
         let name = value.name()
+        let first_definition = recipe_map.get(name) is None
         if !pending_docs.is_empty() {
           recipe_docs[name] = pending_docs.join(" ")
         }
@@ -1127,22 +1136,29 @@ pub fn compile(
             )
           None => ()
         }
-        if recipe_spans.get(name) is Some(first) &&
-          !recipe_spans.contains(name + "#duplicate") {
+        if recipe_map.get(name) is Some(first_recipe) &&
+          !duplicate_recipe_names.contains(name) {
           if !bool_setting(preliminary_settings, "allow-duplicate-recipes") {
             raise DuplicateRecipe(
               name~,
-              first~,
+              first=first_recipe.span(),
               second=semantic_name_span(value.span(), name),
             )
           }
-          recipe_spans[name + "#duplicate"] = value.span()
-        } else {
-          recipe_spans[name] = value.span()
+          duplicate_recipe_names.add(name)
         }
         validate_parameters(value)
+        if !value.dependencies().is_empty() ||
+          !value.subsequent_dependencies().is_empty() {
+          recipes_have_dependencies = true
+        }
         recipes.push(value)
         recipe_attributes.push(attributes)
+        recipe_map[name] = value
+        attribute_map[name] = attributes
+        if first_definition {
+          ordered_recipe_names.push(name)
+        }
         symbols.push(
           Symbol::new(name, Recipe, semantic_name_span(value.span(), name)),
         )
@@ -1225,40 +1241,42 @@ pub fn compile(
     }
   }
   validate_minimum_version(settings, settings_nodes)
-  for recipe in recipes {
-    for dependency in recipe_dependencies(recipe) {
-      if dependency.starred() {
-        if !settings.bool("lists") {
-          raise InvalidMappedDependency(
-            message="mapped dependencies require `set lists`",
-            span=semantic_name_span(
-              dependency.span(),
-              dependency.name(),
-              offset=2,
-            ),
-          )
-        }
-        if dependency.starred_arguments().is_empty() {
-          raise InvalidMappedDependency(
-            message="mapped dependencies must have starred argument",
-            span=semantic_span_offsets(dependency.span(), 0, 1),
-          )
-        }
-        if dependency.starred_arguments().length() > 1 {
-          let index = dependency.starred_arguments()[1]
+  if recipes_have_dependencies {
+    for recipe in recipes {
+      for dependency in recipe_dependencies(recipe) {
+        if dependency.starred() {
+          if !settings.bool("lists") {
+            raise InvalidMappedDependency(
+              message="mapped dependencies require `set lists`",
+              span=semantic_name_span(
+                dependency.span(),
+                dependency.name(),
+                offset=2,
+              ),
+            )
+          }
+          if dependency.starred_arguments().is_empty() {
+            raise InvalidMappedDependency(
+              message="mapped dependencies must have starred argument",
+              span=semantic_span_offsets(dependency.span(), 0, 1),
+            )
+          }
+          if dependency.starred_arguments().length() > 1 {
+            let index = dependency.starred_arguments()[1]
+            let argument_span = dependency.arguments()[index].span()
+            raise InvalidMappedDependency(
+              message="mapped dependencies may not have multiple starred arguments",
+              span=semantic_span_offsets(argument_span, -1, 0),
+            )
+          }
+        } else if !dependency.starred_arguments().is_empty() {
+          let index = dependency.starred_arguments()[0]
           let argument_span = dependency.arguments()[index].span()
           raise InvalidMappedDependency(
-            message="mapped dependencies may not have multiple starred arguments",
+            message="starred arguments may not be used outside mapped dependencies",
             span=semantic_span_offsets(argument_span, -1, 0),
           )
         }
-      } else if !dependency.starred_arguments().is_empty() {
-        let index = dependency.starred_arguments()[0]
-        let argument_span = dependency.arguments()[index].span()
-        raise InvalidMappedDependency(
-          message="starred arguments may not be used outside mapped dependencies",
-          span=semantic_span_offsets(argument_span, -1, 0),
-        )
       }
     }
   }
@@ -1297,10 +1315,6 @@ pub fn compile(
     if !is_script {
       validate_shell_recipe_indentation(recipe)
     }
-  }
-  let recipe_map : Map[String, @syntax.Recipe] = Map([])
-  for recipe in recipes {
-    recipe_map[recipe.name()] = recipe
   }
   if !defer_recipe_linking {
     for definition in aliases {
@@ -1393,13 +1407,11 @@ pub fn compile(
       function_map,
     )
   }
-  if !defer_recipe_linking {
+  if !defer_recipe_linking && recipes_have_dependencies {
     let states : Map[String, Int] = Map([])
     for recipe in recipes {
-      if recipe.dependencies().is_empty() &&
-        recipe.subsequent_dependencies().is_empty() {
-        states[recipe.name()] = 2
-      } else {
+      if !recipe.dependencies().is_empty() ||
+        !recipe.subsequent_dependencies().is_empty() {
         validate_dependency_graph(
           recipe,
           recipe_map,
@@ -1409,10 +1421,6 @@ pub fn compile(
         )
       }
     }
-  }
-  let attribute_map : Map[String, RecipeAttributes] = Map([])
-  for index, recipe in recipes {
-    attribute_map[recipe.name()] = recipe_attributes[index]
   }
   let ordered_variable_names : Array[String] = []
   let variable_map : Map[String, @syntax.Assignment] = Map([])
@@ -1425,14 +1433,6 @@ pub fn compile(
     }
   }
   let ordered_function_names = functions.map(fn(value) { value.name() })
-  let ordered_recipe_names : Array[String] = []
-  let recipe_name_set : Set[String] = Set([])
-  for value in recipes {
-    if !recipe_name_set.contains(value.name()) {
-      recipe_name_set.add(value.name())
-      ordered_recipe_names.push(value.name())
-    }
-  }
   {
     source_id: ast.source_id(),
     settings,
@@ -1452,6 +1452,80 @@ pub fn compile(
     attributes: attribute_map,
     recipe_docs,
   }
+}
+
+///|
+fn compile_plain_empty_recipes(
+  ast : @syntax.Ast,
+) -> Compilation? raise SemanticError {
+  let recipes : Array[@syntax.Recipe] = []
+  let recipe_names : Array[String] = []
+  let recipe_map : Map[String, @syntax.Recipe] = Map([])
+  let attributes : Map[String, RecipeAttributes] = Map([])
+  let symbols : Array[Symbol] = []
+  for item in ast.items() {
+    match item {
+      Recipe(recipe) if recipe.parameters().is_empty() &&
+        recipe.dependencies().is_empty() &&
+        recipe.subsequent_dependencies().is_empty() &&
+        recipe.lines().is_empty() &&
+        recipe.attributes().is_empty() => {
+        let name = recipe.name()
+        match recipe_map.get(name) {
+          Some(first) =>
+            raise DuplicateRecipe(
+              name~,
+              first=first.span(),
+              second=semantic_name_span(recipe.span(), name),
+            )
+          None => ()
+        }
+        recipes.push(recipe)
+        recipe_names.push(name)
+        recipe_map[name] = recipe
+        attributes[name] = empty_recipe_attributes()
+        symbols.push(
+          Symbol::new(name, Recipe, semantic_name_span(recipe.span(), name)),
+        )
+      }
+      Blank(_) | TrailingComment(_) => ()
+      _ => return None
+    }
+  }
+  Some({
+    source_id: ast.source_id(),
+    settings: empty_compiled_settings(),
+    symbols,
+    variables: [],
+    variable_names: [],
+    variable_map: Map([]),
+    functions: [],
+    function_names: [],
+    function_map: Map([]),
+    recipes,
+    recipe_names,
+    recipe_map,
+    aliases: [],
+    alias_targets: Map([]),
+    unexports: [],
+    attributes,
+    recipe_docs: Map([]),
+  })
+}
+
+///|
+/// Compile an AST into an immutable, ordered semantic model.
+pub fn compile(
+  ast : @syntax.Ast,
+  platform? : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
+  allow_unstable? : Bool = false,
+  defer_recipe_linking? : Bool = false,
+) -> Compilation raise SemanticError {
+  match compile_plain_empty_recipes(ast) {
+    Some(compilation) => return compilation
+    None => ()
+  }
+  compile_full(ast, platform~, allow_unstable~, defer_recipe_linking~)
 }
 
 ///|

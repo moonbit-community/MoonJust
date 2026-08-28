@@ -92,6 +92,10 @@ class BenchmarkTest(unittest.TestCase):
     def test_stability_policy_requires_three_stable_windows(self) -> None:
         self.assertTrue(benchmark.stable_window([100.0] * 5))
         self.assertFalse(benchmark.stable_window([90.0, 100.0, 110.0, 100.0, 100.0]))
+        self.assertFalse(
+            benchmark.stable_window([200.0] + [100.0] * 8),
+            "a stable tail must not hide an unstable cumulative sample",
+        )
 
     def test_evidence_reader_migrates_legacy_schema(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

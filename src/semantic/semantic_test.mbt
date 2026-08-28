@@ -4,6 +4,23 @@ fn source(text : String) -> @source.Source {
 }
 
 ///|
+test "plain empty recipes preserve semantic order and duplicate diagnostics" {
+  let compiled = try! compile(try! @parser.parse(source("first:\nsecond:\n")))
+  assert_eq(compiled.recipe_names(), ["first", "second"])
+  assert_eq(compiled.symbols().map(fn(symbol) { symbol.name() }), [
+    "first", "second",
+  ])
+  assert_true(compiled.recipe_attributes("first") is Some(_))
+  let duplicate = try! @parser.parse(source("same:\nsame:\n"))
+  try compile(duplicate) catch {
+    DuplicateRecipe(name="same", ..) => ()
+    error => fail("unexpected duplicate recipe error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected duplicate recipe error")
+  }
+}
+
+///|
 test "compilation exposes ordered symbols and typed settings" {
   let ast = try! @parser.parse(
     source(

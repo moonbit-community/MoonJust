@@ -676,6 +676,20 @@ test "summary supports sorted and source-order output" {
   )
   assert_eq(empty.stdout(), b"\n")
   assert_eq(empty.stderr(), b"justfile contains no recipes\n")
+  host.put_file(file, b"build: missing\n")
+  try
+    @application.execute_query_command(
+      host,
+      @cli.parse_arguments(["--summary"], {}),
+      context,
+    )
+  catch {
+    @application.Semantic(@semantic.UnknownDependency(target~, ..)) =>
+      assert_eq(target, "missing")
+    error => fail("unexpected summary error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected unknown dependency error")
+  }
 }
 
 ///|

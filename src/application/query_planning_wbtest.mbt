@@ -472,6 +472,31 @@ fn application_behavior_project(text : String) -> @semantic.ProjectCompilation {
 }
 
 ///|
+test "pure sync globals only accept effect-free dry-run projects" {
+  let arguments = try! @cli.parse_arguments(["--dry-run", "build"], {})
+  let pure = application_behavior_project(
+    "set shell := ['sh', '-cu']\n" +
+    "project := 'moonjust'\n" +
+    "build target='debug':\n  @echo {{project}} {{target}}\n",
+  )
+  assert_true(project_supports_sync_dry_run(pure))
+  assert_true(project_supports_pure_sync_globals(pure, arguments))
+
+  let effectful = application_behavior_project(
+    "project := env('PROJECT')\nbuild:\n  @echo {{project}}\n",
+  )
+  assert_false(project_supports_pure_sync_globals(effectful, arguments))
+
+  let dotenv = application_behavior_project(
+    "set dotenv-load\nbuild:\n  @echo build\n",
+  )
+  assert_false(project_supports_pure_sync_globals(dotenv, arguments))
+
+  let empty = application_behavior_project("build:\n")
+  assert_false(project_supports_sync_dry_run(empty))
+}
+
+///|
 test "application whitebox behavior exercises argument routing helpers" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let context = ApplicationContext::new(cwd, stdin=b"root:\n")

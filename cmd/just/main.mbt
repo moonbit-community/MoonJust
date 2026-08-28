@@ -15,7 +15,7 @@ priv struct PerfTrace {
 ///|
 fn perf_trace_new() -> PerfTrace? {
   match @env.get_env_var("MOONJUST_PERF_TRACE") {
-    Some("1") => Some({ started: @async.now(), events: [] })
+    Some("1") => Some({ started: @async.now(), events: [], })
     _ => None
   }
 }
@@ -76,7 +76,7 @@ fn[E : @host.HostEnv] parse_environment(
   for entry in entries {
     environment[entry.0] = entry.1
   }
-  { entries, values: environment }
+  { entries, values: environment, }
 }
 
 ///|
@@ -722,6 +722,18 @@ async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
 }
 
 ///|
+fn command_may_spawn_process(command : @cli.CommandKind) -> Bool {
+  match command {
+    RunCommand
+    | ChooseCommand
+    | EditCommand
+    | EvaluateCommand
+    | CommandCommand => true
+    _ => false
+  }
+}
+
+///|
 async fn main {
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
@@ -733,31 +745,34 @@ async fn main {
     Some(response) => emit_response(response)
     None => {
       let trace = perf_trace_new()
-      @async.with_task_group() <| group => {
-        // Keep the async root-task signal policy used by the compatibility
-        // harness. Static requests return before this group is created.
-        ignore(@host_process.configure_signal_forwarding(group, false))
-        match prepare_invocation(environment_host, argv, trace~) {
-          Respond(response) => emit_response(response)
-          Ready(arguments, environment) => {
-            let stdin = if !arguments.flag("help") &&
-              !arguments.flag("version") &&
-              arguments.value("justfile") == Some("-") {
-              read_stdin_source_bounded(
-                @lexer.LexerLimits::default().max_source_bytes(),
-              ) catch {
-                _ => b""
-              }
-            } else {
-              b""
+      match prepare_invocation(environment_host, argv, trace~) {
+        Respond(response) => emit_response(response)
+        Ready(arguments, environment) => {
+          let stdin = if !arguments.flag("help") &&
+            !arguments.flag("version") &&
+            arguments.value("justfile") == Some("-") {
+            read_stdin_source_bounded(
+              @lexer.LexerLimits::default().max_source_bytes(),
+            ) catch {
+              _ => b""
             }
-            let response = if (
-                arguments.command() == RunCommand ||
-                arguments.command() == ChooseCommand
-              ) &&
-              !arguments.flag("dry-run") {
-              // Keep execution reads isolated from the planning/load cache.
-              let execution_host = runtime_host()
+          } else {
+            b""
+          }
+          let execution_host = if (
+              arguments.command() == RunCommand ||
+              arguments.command() == ChooseCommand
+            ) &&
+            !arguments.flag("dry-run") {
+            // Keep execution reads isolated from the planning/load cache.
+            runtime_host()
+          } else {
+            host
+          }
+          let response = if command_may_spawn_process(arguments.command()) {
+            @async.with_task_group() <| group => {
+              // Signal setup is only needed on paths that may start a child.
+              ignore(@host_process.configure_signal_forwarding(group, false))
               run_prepared_cli(
                 host,
                 execution_host,
@@ -767,26 +782,26 @@ async fn main {
                 stdin,
                 trace~,
               )
-            } else {
-              run_prepared_cli(
-                host,
-                host,
-                environment_host,
-                arguments,
-                environment,
-                stdin,
-                trace~,
-              )
             }
-            match trace {
-              Some(value) => {
-                value.mark("application.complete")
-                value.emit()
-              }
-              None => ()
-            }
-            emit_response(response)
+          } else {
+            run_prepared_cli(
+              host,
+              execution_host,
+              environment_host,
+              arguments,
+              environment,
+              stdin,
+              trace~,
+            )
           }
+          match trace {
+            Some(value) => {
+              value.mark("application.complete")
+              value.emit()
+            }
+            None => ()
+          }
+          emit_response(response)
         }
       }
     }

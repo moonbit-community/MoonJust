@@ -204,9 +204,21 @@ def stable_window(values: list[float], window: int = 5) -> bool:
     if len(values) < window:
         return False
     recent = values[-window:]
-    cv = coefficient_of_variation(recent)
-    ci = median_ci_half_width(recent)
-    return cv is not None and ci is not None and cv <= STABLE_CV and ci <= STABLE_CI_HALF_WIDTH
+    recent_cv = coefficient_of_variation(recent)
+    recent_ci = median_ci_half_width(recent)
+    overall_cv = coefficient_of_variation(values)
+    overall_ci = median_ci_half_width(values)
+    return all(
+        value is not None
+        for value in (recent_cv, recent_ci, overall_cv, overall_ci)
+    ) and all(
+        (
+            float(recent_cv) <= STABLE_CV,
+            float(recent_ci) <= STABLE_CI_HALF_WIDTH,
+            float(overall_cv) <= STABLE_CV,
+            float(overall_ci) <= STABLE_CI_HALF_WIDTH,
+        )
+    )
 
 
 def read_evidence(path: Path) -> dict[str, object]:

@@ -297,9 +297,16 @@ fn Parser::parse_recipe(
   self : Parser,
   quiet : Bool,
   attributes : Array[@syntax.Attribute],
+  prefetched_name : (String, @lexer.Token)?,
 ) -> @syntax.Recipe raise ParserError {
   let start = self.peek().span()
-  let (name, name_token) = self.expect_identifier()
+  let (name, name_token) = match prefetched_name {
+    Some(value) => {
+      self.advance() |> ignore
+      value
+    }
+    None => self.expect_identifier()
+  }
   let parameters : Array[@syntax.Parameter] = []
   while self.peek_kind() == Identifier || self.peek_kind() == Dollar {
     parameters.push(self.parse_parameter(false))
@@ -639,10 +646,14 @@ fn Parser::parse_item(
   let start = self.peek().span()
   if self.peek_kind() == At {
     self.advance() |> ignore
-    return Recipe(self.parse_recipe(true, attributes))
+    return Recipe(self.parse_recipe(true, attributes, None))
   }
+  let mut prefetched_name : (String, @lexer.Token)? = None
   let keyword = if self.peek_kind() == Identifier {
-    @lexer.Keyword::from_lexeme(self.lexeme(self.peek()))
+    let token = self.peek()
+    let name = self.lexeme(token)
+    prefetched_name = Some((name, token))
+    @lexer.Keyword::from_lexeme(name)
   } else {
     None
   }
@@ -675,7 +686,7 @@ fn Parser::parse_item(
       let (name, name_token) = self.expect_identifier()
       Unexport(name~, span=self.cover(start, name_token.span()))
     }
-    _ => Recipe(self.parse_recipe(false, attributes))
+    _ => Recipe(self.parse_recipe(false, attributes, prefetched_name))
   }
 }
 

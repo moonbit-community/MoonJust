@@ -14,7 +14,7 @@ pub fn SearchOptions::new(
   explicit? : @path.PathValue? = None,
   global? : @path.PathValue? = None,
 ) -> SearchOptions {
-  { filename, ceiling, explicit, global }
+  { filename, ceiling, explicit, global, }
 }
 
 ///|
@@ -77,7 +77,7 @@ pub(all) struct GraphLimits {
 
 ///|
 pub fn GraphLimits::default() -> GraphLimits {
-  { max_files: 256 }
+  { max_files: 256, }
 }
 
 ///|
@@ -207,16 +207,12 @@ fn parse_loaded_source(
   source : @source.Source,
   environment? : ArrayView[(String, String)] = [],
 ) -> @syntax.Ast raise LoaderError {
-  let source_bytes : Array[Byte] = []
-  for byte in source.bytes() {
-    source_bytes.push(byte)
-  }
   @parser.parse_with_environment(source, environment) catch {
     error =>
       raise ParseSource(
         error,
         source_name=source.name(),
-        source_bytes=Bytes::from_array(source_bytes),
+        source_bytes=source.bytes().to_owned(),
       )
   }
 }
@@ -796,7 +792,7 @@ fn[T : @host.HostFs] build_graph(
         }
       }
     }
-    let key = { canonical_path: canonical, module_path }
+    let key = { canonical_path: canonical, module_path, }
     if active.contains(key) || active_paths.contains(canonical) {
       raise ImportCycle(path~, chain=active_stack.copy(), span=import_span)
     }

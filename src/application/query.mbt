@@ -1729,6 +1729,52 @@ fn project_summary_text(
 }
 
 ///|
+fn simple_summary_from_graph(
+  graph : @loader.LoadedGraph,
+  arguments : @cli.CliArguments,
+) -> String? {
+  if arguments.command() != SummaryCommand ||
+    !arguments.variable_overrides().is_empty() ||
+    !arguments.values("group").is_empty() {
+    return None
+  }
+  match arguments.value("color") {
+    None | Some("auto") | Some("always") | Some("never") => ()
+    Some(_) => return None
+  }
+  guard graph.files().length() == 1 else { return None }
+  let loaded = graph.files()[0]
+  if loaded.relation() != RootSource || !loaded.module_path().is_root() {
+    return None
+  }
+  let names : Array[String] = []
+  let seen : Set[String] = Set([])
+  for item in loaded.ast().items() {
+    match item {
+      Recipe(recipe) if recipe.attributes().is_empty() &&
+        recipe.parameters().is_empty() &&
+        recipe.dependencies().is_empty() &&
+        recipe.subsequent_dependencies().is_empty() &&
+        recipe.lines().is_empty() => {
+        if seen.contains(recipe.name()) {
+          return None
+        }
+        seen.add(recipe.name())
+        if !recipe.name().has_prefix("_") {
+          names.push(recipe.name())
+        }
+      }
+      Blank(_) | Comment(_) | TrailingComment(_) => ()
+      _ => return None
+    }
+  }
+  if !arguments.flag("unsorted") {
+    names.sort_by(lexical_compare)
+  }
+  Some(names.join(" ") + "\n")
+}
+
+///|
 fn query_project_text(
   graph : @loader.LoadedGraph,
   project : @semantic.ProjectCompilation,
@@ -2082,6 +2128,20 @@ fn[
     platform=semantic_platform,
     environment=loading_environment,
   )
+  match simple_summary_from_graph(graph, arguments) {
+    Some(output) => {
+      let stderr = if !arguments.flag("quiet") && output == "\n" {
+        b"justfile contains no recipes\n"
+      } else {
+        b""
+      }
+      return @cli.ApplicationResponse::success(
+        stdout=@utf8.encode(output),
+        stderr~,
+      )
+    }
+    None => ()
+  }
   let project = compile_loaded_graph(
     graph,
     allow_unstable=arguments.flag("unstable"),
@@ -2150,6 +2210,21 @@ pub async fn[
     environment=loading_environment,
   )
   perf_detail_mark("query.load")
+  match simple_summary_from_graph(graph, arguments) {
+    Some(output) => {
+      let stderr = if !arguments.flag("quiet") && output == "\n" {
+        b"justfile contains no recipes\n"
+      } else {
+        b""
+      }
+      ignore(perf_detail_emit() catch { _ => () })
+      return @cli.ApplicationResponse::success(
+        stdout=@utf8.encode(output),
+        stderr~,
+      )
+    }
+    None => ()
+  }
   let project = compile_loaded_graph(
     graph,
     allow_unstable=arguments.flag("unstable"),

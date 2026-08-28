@@ -141,7 +141,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
         }
       }
     }
-    let key = { canonical_path: canonical, module_path }
+    let key = { canonical_path: canonical, module_path, }
     if active.contains(key) || active_paths.contains(canonical) {
       raise ImportCycle(path~, chain=active_stack.copy(), span=import_span)
     }
@@ -267,6 +267,18 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
 
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn async_graph_expansion_required(source : LoadedSource) -> Bool {
+  for item in source.ast().items() {
+    match item {
+      Import(_) | Module(_) => return true
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 /// Recursively load a filesystem graph without reading any source past the
 /// lexer byte limit plus one.
 pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
@@ -280,14 +292,11 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
   ),
   environment? : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
-  build_graph_async(
-    host,
-    load_async(host, root, source_id, environment~),
-    source_id,
-    limits,
-    platform,
-    environment,
-  )
+  let root_source = load_async(host, root, source_id, environment~)
+  if limits.max_files > 0 && !async_graph_expansion_required(root_source) {
+    return { files: [root_source], }
+  }
+  build_graph_async(host, root_source, source_id, limits, platform, environment)
 }
 
 ///|

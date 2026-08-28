@@ -505,6 +505,49 @@ fn project_supports_sync_dry_run(
 }
 
 ///|
+fn project_supports_pure_sync_globals(
+  project : @semantic.ProjectCompilation,
+  arguments : @cli.CliArguments,
+) -> Bool {
+  guard project.module_paths().length() == 1 else { return false }
+  guard project.module_paths().get(0) is Some(path) else { return false }
+  guard project.module_compilation(path) is Some(compilation) else {
+    return false
+  }
+  if !compilation.function_names().is_empty() {
+    return false
+  }
+  for
+    name in [
+      "dotenv-command", "dotenv-filename", "dotenv-load", "dotenv-override", "dotenv-path",
+      "dotenv-required",
+    ] {
+    if compilation.settings().has(name) {
+      return false
+    }
+  }
+  if !arguments.values("dotenv-command").is_empty() ||
+    !arguments.values("dotenv-filename").is_empty() ||
+    !arguments.values("dotenv-path").is_empty() {
+    return false
+  }
+  for name in compilation.variable_names() {
+    guard compilation.variable(name) is Some(assignment) else { return false }
+    if expression_uses_effects(assignment.value()) {
+      return false
+    }
+  }
+  for name in compilation.settings().names() {
+    match compilation.settings().get(name) {
+      Some(Expression(expression)) if expression_uses_effects(expression) =>
+        return false
+      _ => ()
+    }
+  }
+  true
+}
+
+///|
 fn project_module_base(
   project : @semantic.ProjectCompilation,
   directories : @workdir.WorkingDirectoryModel,
@@ -806,6 +849,7 @@ fn semantic_target_platform(
 fn evaluate_project_globals(
   project : @semantic.ProjectCompilation,
   arguments : @cli.CliArguments,
+  flavor? : @path.PathFlavor,
 ) -> Map[@modulepath.ModulePath, @evaluator.Environment] raise ApplicationError {
   validate_project_variable_overrides(project, arguments)
   let globals : Map[@modulepath.ModulePath, @evaluator.Environment] = Map([])
@@ -821,10 +865,12 @@ fn evaluate_project_globals(
     let compilation = project.module_compilation(path).unwrap()
     @evaluator.install_constants(
       seed,
-      project
-      .source_file(path)
-      .map(fn(value) { value.flavor() })
-      .unwrap_or(Unix),
+      flavor.unwrap_or(
+        project
+        .source_file(path)
+        .map(fn(value) { value.flavor() })
+        .unwrap_or(Unix),
+      ),
     )
     for name in compilation.unexports() {
       seed.remove(name)
@@ -1851,21 +1897,42 @@ pub async fn[
       value => value
     }
     perf_detail_mark("run.invocations")
+    let sync_dry_run = arguments.flag("dry-run") &&
+      !arguments.flag("explain") &&
+      project_supports_sync_dry_run(project)
+    let pure_sync_globals = sync_dry_run &&
+      project_supports_pure_sync_globals(project, arguments)
     let invocation_directory = shell_invocation_directory(
       process, directories, arguments, platform,
     )
-    let (globals, dotenv_by_module) = evaluate_project_globals_async(
-      filesystem,
-      process,
-      effects,
-      project,
-      directories,
-      arguments,
-      platform,
-      loading_environment,
-      invocation_directory,
-      targets~,
-    )
+    let (globals, dotenv_by_module) = if pure_sync_globals {
+      let globals = evaluate_project_globals(
+        project,
+        arguments,
+        flavor=platform.path_flavor(),
+      )
+      let dotenv_by_module : Map[
+        @modulepath.ModulePath,
+        Array[(String, String)],
+      ] = Map([])
+      for path in project.module_paths() {
+        dotenv_by_module[path] = []
+      }
+      (globals, dotenv_by_module)
+    } else {
+      evaluate_project_globals_async(
+        filesystem,
+        process,
+        effects,
+        project,
+        directories,
+        arguments,
+        platform,
+        loading_environment,
+        invocation_directory,
+        targets~,
+      )
+    }
     perf_detail_mark("run.globals")
     let invocations = @invocation.parse_project_invocations_in_environments(
       project,
@@ -1964,9 +2031,6 @@ pub async fn[
       )
     }
     let requests : Array[@executor.ProjectRecipeRequest] = []
-    let sync_dry_run = arguments.flag("dry-run") &&
-      !arguments.flag("explain") &&
-      project_supports_sync_dry_run(project)
     if sync_dry_run {
       let plans : Array[@executor.ExecutionPlan] = []
       for project_invocation in invocations {
