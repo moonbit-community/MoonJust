@@ -690,6 +690,22 @@ test "summary supports sorted and source-order output" {
   } noraise {
     _ => fail("expected unknown dependency error")
   }
+  host.put_file(file, b"build: build\n")
+  try
+    @application.execute_query_command(
+      host,
+      @cli.parse_arguments(["--summary"], {}),
+      context,
+    )
+  catch {
+    @application.Semantic(RecipeDependencyCycle(recipe~, chain~, ..)) => {
+      assert_eq(recipe, "build")
+      assert_eq(chain, ["build", "build"])
+    }
+    error => fail("unexpected self dependency error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected recipe self dependency error")
+  }
 }
 
 ///|

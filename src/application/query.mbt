@@ -282,7 +282,9 @@ fn compile_single_root_graph(
     loaded.ast(),
     platform~,
     allow_unstable~,
-    defer_recipe_linking=false,
+    // ProjectCompilation performs cross-recipe linking so single-root inputs
+    // use the same dependency diagnostics as module graphs.
+    defer_recipe_linking=true,
   ) catch {
     error => raise Semantic(error)
   }
@@ -298,6 +300,9 @@ fn compile_single_root_graph(
     ),
   ]) catch {
     error => raise Project(error)
+  }
+  @semantic.validate_project_compilation(project) catch {
+    error => raise Semantic(error)
   }
   Some(project)
 }
