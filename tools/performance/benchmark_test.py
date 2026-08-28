@@ -55,6 +55,52 @@ class BenchmarkTest(unittest.TestCase):
             self.assertEqual(benchmark.fixture_profile("project-modules"), "real-project")
             self.assertEqual(len(benchmark.fixture_files("project-modules", fixtures["project-modules"][0])), 2)
 
+    def test_runtime_probes_isolate_candidate_host_boundaries(self) -> None:
+        artifacts = {
+            "official": Path("official"),
+            "candidate-native": Path("native"),
+            "candidate-wasm": Path("candidate.wasm"),
+        }
+        commands = benchmark.runtime_probe_commands(
+            artifacts,
+            Path("empty.just"),
+            "moonrun",
+            Path("policy.toml"),
+        )
+        self.assertEqual(
+            list(commands),
+            [
+                "static-startup",
+                "environment-snapshot",
+                "empty-stdin-load",
+                "empty-file-load",
+            ],
+        )
+        self.assertEqual(
+            set(commands["static-startup"]),
+            {"candidate-native", "candidate-wasm"},
+        )
+        self.assertEqual(
+            commands["static-startup"]["candidate-native"],
+            ["native", "--version"],
+        )
+        self.assertEqual(
+            commands["environment-snapshot"]["candidate-wasm"][:4],
+            ["moonrun", "--policy", "policy.toml", "candidate.wasm"],
+        )
+        self.assertNotIn(
+            "--justfile",
+            commands["environment-snapshot"]["candidate-wasm"],
+        )
+        self.assertEqual(
+            commands["empty-stdin-load"]["candidate-native"][-3:],
+            ["--justfile", "-", "--summary"],
+        )
+        self.assertEqual(
+            commands["empty-file-load"]["candidate-native"][-3:],
+            ["--justfile", "empty.just", "--summary"],
+        )
+
     def test_cold_warm_phase_records_three_conditions_per_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -129,10 +175,15 @@ class BenchmarkTest(unittest.TestCase):
         with (
             mock.patch.object(benchmark.platform, "system", return_value="Windows"),
             mock.patch.object(benchmark.platform, "machine", return_value="AMD64"),
+            mock.patch.dict(
+                benchmark.os.environ,
+                {benchmark.RUNTIME_PROBE_ENVIRONMENT_VARIABLE: "unexpected"},
+            ),
         ):
             environment = benchmark.benchmark_environment()
         self.assertEqual(environment["MOONJUST_OS"], "windows")
         self.assertEqual(environment["MOONJUST_ARCH"], "amd64")
+        self.assertNotIn(benchmark.RUNTIME_PROBE_ENVIRONMENT_VARIABLE, environment)
 
     def test_collect_phase_trace_parses_only_the_trace_record(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

@@ -30,6 +30,7 @@ MIN_LATENCY_SAMPLES = 15
 MAX_LATENCY_SAMPLES = 30
 COLD_WARM_ROUNDS = 3
 COLD_WARM_WARMUPS = 5
+RUNTIME_PROBE_ENVIRONMENT_VARIABLE = "MOONJUST_PERF_PROBE_UNSET_7D9B"
 
 
 def sha256(path: Path) -> str:
@@ -121,6 +122,7 @@ def benchmark_environment() -> dict[str, str]:
         "aarch64": "aarch64",
     }.get(machine, machine)
     environment = os.environ.copy()
+    environment.pop(RUNTIME_PROBE_ENVIRONMENT_VARIABLE, None)
     environment["MOONJUST_OS"] = os_name
     environment["MOONJUST_ARCH"] = architecture
     return environment
@@ -400,10 +402,9 @@ def write_fixtures(root: Path) -> dict[str, tuple[Path, list[str]]]:
     }
 
 
-def command_for(
+def runtime_command(
     kind: str,
     binary: Path,
-    fixture: Path,
     arguments: list[str],
     moonrun: str,
     policy: Path,
@@ -413,10 +414,59 @@ def command_for(
         if kind.endswith("wasm")
         else [str(binary)]
     )
-    prefix = runtime
+    return runtime + arguments
+
+
+def command_for(
+    kind: str,
+    binary: Path,
+    fixture: Path,
+    arguments: list[str],
+    moonrun: str,
+    policy: Path,
+) -> list[str]:
     if arguments == ["--version"]:
-        return prefix + arguments
-    return prefix + ["--justfile", str(fixture)] + arguments
+        return runtime_command(kind, binary, arguments, moonrun, policy)
+    return runtime_command(
+        kind,
+        binary,
+        ["--justfile", str(fixture), *arguments],
+        moonrun,
+        policy,
+    )
+
+
+def runtime_probe_commands(
+    artifacts: dict[str, Path],
+    empty_fixture: Path,
+    moonrun: str,
+    policy: Path,
+) -> dict[str, dict[str, list[str]]]:
+    """Build minimal product-path probes without involving official just."""
+    candidates = {
+        kind: binary
+        for kind, binary in artifacts.items()
+        if kind in {"candidate-native", "candidate-wasm"}
+    }
+    arguments = {
+        "static-startup": ["--version"],
+        "environment-snapshot": [
+            "--request",
+            json.dumps(
+                {"environment-variable": RUNTIME_PROBE_ENVIRONMENT_VARIABLE},
+                separators=(",", ":"),
+            ),
+        ],
+        "empty-stdin-load": ["--justfile", "-", "--summary"],
+        "empty-file-load": ["--justfile", str(empty_fixture), "--summary"],
+    }
+    return {
+        probe: {
+            kind: runtime_command(kind, binary, argv, moonrun, policy)
+            for kind, binary in candidates.items()
+        }
+        for probe, argv in arguments.items()
+    }
 
 
 def tool_output(command: list[str]) -> str:
@@ -676,6 +726,10 @@ def main() -> int:
     cold_warm_results: dict[str, dict[str, dict[str, dict[str, object]]]] = {}
     cold_warm_duration = 0.0
     phase_traces: dict[str, dict[str, dict[str, object] | None]] = {}
+    runtime_probe_results: dict[str, dict[str, object]] = {}
+    runtime_probe_commands_record: dict[str, dict[str, list[str]]] = {}
+    runtime_probe_duration = 0.0
+    runtime_probe_early_stops: dict[str, bool] = {}
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
         fixtures = write_fixtures(root)
@@ -754,6 +808,36 @@ def main() -> int:
                     for kind in artifacts
                 }
 
+        empty_fixture = root / "runtime-probe-empty.just"
+        write_fixture(empty_fixture, "")
+        runtime_probe_commands_record = runtime_probe_commands(
+            artifacts, empty_fixture, moonrun, args.policy,
+        )
+        candidate_hashes = {
+            kind: sha256(path)
+            for kind, path in artifacts.items()
+            if kind in {"candidate-native", "candidate-wasm"}
+        }
+        for index, (probe, commands) in enumerate(runtime_probe_commands_record.items()):
+            latency, duration, stopped = collect_phase(
+                "latency",
+                f"runtime-probe/{probe}",
+                commands,
+                root,
+                args.warmups,
+                args.samples,
+                args.seed + 10_000 + index * 100,
+                raw_rows,
+                moon_toolchain,
+                candidate_hashes,
+            )
+            runtime_probe_duration += duration
+            runtime_probe_early_stops[probe] = stopped
+            runtime_probe_results[probe] = {
+                kind: summarize([float(value) for value in latency[kind]], [])
+                for kind in commands
+            }
+
     failures = list(environment_errors)
     required_kinds = {"official", "candidate-native", "candidate-wasm"}
     for workload, values in results.items():
@@ -768,6 +852,13 @@ def main() -> int:
                 for condition in ("cold", "warm"):
                     if int(conditions[condition].get("latency_samples", 0)) != COLD_WARM_ROUNDS:
                         failures.append(f"{workload}/{kind}/{condition} has incomplete cold/warm samples")
+    required_probe_kinds = {"candidate-native", "candidate-wasm"}
+    for probe, values in runtime_probe_results.items():
+        if set(values) != required_probe_kinds:
+            failures.append(f"runtime probe {probe} is missing a candidate artifact")
+        for kind, summary in values.items():
+            if int(summary.get("latency_samples", 0)) < MIN_LATENCY_SAMPLES:
+                failures.append(f"runtime probe {probe}/{kind} has incomplete latency samples")
 
     infrastructure_invalid = bool(environment_errors)
     args.raw_output.write_text(
@@ -813,6 +904,8 @@ def main() -> int:
             "durations_seconds": phase_durations,
             "latency_early_stops": early_stops,
             "cold_warm_duration_seconds": cold_warm_duration,
+            "runtime_probe_duration_seconds": runtime_probe_duration,
+            "runtime_probe_early_stops": runtime_probe_early_stops,
         },
         "cold_warm": {
             "enabled": args.cold_warm,
@@ -820,6 +913,12 @@ def main() -> int:
             "warmups_per_round": COLD_WARM_WARMUPS,
             "semantics": "per balanced round and artifact: cold=first fresh process, then five same-command warmups, then warm=fresh process",
             "workloads": cold_warm_results,
+        },
+        "runtime_probes": {
+            "gate_enforced": False,
+            "purpose": "separate Wasm runtime, environment, stdin, and file-load fixed costs from package compute",
+            "commands": runtime_probe_commands_record,
+            "workloads": runtime_probe_results,
         },
         "phase_traces": phase_traces,
         "artifacts": {
