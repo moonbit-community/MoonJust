@@ -88,7 +88,7 @@ pub fn EffectShell::new(
   program : String,
   arguments : Array[String],
 ) -> EffectShell {
-  { program, arguments: arguments.copy() }
+  { program, arguments: arguments.copy(), }
 }
 
 ///|

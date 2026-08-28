@@ -66,7 +66,7 @@ pub fn WorkingDirectoryModel::from_stdin(
     Some(directory) => resolve_from(invocation, directory)
     None => invocation
   }
-  { invocation, project, module_base: project, justfile: None }
+  { invocation, project, module_base: project, justfile: None, }
 }
 
 ///|

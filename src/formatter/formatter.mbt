@@ -110,7 +110,7 @@ pub fn CheckResult::changed(self : CheckResult) -> Bool {
 ///|
 pub fn check(source : @source.Source) -> CheckResult raise FormatterError {
   let formatted = format_source(source)
-  { formatted, changed: formatted != source.text() }
+  { formatted, changed: formatted != source.text(), }
 }
 
 ///|
@@ -119,7 +119,7 @@ pub fn check_with_indentation(
   indentation : String,
 ) -> CheckResult raise FormatterError {
   let formatted = format_source_with_indentation(source, indentation)
-  { formatted, changed: formatted != source.text() }
+  { formatted, changed: formatted != source.text(), }
 }
 
 ///|

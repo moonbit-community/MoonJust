@@ -7,7 +7,7 @@ pub struct SourceMap {
 ///|
 /// Create an empty source map.
 pub fn SourceMap::new() -> SourceMap {
-  { sources: {} }
+  { sources: {}, }
 }
 
 ///|

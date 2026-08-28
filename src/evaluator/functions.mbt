@@ -8,7 +8,7 @@ pub struct FunctionEnvironment {
 
 ///|
 pub fn FunctionEnvironment::new() -> FunctionEnvironment {
-  { definitions: Map([]) }
+  { definitions: Map([]), }
 }
 
 ///|

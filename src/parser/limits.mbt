@@ -25,7 +25,7 @@ pub fn ParserLimits::new(
   if max_depth <= 0 || max_nodes <= 0 || max_diagnostics <= 0 {
     raise InvalidParserLimit
   }
-  { max_depth, max_nodes, max_diagnostics }
+  { max_depth, max_nodes, max_diagnostics, }
 }
 
 ///|

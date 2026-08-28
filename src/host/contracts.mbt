@@ -80,7 +80,7 @@ pub fn CacheLease::new(
   digest : String,
   token : Int,
 ) -> CacheLease {
-  { directory, digest, token }
+  { directory, digest, token, }
 }
 
 ///|

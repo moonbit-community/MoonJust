@@ -8,7 +8,7 @@ pub struct PolicyFs {
 
 ///|
 pub fn PolicyFs::new() -> PolicyFs {
-  { inner: @host_wasm.PortableHost::new() }
+  { inner: @host_wasm.PortableHost::new(), }
 }
 
 ///|

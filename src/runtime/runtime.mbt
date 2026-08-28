@@ -1326,7 +1326,7 @@ async fn[
             ),
           )
         }
-        return ExecutionSummary::{ commands: 0 }
+        return ExecutionSummary::{ commands: 0, }
       }
       @host.HostCacheStore::write_cache_manifest(scripts, lease, b"") catch {
         error => raise live_failure(@executor.ExecutionError::host(error), 0)
@@ -1484,7 +1484,7 @@ pub async fn[
     for task in plan.tasks() {
       ignore(emit_live(output, Stderr, task.preamble(), 0))
     }
-    return { commands: 0 }
+    return { commands: 0, }
   }
   let jobs = plan.options().jobs()
   if jobs <= 0 {

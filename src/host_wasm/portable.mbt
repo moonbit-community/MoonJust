@@ -49,7 +49,7 @@ pub fn PortableHost::new() -> PortableHost {
   portable_platform_cache.val = None
   portable_terminal_cache.val = None
   portable_clear_file_cache()
-  { marker: () }
+  { marker: (), }
 }
 
 ///|

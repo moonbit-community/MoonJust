@@ -20,7 +20,7 @@ fn parse_shebang(line : String) -> ShebangCommand? {
     }
   }
   match separator {
-    None => Some({ interpreter: text, argument: None })
+    None => Some({ interpreter: text, argument: None, })
     Some(index) => {
       let interpreter = text[:index].to_owned()
       let argument = text.view(start_offset=index).to_owned().trim().to_owned()

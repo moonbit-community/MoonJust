@@ -104,7 +104,7 @@ pub struct Token {
 ///|
 /// Construct a token. This is public for parser fixtures and tooling adapters.
 pub fn Token::new(kind : TokenKind, span : @source.Span) -> Token {
-  { kind, span }
+  { kind, span, }
 }
 
 ///|

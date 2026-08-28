@@ -999,7 +999,7 @@ async test "live runtime rejects incomplete echo and captured stream forwarding"
   try
     execute_plan_live(
       echo_host,
-      RuntimeCoverageOutput::{ mode: ShortStderr },
+      RuntimeCoverageOutput::{ mode: ShortStderr, },
       echo_host,
       echo_host,
       echo_plan,
@@ -1038,7 +1038,7 @@ async test "live runtime rejects incomplete echo and captured stream forwarding"
   try
     execute_plan_live(
       stdout_host,
-      RuntimeCoverageOutput::{ mode: ShortStdout },
+      RuntimeCoverageOutput::{ mode: ShortStdout, },
       stdout_host,
       stdout_host,
       quiet_plan,
@@ -1059,7 +1059,7 @@ async test "live runtime rejects incomplete echo and captured stream forwarding"
   try
     execute_plan_live(
       stderr_host,
-      RuntimeCoverageOutput::{ mode: ShortStderr },
+      RuntimeCoverageOutput::{ mode: ShortStderr, },
       stderr_host,
       stderr_host,
       quiet_plan,
@@ -1100,7 +1100,7 @@ async test "live runtime covers timing successful guards and verbose tasks" {
   assert_eq(
     (try! execute_plan_live(
       timed_host,
-      RuntimeCoverageOutput::{ mode: Full },
+      RuntimeCoverageOutput::{ mode: Full, },
       timed_host,
       timed_host,
       timed,
@@ -1131,7 +1131,7 @@ async test "live runtime covers timing successful guards and verbose tasks" {
   assert_eq(
     (try! execute_plan_live(
       guarded_host,
-      RuntimeCoverageOutput::{ mode: Full },
+      RuntimeCoverageOutput::{ mode: Full, },
       guarded_host,
       guarded_host,
       guarded,

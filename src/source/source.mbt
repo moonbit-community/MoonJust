@@ -55,14 +55,14 @@ pub fn Source::from_bytes(
     Malformed(fragment) =>
       raise InvalidUtf8(offset=bytes.length() - fragment.length())
   }
-  { id, name, bytes, line_starts: build_line_index(bytes) }
+  { id, name, bytes, line_starts: build_line_index(bytes), }
 }
 
 ///|
 /// Construct a source from a MoonBit string.
 pub fn Source::from_text(id : SourceId, name : String, text : String) -> Source {
   let bytes = @utf8.encode(text)
-  { id, name, bytes, line_starts: build_line_index(bytes) }
+  { id, name, bytes, line_starts: build_line_index(bytes), }
 }
 
 ///|
@@ -175,7 +175,7 @@ pub fn Source::line_span(self : Source, line : Int) -> Span raise SourceError {
   } else {
     without_lf
   }
-  { source_id: self.id, start_byte, end_byte }
+  { source_id: self.id, start_byte, end_byte, }
 }
 
 ///|
@@ -201,7 +201,7 @@ pub fn Source::locate(
       scalar_column += 1
     }
   }
-  { line: line_index + 1, byte_column: offset - line_start, scalar_column }
+  { line: line_index + 1, byte_column: offset - line_start, scalar_column, }
 }
 
 ///|
@@ -255,7 +255,7 @@ pub fn Source::slice_text(
 ///|
 /// Return a span covering the complete source.
 pub fn Source::full_span(self : Source) -> Span {
-  { source_id: self.id, start_byte: 0, end_byte: self.bytes.length() }
+  { source_id: self.id, start_byte: 0, end_byte: self.bytes.length(), }
 }
 
 ///|

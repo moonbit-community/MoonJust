@@ -696,7 +696,7 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
   while numbers.length() < 3 {
     numbers.push(0)
   }
-  Some({ major: numbers[0], minor: numbers[1], patch: numbers[2], prerelease })
+  Some({ major: numbers[0], minor: numbers[1], patch: numbers[2], prerelease, })
 }
 
 ///|

@@ -38,7 +38,7 @@ pub fn Parameter::new_star(
   span : @source.Span,
   default_value? : Expression,
 ) -> Parameter {
-  { name, default_value, variadic: true, variadic_minimum: 0, exported, span }
+  { name, default_value, variadic: true, variadic_minimum: 0, exported, span, }
 }
 
 ///|
@@ -151,7 +151,7 @@ pub fn RecipeLine::new(
   source_start_line? : Int = 1,
   source_end_line? : Int = source_start_line,
 ) -> RecipeLine {
-  { fragments, span, source_start_line, source_end_line }
+  { fragments, span, source_start_line, source_end_line, }
 }
 
 ///|
@@ -187,7 +187,7 @@ pub fn AttributeArgument::new(
   value : Expression?,
   span : @source.Span,
 ) -> AttributeArgument {
-  { key, value, span }
+  { key, value, span, }
 }
 
 ///|
@@ -218,7 +218,7 @@ pub fn Attribute::new(
   arguments : Array[AttributeArgument],
   span : @source.Span,
 ) -> Attribute {
-  { name, arguments, span }
+  { name, arguments, span, }
 }
 
 ///|
@@ -255,7 +255,7 @@ pub fn Assignment::new(
   span : @source.Span,
   attributes? : Array[Attribute] = [],
 ) -> Assignment {
-  { name, value, exported, eager, attributes, span }
+  { name, value, exported, eager, attributes, span, }
 }
 
 ///|
@@ -299,7 +299,7 @@ pub fn FunctionParameter::new(
   name : String,
   span : @source.Span,
 ) -> FunctionParameter {
-  { name, span }
+  { name, span, }
 }
 
 ///|
@@ -329,7 +329,7 @@ pub fn FunctionDefinition::new(
   attributes : Array[Attribute],
   span : @source.Span,
 ) -> FunctionDefinition {
-  { name, parameters, body, attributes, span }
+  { name, parameters, body, attributes, span, }
 }
 
 ///|
@@ -376,7 +376,7 @@ pub fn Alias::new(
   span : @source.Span,
   attributes? : Array[Attribute] = [],
 ) -> Alias {
-  { name, target, attributes, span }
+  { name, target, attributes, span, }
 }
 
 ///|
@@ -412,7 +412,7 @@ pub fn Setting::new(
   value : Expression?,
   span : @source.Span,
 ) -> Setting {
-  { name, value, span }
+  { name, value, span, }
 }
 
 ///|
@@ -443,7 +443,7 @@ pub fn Import::new(
   optional : Bool,
   span : @source.Span,
 ) -> Import {
-  { path, optional, span }
+  { path, optional, span, }
 }
 
 ///|
@@ -480,7 +480,7 @@ pub fn Module::new(
   span : @source.Span,
   attributes? : Array[Attribute] = [],
 ) -> Module {
-  { name, name_span, path, optional, attributes, span }
+  { name, name_span, path, optional, attributes, span, }
 }
 
 ///|
@@ -657,7 +657,7 @@ pub fn Ast::new(
   items : Array[Item],
   span : @source.Span,
 ) -> Ast {
-  { source_id, items, span }
+  { source_id, items, span, }
 }
 
 ///|

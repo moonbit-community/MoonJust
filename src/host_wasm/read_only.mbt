@@ -15,13 +15,13 @@ pub struct ReadOnlyFs {
 ///|
 #cfg(target="native")
 pub fn ReadOnlyFs::new() -> ReadOnlyFs {
-  { inner: @host_native.NativeFs::new() }
+  { inner: @host_native.NativeFs::new(), }
 }
 
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub fn ReadOnlyFs::new() -> ReadOnlyFs {
-  { inner: PortableHost::new() }
+  { inner: PortableHost::new(), }
 }
 
 ///|

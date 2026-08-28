@@ -36,7 +36,7 @@ pub fn EvaluationLimits::new(
   max_nodes : Int,
   max_output_bytes : Int,
 ) -> EvaluationLimits {
-  { max_depth, max_nodes, max_output_bytes }
+  { max_depth, max_nodes, max_output_bytes, }
 }
 
 ///|

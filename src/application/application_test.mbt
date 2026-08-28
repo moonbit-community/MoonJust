@@ -684,7 +684,7 @@ test "summary supports sorted and source-order output" {
       context,
     )
   catch {
-    @application.Semantic(@semantic.UnknownDependency(target~, ..)) =>
+    @application.Semantic(UnknownDependency(target~, ..)) =>
       assert_eq(target, "missing")
     error => fail("unexpected summary error: \{Repr(error)}")
   } noraise {

@@ -67,7 +67,7 @@ pub fn VariableOverride::parse(
     raise InvalidOverridePath(path~)
   }
   let name = components.pop().unwrap()
-  { modules: components, name, value }
+  { modules: components, name, value, }
 }
 
 ///|
@@ -102,7 +102,7 @@ pub struct OverrideTable {
 
 ///|
 pub fn OverrideTable::new() -> OverrideTable {
-  { values: Map([]), ordered: [] }
+  { values: Map([]), ordered: [], }
 }
 
 ///|
@@ -200,7 +200,7 @@ pub fn ShellConfiguration::new(
   if program.is_empty() {
     raise EmptyShell
   }
-  { program, arguments: arguments.copy() }
+  { program, arguments: arguments.copy(), }
 }
 
 ///|
@@ -307,7 +307,7 @@ pub fn resolve_temporary_directory(
             source: Setting,
             directory: Some(resolve_directory(project_directory, value)),
           }
-        None => { source: HostDefault, directory: None }
+        None => { source: HostDefault, directory: None, }
       }
   }
 }

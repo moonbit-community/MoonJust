@@ -25,7 +25,7 @@ pub fn StringLiteral::new(
   span : @source.Span,
   shell_expanded? : Bool = false,
 ) -> StringLiteral {
-  { raw, cooked, kind, span, shell_expanded }
+  { raw, cooked, kind, span, shell_expanded, }
 }
 
 ///|
@@ -82,7 +82,7 @@ pub fn FormatPart::new(
   expression : Expression,
   literal : StringLiteral,
 ) -> FormatPart {
-  { expression, literal }
+  { expression, literal, }
 }
 
 ///|

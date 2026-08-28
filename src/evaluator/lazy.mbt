@@ -28,7 +28,7 @@ pub fn LazyEnvironment::new(
     environment.remove(name)
     states[name] = Unevaluated
   }
-  { compilation, environment, states, stack: [], limits }
+  { compilation, environment, states, stack: [], limits, }
 }
 
 ///|

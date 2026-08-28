@@ -15,7 +15,7 @@ pub struct EnvTable {
 
 ///|
 pub fn EnvTable::new(name_mode? : EnvNameMode = Sensitive) -> EnvTable {
-  { values: Map([]), ordered: [], name_mode }
+  { values: Map([]), ordered: [], name_mode, }
 }
 
 ///|

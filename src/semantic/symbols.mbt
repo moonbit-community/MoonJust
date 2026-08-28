@@ -20,7 +20,7 @@ pub fn Symbol::new(
   kind : SymbolKind,
   span : @source.Span,
 ) -> Symbol {
-  { name, kind, span }
+  { name, kind, span, }
 }
 
 ///|

@@ -110,7 +110,7 @@ pub fn EvaluationContext::for_recipe(
   recipe : String,
   is_dependency : Bool,
 ) -> EvaluationContext {
-  { ..self, cwd: Some(cwd), recipe: Some(recipe), is_dependency }
+  { ..self, cwd: Some(cwd), recipe: Some(recipe), is_dependency, }
 }
 
 ///|
@@ -120,7 +120,7 @@ pub fn EvaluationContext::with_process_environment(
   self : EvaluationContext,
   environment : ArrayView[(String, String)],
 ) -> EvaluationContext {
-  { ..self, process_environment: Some(environment.to_owned()) }
+  { ..self, process_environment: Some(environment.to_owned()), }
 }
 
 ///|
@@ -179,7 +179,7 @@ pub fn EvaluationContext::for_source(
       break
     }
   }
-  { ..self, source: Some(source), source_file }
+  { ..self, source: Some(source), source_file, }
 }
 
 ///|

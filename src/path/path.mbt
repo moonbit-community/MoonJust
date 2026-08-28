@@ -119,7 +119,7 @@ fn parse_windows(value : String) -> ParsedPath {
         components: normalize_components(body, true),
       }
     } else {
-      { root: WindowsRoot, components: normalize_components(all, true) }
+      { root: WindowsRoot, components: normalize_components(all, true), }
     }
   } else if characters.length() >= 2 &&
     characters[0].is_ascii_alphabetic() &&
@@ -204,7 +204,7 @@ pub fn PathValue::new(
   if raw.contains("\u{0000}") {
     raise NulByte
   }
-  { value: normalized(raw, flavor), flavor }
+  { value: normalized(raw, flavor), flavor, }
 }
 
 ///|
@@ -279,7 +279,7 @@ pub fn PathValue::parent(self : PathValue) -> PathValue? {
     return None
   }
   parsed.components.pop() |> ignore
-  Some({ value: format_parsed(parsed, self.flavor), flavor: self.flavor })
+  Some({ value: format_parsed(parsed, self.flavor), flavor: self.flavor, })
 }
 
 ///|
@@ -311,7 +311,7 @@ pub fn PathValue::without_extension(self : PathValue) -> PathValue {
       match name.rev_find(".") {
         Some(index) if index > 0 => {
           parsed.components[parsed.components.length() - 1] = "\{name.view(end_offset=index)}"
-          { value: format_parsed(parsed, self.flavor), flavor: self.flavor }
+          { value: format_parsed(parsed, self.flavor), flavor: self.flavor, }
         }
         _ => self
       }

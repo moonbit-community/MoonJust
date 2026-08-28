@@ -97,7 +97,7 @@ pub fn ExecutionOptions::with_cache(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, cache_enabled: enabled }
+  { ..self, cache_enabled: enabled, }
 }
 
 ///|
@@ -105,7 +105,7 @@ pub fn ExecutionOptions::with_unstable(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, unstable: enabled }
+  { ..self, unstable: enabled, }
 }
 
 ///|
@@ -114,7 +114,7 @@ pub fn ExecutionOptions::with_no_dependencies(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, no_dependencies: enabled }
+  { ..self, no_dependencies: enabled, }
 }
 
 ///|
@@ -122,7 +122,7 @@ pub fn ExecutionOptions::with_explain(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, explain: enabled }
+  { ..self, explain: enabled, }
 }
 
 ///|
@@ -130,7 +130,7 @@ pub fn ExecutionOptions::with_color_enabled(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, color_enabled: enabled }
+  { ..self, color_enabled: enabled, }
 }
 
 ///|
@@ -138,7 +138,7 @@ pub fn ExecutionOptions::with_guards(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, guards: enabled }
+  { ..self, guards: enabled, }
 }
 
 ///|
@@ -146,7 +146,7 @@ pub fn ExecutionOptions::with_quiet(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, quiet: enabled }
+  { ..self, quiet: enabled, }
 }
 
 ///|
@@ -154,7 +154,7 @@ pub fn ExecutionOptions::with_echo_quiet(
   self : ExecutionOptions,
   enabled : Bool,
 ) -> ExecutionOptions {
-  { ..self, echo_quiet: enabled }
+  { ..self, echo_quiet: enabled, }
 }
 
 ///|
@@ -162,7 +162,7 @@ pub fn ExecutionOptions::with_verbosity(
   self : ExecutionOptions,
   verbosity : Int,
 ) -> ExecutionOptions {
-  { ..self, verbose: verbosity > 0, verbosity }
+  { ..self, verbose: verbosity > 0, verbosity, }
 }
 
 ///|
@@ -271,7 +271,7 @@ pub fn ScriptConfiguration::new(
   platform : @host.PlatformInfo,
   extension? : String,
 ) -> ScriptConfiguration {
-  { interpreter, temporary_directory, extension, platform }
+  { interpreter, temporary_directory, extension, platform, }
 }
 
 ///|
@@ -314,7 +314,7 @@ pub fn ExecutionReport::new(
   stderr : Bytes,
   commands : Int,
 ) -> ExecutionReport {
-  { stdout, stderr, commands }
+  { stdout, stderr, commands, }
 }
 
 ///|
@@ -725,7 +725,7 @@ fn MaterializedScript::new(
   path : @path.PathValue,
   spec : @host.CommandSpec,
 ) -> MaterializedScript {
-  { path, spec }
+  { path, spec, }
 }
 
 ///|
@@ -764,7 +764,7 @@ pub fn ConfirmationRequest::new(
   prompt : String,
   is_dependency : Bool,
 ) -> ConfirmationRequest {
-  { recipe, prompt, is_dependency }
+  { recipe, prompt, is_dependency, }
 }
 
 ///|
@@ -890,7 +890,7 @@ fn ExecutionPlan::new(
   cache_directory? : @path.PathValue,
   confirmations? : Array[ConfirmationRequest] = [],
 ) -> ExecutionPlan {
-  { steps, commands, stderr, options, tasks, cache_directory, confirmations }
+  { steps, commands, stderr, options, tasks, cache_directory, confirmations, }
 }
 
 ///|
@@ -1075,7 +1075,7 @@ pub fn RecipeRequest::new(
   recipe : String,
   arguments? : Array[@value.Value] = [],
 ) -> RecipeRequest {
-  { recipe, arguments: arguments.copy() }
+  { recipe, arguments: arguments.copy(), }
 }
 
 ///|
@@ -1104,7 +1104,7 @@ pub fn ProjectRecipeRequest::new(
   recipe : String,
   arguments? : Array[@value.Value] = [],
 ) -> ProjectRecipeRequest {
-  { module_path, recipe, arguments: arguments.copy() }
+  { module_path, recipe, arguments: arguments.copy(), }
 }
 
 ///|

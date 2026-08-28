@@ -7,7 +7,7 @@ pub struct NativeFs {
 
 ///|
 pub fn NativeFs::new() -> NativeFs {
-  { marker: () }
+  { marker: (), }
 }
 
 ///|

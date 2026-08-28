@@ -37,7 +37,7 @@ fn validate_component(component : String) -> Bool {
 
 ///|
 pub fn ModulePath::root() -> ModulePath {
-  { components: [] }
+  { components: [], }
 }
 
 ///|
@@ -49,7 +49,7 @@ pub fn ModulePath::new(
       raise InvalidModulePath(components.join("::"))
     }
   }
-  { components: components.copy() }
+  { components: components.copy(), }
 }
 
 ///|
@@ -95,7 +95,9 @@ pub fn ModulePath::parent(self : ModulePath) -> ModulePath? {
   if self.components.is_empty() {
     return None
   }
-  Some({ components: self.components[:self.components.length() - 1].to_owned() })
+  Some({
+    components: self.components[:self.components.length() - 1].to_owned(),
+  })
 }
 
 ///|

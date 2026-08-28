@@ -13,7 +13,7 @@ pub fn TaskSpec::new(
   order : Int,
   dependencies? : Array[Int] = [],
 ) -> TaskSpec {
-  { id, order, dependencies: dependencies.copy() }
+  { id, order, dependencies: dependencies.copy(), }
 }
 
 ///|
@@ -212,7 +212,7 @@ pub fn build_schedule(
     }
     waves.push(wave)
   }
-  { jobs, waves, order }
+  { jobs, waves, order, }
 }
 
 ///|

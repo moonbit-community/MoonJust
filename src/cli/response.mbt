@@ -12,7 +12,7 @@ pub fn ApplicationResponse::new(
   stderr : Bytes,
   exit_code : Int,
 ) -> ApplicationResponse {
-  { stdout, stderr, exit_code }
+  { stdout, stderr, exit_code, }
 }
 
 ///|
@@ -20,7 +20,7 @@ pub fn ApplicationResponse::success(
   stdout? : Bytes = b"",
   stderr? : Bytes = b"",
 ) -> ApplicationResponse {
-  { stdout, stderr, exit_code: 0 }
+  { stdout, stderr, exit_code: 0, }
 }
 
 ///|

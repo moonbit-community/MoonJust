@@ -950,7 +950,7 @@ fn dependency_planning_target(
       guard compilation.recipe(requested) is Some(_) else {
         raise UnknownRecipe(recipe=requested)
       }
-      { module_path: from, name: requested, compilation, runtime: None }
+      { module_path: from, name: requested, compilation, runtime: None, }
     }
     Some(project) => {
       guard project.resolve_recipe(from, requested) is Some(address) else {

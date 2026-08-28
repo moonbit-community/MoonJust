@@ -22,13 +22,17 @@ pub fn LexerLimits::new(
   if max_nesting < 0 {
     raise InvalidLexerLimit(name="max_nesting", value=max_nesting)
   }
-  { max_source_bytes, max_tokens, max_nesting }
+  { max_source_bytes, max_tokens, max_nesting, }
 }
 
 ///|
 /// Return production defaults suitable for untrusted justfiles.
 pub fn LexerLimits::default() -> LexerLimits {
-  { max_source_bytes: 16 * 1024 * 1024, max_tokens: 1000000, max_nesting: 1024 }
+  {
+    max_source_bytes: 16 * 1024 * 1024,
+    max_tokens: 1000000,
+    max_nesting: 1024,
+  }
 }
 
 ///|

@@ -20,7 +20,7 @@ fn[X] stdio_is_regular(fd : X) -> Bool {
 
 ///|
 pub fn ProcessAdapter::new() -> ProcessAdapter {
-  { output_mutex: Mutex() }
+  { output_mutex: Mutex(), }
 }
 
 ///|

@@ -42,7 +42,7 @@ pub fn InputDigest::new(
 ) -> InputDigest raise CacheError {
   validate_relative_path(path)
   validate_digest(digest)
-  { path, digest }
+  { path, digest, }
 }
 
 ///|
@@ -396,7 +396,7 @@ pub struct ContentHasher {
 
 ///|
 pub fn ContentHasher::new() -> ContentHasher {
-  { inner: @builtin.Blake3Hasher::new() }
+  { inner: @builtin.Blake3Hasher::new(), }
 }
 
 ///|
@@ -522,7 +522,7 @@ pub fn decode_manifest(text : String) -> CacheManifest raise CacheError {
     }
     outputs.push(path)
   }
-  { version, algorithm, key, recipe, outputs: normalize_outputs(outputs) }
+  { version, algorithm, key, recipe, outputs: normalize_outputs(outputs), }
 }
 
 ///|

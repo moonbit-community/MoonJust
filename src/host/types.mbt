@@ -27,7 +27,7 @@ pub fn FileMetadata::new(
   is_directory : Bool,
   size : Int64,
 ) -> FileMetadata {
-  { is_file, is_directory, size, is_executable: is_file }
+  { is_file, is_directory, size, is_executable: is_file, }
 }
 
 ///|
@@ -38,7 +38,7 @@ pub fn FileMetadata::new_with_executable(
   size : Int64,
   is_executable : Bool,
 ) -> FileMetadata {
-  { is_file, is_directory, size, is_executable }
+  { is_file, is_directory, size, is_executable, }
 }
 
 ///|
@@ -155,7 +155,12 @@ pub fn TerminalInfo::new(
   stderr_is_terminal : Bool,
   color_supported : Bool,
 ) -> TerminalInfo {
-  { stdin_is_terminal, stdout_is_terminal, stderr_is_terminal, color_supported }
+  {
+    stdin_is_terminal,
+    stdout_is_terminal,
+    stderr_is_terminal,
+    color_supported,
+  }
 }
 
 ///|
@@ -442,7 +447,7 @@ pub fn ProcessResult::new(
   stdout : Bytes,
   stderr : Bytes,
 ) -> ProcessResult {
-  { termination: Exited(exit_code), stdout, stderr }
+  { termination: Exited(exit_code), stdout, stderr, }
 }
 
 ///|
@@ -451,7 +456,7 @@ pub fn ProcessResult::from_signal(
   stdout : Bytes,
   stderr : Bytes,
 ) -> ProcessResult {
-  { termination: Signaled(signal), stdout, stderr }
+  { termination: Signaled(signal), stdout, stderr, }
 }
 
 ///|
@@ -462,7 +467,7 @@ pub fn ProcessResult::from_interruption(
   stdout : Bytes,
   stderr : Bytes,
 ) -> ProcessResult {
-  { termination: Interrupted(signal), stdout, stderr }
+  { termination: Interrupted(signal), stdout, stderr, }
 }
 
 ///|

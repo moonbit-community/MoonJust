@@ -480,7 +480,8 @@ fn ProjectCompilation::resolve_recipe_reference(
         None => ()
       }
       match current_compilation.recipe(component) {
-        Some(_) => return Some({ module_path: current, recipe_name: component })
+        Some(_) =>
+          return Some({ module_path: current, recipe_name: component, })
         None => ()
       }
     }
@@ -502,7 +503,7 @@ pub fn ProjectCompilation::resolve_recipe(
   match self.module_compilation(from) {
     Some(compilation) if compilation.alias_target(requested) is None &&
       compilation.recipe(requested) is Some(_) =>
-      return Some({ module_path: from, recipe_name: requested })
+      return Some({ module_path: from, recipe_name: requested, })
     _ => ()
   }
   self.resolve_recipe_reference(from, requested, Set([]))
@@ -748,7 +749,7 @@ pub fn validate_project_compilation(
       }
       validate_project_recipe(
         project,
-        { module_path: path, recipe_name },
+        { module_path: path, recipe_name, },
         states,
         [],
       )

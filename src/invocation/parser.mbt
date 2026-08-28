@@ -495,7 +495,7 @@ fn parse_one(
       list: parameter.flag || parameter.multiple || parameter.variadic,
     })
   }
-  ({ recipe: spec.name, arguments }, consumed + cursor)
+  ({ recipe: spec.name, arguments, }, consumed + cursor)
 }
 
 ///|
@@ -970,7 +970,7 @@ pub fn parse_project_invocations_in_environments(
       resolve_expressions~,
       display_name=arguments[cursor:cursor + path_consumed].join("::"),
     )
-    result.push({ module_path, invocation })
+    result.push({ module_path, invocation, })
     cursor += path_consumed + consumed - 1
     if cursor >= arguments.length() {
       break

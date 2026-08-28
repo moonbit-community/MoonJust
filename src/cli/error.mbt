@@ -58,7 +58,7 @@ pub fn ApplicationFailure::new(
     RecipeExit(0) => raise InvalidRecipeExitCode(0)
     SignalExit(signal) if signal < 1 || signal > 127 =>
       raise InvalidSignalNumber(signal)
-    _ => { kind, diagnostic }
+    _ => { kind, diagnostic, }
   }
 }
 

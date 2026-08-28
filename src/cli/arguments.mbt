@@ -106,7 +106,7 @@ pub fn CliArguments::with_positionals(
   self : CliArguments,
   positional : Array[String],
 ) -> CliArguments {
-  { ..self, positional: positional.copy() }
+  { ..self, positional: positional.copy(), }
 }
 
 ///|
@@ -1042,7 +1042,7 @@ fn normalize_environment_argv(
       index += 1
     }
   }
-  { argv: normalized, variable_overrides, shell_arguments }
+  { argv: normalized, variable_overrides, shell_arguments, }
 }
 
 ///|

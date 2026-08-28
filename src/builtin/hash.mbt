@@ -258,7 +258,7 @@ pub struct Blake3Hasher {
 
 ///|
 pub fn Blake3Hasher::new() -> Blake3Hasher {
-  { pending: [], stack: [], chunk_counter: 0UL }
+  { pending: [], stack: [], chunk_counter: 0UL, }
 }
 
 ///|
@@ -273,7 +273,7 @@ fn push_chunk_chaining_value(
     current = output_chaining_value(parent_output(left.chaining_value, current))
     level += 1
   }
-  stack.push({ level, chaining_value: current })
+  stack.push({ level, chaining_value: current, })
 }
 
 ///|
@@ -356,7 +356,7 @@ pub struct Sha256Hasher {
 
 ///|
 pub fn Sha256Hasher::new() -> Sha256Hasher {
-  { state: @crypto.SHA256::new() }
+  { state: @crypto.SHA256::new(), }
 }
 
 ///|

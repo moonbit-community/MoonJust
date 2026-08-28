@@ -32,13 +32,13 @@ pub fn Span::new(
   if start_byte < 0 || end_byte < start_byte {
     raise InvalidSpan(start_byte~, end_byte~)
   }
-  { source_id, start_byte, end_byte }
+  { source_id, start_byte, end_byte, }
 }
 
 ///|
 /// Create an empty span at the start of a source.
 pub fn Span::origin(source_id : SourceId) -> Span {
-  { source_id, start_byte: 0, end_byte: 0 }
+  { source_id, start_byte: 0, end_byte: 0, }
 }
 
 ///|
@@ -80,7 +80,7 @@ pub fn Span::contains(self : Span, offset : Int) -> Bool {
 ///|
 /// Create an empty span at this span's exclusive end.
 pub fn Span::at_end(self : Span) -> Span {
-  { ..self, start_byte: self.end_byte }
+  { ..self, start_byte: self.end_byte, }
 }
 
 ///|

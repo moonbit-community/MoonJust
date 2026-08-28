@@ -37,7 +37,7 @@ pub fn DiagnosticLabel::new(
   style : LabelStyle,
 ) -> DiagnosticLabel raise DiagnosticError {
   reject_ansi(message, "label.message")
-  { span, message, style }
+  { span, message, style, }
 }
 
 ///|
@@ -68,7 +68,7 @@ pub fn SourceTrace::new(
   message : String,
 ) -> SourceTrace raise DiagnosticError {
   reject_ansi(message, "source_trace.message")
-  { source_id, message }
+  { source_id, message, }
 }
 
 ///|

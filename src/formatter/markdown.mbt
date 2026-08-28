@@ -12,12 +12,12 @@ pub fn MarkdownLimits::new(
   if max_lines <= 0 || max_bytes <= 0 {
     raise InvalidLimit
   }
-  { max_lines, max_bytes }
+  { max_lines, max_bytes, }
 }
 
 ///|
 pub fn MarkdownLimits::default() -> MarkdownLimits {
-  { max_lines: 1_000_000, max_bytes: 64 * 1024 * 1024 }
+  { max_lines: 1_000_000, max_bytes: 64 * 1024 * 1024, }
 }
 
 ///|
@@ -301,5 +301,5 @@ pub fn tangle(
   ) catch {
     _ => raise InvalidLimit
   }
-  { source: tangled, selected_blocks }
+  { source: tangled, selected_blocks, }
 }

@@ -7,7 +7,7 @@ pub struct ExecutionFs {
 
 ///|
 pub fn ExecutionFs::new() -> ExecutionFs {
-  { reads: ReadOnlyFs::new() }
+  { reads: ReadOnlyFs::new(), }
 }
 
 ///|
