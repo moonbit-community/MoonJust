@@ -129,6 +129,24 @@ test "argparse composition preserves query flags and values" {
   assert_true(parsed.flag("list"))
   let hyphen_value = @cli.parse_arguments(["--list", "--list-prefix", "- "], {})
   assert_eq(hyphen_value.value("list-prefix"), Some("- "))
+  let summary = try! parse_arguments(
+    ["--justfile", "custom.just", "--summary"],
+    {},
+  )
+  assert_eq(summary.command(), SummaryCommand)
+  assert_true(summary.flag("summary"))
+  assert_eq(summary.value("justfile"), Some("custom.just"))
+  assert_eq(summary.value("color"), Some("auto"))
+  assert_eq(summary.value("alias-style"), Some("right"))
+  assert_eq(summary.value("list-heading"), Some("Available recipes:\n"))
+  assert_eq(summary.value("list-prefix"), Some("    "))
+  assert_eq(summary.value("timestamp-format"), Some("%H:%M:%S"))
+  let configured = try! parse_arguments(
+    ["--justfile", "custom.just", "--summary"],
+    { "JUST_UNSORTED": "1" },
+  )
+  assert_true(configured.flag("unsorted"))
+  assert_eq(configured.value("justfile"), Some("custom.just"))
 }
 
 ///|

@@ -1258,11 +1258,51 @@ fn normalize_argparse_error(message : String) -> String {
 }
 
 ///|
+fn parse_summary_fast_path(
+  argv : ArrayView[String],
+  env : Map[String, String],
+) -> CliArguments? {
+  guard argv.length() == 3 &&
+    (argv[0] == "--justfile" || argv[0] == "-f") &&
+    argv[2] == "--summary" else {
+    return None
+  }
+  for name, _ in env {
+    if name.has_prefix("JUST_") {
+      return None
+    }
+  }
+  Some({
+    command: SummaryCommand,
+    flags: { "summary": true },
+    counts: Map([]),
+    values: {
+      "alias-style": ["right"],
+      "color": ["auto"],
+      "cygpath": ["cygpath"],
+      "dump-format": ["just"],
+      "evaluate-format": ["just"],
+      "justfile": [argv[1]],
+      "list-heading": ["Available recipes:\n"],
+      "list-prefix": ["    "],
+      "timestamp-format": ["%H:%M:%S"],
+    },
+    positional: [],
+    variable_overrides: [],
+    shell_arguments: None,
+  })
+}
+
+///|
 /// Parse argv and environment using the pinned core argparse implementation.
 pub fn parse_arguments(
   argv : ArrayView[String],
   env : Map[String, String],
 ) -> CliArguments raise CliParseError {
+  match parse_summary_fast_path(argv, env) {
+    Some(arguments) => return arguments
+    None => ()
+  }
   let normalized_env = if early_exit_requested(argv) {
     Map([])
   } else {
