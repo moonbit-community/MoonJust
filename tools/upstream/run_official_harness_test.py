@@ -99,9 +99,20 @@ class OfficialHarnessTest(unittest.TestCase):
                 "panicked at /rustc/src/std/src/env.rs:162:83: called unwrap: foo\\xff"
             )
         )
+        self.assertTrue(
+            harness.is_wasm_nonunicode_host_limitation(
+                "panicked at crates/moonrun/src/filesystem/mod.rs:176:14: "
+                "called `Option::unwrap()` on a `None` value"
+            )
+        )
         self.assertFalse(
             harness.is_wasm_nonunicode_host_limitation(
                 "error: host error while loading"
+            )
+        )
+        self.assertFalse(
+            harness.is_wasm_nonunicode_host_limitation(
+                "called `Option::unwrap()` on a `None` value"
             )
         )
 

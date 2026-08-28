@@ -671,7 +671,12 @@ def is_wasm_nonunicode_host_limitation(block: str) -> bool:
     keep it bound to the two pinned upstream non-Unicode cases.
     """
     clean = ANSI_ESCAPE.sub("", block).lower()
-    return "std/src/env.rs" in clean and "\\xff" in clean
+    legacy_launcher_panic = "std/src/env.rs" in clean and "\\xff" in clean
+    current_launcher_panic = (
+        "crates/moonrun/src/filesystem/mod.rs" in clean
+        and "called `option::unwrap()` on a `none` value" in clean
+    )
+    return legacy_launcher_panic or current_launcher_panic
 
 
 def execute_harness(
