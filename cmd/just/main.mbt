@@ -797,7 +797,10 @@ async fn async_main() -> Unit {
 
 ///|
 #cfg(target="native")
-fn try_sync_check(_argv : ArrayView[String]) -> Bool {
+fn try_sync_file_command(
+  _argv : ArrayView[String],
+  _expected : @cli.CommandKind,
+) -> Bool {
   false
 }
 
@@ -879,11 +882,14 @@ fn prepare_sync_file_invocation(
 
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-fn try_sync_check(argv : ArrayView[String]) -> Bool {
-  // A successful regular-file check is entirely synchronous. Keep all
-  // stdin, write, and diagnostic cases on the async path so bounded reads,
-  // transactional writes, and error rendering retain their existing policy.
-  guard prepare_sync_file_invocation(argv, CheckCommand) is Some(prepared) else {
+fn try_sync_file_command(
+  argv : ArrayView[String],
+  expected : @cli.CommandKind,
+) -> Bool {
+  // Successful no-write file commands are entirely synchronous. Keep stdin,
+  // actual writes, and diagnostics on the async path so bounded reads,
+  // transactional replacement, and error rendering retain their policy.
+  guard prepare_sync_file_invocation(argv, expected) is Some(prepared) else {
     return false
   }
   let response = try
@@ -904,15 +910,25 @@ fn try_sync_check(argv : ArrayView[String]) -> Bool {
 
 ///|
 fn sync_file_command_hint(argv : ArrayView[String]) -> Int {
+  let mut check = false
+  let mut format = false
   for argument in argv {
     if argument == "--summary" {
       return 1
     }
     if argument == "--check" {
-      return 2
+      check = true
+    } else if argument == "--fmt" {
+      format = true
     }
   }
-  0
+  if check {
+    2
+  } else if format {
+    3
+  } else {
+    0
+  }
 }
 
 ///|
@@ -961,10 +977,17 @@ fn main {
       }
       match summary {
         Some(text) => println(text)
-        None =>
-          if sync_command != 2 || !try_sync_check(argv) {
+        None => {
+          let file_command : @cli.CommandKind? = match sync_command {
+            2 => Some(CheckCommand)
+            3 => Some(FormatCommand)
+            _ => None
+          }
+          if file_command is None ||
+            !try_sync_file_command(argv, file_command.unwrap()) {
             @async.run_async_main(() => async_main())
           }
+        }
       }
     }
   }
