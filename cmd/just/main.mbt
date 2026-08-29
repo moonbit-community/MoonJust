@@ -796,11 +796,102 @@ async fn async_main() -> Unit {
 }
 
 ///|
+#cfg(target="native")
+fn try_sync_check(_argv : ArrayView[String]) -> Bool {
+  false
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn try_sync_check(argv : ArrayView[String]) -> Bool {
+  // A successful regular-file check is entirely synchronous. Keep all
+  // stdin, write, and diagnostic cases on the async path so bounded reads,
+  // transactional writes, and error rendering retain their existing policy.
+  let environment_host = @host_wasm.PortableHost::new()
+  let environment = try parse_environment(environment_host) catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  let arguments = try @cli.parse_arguments(argv, environment.values) catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  guard arguments.command() == CheckCommand else { return false }
+  let selected = match arguments.value("justfile") {
+    Some(value) if value != "-" => value
+    _ => return false
+  }
+  guard !arguments.flag("global-justfile") else { return false }
+  guard arguments.value("working-directory") is None else { return false }
+  let filesystem = @host_wasm.ReadOnlyFs::new()
+  let cwd = try @host.HostEnv::current_dir(environment_host) catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  let selected_path = try @path.PathValue::new(selected, cwd.flavor()) catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  let selected_path = if selected_path.is_absolute() {
+    selected_path
+  } else {
+    try cwd.join(selected_path) catch {
+      _ => return false
+    } noraise {
+      value => value
+    }
+  }
+  let metadata = try @host.HostFs::metadata(filesystem, selected_path) catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  guard metadata.is_file() else { return false }
+  let context = @application.ApplicationContext::new(cwd)
+  let context = try
+    @application.resolve_global_context(
+      filesystem, environment_host, arguments, context,
+    )
+  catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  let response = try
+    @application.execute_file_command(filesystem, arguments, context)
+  catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  response.exit_code() == 0 &&
+  response.stdout().is_empty() &&
+  response.stderr().is_empty()
+}
+
+///|
+fn mentions_check_flag(argv : ArrayView[String]) -> Bool {
+  for argument in argv {
+    if argument == "--check" {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn main {
   let arguments = @env.args()
   match static_invocation_text(arguments[1:]) {
     Some(text) => println(text)
-    None => @async.run_async_main(() => async_main())
+    None =>
+      if !mentions_check_flag(arguments[1:]) || !try_sync_check(arguments[1:]) {
+        @async.run_async_main(() => async_main())
+      }
   }
 }
 
