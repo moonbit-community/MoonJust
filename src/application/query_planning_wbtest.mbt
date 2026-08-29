@@ -492,8 +492,10 @@ test "pure sync globals only accept effect-free dry-run projects" {
   )
   assert_false(project_supports_pure_sync_globals(dotenv, arguments))
 
-  let empty = application_behavior_project("build:\n")
-  assert_false(project_supports_sync_dry_run(empty))
+  let empty_recipe = application_behavior_project("build:\n")
+  assert_true(project_supports_sync_dry_run(empty_recipe))
+  let empty_project = application_behavior_project("")
+  assert_false(project_supports_sync_dry_run(empty_project))
 }
 
 ///|

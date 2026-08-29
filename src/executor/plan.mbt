@@ -270,12 +270,25 @@ fn plan_graph_recipe(
   guard compilation.recipe(name) is Some(recipe) else {
     raise UnknownRecipe(recipe=name)
   }
+  let attributes = compilation.recipe_attributes(name)
+  if arguments.is_empty() && options.dry_run() && !options.explain() {
+    match
+      plain_empty_fanout_children(compilation, recipe, attributes, options) {
+      Some(children) => {
+        for child in children {
+          ran.add(execution_key(child, []))
+        }
+        ran.add(key)
+        return
+      }
+      None => ()
+    }
+  }
   @invocation.validate_recipe_argument_values(
     compilation, name, arguments, global,
   ) catch {
     error => raise Invocation(error)
   }
-  let attributes = compilation.recipe_attributes(name)
   let continue_signals = planned_continue_signals(attributes)
   let scope = @evaluator.bind_recipe_parameters(
     recipe,
@@ -677,22 +690,15 @@ async fn[
 }
 
 ///|
-/// Build the common static fan-out shape without entering the async evaluator.
-/// This is deliberately narrow: aliases, mapped arguments, attributes,
-/// parameters, recipe lines, and subsequent dependencies all opt out.
-fn plan_plain_empty_fanout(
+/// Recognize the common static fan-out shape without entering an evaluator.
+/// Aliases, mapped arguments, attributes, parameters, recipe lines, and
+/// subsequent dependencies all opt out.
+fn plain_empty_fanout_children(
   compilation : @semantic.Compilation,
   recipe : @syntax.Recipe,
   attributes : @semantic.RecipeAttributes?,
-  name : String,
-  display_name : String,
-  module_path : @modulepath.ModulePath,
-  entry_dependencies : ArrayView[Int],
-  tasks : Array[ExecutionTask],
-  ran : Map[String, Int],
   options : ExecutionOptions,
-  retain_tasks? : Bool = true,
-) -> Int? {
+) -> Array[String]? {
   if options.no_dependencies() ||
     options.explain() ||
     !recipe.parameters().is_empty() ||
@@ -725,6 +731,28 @@ fn plan_plain_empty_fanout(
     child_names.push(dependency.name())
   }
   if child_names.is_empty() {
+    return None
+  }
+  Some(child_names)
+}
+
+///|
+/// Build the common static fan-out shape without entering the async evaluator.
+fn plan_plain_empty_fanout(
+  compilation : @semantic.Compilation,
+  recipe : @syntax.Recipe,
+  attributes : @semantic.RecipeAttributes?,
+  name : String,
+  display_name : String,
+  module_path : @modulepath.ModulePath,
+  entry_dependencies : ArrayView[Int],
+  tasks : Array[ExecutionTask],
+  ran : Map[String, Int],
+  options : ExecutionOptions,
+  retain_tasks? : Bool = true,
+) -> Int? {
+  guard plain_empty_fanout_children(compilation, recipe, attributes, options)
+    is Some(child_names) else {
     return None
   }
   let module_name = module_path.as_string()
