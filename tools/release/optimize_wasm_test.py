@@ -62,7 +62,7 @@ class OptimizeWasmTests(unittest.TestCase):
             self.assertEqual(metadata["optimizer_version"], "wasm-opt version 132 (version_132)")
             self.assertEqual(metadata["optimizer_sha256"], optimize_wasm.sha256(tool))
             command = invoked.call_args_list[-1].args[0]
-            self.assertIn("-O2", command)
+            self.assertIn("-Oz", command)
             self.assertIn("--enable-multivalue", command)
             recorded = json.loads(
                 optimize_wasm.optimizer_metadata_path(output).read_text(encoding="utf-8")

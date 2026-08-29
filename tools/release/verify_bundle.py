@@ -167,7 +167,7 @@ def main() -> None:
         "--enable-reference-types",
         "--enable-multivalue",
         "--enable-nontrapping-float-to-int",
-        "-O2",
+        "-Oz",
     ]:
         fail("wasm optimizer arguments differ")
     if optimizer_value.get("output_sha256") != sha256(wasm):

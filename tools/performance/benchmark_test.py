@@ -235,14 +235,14 @@ class BenchmarkTest(unittest.TestCase):
                 json.dumps(
                     {
                         "optimizer_version": "wasm-opt version 132 (version_132)",
-                        "arguments": ["-O2"],
+                        "arguments": ["-Oz"],
                         "output_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
                     }
                 ),
                 encoding="utf-8",
             )
             value = benchmark.wasm_optimizer_metadata(artifact)
-            self.assertEqual(value["arguments"], ["-O2"])
+            self.assertEqual(value["arguments"], ["-Oz"])
             artifact.write_bytes(b"changed")
             with self.assertRaisesRegex(ValueError, "output hash differs"):
                 benchmark.wasm_optimizer_metadata(artifact)

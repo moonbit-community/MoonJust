@@ -88,7 +88,7 @@ class RunnerTest(unittest.TestCase):
                 "target": "wasm1",
                 "host_triple": "test",
                 "profile": "release",
-                "compiler_flags": "wasm-opt 132 -O2",
+                "compiler_flags": "wasm-opt 132 -Oz",
                 "moon_toolchain_digest": "moon",
                 "moon_toolchain": "moon",
                 "dependency_graph_digest": "deps",

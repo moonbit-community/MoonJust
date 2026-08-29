@@ -566,7 +566,7 @@ def build_spec(repo: Path, target: str, profile: str) -> tuple[Command, Path, st
     artifact = build_root / moon_target / moon_profile / "build/cmd/just" / extension
     flags = " ".join(profile_args)
     if target == "wasm1" and profile == "release":
-        flags += "; wasm-opt 132 -O2"
+        flags += "; wasm-opt 132 -Oz"
     return command_line, artifact, flags
 
 

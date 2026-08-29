@@ -36,7 +36,7 @@ def optimizer_metadata(path: Path) -> dict[str, object]:
     if value.get("optimizer_version") != "wasm-opt version 132 (version_132)":
         raise SystemExit(f"wasm optimizer version is not pinned: {sidecar}")
     arguments = value.get("arguments")
-    if not isinstance(arguments, list) or "-O2" not in arguments:
+    if not isinstance(arguments, list) or "-Oz" not in arguments:
         raise SystemExit(f"wasm optimizer arguments are incomplete: {sidecar}")
     if value.get("output_sha256") != digest(path):
         raise SystemExit(f"wasm optimizer output hash differs: {sidecar}")

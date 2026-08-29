@@ -28,7 +28,7 @@ OPTIMIZER_ARGUMENTS = (
     "--enable-reference-types",
     "--enable-multivalue",
     "--enable-nontrapping-float-to-int",
-    "-O2",
+    "-Oz",
 )
 ARCHIVES = {
     ("Linux", "x86_64"): (

@@ -59,7 +59,7 @@ def wasm_optimizer_metadata(artifact: Path) -> dict[str, object]:
     if value.get("optimizer_version") != "wasm-opt version 132 (version_132)":
         raise ValueError(f"wasm optimizer version is not pinned: {sidecar}")
     arguments = value.get("arguments")
-    if not isinstance(arguments, list) or "-O2" not in arguments:
+    if not isinstance(arguments, list) or "-Oz" not in arguments:
         raise ValueError(f"wasm optimizer arguments are incomplete: {sidecar}")
     if value.get("output_sha256") != sha256(artifact):
         raise ValueError(f"wasm optimizer output hash differs: {sidecar}")
@@ -1178,7 +1178,7 @@ def main() -> int:
         "wasm_postlink": {
             "enabled": args.wasm_reference is not None,
             "gate_enforced": False,
-            "purpose": "isolate wasm-opt -O2 from runner and toolchain changes with paired samples",
+            "purpose": "isolate wasm-opt -Oz from runner and toolchain changes with paired samples",
             "reference_input_verified": (
                 args.wasm_reference is not None
                 and args.wasm_reference.is_file()
