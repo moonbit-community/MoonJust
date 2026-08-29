@@ -87,8 +87,19 @@ class BenchmarkTest(unittest.TestCase):
             ["native", "--version"],
         )
         self.assertEqual(
-            commands["environment-snapshot"]["candidate-wasm"][:4],
-            ["moonrun", "--policy", "policy.toml", "candidate.wasm"],
+            commands["static-startup"]["candidate-wasm"],
+            [
+                "moonrun",
+                "--policy",
+                "policy.toml",
+                "candidate.wasm",
+                "--",
+                "--version",
+            ],
+        )
+        self.assertEqual(
+            commands["environment-snapshot"]["candidate-wasm"][:5],
+            ["moonrun", "--policy", "policy.toml", "candidate.wasm", "--"],
         )
         self.assertNotIn(
             "--justfile",
@@ -120,6 +131,7 @@ class BenchmarkTest(unittest.TestCase):
                 "--policy",
                 "policy.toml",
                 "raw.wasm",
+                "--",
                 "--justfile",
                 "input.just",
                 "--summary",
@@ -139,7 +151,14 @@ class BenchmarkTest(unittest.TestCase):
         )
         self.assertEqual(
             commands["env-all"]["probe-wasm"],
-            ["moonrun", "--policy", "policy.toml", "probe.wasm", "env-all"],
+            [
+                "moonrun",
+                "--policy",
+                "policy.toml",
+                "probe.wasm",
+                "--",
+                "env-all",
+            ],
         )
 
     def test_bootstrap_median_interval_is_deterministic(self) -> None:

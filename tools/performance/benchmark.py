@@ -465,7 +465,7 @@ def runtime_command(
     policy: Path,
 ) -> list[str]:
     runtime = (
-        [moonrun, "--policy", str(policy), str(binary)]
+        [moonrun, "--policy", str(policy), str(binary), "--"]
         if kind.endswith("wasm")
         else [str(binary)]
     )
