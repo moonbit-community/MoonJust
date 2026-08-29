@@ -126,12 +126,36 @@ class BenchmarkTest(unittest.TestCase):
             ],
         )
 
+    def test_minimal_runtime_probes_use_only_runtime_artifacts(self) -> None:
+        commands = benchmark.minimal_runtime_probe_commands(
+            Path("probe.exe"),
+            Path("probe.wasm"),
+            "moonrun",
+            Path("policy.toml"),
+        )
+        self.assertEqual(list(commands), ["static", "env-get", "env-all", "cwd"])
+        self.assertEqual(
+            commands["env-all"]["probe-native"], ["probe.exe", "env-all"]
+        )
+        self.assertEqual(
+            commands["env-all"]["probe-wasm"],
+            ["moonrun", "--policy", "policy.toml", "probe.wasm", "env-all"],
+        )
+
     def test_bootstrap_median_interval_is_deterministic(self) -> None:
         first = benchmark.bootstrap_median_interval([0.8, 0.9, 1.0], 1570)
         second = benchmark.bootstrap_median_interval([0.8, 0.9, 1.0], 1570)
         self.assertEqual(first, second)
         self.assertLessEqual(first[0], 0.9)
         self.assertGreaterEqual(first[1], 0.9)
+
+    def test_paired_ratio_summary_preserves_pairs(self) -> None:
+        summary = benchmark.paired_ratio_summary(
+            [10.0, 20.0, 40.0], [20.0, 30.0, 40.0], 1570
+        )
+        self.assertEqual(summary["median_ratio"], 1.5)
+        self.assertEqual(summary["paired_samples"], 3)
+        self.assertEqual(summary["confidence"], "95%")
 
     def test_cold_warm_phase_records_three_conditions_per_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

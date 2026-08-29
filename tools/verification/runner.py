@@ -864,6 +864,49 @@ def run(
     return 1 if failures else 0
 
 
+def prepare_performance_runtime_probes(repo: Path) -> tuple[Path, Path]:
+    target = repo / "_build/performance/runtime-probe"
+    for backend, target_dir in (("native", target / "native"), ("wasm", target / "wasm-raw")):
+        subprocess.run(
+            [
+                "moon",
+                "build",
+                "--frozen",
+                "--release",
+                "--strip",
+                "--target",
+                backend,
+                "--target-dir",
+                str(target_dir),
+                "tools/probes/performance_runtime",
+            ],
+            cwd=repo,
+            check=True,
+        )
+    native = (
+        target
+        / "native/native/release/build/tools/probes/performance_runtime/performance_runtime.exe"
+    )
+    raw_wasm = (
+        target
+        / "wasm-raw/wasm/release/build/tools/probes/performance_runtime/performance_runtime.wasm"
+    )
+    wasm = target / "wasm/performance_runtime.wasm"
+    subprocess.run(
+        [
+            sys.executable,
+            "tools/release/optimize_wasm.py",
+            "--input",
+            str(raw_wasm),
+            "--output",
+            str(wasm),
+        ],
+        cwd=repo,
+        check=True,
+    )
+    return native, wasm
+
+
 def run_measurement(
     repo: Path,
     workload: str,
@@ -875,6 +918,9 @@ def run_measurement(
     """Run the existing statistically strict sampler through the unified CLI."""
     started_at = time.time()
     builds = prepare_measurement_builds(repo)
+    runtime_probe_native, runtime_probe_wasm = prepare_performance_runtime_probes(
+        repo
+    )
     # Keep measurement paths in lockstep with the registry build specs.  The
     # pinned Cargo oracle carries a `.exe` suffix on Windows, while Moon's
     # native target uses `just.exe` on every host.
@@ -898,6 +944,8 @@ def run_measurement(
         sys.executable, "tools/performance/benchmark.py",
         "--official", str(official), "--native", str(native), "--wasm", str(wasm),
         "--wasm-reference", str(wasm_reference),
+        "--runtime-probe-native", str(runtime_probe_native),
+        "--runtime-probe-wasm", str(runtime_probe_wasm),
         "--policy", str(policy), "--output", str(raw_report), "--raw-output", str(output.with_suffix(".jsonl")),
     ]
     if report_only:

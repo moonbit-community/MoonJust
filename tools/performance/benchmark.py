@@ -240,6 +240,23 @@ def bootstrap_median_interval(
     )
 
 
+def paired_ratio_summary(
+    baseline: list[float | int | None],
+    candidate: list[float | int | None],
+    seed: int,
+) -> dict[str, object]:
+    ratios = [
+        float(candidate_value) / float(baseline_value)
+        for baseline_value, candidate_value in zip(baseline, candidate, strict=True)
+    ]
+    return {
+        "median_ratio": statistics.median(ratios),
+        "confidence": "95%",
+        "confidence_interval": list(bootstrap_median_interval(ratios, seed)),
+        "paired_samples": len(ratios),
+    }
+
+
 def stable_window(values: list[float], window: int = 5) -> bool:
     if len(values) < window:
         return False
@@ -525,6 +542,23 @@ def runtime_probe_commands(
     }
 
 
+def minimal_runtime_probe_commands(
+    native: Path,
+    wasm: Path,
+    moonrun: str,
+    policy: Path,
+) -> dict[str, dict[str, list[str]]]:
+    """Build commands that isolate the Moon runtime from MoonJust packages."""
+    artifacts = {"probe-native": native, "probe-wasm": wasm}
+    return {
+        mode: {
+            kind: runtime_command(kind, artifact, [mode], moonrun, policy)
+            for kind, artifact in artifacts.items()
+        }
+        for mode in ("static", "env-get", "env-all", "cwd")
+    }
+
+
 def tool_output(command: list[str]) -> str:
     result = subprocess.run(command, check=True, capture_output=True, text=True)
     return (result.stdout + result.stderr).strip()
@@ -726,6 +760,8 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="unoptimized Wasm artifact for a same-run post-link A/B experiment",
     )
+    parser.add_argument("--runtime-probe-native", type=Path)
+    parser.add_argument("--runtime-probe-wasm", type=Path)
     parser.add_argument("--policy", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--raw-output", type=Path)
@@ -746,7 +782,16 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    for name in ("official", "native", "wasm", "wasm_reference", "policy", "output"):
+    for name in (
+        "official",
+        "native",
+        "wasm",
+        "wasm_reference",
+        "runtime_probe_native",
+        "runtime_probe_wasm",
+        "policy",
+        "output",
+    ):
         value = getattr(args, name)
         if value is not None:
             setattr(args, name, value.resolve())
@@ -788,6 +833,20 @@ def main() -> int:
             environment_errors.append(
                 "Wasm reference hash differs from the optimizer input hash"
             )
+    minimal_probe_inputs = (args.runtime_probe_native, args.runtime_probe_wasm)
+    minimal_probe_optimizer: dict[str, object] | None = None
+    if any(path is not None for path in minimal_probe_inputs):
+        if not all(path is not None and path.is_file() for path in minimal_probe_inputs):
+            environment_errors.append(
+                "minimal runtime probe requires both Native and Wasm artifacts"
+            )
+        elif args.runtime_probe_wasm is not None:
+            try:
+                minimal_probe_optimizer = wasm_optimizer_metadata(
+                    args.runtime_probe_wasm
+                )
+            except ValueError as error:
+                environment_errors.append(str(error))
     official_commit = os.environ.get("MOONJUST_OFFICIAL_COMMIT", OFFICIAL_COMMIT)
     if official_commit != OFFICIAL_COMMIT:
         environment_errors.append(
@@ -811,6 +870,10 @@ def main() -> int:
     wasm_postlink_results: dict[str, dict[str, object]] = {}
     wasm_postlink_duration = 0.0
     wasm_postlink_early_stops: dict[str, bool] = {}
+    minimal_runtime_probe_results: dict[str, dict[str, object]] = {}
+    minimal_runtime_probe_commands_record: dict[str, dict[str, list[str]]] = {}
+    minimal_runtime_probe_duration = 0.0
+    minimal_runtime_probe_early_stops: dict[str, bool] = {}
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
         fixtures = write_fixtures(root)
@@ -922,25 +985,17 @@ def main() -> int:
                 )
                 wasm_postlink_duration += duration
                 wasm_postlink_early_stops[workload] = stopped
-                paired_ratios = [
-                    float(optimized) / float(reference)
-                    for reference, optimized in zip(
-                        latency["raw-wasm"], latency["optimized-wasm"], strict=True
-                    )
-                ]
-                interval = bootstrap_median_interval(
-                    paired_ratios, args.seed + 30_000 + index
-                )
                 wasm_postlink_results[workload] = {
                     kind: summarize([float(value) for value in latency[kind]], [])
                     for kind in postlink_artifacts
                 }
-                wasm_postlink_results[workload]["optimized_over_raw"] = {
-                    "median_ratio": statistics.median(paired_ratios),
-                    "confidence": "95%",
-                    "confidence_interval": list(interval),
-                    "paired_samples": len(paired_ratios),
-                }
+                wasm_postlink_results[workload]["optimized_over_raw"] = (
+                    paired_ratio_summary(
+                        latency["raw-wasm"],
+                        latency["optimized-wasm"],
+                        args.seed + 30_000 + index,
+                    )
+                )
 
         empty_fixture = root / "runtime-probe-empty.just"
         write_fixture(empty_fixture, "")
@@ -972,6 +1027,51 @@ def main() -> int:
                 for kind in commands
             }
 
+        if (
+            args.runtime_probe_native is not None
+            and args.runtime_probe_native.is_file()
+            and args.runtime_probe_wasm is not None
+            and args.runtime_probe_wasm.is_file()
+        ):
+            minimal_runtime_probe_commands_record = minimal_runtime_probe_commands(
+                args.runtime_probe_native,
+                args.runtime_probe_wasm,
+                moonrun,
+                args.policy,
+            )
+            minimal_probe_hashes = {
+                "probe-native": sha256(args.runtime_probe_native),
+                "probe-wasm": sha256(args.runtime_probe_wasm),
+            }
+            for index, (probe, commands) in enumerate(
+                minimal_runtime_probe_commands_record.items()
+            ):
+                latency, duration, stopped = collect_phase(
+                    "latency",
+                    f"minimal-runtime-probe/{probe}",
+                    commands,
+                    root,
+                    args.warmups,
+                    MIN_LATENCY_SAMPLES,
+                    args.seed + 40_000 + index * 100,
+                    raw_rows,
+                    moon_toolchain,
+                    minimal_probe_hashes,
+                )
+                minimal_runtime_probe_duration += duration
+                minimal_runtime_probe_early_stops[probe] = stopped
+                minimal_runtime_probe_results[probe] = {
+                    kind: summarize([float(value) for value in latency[kind]], [])
+                    for kind in commands
+                }
+                minimal_runtime_probe_results[probe]["wasm_over_native"] = (
+                    paired_ratio_summary(
+                        latency["probe-native"],
+                        latency["probe-wasm"],
+                        args.seed + 50_000 + index,
+                    )
+                )
+
     failures = list(environment_errors)
     required_kinds = {"official", "candidate-native", "candidate-wasm"}
     for workload, values in results.items():
@@ -997,6 +1097,18 @@ def main() -> int:
         comparison = values.get("optimized_over_raw", {})
         if int(comparison.get("paired_samples", 0)) != MIN_LATENCY_SAMPLES:
             failures.append(f"Wasm post-link comparison {workload} has incomplete samples")
+    for probe, values in minimal_runtime_probe_results.items():
+        if not {"probe-native", "probe-wasm"}.issubset(values):
+            failures.append(f"minimal runtime probe {probe} is missing an artifact")
+        for kind, summary in values.items():
+            if kind == "wasm_over_native":
+                if int(summary.get("paired_samples", 0)) != MIN_LATENCY_SAMPLES:
+                    failures.append(
+                        f"minimal runtime probe {probe} has incomplete paired samples"
+                    )
+                continue
+            if int(summary.get("latency_samples", 0)) != MIN_LATENCY_SAMPLES:
+                failures.append(f"minimal runtime probe {probe}/{kind} has incomplete samples")
 
     infrastructure_invalid = bool(environment_errors)
     args.raw_output.write_text(
@@ -1047,6 +1159,8 @@ def main() -> int:
             "runtime_probe_early_stops": runtime_probe_early_stops,
             "wasm_postlink_duration_seconds": wasm_postlink_duration,
             "wasm_postlink_early_stops": wasm_postlink_early_stops,
+            "minimal_runtime_probe_duration_seconds": minimal_runtime_probe_duration,
+            "minimal_runtime_probe_early_stops": minimal_runtime_probe_early_stops,
         },
         "cold_warm": {
             "enabled": args.cold_warm,
@@ -1085,6 +1199,26 @@ def main() -> int:
                 if path is not None and path.is_file()
             },
             "workloads": wasm_postlink_results,
+        },
+        "minimal_runtime_probes": {
+            "enabled": all(path is not None for path in minimal_probe_inputs),
+            "gate_enforced": False,
+            "purpose": "measure Moon runtime and host boundary costs without MoonJust packages",
+            "wasm_optimizer": minimal_probe_optimizer,
+            "commands": minimal_runtime_probe_commands_record,
+            "artifacts": {
+                kind: {
+                    "path": str(path),
+                    "bytes": path.stat().st_size,
+                    "sha256": sha256(path),
+                }
+                for kind, path in {
+                    "probe-native": args.runtime_probe_native,
+                    "probe-wasm": args.runtime_probe_wasm,
+                }.items()
+                if path is not None and path.is_file()
+            },
+            "workloads": minimal_runtime_probe_results,
         },
         "phase_traces": phase_traces,
         "artifacts": {
