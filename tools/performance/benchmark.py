@@ -257,6 +257,33 @@ def paired_ratio_summary(
     }
 
 
+def independent_ratio_summary(
+    baseline: list[float],
+    candidate: list[float],
+    seed: int,
+    resamples: int = 2_000,
+) -> dict[str, object]:
+    """Bootstrap a median ratio for independently scheduled samples."""
+    if not baseline or not candidate:
+        raise ValueError("independent ratio requires both sample sets")
+    generator = random.Random(seed)
+    ratios = sorted(
+        statistics.median(generator.choices(candidate, k=len(candidate)))
+        / statistics.median(generator.choices(baseline, k=len(baseline)))
+        for _ in range(resamples)
+    )
+    return {
+        "median_ratio": statistics.median(candidate) / statistics.median(baseline),
+        "confidence": "95%",
+        "confidence_interval": [
+            ratios[math.floor(0.025 * resamples)],
+            ratios[math.ceil(0.975 * resamples) - 1],
+        ],
+        "baseline_samples": len(baseline),
+        "candidate_samples": len(candidate),
+    }
+
+
 def stable_window(values: list[float], window: int = 5) -> bool:
     if len(values) < window:
         return False
@@ -874,6 +901,8 @@ def main() -> int:
     minimal_runtime_probe_commands_record: dict[str, dict[str, list[str]]] = {}
     minimal_runtime_probe_duration = 0.0
     minimal_runtime_probe_early_stops: dict[str, bool] = {}
+    official_latency_samples: dict[str, list[float]] = {}
+    minimal_wasm_latency_samples: dict[str, list[float]] = {}
     with tempfile.TemporaryDirectory(prefix="moonjust-benchmark-") as raw:
         root = Path(raw)
         fixtures = write_fixtures(root)
@@ -911,6 +940,9 @@ def main() -> int:
                 args.seed + len(results) * 100, raw_rows, moon_toolchain,
                 {kind: sha256(path) for kind, path in artifacts.items()},
             )
+            official_latency_samples[workload] = [
+                float(value) for value in latency["official"]
+            ]
             if memory_supported():
                 memory, memory_duration, _ = collect_phase(
                     "memory", workload, commands, root, args.memory_warmups,
@@ -1064,6 +1096,9 @@ def main() -> int:
                     kind: summarize([float(value) for value in latency[kind]], [])
                     for kind in commands
                 }
+                minimal_wasm_latency_samples[probe] = [
+                    float(value) for value in latency["probe-wasm"]
+                ]
                 minimal_runtime_probe_results[probe]["wasm_over_native"] = (
                     paired_ratio_summary(
                         latency["probe-native"],
@@ -1071,6 +1106,23 @@ def main() -> int:
                         args.seed + 50_000 + index,
                     )
                 )
+
+    runtime_floor_over_official: dict[str, dict[str, object]] = {}
+    if "static" in minimal_wasm_latency_samples:
+        for index, workload in enumerate(results):
+            comparison = independent_ratio_summary(
+                official_latency_samples[workload],
+                minimal_wasm_latency_samples["static"],
+                args.seed + 60_000 + index,
+            )
+            runtime_floor_over_official[workload] = {
+                **comparison,
+                "probe": "static",
+                "package_compute_lower_bound_ms": 0.0,
+                "runtime_plus_package_lower_bound_ratio": comparison[
+                    "confidence_interval"
+                ][0],
+            }
 
     failures = list(environment_errors)
     required_kinds = {"official", "candidate-native", "candidate-wasm"}
@@ -1219,6 +1271,7 @@ def main() -> int:
                 if path is not None and path.is_file()
             },
             "workloads": minimal_runtime_probe_results,
+            "runtime_floor_over_official": runtime_floor_over_official,
         },
         "phase_traces": phase_traces,
         "artifacts": {

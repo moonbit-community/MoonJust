@@ -65,6 +65,16 @@ class ThresholdGateTest(unittest.TestCase):
             self.assertEqual(result["status"], "passed")
             self.assertEqual(result["platforms"]["linux-x86_64"]["batch_count"], 3)
             self.assertEqual(
+                result["platforms"]["linux-x86_64"]["workloads"]["startup"][
+                    "wasm"
+                ]["batch_latency_samples"],
+                [15, 15, 15],
+            )
+            self.assertEqual(
+                result["platforms"]["linux-x86_64"]["runner_versions"],
+                [None, None, None],
+            )
+            self.assertEqual(
                 result["platforms"]["linux-x86_64"]["workloads"]["startup"]["wasm"]["median_ratio"],
                 2.0,
             )
@@ -191,6 +201,62 @@ class ThresholdGateTest(unittest.TestCase):
             )
             self.assertEqual(result["status"], "failed")
             self.assertTrue(any("startup/wasm" in failure for failure in result["failures"]))
+
+    def test_embedded_runtime_floor_relaxes_only_non_startup_wasm(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+
+            def evidenced_report() -> dict[str, object]:
+                value = report(wasm=4.5)
+                payload = value["measurements"]["report"]
+                payload["workloads"]["startup"]["candidate-wasm"] = {
+                    "median_ms": 20.0,
+                    "p95_ms": 24.0,
+                    "latency_samples": 15,
+                }
+                payload["minimal_runtime_probes"] = {
+                    "runtime_floor_over_official": {
+                        workload: {
+                            "probe": "static",
+                            "confidence": "95%",
+                            "confidence_interval": [4.0, 4.2],
+                            "baseline_samples": 30,
+                            "candidate_samples": 15,
+                            "package_compute_lower_bound_ms": 0.0,
+                            "runtime_plus_package_lower_bound_ratio": 4.0,
+                        }
+                        for workload in gate.WORKLOADS
+                    }
+                }
+                return value
+
+            paths = {
+                platform: [
+                    self.write_report(
+                        root, f"{platform}-{index}.json", evidenced_report()
+                    )
+                    for index in range(3)
+                ]
+                for platform in gate.PLATFORMS
+            }
+            result = gate.check(paths, "strict", root / "performance-gate.json")
+            self.assertEqual(result["status"], "passed")
+            parameters = result["platforms"]["linux-x86_64"]["workloads"][
+                "project-parameters"
+            ]["wasm"]
+            self.assertEqual(parameters["threshold"]["median"], 5.0)
+            self.assertEqual(
+                result["wasm_runtime_lower_bounds"][
+                    "linux-x86_64/project-parameters"
+                ]["status"],
+                "accepted",
+            )
+            self.assertEqual(
+                result["platforms"]["linux-x86_64"]["workloads"]["startup"][
+                    "wasm"
+                ]["threshold"]["median"],
+                2.0,
+            )
 
     def test_missing_batch_writes_diagnostic_gate_record(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

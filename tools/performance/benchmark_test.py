@@ -176,6 +176,19 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(summary["paired_samples"], 3)
         self.assertEqual(summary["confidence"], "95%")
 
+    def test_independent_ratio_summary_records_both_sample_sets(self) -> None:
+        first = benchmark.independent_ratio_summary(
+            [2.0] * 30, [8.0] * 15, 1570
+        )
+        second = benchmark.independent_ratio_summary(
+            [2.0] * 30, [8.0] * 15, 1570
+        )
+        self.assertEqual(first, second)
+        self.assertEqual(first["median_ratio"], 4.0)
+        self.assertEqual(first["confidence_interval"], [4.0, 4.0])
+        self.assertEqual(first["baseline_samples"], 30)
+        self.assertEqual(first["candidate_samples"], 15)
+
     def test_cold_warm_phase_records_three_conditions_per_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

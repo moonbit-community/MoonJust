@@ -106,9 +106,16 @@ def extract_batch(value: dict[str, Any], path: Path) -> dict[str, Any]:
         "commit_sha": value.get("commit_sha", report.get("commit")),
         "tree_sha": value.get("tree_sha"),
         "toolchain": value.get("toolchain", report.get("moon")),
+        "host": value.get("host", report.get("machine")),
+        "runner_version": value.get("runner_version"),
         "official_commit": report.get("provenance", {}).get("official_commit")
         if isinstance(report.get("provenance"), dict)
         else None,
+        "wasm_runtime_floor": report.get("minimal_runtime_probes", {}).get(
+            "runtime_floor_over_official", {}
+        )
+        if isinstance(report.get("minimal_runtime_probes"), dict)
+        else {},
         "workloads": result,
     }
 
@@ -189,6 +196,72 @@ def lower_bound_allowances(path: Path | None) -> dict[tuple[str, str], float]:
     return result
 
 
+def embedded_lower_bound_allowances(
+    parsed: dict[str, list[dict[str, Any]]],
+    mode: str,
+) -> tuple[dict[tuple[str, str], float], dict[str, Any]]:
+    allowances: dict[tuple[str, str], float] = {}
+    evidence: dict[str, Any] = {}
+    for platform in PLATFORMS:
+        batches = parsed[platform]
+        for workload in WORKLOADS:
+            key = f"{platform}/{workload}"
+            lower_bounds: list[float] = []
+            reasons: list[str] = []
+            if mode != "strict":
+                reasons.append("embedded relaxation is strict-mode only")
+            if len(batches) < 3:
+                reasons.append(f"requires three batches, observed {len(batches)}")
+            for index, batch in enumerate(batches):
+                floor = batch.get("wasm_runtime_floor")
+                item = floor.get(workload) if isinstance(floor, dict) else None
+                if not isinstance(item, dict):
+                    reasons.append(f"batch {index + 1} has no runtime floor")
+                    continue
+                interval = item.get("confidence_interval")
+                if (
+                    item.get("confidence") != "95%"
+                    or item.get("probe") != "static"
+                    or not isinstance(interval, list)
+                    or len(interval) != 2
+                    or int(item.get("baseline_samples", 0)) < 15
+                    or int(item.get("candidate_samples", 0)) < 15
+                ):
+                    reasons.append(f"batch {index + 1} has invalid runtime floor")
+                    continue
+                lower = float(interval[0])
+                recorded = float(
+                    item.get("runtime_plus_package_lower_bound_ratio", 0)
+                )
+                if abs(lower - recorded) > 1e-12:
+                    reasons.append(f"batch {index + 1} lower bound is inconsistent")
+                    continue
+                lower_bounds.append(lower)
+            accepted = (
+                workload != "startup"
+                and not reasons
+                and len(lower_bounds) >= 3
+                and all(value > 3.0 for value in lower_bounds)
+            )
+            if workload == "startup":
+                reasons.append("startup threshold cannot be relaxed")
+            elif lower_bounds and not all(value > 3.0 for value in lower_bounds):
+                reasons.append("at least one batch does not exceed 3x")
+            if accepted:
+                allowances[(platform, workload)] = 5.0
+            evidence[key] = {
+                "status": "accepted" if accepted else "not-applicable",
+                "batches": len(lower_bounds),
+                "batch_95_lower_bounds": lower_bounds,
+                "runtime_plus_package_lower_bound_ratio": min(lower_bounds)
+                if lower_bounds
+                else None,
+                "threshold": 5.0 if accepted else None,
+                "reasons": reasons,
+            }
+    return allowances, evidence
+
+
 def check(
     reports: dict[str, list[Path]],
     mode: str,
@@ -210,6 +283,10 @@ def check(
         failures.append("PR mode requires --baseline accepted performance ratios")
     baseline_values = baseline_ratios(baseline) if baseline is not None else None
     allowances = lower_bound_allowances(lower_bound)
+    embedded_allowances, embedded_evidence = embedded_lower_bound_allowances(
+        parsed, mode
+    )
+    allowances.update(embedded_allowances)
     platform_results: dict[str, Any] = {}
     toolchain_values = {
         toolchain_signature(batch["toolchain"])
@@ -248,6 +325,8 @@ def check(
                 "batch_count": 0,
                 "commit_shas": [],
                 "toolchains": [],
+                "hosts": [],
+                "runner_versions": [],
                 "workloads": {},
             }
             continue
@@ -286,6 +365,10 @@ def check(
                     "p95_ratio": p95_ratio,
                     "batch_median_ratios": median_ratios,
                     "batch_p95_ratios": p95_ratios,
+                    "batch_latency_samples": [
+                        batch["workloads"][workload][target]["latency_samples"]
+                        for batch in batches
+                    ],
                     "threshold": {"median": median_limit, "p95": p95_limit},
                     "status": "failed" if reasons else "passed",
                     "failure_reasons": reasons,
@@ -295,6 +378,8 @@ def check(
             "batch_count": len(batches),
             "commit_shas": [batch["commit_sha"] for batch in batches],
             "toolchains": [batch["toolchain"] for batch in batches],
+            "hosts": [batch["host"] for batch in batches],
+            "runner_versions": [batch["runner_version"] for batch in batches],
             "workloads": workload_results,
         }
     result = {
@@ -304,6 +389,7 @@ def check(
         "required_batches": required_batches,
         "regression_limit": regression if mode == "pr" else None,
         "wasm_lower_bound_evidence": str(lower_bound) if lower_bound else None,
+        "wasm_runtime_lower_bounds": embedded_evidence,
         "platforms": platform_results,
         "failures": failures,
     }
