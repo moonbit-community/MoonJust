@@ -851,6 +851,10 @@ fn try_sync_check(argv : ArrayView[String]) -> Bool {
     value => value
   }
   guard metadata.is_file() else { return false }
+  guard metadata.size() <=
+    @lexer.LexerLimits::default().max_source_bytes().to_int64() else {
+    return false
+  }
   let context = @application.ApplicationContext::new(cwd)
   let context = try
     @application.resolve_global_context(
