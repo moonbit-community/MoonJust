@@ -803,36 +803,45 @@ fn try_sync_check(_argv : ArrayView[String]) -> Bool {
 
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-fn try_sync_check(argv : ArrayView[String]) -> Bool {
-  // A successful regular-file check is entirely synchronous. Keep all
-  // stdin, write, and diagnostic cases on the async path so bounded reads,
-  // transactional writes, and error rendering retain their existing policy.
+priv struct SyncFileInvocation {
+  filesystem : @host_wasm.ReadOnlyFs
+  environment_host : @host_wasm.PortableHost
+  arguments : @cli.CliArguments
+  context : @application.ApplicationContext
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn prepare_sync_file_invocation(
+  argv : ArrayView[String],
+  expected : @cli.CommandKind,
+) -> SyncFileInvocation? {
   let environment_host = @host_wasm.PortableHost::new()
   let environment = try parse_environment(environment_host) catch {
-    _ => return false
+    _ => return None
   } noraise {
     value => value
   }
   let arguments = try @cli.parse_arguments(argv, environment.values) catch {
-    _ => return false
+    _ => return None
   } noraise {
     value => value
   }
-  guard arguments.command() == CheckCommand else { return false }
+  guard arguments.command() == expected else { return None }
   let selected = match arguments.value("justfile") {
     Some(value) if value != "-" => value
-    _ => return false
+    _ => return None
   }
-  guard !arguments.flag("global-justfile") else { return false }
-  guard arguments.value("working-directory") is None else { return false }
+  guard !arguments.flag("global-justfile") else { return None }
+  guard arguments.value("working-directory") is None else { return None }
   let filesystem = @host_wasm.ReadOnlyFs::new()
   let cwd = try @host.HostEnv::current_dir(environment_host) catch {
-    _ => return false
+    _ => return None
   } noraise {
     value => value
   }
   let selected_path = try @path.PathValue::new(selected, cwd.flavor()) catch {
-    _ => return false
+    _ => return None
   } noraise {
     value => value
   }
@@ -840,20 +849,20 @@ fn try_sync_check(argv : ArrayView[String]) -> Bool {
     selected_path
   } else {
     try cwd.join(selected_path) catch {
-      _ => return false
+      _ => return None
     } noraise {
       value => value
     }
   }
   let metadata = try @host.HostFs::metadata(filesystem, selected_path) catch {
-    _ => return false
+    _ => return None
   } noraise {
     value => value
   }
-  guard metadata.is_file() else { return false }
+  guard metadata.is_file() else { return None }
   guard metadata.size() <=
     @lexer.LexerLimits::default().max_source_bytes().to_int64() else {
-    return false
+    return None
   }
   let context = @application.ApplicationContext::new(cwd)
   let context = try
@@ -861,12 +870,28 @@ fn try_sync_check(argv : ArrayView[String]) -> Bool {
       filesystem, environment_host, arguments, context,
     )
   catch {
-    _ => return false
+    _ => return None
   } noraise {
     value => value
   }
+  Some({ filesystem, environment_host, arguments, context, })
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn try_sync_check(argv : ArrayView[String]) -> Bool {
+  // A successful regular-file check is entirely synchronous. Keep all
+  // stdin, write, and diagnostic cases on the async path so bounded reads,
+  // transactional writes, and error rendering retain their existing policy.
+  guard prepare_sync_file_invocation(argv, CheckCommand) is Some(prepared) else {
+    return false
+  }
   let response = try
-    @application.execute_file_command(filesystem, arguments, context)
+    @application.execute_file_command(
+      prepared.filesystem,
+      prepared.arguments,
+      prepared.context,
+    )
   catch {
     _ => return false
   } noraise {
@@ -878,13 +903,47 @@ fn try_sync_check(argv : ArrayView[String]) -> Bool {
 }
 
 ///|
-fn mentions_check_flag(argv : ArrayView[String]) -> Bool {
+fn sync_file_command_hint(argv : ArrayView[String]) -> Int {
   for argument in argv {
+    if argument == "--summary" {
+      return 1
+    }
     if argument == "--check" {
-      return true
+      return 2
     }
   }
-  false
+  0
+}
+
+///|
+#cfg(target="native")
+fn try_sync_summary(_argv : ArrayView[String]) -> String? {
+  None
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn try_sync_summary(argv : ArrayView[String]) -> String? {
+  guard prepare_sync_file_invocation(argv, SummaryCommand) is Some(prepared) else {
+    return None
+  }
+  let response = try
+    @application.execute_query_command(
+      prepared.environment_host,
+      prepared.arguments,
+      prepared.context,
+    )
+  catch {
+    _ => return None
+  } noraise {
+    value => value
+  }
+  guard response.exit_code() == 0 && response.stderr().is_empty() else {
+    return None
+  }
+  let text = @utf8.decode(response.stdout()) catch { _ => return None }
+  guard text.has_suffix("\n") && text != "\n" else { return None }
+  Some(text[:text.length() - 1].to_owned())
 }
 
 ///|
@@ -892,10 +951,22 @@ fn main {
   let arguments = @env.args()
   match static_invocation_text(arguments[1:]) {
     Some(text) => println(text)
-    None =>
-      if !mentions_check_flag(arguments[1:]) || !try_sync_check(arguments[1:]) {
-        @async.run_async_main(() => async_main())
+    None => {
+      let argv = arguments[1:]
+      let sync_command = sync_file_command_hint(argv)
+      let summary = if sync_command == 1 {
+        try_sync_summary(argv)
+      } else {
+        None
       }
+      match summary {
+        Some(text) => println(text)
+        None =>
+          if sync_command != 2 || !try_sync_check(argv) {
+            @async.run_async_main(() => async_main())
+          }
+      }
+    }
   }
 }
 
