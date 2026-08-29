@@ -112,39 +112,26 @@ const JUST_MAN_HEADER : String =
   #|[options] [recipe [arguments...]]
 
 ///|
-fn static_invocation_response(
-  argv : ArrayView[String],
-) -> @cli.ApplicationResponse? {
+fn static_invocation_text(argv : ArrayView[String]) -> String? {
   if argv.length() != 1 {
     return None
   }
   match argv[0] {
-    "--help" | "-h" =>
-      Some(
-        @cli.ApplicationResponse::success(
-          stdout=@utf8.encode(@cli.render_help()),
-        ),
-      )
-    "--version" | "-V" =>
-      Some(
-        @cli.ApplicationResponse::success(
-          stdout=@utf8.encode(@moonjust.version_line() + "\n"),
-        ),
-      )
-    "--changelog" =>
-      Some(
-        @cli.ApplicationResponse::success(
-          stdout=@utf8.encode(MOONJUST_CHANGELOG + "\n"),
-        ),
-      )
-    "--man" =>
-      Some(
-        @cli.ApplicationResponse::success(
-          stdout=@utf8.encode(JUST_MAN_HEADER + "\n"),
-        ),
-      )
+    "--help" | "-h" => Some(@cli.render_help().trim_end().to_owned())
+    "--version" | "-V" => Some(@moonjust.version_line())
+    "--changelog" => Some(MOONJUST_CHANGELOG)
+    "--man" => Some(JUST_MAN_HEADER)
     _ => None
   }
+}
+
+///|
+fn static_invocation_response(
+  argv : ArrayView[String],
+) -> @cli.ApplicationResponse? {
+  static_invocation_text(argv).map(text => {
+    @cli.ApplicationResponse::success(stdout=@utf8.encode(text + "\n"))
+  })
 }
 
 ///|
@@ -734,7 +721,7 @@ fn command_may_spawn_process(command : @cli.CommandKind) -> Bool {
 }
 
 ///|
-async fn main {
+async fn async_main() -> Unit {
   let raw_argv = @env.args()
   let argv = raw_argv[1:]
   // Construct the filesystem adapter before the environment snapshot. The
@@ -805,6 +792,15 @@ async fn main {
         }
       }
     }
+  }
+}
+
+///|
+fn main {
+  let arguments = @env.args()
+  match static_invocation_text(arguments[1:]) {
+    Some(text) => println(text)
+    None => @async.run_async_main(() => async_main())
   }
 }
 
