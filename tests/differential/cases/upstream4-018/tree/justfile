@@ -1,0 +1,3 @@
+set lists
+[doc([])]
+foo:

@@ -1,0 +1,3 @@
+a := HEX
+
+HEX := 'foo'

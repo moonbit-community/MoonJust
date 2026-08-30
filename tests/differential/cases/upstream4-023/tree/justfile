@@ -1,0 +1,3 @@
+[doc('multiline
+comment')]
+foo:

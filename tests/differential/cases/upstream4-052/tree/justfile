@@ -1,0 +1,2 @@
+[doc(x'foo')]
+bar:

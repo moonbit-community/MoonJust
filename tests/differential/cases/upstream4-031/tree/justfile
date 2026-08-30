@@ -1,0 +1,4 @@
+[env('VAR1', 'value1')]
+[env('VAR2', 'value 2')]
+foo:
+  @echo $VAR1 $VAR2

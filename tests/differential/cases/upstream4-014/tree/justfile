@@ -1,0 +1,2 @@
+[continue('SIGTERM')]
+foo:
