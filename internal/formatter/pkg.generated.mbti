@@ -1,0 +1,100 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/formatter"
+
+import {
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@source.Source) -> CheckResult raise FormatterError
+
+pub fn check_with_indentation(@source.Source, String) -> CheckResult raise FormatterError
+
+pub fn diff(@source.Source) -> String raise FormatterError
+
+pub fn expression_text(@syntax.Expression) -> String
+
+pub fn format(@syntax.Ast) -> String
+
+pub fn format_expression(@syntax.Expression) -> String
+
+pub fn format_source(@source.Source) -> String raise FormatterError
+
+pub fn format_source_with_indentation(@source.Source, String) -> String raise FormatterError
+
+pub fn format_with_indentation(@syntax.Ast, String) -> String raise FormatterError
+
+pub fn is_formatted(@source.Source) -> Bool raise FormatterError
+
+pub fn tangle(@source.Source, limits? : MarkdownLimits) -> TangledSource raise MarkdownError
+
+// Errors
+pub(all) suberror FormatterError {
+  Parse(@parser.ParserError)
+  InvalidInput(String)
+} derive(Eq, @debug.Debug)
+pub fn FormatterError::code(Self) -> String
+#deprecated
+pub fn FormatterError::equal(Self, Self) -> Bool
+pub fn FormatterError::message(Self) -> String
+#deprecated
+pub fn FormatterError::not_equal(Self, Self) -> Bool
+pub fn FormatterError::span(Self) -> @source.Span?
+pub fn FormatterError::to_diagnostic(Self, @source.Source) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError
+#deprecated
+pub fn FormatterError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror MarkdownError {
+  InvalidLimit
+  LimitExceeded(limit~ : Int, span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn MarkdownError::equal(Self, Self) -> Bool
+#deprecated
+pub fn MarkdownError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn MarkdownError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct CheckResult {
+  formatted : String
+  changed : Bool
+} derive(Eq, @debug.Debug)
+pub fn CheckResult::changed(Self) -> Bool
+#deprecated
+pub fn CheckResult::equal(Self, Self) -> Bool
+pub fn CheckResult::formatted(Self) -> String
+#deprecated
+pub fn CheckResult::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CheckResult::to_repr(Self) -> @debug.Repr
+
+pub struct MarkdownLimits {
+  max_lines : Int
+  max_bytes : Int
+} derive(Eq, @debug.Debug)
+pub fn MarkdownLimits::default() -> Self
+#deprecated
+pub fn MarkdownLimits::equal(Self, Self) -> Bool
+pub fn MarkdownLimits::new(Int, Int) -> Self raise MarkdownError
+#deprecated
+pub fn MarkdownLimits::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn MarkdownLimits::to_repr(Self) -> @debug.Repr
+
+pub struct TangledSource {
+  source : @source.Source
+  selected_blocks : Int
+} derive(@debug.Debug)
+pub fn TangledSource::selected_blocks(Self) -> Int
+pub fn TangledSource::source(Self) -> @source.Source
+#deprecated
+pub fn TangledSource::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,15 @@
+import {
+  "ZSeanYves/MoonJust/internal/cache",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host_fs",
+  "ZSeanYves/MoonJust/internal/path",
+  "moonbitlang/core/array",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/set",
+}
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+supported_targets = "-all+native+wasm"

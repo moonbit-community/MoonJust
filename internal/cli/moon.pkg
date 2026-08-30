@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/core/argparse",
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/source",
+  "moonbitlang/core/array",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

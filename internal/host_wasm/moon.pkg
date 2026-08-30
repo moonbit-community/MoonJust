@@ -1,0 +1,21 @@
+import {
+  "ZSeanYves/MoonJust/internal/cache",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host_native",
+  "ZSeanYves/MoonJust/internal/path",
+  "moonbitlang/async",
+  "moonbitlang/async/fs" @async_fs,
+  "moonbitlang/async/os_error",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+  "moonbitlang/x/fs",
+}
+
+supported_targets = "-all+native+wasm"
+
+warnings = "-29"
+
+options(
+  targets: { "execution.mbt": [ "wasm" ], "cache_execution.mbt": [ "wasm" ] },
+)

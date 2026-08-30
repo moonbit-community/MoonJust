@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/host_fs"
+
+import {
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/path",
+}
+
+// Values
+pub fn[T : @host.HostFs] read_file_chunks(T, @path.PathValue, chunk_size? : Int) -> Array[Bytes] raise @host.HostError
+
+pub fn[T : @host.HostFs] stream_file(T, @path.PathValue, (Bytes) -> Unit, chunk_size? : Int) -> Unit raise @host.HostError
+
+pub fn[T : @host.HostFs + @host.HostTemp] write_file_atomic(T, @path.PathValue, Bytes, overwrite? : Bool) -> Unit raise @host.HostError
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -8,5 +8,5 @@ runner (https://github.com/casey/just), which is dedicated to the public domain
 under CC0-1.0. MoonJust is not affiliated with or endorsed by the upstream
 project or its maintainers.
 
-Copied or adapted upstream fixtures must be recorded in
-tests/upstream/NOTICE.md with their exact tag, commit, path, and modifications.
+The behavior corpus under tests/differential is maintained as executable
+compatibility data for the just 1.57 command-line contract.

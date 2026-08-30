@@ -1,0 +1,76 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/project"
+
+import {
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/loader",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/workdir",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compile_loaded_graph(@loader.LoadedGraph, allow_unstable? : Bool, platform? : @semantic.TargetPlatform) -> @semantic.ProjectCompilation raise ProjectError
+
+pub fn[T : @host.HostFs] load_snapshot(T, ProjectLoadRequest, allow_unstable? : Bool) -> ProjectSnapshot raise ProjectError
+
+pub async fn[T : @host.HostFs + @host.HostSourceReader] load_snapshot_async(T, ProjectLoadRequest, allow_unstable? : Bool) -> ProjectSnapshot raise ProjectError
+
+// Errors
+pub(all) suberror ProjectError {
+  Load(@loader.LoaderError)
+  Path(@path.PathError)
+  WorkingDirectory(@workdir.WorkingDirectoryError)
+  Semantic(@semantic.SemanticError)
+  Compilation(@semantic.ProjectCompilationError)
+} derive(@debug.Debug)
+
+// Types and methods
+pub struct ProjectInput {
+  cwd : @path.PathValue
+  stdin : Bytes
+  source_id : @source.SourceId
+  global_justfile : @path.PathValue?
+  global_project_directory : @path.PathValue?
+} derive(@debug.Debug)
+pub fn ProjectInput::cwd(Self) -> @path.PathValue
+pub fn ProjectInput::global_justfile(Self) -> @path.PathValue?
+pub fn ProjectInput::global_project_directory(Self) -> @path.PathValue?
+pub fn ProjectInput::new(@path.PathValue, stdin? : Bytes, source_id? : @source.SourceId) -> Self
+pub fn ProjectInput::source_id(Self) -> @source.SourceId
+pub fn ProjectInput::stdin(Self) -> BytesView
+pub fn ProjectInput::with_cwd(Self, @path.PathValue) -> Self
+pub fn ProjectInput::with_global_justfile(Self, @path.PathValue, @path.PathValue) -> Self
+
+pub struct ProjectLoadRequest {
+  input : ProjectInput
+  selection : SourceSelection
+  working_directory : @path.PathValue?
+  filename : String
+  ceiling : @path.PathValue?
+  platform : @semantic.TargetPlatform
+  environment : ArrayView[(String, String)]
+}
+pub fn ProjectLoadRequest::new(ProjectInput, SourceSelection, String, @semantic.TargetPlatform, ArrayView[(String, String)], working_directory? : @path.PathValue, ceiling? : @path.PathValue) -> Self
+
+pub struct ProjectSnapshot {
+  graph : @loader.LoadedGraph
+  compilation : @semantic.ProjectCompilation
+  directories : @workdir.WorkingDirectoryModel
+}
+pub fn ProjectSnapshot::compilation(Self) -> @semantic.ProjectCompilation
+pub fn ProjectSnapshot::directories(Self) -> @workdir.WorkingDirectoryModel
+pub fn ProjectSnapshot::graph(Self) -> @loader.LoadedGraph
+pub fn ProjectSnapshot::new(@loader.LoadedGraph, @semantic.ProjectCompilation, @workdir.WorkingDirectoryModel) -> Self
+
+pub(all) enum SourceSelection {
+  Search
+  File(@path.PathValue)
+  Stdin
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

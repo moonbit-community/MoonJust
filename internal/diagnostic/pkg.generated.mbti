@@ -1,0 +1,114 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/diagnostic"
+
+import {
+  "ZSeanYves/MoonJust/internal/source",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn render_text(Diagnostic, @source.SourceMap) -> String raise DiagnosticError
+
+// Errors
+pub(all) suberror DiagnosticError {
+  AnsiEscapeInField(field~ : String)
+  MissingSource(@source.SourceId)
+  InvalidLabelSpan(source_id~ : @source.SourceId, start_byte~ : Int, end_byte~ : Int)
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn DiagnosticError::equal(Self, Self) -> Bool
+#deprecated
+pub fn DiagnosticError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn DiagnosticError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct Diagnostic {
+  code : String
+  severity : Severity
+  message : String
+  primary : DiagnosticLabel
+  secondary : Array[DiagnosticLabel]
+  notes : Array[String]
+  mut help : String?
+  source_chain : Array[SourceTrace]
+  related : Array[@source.Span]
+  trailers : Array[String]
+} derive(@debug.Debug)
+pub fn Diagnostic::add_note(Self, String) -> Unit raise DiagnosticError
+pub fn Diagnostic::add_related(Self, @source.Span) -> Unit
+pub fn Diagnostic::add_secondary(Self, @source.Span, String) -> Unit raise DiagnosticError
+pub fn Diagnostic::add_source_trace(Self, @source.SourceId, String) -> Unit raise DiagnosticError
+pub fn Diagnostic::add_trailer(Self, String) -> Unit raise DiagnosticError
+pub fn Diagnostic::code(Self) -> String
+pub fn Diagnostic::help(Self) -> String?
+pub fn Diagnostic::message(Self) -> String
+pub fn Diagnostic::new(String, Severity, String, @source.Span, String) -> Self raise DiagnosticError
+pub fn Diagnostic::notes(Self) -> ArrayView[String]
+pub fn Diagnostic::primary(Self) -> DiagnosticLabel
+pub fn Diagnostic::related(Self) -> ArrayView[@source.Span]
+pub fn Diagnostic::secondary(Self) -> ArrayView[DiagnosticLabel]
+pub fn Diagnostic::set_help(Self, String) -> Unit raise DiagnosticError
+pub fn Diagnostic::severity(Self) -> Severity
+pub fn Diagnostic::source_chain(Self) -> ArrayView[SourceTrace]
+#deprecated
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+pub fn Diagnostic::trailers(Self) -> ArrayView[String]
+
+pub struct DiagnosticLabel {
+  span : @source.Span
+  message : String
+  style : LabelStyle
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn DiagnosticLabel::equal(Self, Self) -> Bool
+pub fn DiagnosticLabel::message(Self) -> String
+pub fn DiagnosticLabel::new(@source.Span, String, LabelStyle) -> Self raise DiagnosticError
+#deprecated
+pub fn DiagnosticLabel::not_equal(Self, Self) -> Bool
+pub fn DiagnosticLabel::span(Self) -> @source.Span
+pub fn DiagnosticLabel::style(Self) -> LabelStyle
+#deprecated
+pub fn DiagnosticLabel::to_repr(Self) -> @debug.Repr
+
+pub(all) enum LabelStyle {
+  Primary
+  Secondary
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn LabelStyle::equal(Self, Self) -> Bool
+#deprecated
+pub fn LabelStyle::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn LabelStyle::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Severity {
+  Error
+  Warning
+  Info
+} derive(Eq, @debug.Debug)
+pub fn Severity::as_string(Self) -> String
+#deprecated
+pub fn Severity::equal(Self, Self) -> Bool
+#deprecated
+pub fn Severity::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn Severity::to_repr(Self) -> @debug.Repr
+
+pub struct SourceTrace {
+  source_id : @source.SourceId
+  message : String
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn SourceTrace::equal(Self, Self) -> Bool
+pub fn SourceTrace::message(Self) -> String
+pub fn SourceTrace::new(@source.SourceId, String) -> Self raise DiagnosticError
+#deprecated
+pub fn SourceTrace::not_equal(Self, Self) -> Bool
+pub fn SourceTrace::source_id(Self) -> @source.SourceId
+#deprecated
+pub fn SourceTrace::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

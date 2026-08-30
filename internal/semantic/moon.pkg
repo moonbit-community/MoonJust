@@ -1,0 +1,13 @@
+import {
+  "ZSeanYves/MoonJust/internal/builtin",
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/modulepath",
+  "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/syntax",
+}
+
+import {
+  "ZSeanYves/MoonJust/internal/parser",
+} for "test"

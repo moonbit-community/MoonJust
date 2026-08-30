@@ -1,0 +1,418 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/syntax"
+
+import {
+  "ZSeanYves/MoonJust/internal/source",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Alias {
+  name : String
+  target : String
+  attributes : Array[Attribute]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Alias::attributes(Self) -> ArrayView[Attribute]
+#deprecated
+pub fn Alias::equal(Self, Self) -> Bool
+pub fn Alias::name(Self) -> String
+pub fn Alias::new(String, String, @source.Span, attributes? : Array[Attribute]) -> Self
+#deprecated
+pub fn Alias::not_equal(Self, Self) -> Bool
+pub fn Alias::span(Self) -> @source.Span
+pub fn Alias::target(Self) -> String
+#deprecated
+pub fn Alias::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Assignment {
+  name : String
+  value : Expression
+  exported : Bool
+  eager : Bool
+  attributes : Array[Attribute]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Assignment::attributes(Self) -> ArrayView[Attribute]
+pub fn Assignment::eager(Self) -> Bool
+#deprecated
+pub fn Assignment::equal(Self, Self) -> Bool
+pub fn Assignment::exported(Self) -> Bool
+pub fn Assignment::name(Self) -> String
+pub fn Assignment::new(String, Expression, Bool, Bool, @source.Span, attributes? : Array[Attribute]) -> Self
+#deprecated
+pub fn Assignment::not_equal(Self, Self) -> Bool
+pub fn Assignment::span(Self) -> @source.Span
+#deprecated
+pub fn Assignment::to_repr(Self) -> @debug.Repr
+pub fn Assignment::value(Self) -> Expression
+
+pub(all) struct Ast {
+  source_id : @source.SourceId
+  items : Array[Item]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn Ast::equal(Self, Self) -> Bool
+pub fn Ast::items(Self) -> ArrayView[Item]
+pub fn Ast::new(@source.SourceId, Array[Item], @source.Span) -> Self
+#deprecated
+pub fn Ast::not_equal(Self, Self) -> Bool
+pub fn Ast::semantic_key(Self) -> String
+pub fn Ast::source_id(Self) -> @source.SourceId
+pub fn Ast::span(Self) -> @source.Span
+#deprecated
+pub fn Ast::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Attribute {
+  name : String
+  arguments : Array[AttributeArgument]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Attribute::arguments(Self) -> ArrayView[AttributeArgument]
+#deprecated
+pub fn Attribute::equal(Self, Self) -> Bool
+pub fn Attribute::name(Self) -> String
+pub fn Attribute::new(String, Array[AttributeArgument], @source.Span) -> Self
+#deprecated
+pub fn Attribute::not_equal(Self, Self) -> Bool
+pub fn Attribute::span(Self) -> @source.Span
+#deprecated
+pub fn Attribute::to_repr(Self) -> @debug.Repr
+
+pub(all) struct AttributeArgument {
+  key : String?
+  value : Expression?
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn AttributeArgument::equal(Self, Self) -> Bool
+pub fn AttributeArgument::key(Self) -> String?
+pub fn AttributeArgument::new(String?, Expression?, @source.Span) -> Self
+#deprecated
+pub fn AttributeArgument::not_equal(Self, Self) -> Bool
+pub fn AttributeArgument::span(Self) -> @source.Span
+#deprecated
+pub fn AttributeArgument::to_repr(Self) -> @debug.Repr
+pub fn AttributeArgument::value(Self) -> Expression?
+
+pub(all) enum BinaryOperator {
+  Or
+  And
+  Equal
+  NotEqual
+  RegexMatch
+  RegexNotMatch
+  ListConcat
+  Concat
+  Join
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn BinaryOperator::equal(Self, Self) -> Bool
+#deprecated
+pub fn BinaryOperator::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn BinaryOperator::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Dependency {
+  name : String
+  name_span : @source.Span
+  arguments : Array[Expression]
+  starred : Bool
+  starred_arguments : Array[Int]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Dependency::arguments(Self) -> ArrayView[Expression]
+#deprecated
+pub fn Dependency::equal(Self, Self) -> Bool
+pub fn Dependency::name(Self) -> String
+pub fn Dependency::name_span(Self) -> @source.Span
+pub fn Dependency::new(String, @source.Span, Array[Expression], Bool, @source.Span, starred_arguments? : ArrayView[Int]) -> Self
+#deprecated
+pub fn Dependency::not_equal(Self, Self) -> Bool
+pub fn Dependency::span(Self) -> @source.Span
+pub fn Dependency::starred(Self) -> Bool
+pub fn Dependency::starred_arguments(Self) -> ArrayView[Int]
+#deprecated
+pub fn Dependency::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Expression {
+  String(StringLiteral)
+  Backtick(StringLiteral)
+  Boolean(value~ : Bool, span~ : @source.Span)
+  Variable(name~ : String, span~ : @source.Span)
+  Call(name~ : String, arguments~ : Array[Expression], span~ : @source.Span)
+  List(elements~ : Array[Expression], span~ : @source.Span)
+  Parenthesized(expression~ : Expression, span~ : @source.Span)
+  Unary(operator~ : UnaryOperator, operand~ : Expression, span~ : @source.Span)
+  Binary(operator~ : BinaryOperator, operator_span~ : @source.Span, lhs~ : Expression, rhs~ : Expression, span~ : @source.Span)
+  Conditional(condition~ : Expression, then_branch~ : Expression, else_branch~ : Expression?, span~ : @source.Span)
+  Format(start~ : StringLiteral, parts~ : Array[FormatPart], span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn Expression::equal(Self, Self) -> Bool
+pub fn Expression::kind(Self) -> String
+#deprecated
+pub fn Expression::not_equal(Self, Self) -> Bool
+pub fn Expression::semantic_key(Self) -> String
+pub fn Expression::span(Self) -> @source.Span
+#deprecated
+pub fn Expression::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FormatPart {
+  expression : Expression
+  literal : StringLiteral
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn FormatPart::equal(Self, Self) -> Bool
+pub fn FormatPart::expression(Self) -> Expression
+pub fn FormatPart::literal(Self) -> StringLiteral
+pub fn FormatPart::new(Expression, StringLiteral) -> Self
+#deprecated
+pub fn FormatPart::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn FormatPart::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FunctionDefinition {
+  name : String
+  parameters : Array[FunctionParameter]
+  body : Expression
+  attributes : Array[Attribute]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn FunctionDefinition::attributes(Self) -> ArrayView[Attribute]
+pub fn FunctionDefinition::body(Self) -> Expression
+#deprecated
+pub fn FunctionDefinition::equal(Self, Self) -> Bool
+pub fn FunctionDefinition::name(Self) -> String
+pub fn FunctionDefinition::new(String, Array[FunctionParameter], Expression, Array[Attribute], @source.Span) -> Self
+#deprecated
+pub fn FunctionDefinition::not_equal(Self, Self) -> Bool
+pub fn FunctionDefinition::parameters(Self) -> ArrayView[FunctionParameter]
+pub fn FunctionDefinition::span(Self) -> @source.Span
+#deprecated
+pub fn FunctionDefinition::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FunctionParameter {
+  name : String
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn FunctionParameter::equal(Self, Self) -> Bool
+pub fn FunctionParameter::name(Self) -> String
+pub fn FunctionParameter::new(String, @source.Span) -> Self
+#deprecated
+pub fn FunctionParameter::not_equal(Self, Self) -> Bool
+pub fn FunctionParameter::span(Self) -> @source.Span
+#deprecated
+pub fn FunctionParameter::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Import {
+  path : StringLiteral
+  optional : Bool
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn Import::equal(Self, Self) -> Bool
+pub fn Import::new(StringLiteral, Bool, @source.Span) -> Self
+#deprecated
+pub fn Import::not_equal(Self, Self) -> Bool
+pub fn Import::optional(Self) -> Bool
+pub fn Import::path(Self) -> StringLiteral
+pub fn Import::span(Self) -> @source.Span
+#deprecated
+pub fn Import::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Item {
+  Assignment(Assignment)
+  Function(FunctionDefinition)
+  Alias(Alias)
+  Recipe(Recipe)
+  Setting(Setting)
+  Attribute(Attribute)
+  Import(Import)
+  Module(Module)
+  Unexport(name~ : String, span~ : @source.Span)
+  Comment(text~ : String, span~ : @source.Span)
+  TrailingComment(text~ : String, span~ : @source.Span)
+  Blank(span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn Item::equal(Self, Self) -> Bool
+pub fn Item::name(Self) -> String?
+#deprecated
+pub fn Item::not_equal(Self, Self) -> Bool
+pub fn Item::semantic_key(Self) -> String
+pub fn Item::span(Self) -> @source.Span
+#deprecated
+pub fn Item::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Module {
+  name : String
+  name_span : @source.Span
+  path : StringLiteral?
+  optional : Bool
+  attributes : Array[Attribute]
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Module::attributes(Self) -> ArrayView[Attribute]
+#deprecated
+pub fn Module::equal(Self, Self) -> Bool
+pub fn Module::name(Self) -> String
+pub fn Module::name_span(Self) -> @source.Span
+pub fn Module::new(String, @source.Span, StringLiteral?, Bool, @source.Span, attributes? : Array[Attribute]) -> Self
+#deprecated
+pub fn Module::not_equal(Self, Self) -> Bool
+pub fn Module::optional(Self) -> Bool
+pub fn Module::path(Self) -> StringLiteral?
+pub fn Module::span(Self) -> @source.Span
+#deprecated
+pub fn Module::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Parameter {
+  name : String
+  default_value : Expression?
+  variadic : Bool
+  variadic_minimum : Int
+  exported : Bool
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Parameter::default_value(Self) -> Expression?
+#deprecated
+pub fn Parameter::equal(Self, Self) -> Bool
+pub fn Parameter::exported(Self) -> Bool
+pub fn Parameter::name(Self) -> String
+pub fn Parameter::new(String, Expression?, Bool, Bool, @source.Span) -> Self
+pub fn Parameter::new_star(String, Bool, @source.Span, default_value? : Expression) -> Self
+#deprecated
+pub fn Parameter::not_equal(Self, Self) -> Bool
+pub fn Parameter::span(Self) -> @source.Span
+#deprecated
+pub fn Parameter::to_repr(Self) -> @debug.Repr
+pub fn Parameter::variadic(Self) -> Bool
+pub fn Parameter::variadic_minimum(Self) -> Int
+
+pub(all) struct Recipe {
+  name : String
+  quiet : Bool
+  parameters : Array[Parameter]
+  dependencies : Array[Dependency]
+  subsequent_dependencies : Array[Dependency]
+  lines : Array[RecipeLine]
+  attributes : Array[Attribute]
+  trailing_comment : String?
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+pub fn Recipe::attributes(Self) -> ArrayView[Attribute]
+pub fn Recipe::dependencies(Self) -> ArrayView[Dependency]
+#deprecated
+pub fn Recipe::equal(Self, Self) -> Bool
+pub fn Recipe::lines(Self) -> ArrayView[RecipeLine]
+pub fn Recipe::name(Self) -> String
+pub fn Recipe::new(String, Bool, Array[Parameter], Array[Dependency], Array[Dependency], Array[RecipeLine], Array[Attribute], @source.Span, trailing_comment? : String) -> Self
+#deprecated
+pub fn Recipe::not_equal(Self, Self) -> Bool
+pub fn Recipe::parameters(Self) -> ArrayView[Parameter]
+pub fn Recipe::quiet(Self) -> Bool
+pub fn Recipe::span(Self) -> @source.Span
+pub fn Recipe::subsequent_dependencies(Self) -> ArrayView[Dependency]
+#deprecated
+pub fn Recipe::to_repr(Self) -> @debug.Repr
+pub fn Recipe::trailing_comment(Self) -> String?
+
+pub(all) enum RecipeFragment {
+  Text(text~ : String, span~ : @source.Span)
+  Interpolation(expression~ : Expression, span~ : @source.Span)
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn RecipeFragment::equal(Self, Self) -> Bool
+#deprecated
+pub fn RecipeFragment::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn RecipeFragment::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RecipeLine {
+  fragments : Array[RecipeFragment]
+  span : @source.Span
+  source_start_line : Int
+  source_end_line : Int
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn RecipeLine::equal(Self, Self) -> Bool
+pub fn RecipeLine::fragments(Self) -> ArrayView[RecipeFragment]
+pub fn RecipeLine::new(Array[RecipeFragment], @source.Span, source_start_line? : Int, source_end_line? : Int) -> Self
+#deprecated
+pub fn RecipeLine::not_equal(Self, Self) -> Bool
+pub fn RecipeLine::source_end_line(Self) -> Int
+pub fn RecipeLine::source_start_line(Self) -> Int
+pub fn RecipeLine::span(Self) -> @source.Span
+#deprecated
+pub fn RecipeLine::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Setting {
+  name : String
+  value : Expression?
+  span : @source.Span
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn Setting::equal(Self, Self) -> Bool
+pub fn Setting::name(Self) -> String
+pub fn Setting::new(String, Expression?, @source.Span) -> Self
+#deprecated
+pub fn Setting::not_equal(Self, Self) -> Bool
+pub fn Setting::span(Self) -> @source.Span
+#deprecated
+pub fn Setting::to_repr(Self) -> @debug.Repr
+pub fn Setting::value(Self) -> Expression?
+
+pub(all) enum StringKind {
+  Raw
+  Cooked
+  Backtick
+  TripleRaw
+  TripleCooked
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn StringKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn StringKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn StringKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct StringLiteral {
+  raw : String
+  cooked : String
+  kind : StringKind
+  span : @source.Span
+  shell_expanded : Bool
+} derive(Eq, @debug.Debug)
+pub fn StringLiteral::cooked(Self) -> String
+#deprecated
+pub fn StringLiteral::equal(Self, Self) -> Bool
+pub fn StringLiteral::kind(Self) -> StringKind
+pub fn StringLiteral::new(String, String, StringKind, @source.Span, shell_expanded? : Bool) -> Self
+#deprecated
+pub fn StringLiteral::not_equal(Self, Self) -> Bool
+pub fn StringLiteral::raw(Self) -> String
+pub fn StringLiteral::shell_expanded(Self) -> Bool
+pub fn StringLiteral::span(Self) -> @source.Span
+#deprecated
+pub fn StringLiteral::to_repr(Self) -> @debug.Repr
+
+pub(all) enum UnaryOperator {
+  Not
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn UnaryOperator::equal(Self, Self) -> Bool
+#deprecated
+pub fn UnaryOperator::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn UnaryOperator::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

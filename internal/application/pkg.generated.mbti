@@ -1,0 +1,124 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/application"
+
+import {
+  "ZSeanYves/MoonJust/internal/cli",
+  "ZSeanYves/MoonJust/internal/environment",
+  "ZSeanYves/MoonJust/internal/evaluator",
+  "ZSeanYves/MoonJust/internal/formatter",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/invocation",
+  "ZSeanYves/MoonJust/internal/loader",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/planner",
+  "ZSeanYves/MoonJust/internal/project",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/workdir",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub async fn[E : @host.HostEnv + @host.HostPlatform] classify_request(E, ArrayView[String]) -> PreparedInvocation
+
+pub async fn[F : @host.HostFs + @host.HostSourceReader, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal, P : @host.HostAsyncProcess] execute_choose_command_async(F, H, P, @cli.CliArguments, @project.ProjectInput) -> Array[Array[String]] raise ApplicationError
+
+pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostCacheStore] execute_clean_command(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn[T : @host.HostFs + @host.HostTemp + @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_command(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub async fn[F : @host.HostFs + @host.HostSourceReader, P : @host.HostAsyncProcess, H : @host.HostEnv] execute_command_command_async(F, H, P, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn[F : @host.HostFs + @host.HostTemp, T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_command_with_terminal(F, T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn[F : @host.HostFs, T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_default_list_command(F, T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse? raise ApplicationError
+
+pub async fn[F : @host.HostFs + @host.HostSourceReader, T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_default_list_command_async(F, T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse? raise ApplicationError
+
+pub async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostAsyncProcess] execute_edit_command_async(F, E, P, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub async fn[F : @host.HostFs + @host.HostSourceReader, P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_evaluate_command_async(F, H, P, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn[T : @host.HostFs + @host.HostTemp] execute_file_command(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostAtomicFs] execute_file_command_async(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn[T : @host.HostFs] execute_inspect_command(T, @cli.CliArguments, @project.ProjectInput, environment? : ArrayView[(String, String)]) -> @cli.ApplicationResponse raise ApplicationError
+
+pub async fn[T : @host.HostFs + @host.HostSourceReader] execute_inspect_command_async(T, @cli.CliArguments, @project.ProjectInput, environment? : ArrayView[(String, String)]) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn[T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_query_command(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub async fn[F : @host.HostFs + @host.HostSourceReader, T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_query_command_with_terminal_async(F, T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+
+pub fn failure(String, Int) -> @cli.ApplicationResponse
+
+pub fn inspect_json_schema_version() -> Int
+
+pub fn[E : @host.HostEnv] parse_environment(E) -> InvocationEnvironment raise @host.HostError
+
+pub fn[F : @host.HostFs, E : @host.HostEnv + @host.HostTerminal + @host.HostPlatform] plan_run_command(F, E, @cli.CliArguments, @project.ProjectInput) -> @planner.ExecutionPlan raise ApplicationError
+
+pub async fn[F : @host.HostFs + @host.HostSourceReader, P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_run_command_async(F, H, P, @cli.CliArguments, @project.ProjectInput) -> @planner.ExecutionPlan raise ApplicationError
+
+pub async fn read_stdin_source_bounded(Int) -> Bytes
+
+pub fn[T : @host.HostFs] render_application_error(T, @cli.CliArguments, @project.ProjectInput, ApplicationError) -> String
+
+pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_async(T, @cli.CliArguments, @project.ProjectInput, ApplicationError) -> String
+
+pub fn[F : @host.HostFs, E : @host.HostEnv + @host.HostPlatform] resolve_global_context(F, E, @cli.CliArguments, @project.ProjectInput) -> @project.ProjectInput raise ApplicationError
+
+pub async fn[F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAtomicFs + @host.HostAsyncScriptTemp + @host.HostCacheStore, E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] run_prepared_cli(F, F, E, @cli.CliArguments, InvocationEnvironment, Bytes) -> @cli.ApplicationResponse
+
+pub fn static_invocation_response(ArrayView[String]) -> @cli.ApplicationResponse?
+
+pub fn static_invocation_text(ArrayView[String]) -> String?
+
+pub fn version_line() -> String
+
+// Errors
+pub(all) suberror ApplicationError {
+  Cli(@cli.CliParseError)
+  Load(@loader.LoaderError)
+  Format(@formatter.FormatterError)
+  Evaluation(@evaluator.EvaluationError)
+  Environment(@environment.EnvironmentConfigError)
+  Dotenv(@environment.DotenvError)
+  Planner(@planner.ExecutionError)
+  Host(@host.HostError)
+  Invocation(@invocation.InvocationError)
+  Path(@path.PathError)
+  Project(@semantic.ProjectCompilationError)
+  Semantic(@semantic.SemanticError)
+  ContextualSemantic(error~ : @semantic.SemanticError, source~ : @source.Source, cwd~ : @path.PathValue)
+  WorkingDirectory(@workdir.WorkingDirectoryError)
+  InteractiveInvocation(kind~ : String, command~ : String, detail~ : String)
+  InteractiveProcess(kind~ : String, command~ : String, termination~ : @host.ProcessTermination)
+  DotenvCommand(command~ : String, exit_code~ : Int)
+  WriteJustfile(path~ : @path.PathValue, detail~ : String)
+  AlreadyExists(@path.PathValue)
+  Query(String)
+  UnsupportedCommand(String)
+} derive(@debug.Debug)
+pub fn ApplicationError::exit_code(Self) -> Int
+pub fn ApplicationError::message(Self) -> String
+#deprecated
+pub fn ApplicationError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct InvocationEnvironment {
+  entries : Array[(String, String)]
+  values : Map[String, String]
+}
+pub fn InvocationEnvironment::entries(Self) -> ArrayView[(String, String)]
+pub fn InvocationEnvironment::values(Self) -> Map[String, String]
+
+pub enum PreparedInvocation {
+  Ready(@cli.CliArguments, InvocationEnvironment)
+  Respond(@cli.ApplicationResponse)
+}
+
+// Type aliases
+
+// Traits

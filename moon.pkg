@@ -1,0 +1,35 @@
+import {
+  "ZSeanYves/MoonJust/internal/application",
+  "ZSeanYves/MoonJust/internal/cli",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host_native",
+  "ZSeanYves/MoonJust/internal/host_process",
+  "ZSeanYves/MoonJust/internal/host_wasm",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/lexer",
+  "ZSeanYves/MoonJust/internal/planner",
+  "ZSeanYves/MoonJust/internal/project",
+  "ZSeanYves/MoonJust/internal/runtime",
+  "moonbitlang/async",
+  "moonbitlang/async/io",
+  "moonbitlang/async/stdio",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "-all+native+wasm"
+
+// The native runtime adapter is imported for runtime_native.mbt only; the
+// portable target intentionally does not reference that package.
+
+warnings = "-29"
+
+options(
+  targets: {
+    "runtime_native.mbt": [ "native", "llvm" ],
+    "runtime_portable.mbt": [ "wasm", "wasm-gc", "js" ],
+  },
+)

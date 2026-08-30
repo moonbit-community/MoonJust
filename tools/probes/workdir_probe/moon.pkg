@@ -1,9 +1,0 @@
-import {
-  "ZSeanYves/MoonJust/src/path",
-  "ZSeanYves/MoonJust/src/workdir",
-  "moonbitlang/core/env",
-}
-
-pkgtype(kind: "executable")
-
-supported_targets = "native"

@@ -1,5 +1,0 @@
-import {
-  "ZSeanYves/MoonJust/src/host",
-  "ZSeanYves/MoonJust/src/path",
-  "moonbitlang/core/encoding/utf8",
-}
