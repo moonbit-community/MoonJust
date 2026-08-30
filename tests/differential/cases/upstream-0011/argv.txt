@@ -1,0 +1,2 @@
+--alias-style=left
+--list

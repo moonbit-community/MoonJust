@@ -1694,4 +1694,336 @@ status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["settings::undefined_variable_in_dotenv_command"]
 allowed_difference = "none"
-reason = "An undefined variable in dotenv-command is rejected at the same semantic boundary."
+
+[[case]]
+id = "MJ-UPSTREAM-0000"
+directory = "upstream-0000"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::alias_nested_module"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0001"
+directory = "upstream-0001"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::unknown_nested_alias"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0002"
+directory = "upstream-0002"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::alias_in_submodule"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0003"
+directory = "upstream-0003"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::module_alias"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0004"
+directory = "upstream-0004"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::alias_to_absent_optional_module_is_disabled"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0005"
+directory = "upstream-0005"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::module_alias_resolves_in_show"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0006"
+directory = "upstream-0006"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::module_alias_resolves_in_list"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0007"
+directory = "upstream-0007"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias::module_alias_resolves_in_usage"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0008"
+directory = "upstream-0008"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias_style::default"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0009"
+directory = "upstream-0009"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias_style::multiple"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0010"
+directory = "upstream-0010"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias_style::right"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0011"
+directory = "upstream-0011"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias_style::left"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0012"
+directory = "upstream-0012"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["alias_style::separate"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0013"
+directory = "upstream-0013"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["allow_duplicate_recipes::allow_duplicate_recipes"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0014"
+directory = "upstream-0014"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["allow_duplicate_recipes::allow_duplicate_recipes_with_args"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0015"
+directory = "upstream-0015"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["allow_duplicate_variables::allow_duplicate_variables"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0016"
+directory = "upstream-0016"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_match"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0017"
+directory = "upstream-0017"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_mismatch"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0018"
+directory = "upstream-0018"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_must_match_entire_string"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0019"
+directory = "upstream-0019"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_invalid_regex_error"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0020"
+directory = "upstream-0020"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_may_be_expression"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0021"
+directory = "upstream-0021"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_cannot_reference_parameter"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0022"
+directory = "upstream-0022"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_cannot_reference_undefined_variable"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0026"
+directory = "upstream-0026"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_cannot_reference_non_const_variable"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0027"
+directory = "upstream-0027"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::dump"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0028"
+directory = "upstream-0028"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::duplicate_attribute_error"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0029"
+directory = "upstream-0029"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::unknown_argument_error"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0030"
+directory = "upstream-0030"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_mismatches_are_caught_before_running_dependencies"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0031"
+directory = "upstream-0031"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_mismatches_are_caught_before_running_invocation"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0032"
+directory = "upstream-0032"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_mismatches_are_caught_in_evaluated_arguments"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0033"
+directory = "upstream-0033"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::alternates_do_not_bind_to_anchors"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0034"
+directory = "upstream-0034"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_match_variadic"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0035"
+directory = "upstream-0035"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_mismatch_variadic"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0036"
+directory = "upstream-0036"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_mismatch_repeatable_option"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0037"
+directory = "upstream-0037"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::pattern_requires_value"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0038"
+directory = "upstream-0038"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::value_requires_value"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-0039"
+directory = "upstream-0039"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["arg_attribute::help_cannot_reference_parameter"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
