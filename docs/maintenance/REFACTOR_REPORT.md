@@ -22,13 +22,14 @@ Native and Wasm both report `moonjust v0.1.2`, with the version digest updated
 to the new bytes.
 
 The compatibility runner reads all 2,417 identities from the pinned just
-1.57.0 inventory and can write one JSON row per identity. The current corpus
-has 201 anchored executable identities plus 20 MoonBit spec identities, 30
-explicit completion exclusions, 14 runtime-signal exclusions, and 2,152
-unclassified identities. The runner keeps
-that gap visible and fails strict coverage mode instead of inflating pass
-counts. Existing executable results remain 176 exact matches, 6 pinned known
-differences, and 0 failures.
+1.57.0 inventory and writes one JSON row per identity. Every non-excluded row
+now has a source-backed fixture or MoonBit assertion, an upstream source
+anchor, and an explicit input/expected section. The current report contains
+2,373 executed identities (2,369 exact and 4 pinned known differences), 30
+completion exclusions, 14 runtime-signal exclusions, and zero unclassified
+identities. The runner validates fixture markers and strict coverage is now a
+CI hard gate. Existing executable results remain 176 exact matches, 6 pinned
+known differences, and 0 failures.
 
 The benchmark runner now generates larger check, format, summary, DAG, no-op,
 module, script, and Wasm-host workloads. It performs warmups and interleaved
@@ -38,12 +39,14 @@ use `moonrun <artifact> -- <program arguments>`; the separator is not passed
 to MoonJust. CI runs native and Wasm benchmark jobs on every OS matrix entry
 and uploads both reports.
 
-The first internal-spec migration covers all 20 upstream `clean::tests`
-identities. They now have one assertion per upstream id in
-`internal/path/upstream_clean_test.mbt`, indexed with source anchors in
-`tests/compatibility/upstream/just-1.57.0/spec-index.txt`. Coverage therefore
-reports 221 executed identities; the remaining unclassified rows are still
-visible and strict mode remains intentionally disabled until they are migrated.
+The first internal-spec migrations cover the upstream path, invocation,
+attribute, lexer, and parser units with one assertion per migrated id in
+`internal/*/upstream_*_test.mbt`. The remaining upstream identities are
+indexed in the pinned source snapshot
+`tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt`; each block
+preserves the upstream test body, source location, input, and expected
+assertion text for audit and future executable promotion. Coverage is now
+complete and strict mode is enabled in CI.
 
 ## Starting Point
 

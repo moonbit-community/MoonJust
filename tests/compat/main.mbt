@@ -534,6 +534,7 @@ async fn main {
   let mut excluded_completion_total = 0
   let mut excluded_signal_total = 0
   let mut selected_found = false
+  let fixture_cache : Map[String, String] = Map([])
   let failures : Array[String] = []
   let expected_version = module_version(read_text("moon.mod"))
   match expected_version {
@@ -591,10 +592,29 @@ async fn main {
     }
   }
   for upstream_test, spec in spec_index {
-    let fixture_file = spec.fixture.split(":").collect().get(0).unwrap_or("")
+    let fixture_file = spec.fixture
+      .split(":")
+      .collect()
+      .get(0)
+      .unwrap_or("")
+      .to_owned()
+    if !upstream_names.contains(upstream_test) {
+      failures.push(
+        upstream_test +
+        ": spec index entry is absent from pinned just test list",
+      )
+    }
     if fixture_file.is_empty() || !@fs.exists(fixture_file) {
       failures.push(
         upstream_test + ": spec fixture is missing: " + spec.fixture,
+      )
+    }
+    if !fixture_file.is_empty() &&
+      @fs.exists(fixture_file) &&
+      !audited_fixture(upstream_test, fixture_file, spec.anchor, fixture_cache) {
+      failures.push(
+        upstream_test +
+        ": upstream fixture must contain source-backed input and expected sections",
       )
     }
     if spec.anchor.is_empty() {

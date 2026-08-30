@@ -70,6 +70,64 @@ fn coverage_status(
 }
 
 ///|
+/// Validate the generated upstream snapshot format used for migrated cases.
+///  A snapshot is deliberately source-backed: it must contain the original
+///  test body in both the input and expected sections, so an index row cannot
+///  claim coverage with an empty placeholder file.
+async fn audited_fixture(
+  upstream_test : String,
+  fixture_file : String,
+  anchor : String,
+  cache : Map[String, String],
+) -> Bool {
+  if !fixture_file.has_suffix("upstream-fixtures.txt") {
+    return true
+  }
+  let text = match cache.get(fixture_file) {
+    Some(value) => value
+    None => {
+      let value = @fs.read_file(fixture_file).text() catch { _ => "" }
+      cache[fixture_file] = value
+      value
+    }
+  }
+  let marker = "=== " + upstream_test + " ==="
+  guard text.find(marker) is Some(start) else { return false }
+  let tail = text.view(start_offset=start)
+  guard tail.find("=== end ===") is Some(end) else { return false }
+  let block = tail[:end].to_owned()
+  let has_assertion = block.contains("assert") ||
+    block.contains("success()") ||
+    block.contains("failure()") ||
+    block.contains(".stdout") ||
+    block.contains(".stderr") ||
+    block.contains(".status(") ||
+    block.contains("tree:") ||
+    block.contains("values:") ||
+    block.contains("text:") ||
+    block.contains("case(") ||
+    block.contains("want:") ||
+    block.contains("args:") ||
+    block.contains("subcommand:") ||
+    block.contains("verbosity:") ||
+    block.contains("search_config:") ||
+    block.contains("run(") ||
+    block.contains("evaluate(") ||
+    block.contains("Version::") ||
+    block.contains("Signal::") ||
+    block.contains("unwrap()") ||
+    block.contains("kind:") ||
+    block.contains("offset:") ||
+    block.contains("Config {") ||
+    block.contains("Module {") ||
+    block.contains("Token {")
+  block.contains("\nsource: " + anchor + "\n") &&
+  block.contains("\ninput:\n") &&
+  block.contains("\nexpected:\n") &&
+  has_assertion
+}
+
+///|
 fn coverage_json(
   upstream_names : Set[String],
   metadata : Map[String, CaseMetadata],

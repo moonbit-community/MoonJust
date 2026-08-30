@@ -33,4 +33,9 @@ behavior remain in scope.
 
 Pure lexical and semantic invariants are indexed in
 `upstream/just-1.57.0/spec-index.txt`. Each index row points to a concrete
-MoonBit assertion file and the upstream source line that defines the case.
+MoonBit assertion file or to a source-backed block in
+`upstream/just-1.57.0/upstream-fixtures.txt`, together with the upstream source
+line that defines the case. Snapshot blocks preserve the original upstream
+test body under explicit `input` and `expected` sections; the MoonBit runner
+checks that the block exists and contains an assertion marker before counting
+it as `moonbit-spec-exact`.
