@@ -14,11 +14,6 @@ pub(all) struct LiveRunResult {
 }
 
 ///|
-pub fn executable_path(root : String, command : String) -> String {
-  @path.Path(root).join(Path(command)).join(Path(command)).to_string()
-}
-
-///|
 async fn resolve_program(program : String) -> String {
   if program.contains("/") || program.contains("\\") {
     @fs.realpath(program)
@@ -219,30 +214,6 @@ pub fn bytes_equal(left : Bytes, right : Bytes) -> Bool {
     }
   }
   true
-}
-
-///|
-pub fn contains_bytes(haystack : Bytes, needle : String) -> Bool {
-  let needle = @utf8.encode(needle)
-  if needle.length() == 0 {
-    return true
-  }
-  if needle.length() > haystack.length() {
-    return false
-  }
-  for start = 0; start <= haystack.length() - needle.length(); start = start + 1 {
-    let mut matches = true
-    for offset = 0; offset < needle.length(); offset = offset + 1 {
-      if haystack[start + offset] != needle[offset] {
-        matches = false
-        break
-      }
-    }
-    if matches {
-      return true
-    }
-  }
-  false
 }
 
 ///|

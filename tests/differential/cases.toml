@@ -9,6 +9,7 @@ status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 allowed_difference = "product-identity"
+candidate_stdout_sha256 = "b24e024aef27a5efc712fbadcd4a838e2a5ce90063bf9406744f885fd98212c2"
 reason = "ADR 0001 requires MoonJust product identity in version output."
 
 [[case]]
@@ -19,6 +20,7 @@ status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 allowed_difference = "product-identity"
+candidate_stdout_sha256 = "8776e7618fd0514847b490f79186bc5a8494feafa5d33cb49c41d3ebbde7319b"
 reason = "ADR 0001 requires independent MoonJust identification; argparse presentation is not copied from upstream."
 
 [[case]]
@@ -267,6 +269,7 @@ status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["function_definitions::unstable"]
 allowed_difference = "diagnostic-style"
+candidate_stderr_sha256 = "cddc6066ef311087a66790602e8ad525a58380a16cd52dd7d9e49d96e798e6ea"
 reason = "User functions require the unstable gate; only stable-code diagnostic presentation differs."
 
 [[case]]
@@ -1649,6 +1652,7 @@ status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_filename"]
 allowed_difference = "diagnostic-style"
+candidate_stderr_sha256 = "dcb08a956f5626b0d2d6b49f995c9a8c67449c6ba978b126a3b1eb3c90ea93d9"
 reason = "The CLI rejects dotenv-command combined with dotenv-filename before loading the justfile."
 
 [[case]]
@@ -1659,6 +1663,7 @@ status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_path"]
 allowed_difference = "diagnostic-style"
+candidate_stderr_sha256 = "65471ee4dcb48d497fa7c723e252cf3f2baae88ebcc075b2c605cc7c63aec347"
 reason = "The CLI rejects dotenv-command combined with dotenv-path before loading the justfile."
 
 [[case]]
@@ -1669,6 +1674,7 @@ status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_no_dotenv"]
 allowed_difference = "diagnostic-style"
+candidate_stderr_sha256 = "92392d7ac2ecc37d1094b60b0b60d54f93a4ed60b3d336e4126bdcad5c13f975"
 reason = "The CLI rejects dotenv-command combined with no-dotenv before loading the justfile."
 
 [[case]]

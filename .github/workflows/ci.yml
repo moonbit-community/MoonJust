@@ -27,10 +27,11 @@ jobs:
           version: latest
       - run: moon version --all
       - run: moon update
+      - run: cargo install just --version 1.57.0 --locked
       - run: moon check --target native
       - run: moon test --target native
       - run: moon build --release --target native .
-      - run: moon run --target native ./tests/platform -- --candidate _build/native/release/build/MoonJust.exe
+      - run: moon run --target native ./tests/platform -- --candidate _build/native/release/build/MoonJust.exe --official just
 
   wasm:
     name: Wasm behavior and size

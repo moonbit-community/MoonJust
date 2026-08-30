@@ -8,7 +8,16 @@ priv struct CaseMetadata {
   status : String
   compare : Array[String]
   allowed_difference : String?
+  candidate_stdout_sha256 : String?
+  candidate_stderr_sha256 : String?
   upstream_tests : Array[String]
+}
+
+///|
+priv struct CompatibilityManifest {
+  schema_version : Int
+  upstream : String
+  cases : Map[String, CaseMetadata]
 }
 
 ///|
@@ -63,8 +72,10 @@ fn quoted_values(line : String) -> Array[String] {
 }
 
 ///|
-fn metadata_from_manifest(text : String) -> Map[String, CaseMetadata] {
+fn parse_manifest(text : String) -> CompatibilityManifest {
   let result : Map[String, CaseMetadata] = Map([])
+  let mut schema_version = 0
+  let mut upstream = ""
   let mut directory : String? = None
   let mut id = ""
   let mut cwd = ""
@@ -74,6 +85,8 @@ fn metadata_from_manifest(text : String) -> Map[String, CaseMetadata] {
   let mut status = "match"
   let mut compare : Array[String] = ["status", "stdout", "stderr", "tree"]
   let mut allowed_difference : String? = None
+  let mut candidate_stdout_sha256 : String? = None
+  let mut candidate_stderr_sha256 : String? = None
   let mut upstream_tests : Array[String] = []
   fn flush() -> Unit {
     match directory {
@@ -87,6 +100,8 @@ fn metadata_from_manifest(text : String) -> Map[String, CaseMetadata] {
           status,
           compare,
           allowed_difference,
+          candidate_stdout_sha256,
+          candidate_stderr_sha256,
           upstream_tests,
         }
       None => ()
@@ -105,7 +120,14 @@ fn metadata_from_manifest(text : String) -> Map[String, CaseMetadata] {
       status = "match"
       compare = ["status", "stdout", "stderr", "tree"]
       allowed_difference = None
+      candidate_stdout_sha256 = None
+      candidate_stderr_sha256 = None
       upstream_tests = []
+    } else if line.has_prefix("schema_version =") {
+      let text = line.strip_prefix("schema_version =").unwrap_or("").trim()
+      schema_version = @string.parse_int(text) catch { _ => 0 }
+    } else if line.has_prefix("upstream =") {
+      upstream = quoted_value(line).unwrap_or("")
     } else if line.has_prefix("id =") {
       id = quoted_value(line).unwrap_or("")
     } else if line.has_prefix("directory =") {
@@ -124,12 +146,16 @@ fn metadata_from_manifest(text : String) -> Map[String, CaseMetadata] {
       status = quoted_value(line).unwrap_or("match")
     } else if line.has_prefix("allowed_difference =") {
       allowed_difference = quoted_value(line)
+    } else if line.has_prefix("candidate_stdout_sha256 =") {
+      candidate_stdout_sha256 = quoted_value(line)
+    } else if line.has_prefix("candidate_stderr_sha256 =") {
+      candidate_stderr_sha256 = quoted_value(line)
     } else if line.has_prefix("upstream_tests =") {
       upstream_tests = quoted_values(line)
     }
   }
   flush()
-  result
+  { schema_version, upstream, cases: result, }
 }
 
 ///|
@@ -391,11 +417,20 @@ fn difference_fields(
 fn expected_difference_allowed(
   reason : String?,
   fields : ArrayView[String],
+  actual : CaseResult,
+  metadata : CaseMetadata,
 ) -> Bool {
-  match reason {
-    Some("product-identity") => fields.length() == 1 && fields[0] == "stdout"
-    Some("diagnostic-style") => fields.length() == 1 && fields[0] == "stderr"
-    _ => false
+  let expected_digest = match reason {
+    Some("product-identity") if fields.length() == 1 && fields[0] == "stdout" =>
+      metadata.candidate_stdout_sha256.map(digest => (digest, actual.stdout))
+    Some("diagnostic-style") if fields.length() == 1 && fields[0] == "stderr" =>
+      metadata.candidate_stderr_sha256.map(digest => (digest, actual.stderr))
+    _ => None
+  }
+  match expected_digest {
+    Some((expected, bytes)) =>
+      @crypto.bytes_to_hex_string(@crypto.sha256(bytes)) == expected
+    None => false
   }
 }
 
@@ -447,7 +482,8 @@ async fn main {
   )
   let candidate = resolve_program(candidate_value)
   let official = resolve_program(official_value)
-  let metadata = metadata_from_manifest(read_text(manifest))
+  let parsed_manifest = parse_manifest(read_text(manifest))
+  let metadata = parsed_manifest.cases
   let upstream_names = upstream_test_names(read_text(upstream_list))
   let mut matched = 0
   let mut known = 0
@@ -455,6 +491,12 @@ async fn main {
   let failures : Array[String] = []
   if !official_is_pinned(official) {
     failures.push("official oracle must report exactly `just 1.57.0`")
+  }
+  if parsed_manifest.schema_version != 3 {
+    failures.push("compatibility manifest schema_version must be 3")
+  }
+  if parsed_manifest.upstream != "just 1.57.0" {
+    failures.push("compatibility manifest upstream must be `just 1.57.0`")
   }
   for name, details in metadata {
     if details.status != "match" && details.status != "expected-difference" {
@@ -465,9 +507,21 @@ async fn main {
         failures.push(name + ": compare omits required field " + required)
       }
     }
+    for field in details.compare {
+      if !["status", "stdout", "stderr", "merged", "tree", "live"].contains(
+          field,
+        ) {
+        failures.push(name + ": compare contains unknown field " + field)
+      }
+    }
     if details.status == "expected-difference" &&
       details.allowed_difference is None {
       failures.push(name + ": expected difference has no named reason")
+    }
+    if details.status == "expected-difference" &&
+      details.candidate_stdout_sha256 is None &&
+      details.candidate_stderr_sha256 is None {
+      failures.push(name + ": expected difference has no candidate digest")
     }
     for upstream_test in details.upstream_tests {
       if !upstream_names.contains(upstream_test) {
@@ -499,6 +553,8 @@ async fn main {
         status: "match",
         compare: ["status", "stdout", "stderr", "tree"],
         allowed_difference: None,
+        candidate_stdout_sha256: None,
+        candidate_stderr_sha256: None,
         upstream_tests: [],
       })
     if details.id.is_empty() {
@@ -537,7 +593,12 @@ async fn main {
       matched += 1
       @stdio.stdout.write("PASS  " + name + "\n")
     } else if expectation == "difference" &&
-      expected_difference_allowed(details.allowed_difference, differences) {
+      expected_difference_allowed(
+        details.allowed_difference,
+        differences,
+        actual,
+        details,
+      ) {
       known += 1
       @stdio.stdout.write(
         "XDIFF " + name + " [" + differences.join(", ") + "]\n",
