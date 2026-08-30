@@ -1,9 +1,14 @@
 ///|
 priv struct CaseMetadata {
+  id : String
   cwd : String
   merged : Bool
   live_prefix : String?
   live_timeout_ms : Int
+  status : String
+  compare : Array[String]
+  allowed_difference : String?
+  upstream_tests : Array[String]
 }
 
 ///|
@@ -45,17 +50,45 @@ fn quoted_value(line : String) -> String? {
 }
 
 ///|
+fn quoted_values(line : String) -> Array[String] {
+  let result : Array[String] = []
+  let mut rest = line
+  while rest.find("\"") is Some(start) {
+    let after_start = rest.view(start_offset=start + 1)
+    guard after_start.find("\"") is Some(end) else { break }
+    result.push(after_start[:end].to_owned())
+    rest = after_start.view(start_offset=end + 1).to_owned()
+  }
+  result
+}
+
+///|
 fn metadata_from_manifest(text : String) -> Map[String, CaseMetadata] {
   let result : Map[String, CaseMetadata] = Map([])
   let mut directory : String? = None
+  let mut id = ""
   let mut cwd = ""
   let mut merged = false
   let mut live_prefix : String? = None
   let mut live_timeout_ms = 1000
+  let mut status = "match"
+  let mut compare : Array[String] = ["status", "stdout", "stderr", "tree"]
+  let mut allowed_difference : String? = None
+  let mut upstream_tests : Array[String] = []
   fn flush() -> Unit {
     match directory {
       Some(name) =>
-        result[name] = { cwd, merged, live_prefix, live_timeout_ms, }
+        result[name] = {
+          id,
+          cwd,
+          merged,
+          live_prefix,
+          live_timeout_ms,
+          status,
+          compare,
+          allowed_difference,
+          upstream_tests,
+        }
       None => ()
     }
   }
@@ -64,21 +97,35 @@ fn metadata_from_manifest(text : String) -> Map[String, CaseMetadata] {
     if line == "[[case]]" {
       flush()
       directory = None
+      id = ""
       cwd = ""
       merged = false
       live_prefix = None
       live_timeout_ms = 1000
+      status = "match"
+      compare = ["status", "stdout", "stderr", "tree"]
+      allowed_difference = None
+      upstream_tests = []
+    } else if line.has_prefix("id =") {
+      id = quoted_value(line).unwrap_or("")
     } else if line.has_prefix("directory =") {
       directory = quoted_value(line)
     } else if line.has_prefix("cwd =") {
       cwd = quoted_value(line).unwrap_or("")
     } else if line.has_prefix("compare =") {
       merged = line.contains("\"merged\"")
+      compare = quoted_values(line)
     } else if line.has_prefix("live_prefix =") {
       live_prefix = quoted_value(line)
     } else if line.has_prefix("live_timeout_ms =") {
       let text = line.strip_prefix("live_timeout_ms =").unwrap_or("").trim()
       live_timeout_ms = @string.parse_int(text) catch { _ => 1000 }
+    } else if line.has_prefix("status =") {
+      status = quoted_value(line).unwrap_or("match")
+    } else if line.has_prefix("allowed_difference =") {
+      allowed_difference = quoted_value(line)
+    } else if line.has_prefix("upstream_tests =") {
+      upstream_tests = quoted_values(line)
     }
   }
   flush()
@@ -299,31 +346,42 @@ async fn run_side(
 }
 
 ///|
+fn compares(metadata : CaseMetadata, field : String) -> Bool {
+  metadata.compare.contains(field)
+}
+
+///|
 fn difference_fields(
   expected : CaseResult,
   actual : CaseResult,
+  metadata : CaseMetadata,
 ) -> Array[String] {
   let fields : Array[String] = []
-  if expected.status != actual.status {
+  if compares(metadata, "status") && expected.status != actual.status {
     fields.push("status")
   }
-  if !@testkit.bytes_equal(expected.stdout, actual.stdout) {
+  if compares(metadata, "stdout") &&
+    !@testkit.bytes_equal(expected.stdout, actual.stdout) {
     fields.push("stdout")
   }
-  if !@testkit.bytes_equal(expected.stderr, actual.stderr) {
+  if compares(metadata, "stderr") &&
+    !@testkit.bytes_equal(expected.stderr, actual.stderr) {
     fields.push("stderr")
   }
-  match (expected.merged, actual.merged) {
-    (Some(left), Some(right)) if !@testkit.bytes_equal(left, right) =>
-      fields.push("merged")
-    (None, None) => ()
-    (Some(_), None) | (None, Some(_)) => fields.push("merged")
-    _ => ()
+  if compares(metadata, "merged") {
+    match (expected.merged, actual.merged) {
+      (Some(left), Some(right)) if !@testkit.bytes_equal(left, right) =>
+        fields.push("merged")
+      (None, None) => ()
+      (Some(_), None) | (None, Some(_)) => fields.push("merged")
+      _ => ()
+    }
   }
-  if !@testkit.bytes_equal(expected.tree, actual.tree) {
+  if compares(metadata, "tree") &&
+    !@testkit.bytes_equal(expected.tree, actual.tree) {
     fields.push("tree")
   }
-  if !expected.live || !actual.live {
+  if compares(metadata, "live") && (!expected.live || !actual.live) {
     fields.push("live")
   }
   fields
@@ -331,21 +389,34 @@ fn difference_fields(
 
 ///|
 fn expected_difference_allowed(
-  case_name : String,
+  reason : String?,
   fields : ArrayView[String],
 ) -> Bool {
-  if fields.is_empty() {
-    return false
+  match reason {
+    Some("product-identity") => fields.length() == 1 && fields[0] == "stdout"
+    Some("diagnostic-style") => fields.length() == 1 && fields[0] == "stderr"
+    _ => false
   }
-  let allowed : Array[String] = match case_name {
-    "01-version" | "02-help" => ["stdout", "stderr", "merged"]
-    "29-function-unstable"
-    | "178-dotenv-command-filename-option-conflict"
-    | "179-dotenv-command-path-option-conflict"
-    | "180-dotenv-command-no-dotenv-conflict" => ["stderr", "merged"]
-    _ => []
+}
+
+///|
+async fn official_is_pinned(program : String) -> Bool {
+  let result = @testkit.run(program, ["--version"])
+  result.status == 0 &&
+  @testkit.bytes_equal(result.stdout, b"just 1.57.0\n") &&
+  result.stderr.is_empty()
+}
+
+///|
+fn upstream_test_names(text : String) -> Set[String] {
+  let names : Array[String] = []
+  for raw in text.split("\n") {
+    let name = raw.trim().to_owned()
+    if !name.is_empty() {
+      names.push(name)
+    }
   }
-  fields.all(fn(field) { allowed.contains(field) })
+  Set(names)
 }
 
 ///|
@@ -371,16 +442,48 @@ async fn main {
   let manifest = option(args, "--manifest").unwrap_or(
     "tests/differential/cases.toml",
   )
+  let upstream_list = option(args, "--upstream-list").unwrap_or(
+    "tests/compatibility/upstream/just-1.57.0/test-list.txt",
+  )
   let candidate = resolve_program(candidate_value)
   let official = resolve_program(official_value)
   let metadata = metadata_from_manifest(read_text(manifest))
+  let upstream_names = upstream_test_names(read_text(upstream_list))
   let mut matched = 0
   let mut known = 0
+  let mut selected_found = false
   let failures : Array[String] = []
+  if !official_is_pinned(official) {
+    failures.push("official oracle must report exactly `just 1.57.0`")
+  }
+  for name, details in metadata {
+    if details.status != "match" && details.status != "expected-difference" {
+      failures.push(name + ": invalid manifest status " + details.status)
+    }
+    for required in ["status", "stdout", "stderr", "tree"] {
+      if !details.compare.contains(required) {
+        failures.push(name + ": compare omits required field " + required)
+      }
+    }
+    if details.status == "expected-difference" &&
+      details.allowed_difference is None {
+      failures.push(name + ": expected difference has no named reason")
+    }
+    for upstream_test in details.upstream_tests {
+      if !upstream_names.contains(upstream_test) {
+        failures.push(
+          name +
+          ": upstream anchor is absent from pinned just test list: " +
+          upstream_test,
+        )
+      }
+    }
+  }
   for name in @fs.readdir(cases_root, include_hidden=false, sort=true) {
     if selected_case is Some(selected) && name != selected {
       continue
     }
+    selected_found = true
     let case_dir = join(cases_root, name)
     if @fs.kind(case_dir) != Directory {
       continue
@@ -392,16 +495,49 @@ async fn main {
         merged: false,
         live_prefix: None,
         live_timeout_ms: 1000,
+        id: "",
+        status: "match",
+        compare: ["status", "stdout", "stderr", "tree"],
+        allowed_difference: None,
+        upstream_tests: [],
       })
+    if details.id.is_empty() {
+      failures.push(name + ": missing manifest identity")
+      continue
+    }
+    let compat_id = read_text(join(case_dir, "compat-id")).trim().to_owned()
+    if compat_id != details.id {
+      failures.push(
+        name +
+        ": manifest id " +
+        details.id +
+        " does not match compat-id " +
+        compat_id,
+      )
+      continue
+    }
     let expected = run_side(official, case_dir, details, "official")
     let actual = run_side(candidate, case_dir, details, "candidate")
-    let differences = difference_fields(expected, actual)
+    let differences = difference_fields(expected, actual, details)
     let expectation = read_text(join(case_dir, "expectation")).trim().to_owned()
-    if expectation == "match" && differences.is_empty() {
+    let expected_status = if details.status == "expected-difference" {
+      "difference"
+    } else {
+      "match"
+    }
+    if expectation != expected_status {
+      failures.push(
+        name +
+        ": expectation file says " +
+        expectation +
+        ", manifest says " +
+        expected_status,
+      )
+    } else if expectation == "match" && differences.is_empty() {
       matched += 1
       @stdio.stdout.write("PASS  " + name + "\n")
     } else if expectation == "difference" &&
-      expected_difference_allowed(name, differences) {
+      expected_difference_allowed(details.allowed_difference, differences) {
       known += 1
       @stdio.stdout.write(
         "XDIFF " + name + " [" + differences.join(", ") + "]\n",
@@ -416,6 +552,14 @@ async fn main {
         "]",
       )
     }
+  }
+  for name, _ in metadata {
+    if !@fs.exists(join(cases_root, name)) {
+      failures.push(name + ": manifest case directory is missing")
+    }
+  }
+  if selected_case is Some(selected) && !selected_found {
+    failures.push("requested case does not exist: " + selected)
   }
   for failure in failures {
     @stdio.stderr.write("FAIL  " + failure + "\n")

@@ -1,11 +1,10 @@
 import {
-  "ZSeanYves/MoonJust/cmd/tests/testkit",
+  "ZSeanYves/MoonJust/tests/testkit",
   "moonbitlang/async",
   "moonbitlang/async/fs",
   "moonbitlang/async/stdio",
   "moonbitlang/core/env",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/string",
   "moonbitlang/x/path",
   "moonbitlang/x/sys",
 }

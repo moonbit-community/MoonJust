@@ -17,7 +17,7 @@ moon publish --dry-run
 ```
 
 Behavior changes require focused MoonBit tests. Cross-platform or compatibility
-changes should be exercised with the runners in `cmd/tests`. Tests compare
+changes should be exercised with the runners in `tests`. Tests compare
 observable output, status, filesystem effects, environment, stdin behavior,
 and host policy; they do not assert package names, file layout, or source
 implementation details.

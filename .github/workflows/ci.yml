@@ -30,7 +30,7 @@ jobs:
       - run: moon check --target native
       - run: moon test --target native
       - run: moon build --release --target native .
-      - run: moon run --target native ./cmd/tests/platform -- --candidate _build/native/release/build/MoonJust.exe
+      - run: moon run --target native ./tests/platform -- --candidate "${{ github.workspace }}/_build/native/release/build/MoonJust.exe"
 
   wasm:
     name: Wasm behavior and size
@@ -61,8 +61,8 @@ jobs:
       - run: moon update
       - run: cargo install just --version 1.57.0 --locked
       - run: moon build --release --target native .
-      - run: moon run --target native ./cmd/tests/compat -- --candidate _build/native/release/build/MoonJust.exe --official just
-      - run: moon run --target native ./cmd/tests/benchmark -- --candidate _build/native/release/build/MoonJust.exe --official just --rounds 15
+      - run: moon run --target native ./tests/compat -- --candidate "${{ github.workspace }}/_build/native/release/build/MoonJust.exe" --official just
+      - run: moon run --target native ./tests/benchmark -- --candidate "${{ github.workspace }}/_build/native/release/build/MoonJust.exe" --official just --rounds 15
 
   quality:
     name: Format and interfaces

@@ -1,0 +1,287 @@
+schema_version = 1
+upstream_commit = "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"
+
+[async_only_signal_policy]
+tracking = "ADR-0020"
+reason = "Live Unix signal identity and forwarding behavior are approved differences; direct-child wait/reap remains a hard lifecycle gate."
+evidence = [
+  "docs/development/adr/0020-async-only-signal-semantics.md",
+  "tools/verification/checks/signal_policy.py",
+  "tools/upstream/run_official_harness.py",
+]
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "choose::chooser_signal_exit_code_is_propagated"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal identity and signal-specific exit-code normalization; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
+[[exceptions]]
+test = "no_exit_message::signal_exit_message_not_suppressed"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal diagnostics; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
+[[exceptions]]
+test = "no_exit_message::signal_exit_message_setting_suppressed"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal diagnostics; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
+[[exceptions]]
+test = "no_exit_message::signal_exit_message_suppressed"
+classification = "approved-difference"
+reason = "ADR-0020 removes MoonJust-owned raw signal diagnostics; direct-child wait/reap is covered by async-only signal evidence."
+owner = "executor"
+targets = ["native"]
+
+[[exceptions]]
+test = "changelog::print_changelog"
+classification = "product-identity"
+reason = "MoonJust has an independent product name and release history."
+owner = "release"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "non_unicode::warn_for_non_unicode_invocation_directory"
+classification = "not-applicable"
+reason = "MoonX's launcher currently rejects a non-UTF-8 working directory before invoking the wasm module; this exact host limitation is re-audited when MoonX gains byte-preserving cwd support."
+owner = "platform"
+targets = ["wasm1"]
+
+[[exceptions]]
+test = "non_unicode::warn_for_non_unicode_justfile_path"
+classification = "not-applicable"
+reason = "MoonX's launcher currently rejects a non-UTF-8 working directory before invoking the wasm module; this exact host limitation is re-audited when MoonX gains byte-preserving cwd support."
+owner = "platform"
+targets = ["wasm1"]
+
+[[exceptions]]
+test = "misc::color_always"
+classification = "diagnostic-exact"
+normalizations = ["ansi"]
+reason = "The candidate and oracle diagnostics are byte-identical after the permitted ANSI color normalization."
+owner = "diagnostic"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "misc::colors_no_context"
+classification = "diagnostic-exact"
+normalizations = ["ansi"]
+reason = "The candidate and oracle diagnostics are byte-identical after the permitted ANSI color normalization."
+owner = "diagnostic"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::aliases_completed_with_environment_variable"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::aliases_completed_with_flag"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::aliases_in_modules"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::aliases_not_completed_by_default"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::argument_completion_includes_recipes_and_variables"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::bash"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::completion_scripts"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::doc_comments"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::elvish"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::group_completion"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::group_completion_filters_by_prefix"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::justfile_flag_in_completion_words"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::module_recipes"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::positional_malformed_override"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::powershell"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::private_aliases_excluded"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::private_recipes_excluded"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::private_variables_excluded"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::recipe_prefix_filter"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::recipes"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::recipes_with_invalid_config"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::rejects_unexpected_arguments"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::set_malformed_override_path"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::show_malformed_path"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::show_recipes"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::usage_recipes"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::variable_completion"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::variable_completion_filters_by_prefix"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::working_directory_without_justfile"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]
+
+[[exceptions]]
+test = "completions::zsh"
+classification = "excluded-completion"
+reason = "Shell completion is the sole feature excluded from the compatibility target."
+owner = "cli"
+targets = ["native", "wasm1"]

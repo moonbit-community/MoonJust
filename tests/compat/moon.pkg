@@ -1,5 +1,5 @@
 import {
-  "ZSeanYves/MoonJust/cmd/tests/testkit",
+  "ZSeanYves/MoonJust/tests/testkit",
   "moonbitlang/async",
   "moonbitlang/async/fs",
   "moonbitlang/async/stdio",

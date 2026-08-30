@@ -34,14 +34,18 @@ planning never starts a process and runtime never reparses a justfile.
 
 ## Compatibility checks
 
-The pure MoonBit runners under `cmd/tests` compare observable behavior with an
+The pure MoonBit runners under `tests` compare observable behavior with an
 official just 1.57 binary and exercise platform boundaries. For a local paired
 run:
 
 ```text
-moon run --target native ./cmd/tests/compat -- --candidate PATH --official PATH
-moon run --target native ./cmd/tests/benchmark -- --candidate PATH --official PATH --rounds 15
+moon run --target native ./tests/compat -- --candidate PATH --official PATH
+moon run --target native ./tests/benchmark -- --candidate PATH --official PATH --rounds 15
 ```
 
 Only functional behavior is tested: bytes written to stdout and stderr,
 status codes, file effects, environment, stdin timing, and platform policy.
+
+Current architecture and maintenance guidance live in `docs/maintenance/`.
+Historical ADRs and engineering reports remain available under
+`docs/development/`.

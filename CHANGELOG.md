@@ -11,6 +11,6 @@ The root package builds the executable; implementation details remain under
 - Moved platform-independent file algorithms into `internal/host_fs` and split
   parser, loader, evaluator, planner, runtime, and process modules by
   responsibility.
-- Rebuilt functional and differential runners in MoonBit under `cmd/tests`.
+- Rebuilt functional and differential runners in MoonBit under `tests`.
 - Preserved Native/Wasm behavior, process cleanup, cache behavior, and the
   just 1.57 compatibility corpus.

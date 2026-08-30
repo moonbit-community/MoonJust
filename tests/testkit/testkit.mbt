@@ -19,6 +19,15 @@ pub fn executable_path(root : String, command : String) -> String {
 }
 
 ///|
+async fn resolve_program(program : String) -> String {
+  if program.contains("/") || program.contains("\\") {
+    @fs.realpath(program)
+  } else {
+    program
+  }
+}
+
+///|
 pub async fn run(
   program : String,
   args : Array[String],
@@ -27,6 +36,7 @@ pub async fn run(
   extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
 ) -> RunResult {
+  let program = resolve_program(program)
   let input_dir = match stdin {
     Some(_) => Some(@fs.tmpdir(prefix="moonjust-input"))
     None => None
@@ -94,6 +104,7 @@ pub async fn run_merged(
   extra_env : Map[String, String],
   inherit_env? : Bool = false,
 ) -> (Int, Bytes) {
+  let program = resolve_program(program)
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
   defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
   let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
@@ -145,6 +156,7 @@ pub async fn run_live_stdout(
   timeout_ms : Int,
   inherit_env? : Bool = false,
 ) -> LiveRunResult {
+  let program = resolve_program(program)
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
   defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
   let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
