@@ -482,7 +482,8 @@ fn difference_fields(
 
 ///|
 fn regex_matches(pattern : String, bytes : Bytes) -> Bool {
-  let regexp = @regexp.compile(pattern[:]) catch { _ => return false }
+  let normalized = pattern.replace_all(old="(?s)", new="")
+  let regexp = @regexp.compile(normalized[:]) catch { _ => return false }
   let text = @utf8.decode(bytes) catch { _ => return false }
   regexp.execute(text[:]).matched()
 }

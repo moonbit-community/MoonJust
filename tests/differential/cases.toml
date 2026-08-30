@@ -11959,3 +11959,12 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["unstable::unstable_setting_does_not_affect_submodules"]
+
+[[case]]
+id = "MJ-UPSTREAM-B16-000"
+directory = "upstream-b16-000"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["shell::backtick_recipe_shell_not_found_error_message"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
