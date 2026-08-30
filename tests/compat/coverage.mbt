@@ -28,7 +28,8 @@ fn coverage_status(
       } else {
         "differential-known-difference"
       }
-      return (status, name, upstream_test, "")
+      let reason = details.allowed_difference.unwrap_or("")
+      return (status, name, upstream_test, reason)
     }
   }
   match excluded_reason(upstream_test) {
@@ -54,6 +55,21 @@ fn coverage_json(
     let (status, fixture, anchor, reason) = coverage_status(
       upstream_test, metadata,
     )
+    let candidate_digest = match status {
+      "differential-known-difference" => {
+        let mut digest = ""
+        for _, details in metadata {
+          if details.upstream_tests.contains(upstream_test) {
+            digest = details.candidate_stdout_sha256.unwrap_or(
+              details.candidate_stderr_sha256.unwrap_or(""),
+            )
+            break
+          }
+        }
+        digest
+      }
+      _ => ""
+    }
     match status {
       "differential-exact" => exact += 1
       "differential-known-difference" => known += 1
@@ -72,6 +88,8 @@ fn coverage_json(
       json_string(anchor) +
       ",\"difference_reason\":" +
       json_string(reason) +
+      ",\"candidate_digest\":" +
+      json_string(candidate_digest) +
       "}",
     )
   }
