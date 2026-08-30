@@ -415,13 +415,13 @@ async fn main {
   let root = @fs.tmpdir(prefix="moonjust-benchmark")
   defer (@fs.rmdir(root, recursive=true) catch { _ => () })
   let (moon_version, moonc_version, moonrun_version) = toolchain_versions()
-  let justfile = @path.Path(root).join(Path("justfile")).to_string()
-  let all = workloads(justfile)
+  let justfile_path = @path.Path(root).join(Path("justfile")).to_string()
+  let all = workloads("justfile")
   let reports : Array[String] = []
   let mut gate_failed = false
   for workload in all {
     if !workload.source.is_empty() {
-      @fs.write_file(justfile, @utf8.encode(workload.source))
+      @fs.write_file(justfile_path, @utf8.encode(workload.source))
     }
     if workload.name == "modules-dotenv" {
       @fs.write_file(
