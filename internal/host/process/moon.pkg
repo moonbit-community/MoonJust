@@ -1,0 +1,13 @@
+import {
+  "ZSeanYves/MoonJust/internal/host",
+  "moonbitlang/async",
+  "moonbitlang/async/fs" @async_fs,
+  "moonbitlang/async/io",
+  "moonbitlang/async/process" @async_process,
+  "moonbitlang/async/signal",
+  "moonbitlang/async/stdio",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+}
+
+supported_targets = "-all+native+wasm"

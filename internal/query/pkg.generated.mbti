@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/query"
+
+import {
+  "ZSeanYves/MoonJust/internal/cli",
+  "ZSeanYves/MoonJust/internal/loader",
+  "ZSeanYves/MoonJust/internal/semantic",
+}
+
+// Values
+pub fn build_query(@cli.CliArguments) -> QueryRequest
+
+pub fn display_width(String) -> Int
+
+pub fn lexical_compare(String, String) -> Int
+
+pub fn try_fast_summary(@loader.LoadedGraph, QueryRequest) -> QueryResult?
+
+pub fn visible_recipe_names(@semantic.Compilation, QueryRequest) -> Array[String]
+
+// Errors
+
+// Types and methods
+pub struct QueryRequest {
+  arguments : @cli.CliArguments
+}
+pub fn QueryRequest::arguments(Self) -> @cli.CliArguments
+
+pub struct QueryResult {
+  stdout : Bytes
+  stderr : Bytes
+}
+pub fn QueryResult::new(stdout? : Bytes, stderr? : Bytes) -> Self
+pub fn QueryResult::stderr(Self) -> BytesView
+pub fn QueryResult::stdout(Self) -> BytesView
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,7 @@
+import {
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/value",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/regexp",
+  "moonbitlang/x/crypto",
+}

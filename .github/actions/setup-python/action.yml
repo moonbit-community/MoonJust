@@ -1,8 +1,0 @@
-name: MoonJust Python toolchain
-description: Install the fixed Python runtime used by CI orchestration and evidence tools.
-runs:
-  using: composite
-  steps:
-    - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
-      with:
-        python-version: "3.11"

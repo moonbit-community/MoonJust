@@ -1,0 +1,118 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/host/testkit"
+
+import {
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/path",
+  "moonbitlang/core/set",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct FakeHost {
+  denied : @set.Set[@host.HostCapability]
+  unavailable : @set.Set[@host.HostCapability]
+  files : Map[@path.PathValue, Bytes]
+  mut temp_serial : Int
+  mut fail_next_persist : Bool
+  script_temp_creations : Array[(@path.PathValue, Bytes)]
+  executable_calls : Array[@path.PathValue]
+  canonical_paths : Map[@path.PathValue, @path.PathValue]
+  environment : Map[String, String]
+  mut cwd : @path.PathValue
+  mut clock_millis : Int64
+  mut random_stream : Bytes
+  mut random_offset : Int
+  expected_commands : Array[@host.CommandSpec]
+  expected_outputs : Array[@host.ProcessResult]
+  process_calls : Array[@host.CommandSpec]
+  output_events : Array[(@host.OutputStream, Bytes)]
+  mut terminal : @host.TerminalInfo
+  signals : Array[@host.SignalKind]
+  mut platform : @host.PlatformInfo
+  cache_entries : Map[String, Bytes]
+  cache_leases : Map[Int, String]
+  mut cache_token : Int
+}
+pub async fn FakeHost::acquire_cache_lease(Self, @path.PathValue, String) -> @host.CacheLease raise @host.HostError
+pub fn FakeHost::allow(Self, @host.HostCapability) -> Unit
+pub fn FakeHost::cache_manifest(Self, @path.PathValue, String) -> Bytes?
+pub fn FakeHost::cache_manifest_digests(Self, @path.PathValue) -> Array[String]
+pub fn FakeHost::canonicalize(Self, @path.PathValue) -> @path.PathValue raise @host.HostError
+pub async fn FakeHost::clean_cache(Self, @path.PathValue, String?) -> Int raise @host.HostError
+pub fn FakeHost::create_script_temp(Self, @path.PathValue, String, String, Bytes) -> @path.PathValue raise @host.HostError
+pub async fn FakeHost::create_script_temp_async(Self, @path.PathValue, String, String, Bytes, Bool) -> @path.PathValue raise @host.HostError
+pub fn FakeHost::create_temp_file(Self, @path.PathValue, String, Bytes) -> @path.PathValue raise @host.HostError
+pub fn FakeHost::current_dir(Self) -> @path.PathValue raise @host.HostError
+pub fn FakeHost::deny(Self, @host.HostCapability) -> Unit
+pub fn FakeHost::env_entries(Self) -> Array[(String, String)] raise @host.HostError
+pub fn FakeHost::env_get(Self, String) -> String? raise @host.HostError
+pub fn FakeHost::executable_calls(Self) -> ArrayView[@path.PathValue]
+pub fn FakeHost::expect_process(Self, @host.CommandSpec, @host.ProcessResult) -> Unit
+pub fn FakeHost::fail_next_persist(Self) -> Unit
+pub fn FakeHost::file_exists(Self, @path.PathValue) -> Bool raise @host.HostError
+pub fn FakeHost::held_cache_leases(Self) -> Int
+pub fn FakeHost::mark_available(Self, @host.HostCapability) -> Unit
+pub fn FakeHost::mark_unavailable(Self, @host.HostCapability) -> Unit
+pub fn FakeHost::metadata(Self, @path.PathValue) -> @host.FileMetadata raise @host.HostError
+pub fn FakeHost::new(@path.PathValue, @host.PlatformInfo) -> Self
+pub fn FakeHost::now_millis(Self) -> Int64 raise @host.HostError
+pub fn FakeHost::output_events(Self) -> ArrayView[(@host.OutputStream, Bytes)]
+pub fn FakeHost::pending_process_expectations(Self) -> Int
+pub fn FakeHost::pending_signal(Self) -> @host.SignalKind? raise @host.HostError
+pub fn FakeHost::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise @host.HostError
+pub fn FakeHost::platform_info(Self) -> @host.PlatformInfo raise @host.HostError
+pub fn FakeHost::process_calls(Self) -> ArrayView[@host.CommandSpec]
+pub fn FakeHost::push_signal(Self, @host.SignalKind) -> Unit
+pub fn FakeHost::put_file(Self, @path.PathValue, Bytes) -> Unit
+pub fn FakeHost::random_bytes(Self, Int) -> Bytes raise @host.HostError
+pub async fn FakeHost::read_cache_manifest(Self, @host.CacheLease) -> Bytes? raise @host.HostError
+pub fn FakeHost::read_dir(Self, @path.PathValue) -> Array[String] raise @host.HostError
+pub fn FakeHost::read_file(Self, @path.PathValue) -> Bytes raise @host.HostError
+pub fn FakeHost::read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise @host.HostError
+pub async fn FakeHost::read_source(Self, @path.PathValue, Int) -> Bytes raise @host.HostError
+pub async fn FakeHost::release_cache_lease(Self, @host.CacheLease) -> Unit raise @host.HostError
+pub fn FakeHost::remove_script_temp(Self, @path.PathValue) -> Unit raise @host.HostError
+pub async fn FakeHost::remove_script_temp_async(Self, @path.PathValue) -> Unit raise @host.HostError
+pub fn FakeHost::remove_temp_file(Self, @path.PathValue) -> Unit raise @host.HostError
+pub fn FakeHost::run_process(Self, @host.CommandSpec) -> @host.ProcessResult raise @host.HostError
+pub async fn FakeHost::run_process_async(Self, @host.CommandSpec) -> @host.ProcessResult raise @host.HostError
+pub fn FakeHost::script_temp_creations(Self) -> ArrayView[(@path.PathValue, Bytes)]
+pub fn FakeHost::seed_cache_manifest(Self, @path.PathValue, String, Bytes) -> Unit
+pub fn FakeHost::set_canonical(Self, @path.PathValue, @path.PathValue) -> Unit
+pub fn FakeHost::set_clock_millis(Self, Int64) -> Unit
+pub fn FakeHost::set_current_dir(Self, @path.PathValue) -> Unit
+pub fn FakeHost::set_env(Self, String, String) -> Unit
+pub fn FakeHost::set_executable(Self, @path.PathValue) -> Unit raise @host.HostError
+pub fn FakeHost::set_platform(Self, @host.PlatformInfo) -> Unit
+pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
+pub fn FakeHost::set_terminal(Self, @host.TerminalInfo) -> Unit
+pub fn FakeHost::terminal_info(Self) -> @host.TerminalInfo raise @host.HostError
+pub async fn FakeHost::write_cache_manifest(Self, @host.CacheLease, Bytes) -> Unit raise @host.HostError
+pub fn FakeHost::write_file(Self, @path.PathValue, Bytes) -> Unit raise @host.HostError
+pub async fn FakeHost::write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise @host.HostError
+pub async fn FakeHost::write_output(Self, @host.OutputStream, Bytes) -> Int raise @host.HostError
+pub impl @host.HostAsyncOutput for FakeHost
+pub impl @host.HostAsyncProcess for FakeHost
+pub impl @host.HostAsyncScriptTemp for FakeHost
+pub impl @host.HostAtomicFs for FakeHost
+pub impl @host.HostCacheStore for FakeHost
+pub impl @host.HostClock for FakeHost
+pub impl @host.HostEnv for FakeHost
+pub impl @host.HostExecutable for FakeHost
+pub impl @host.HostFs for FakeHost
+pub impl @host.HostPlatform for FakeHost
+pub impl @host.HostProcess for FakeHost
+pub impl @host.HostRandom for FakeHost
+pub impl @host.HostScriptTemp for FakeHost
+pub impl @host.HostSignal for FakeHost
+pub impl @host.HostSourceReader for FakeHost
+pub impl @host.HostTemp for FakeHost
+pub impl @host.HostTerminal for FakeHost
+
+// Type aliases
+
+// Traits

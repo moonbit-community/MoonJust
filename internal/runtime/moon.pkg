@@ -1,0 +1,21 @@
+import {
+  "ZSeanYves/MoonJust/internal/cache",
+  "ZSeanYves/MoonJust/internal/planner",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
+  "ZSeanYves/MoonJust/internal/path",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "ZSeanYves/MoonJust/internal/environment",
+  "ZSeanYves/MoonJust/internal/evaluator",
+  "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
+  "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
+} for "test"
+
+supported_targets = "-all+native+wasm"

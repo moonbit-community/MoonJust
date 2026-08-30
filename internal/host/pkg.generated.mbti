@@ -1,0 +1,256 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/host"
+
+import {
+  "ZSeanYves/MoonJust/internal/path",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+pub(all) suberror HostError {
+  CapabilityDenied(HostCapability)
+  CapabilityUnavailable(HostCapability)
+  NotFound(@path.PathValue)
+  AlreadyExists(@path.PathValue)
+  PermissionDenied(HostCapability, detail~ : String)
+  InvalidInput(String)
+  UnexpectedProcess(CommandSpec)
+  ProcessMismatch(expected~ : CommandSpec, actual~ : CommandSpec)
+  RandomExhausted(requested~ : Int, remaining~ : Int)
+} derive(Eq, @debug.Debug)
+
+// Types and methods
+pub struct CacheLease {
+  directory : @path.PathValue
+  digest : String
+  token : Int
+} derive(Eq, @debug.Debug)
+pub fn CacheLease::digest(Self) -> String
+pub fn CacheLease::directory(Self) -> @path.PathValue
+pub fn CacheLease::new(@path.PathValue, String, Int) -> Self
+pub fn CacheLease::token(Self) -> Int
+
+pub struct CommandSpec {
+  program : String
+  arguments : Array[String]
+  mut cwd : @path.PathValue?
+  environment : Array[(String, String)]
+  mut inherit_environment : Bool
+  mut stdin : Bytes
+  mut inherit_stdin : Bool
+  mut stdout : StdioBehavior
+  mut stderr : StdioBehavior
+} derive(Eq)
+pub fn CommandSpec::add_environment(Self, String, String) -> Unit raise HostError
+pub fn CommandSpec::arguments(Self) -> ArrayView[String]
+pub fn CommandSpec::copy(Self) -> Self
+pub fn CommandSpec::cwd(Self) -> @path.PathValue?
+pub fn CommandSpec::environment(Self) -> ArrayView[(String, String)]
+pub fn CommandSpec::inherits_environment(Self) -> Bool
+pub fn CommandSpec::inherits_stdin(Self) -> Bool
+pub fn CommandSpec::new(String, Array[String]) -> Self raise HostError
+pub fn CommandSpec::program(Self) -> String
+pub fn CommandSpec::set_cwd(Self, @path.PathValue) -> Unit
+pub fn CommandSpec::set_inherit_environment(Self, Bool) -> Unit
+pub fn CommandSpec::set_inherit_stdin(Self, Bool) -> Unit
+pub fn CommandSpec::set_stderr(Self, StdioBehavior) -> Unit
+pub fn CommandSpec::set_stdin(Self, Bytes) -> Unit
+pub fn CommandSpec::set_stdout(Self, StdioBehavior) -> Unit
+pub fn CommandSpec::stderr(Self) -> StdioBehavior
+pub fn CommandSpec::stdin(Self) -> BytesView
+pub fn CommandSpec::stdout(Self) -> StdioBehavior
+pub impl @debug.Debug for CommandSpec
+
+pub(all) struct FileMetadata {
+  is_file : Bool
+  is_directory : Bool
+  size : Int64
+  is_executable : Bool
+} derive(Eq, @debug.Debug)
+pub fn FileMetadata::is_directory(Self) -> Bool
+pub fn FileMetadata::is_executable(Self) -> Bool
+pub fn FileMetadata::is_file(Self) -> Bool
+pub fn FileMetadata::new(Bool, Bool, Int64) -> Self
+pub fn FileMetadata::new_with_executable(Bool, Bool, Int64, Bool) -> Self
+pub fn FileMetadata::size(Self) -> Int64
+
+pub(all) enum HostCapability {
+  FsRead
+  FsWrite
+  Environment
+  Process
+  Clock
+  Random
+  Terminal
+  Signal
+  Platform
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) enum OperatingSystem {
+  Linux
+  Macos
+  Windows
+  Other(String)
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) enum OutputStream {
+  Stdout
+  Stderr
+} derive(Eq, @debug.Debug)
+
+pub struct PlatformInfo {
+  operating_system : OperatingSystem
+  architecture : String
+  path_flavor : @path.PathFlavor
+  portable_runtime : Bool
+  pid : Int?
+  num_cpus : Int?
+  executable : String?
+} derive(Eq, @debug.Debug)
+pub fn PlatformInfo::architecture(Self) -> String
+pub fn PlatformInfo::executable(Self) -> String?
+pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor, portable_runtime? : Bool, pid? : Int, num_cpus? : Int, executable? : String) -> Self
+pub fn PlatformInfo::num_cpus(Self) -> Int?
+pub fn PlatformInfo::operating_system(Self) -> OperatingSystem
+pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
+pub fn PlatformInfo::pid(Self) -> Int?
+pub fn PlatformInfo::portable_runtime(Self) -> Bool
+
+pub struct ProcessResult {
+  termination : ProcessTermination
+  stdout : Bytes
+  stderr : Bytes
+} derive(Eq)
+pub fn ProcessResult::exit_code(Self) -> Int?
+pub fn ProcessResult::from_interruption(SignalKind, Bytes, Bytes) -> Self
+pub fn ProcessResult::from_signal(SignalKind, Bytes, Bytes) -> Self
+pub fn ProcessResult::new(Int, Bytes, Bytes) -> Self
+pub fn ProcessResult::signal(Self) -> SignalKind?
+pub fn ProcessResult::stderr(Self) -> BytesView
+pub fn ProcessResult::stdout(Self) -> BytesView
+pub fn ProcessResult::success(Self) -> Bool
+pub fn ProcessResult::termination(Self) -> ProcessTermination
+pub impl @debug.Debug for ProcessResult
+
+pub(all) enum ProcessTermination {
+  Exited(Int)
+  Signaled(SignalKind)
+  Interrupted(SignalKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SignalKind {
+  Interrupt
+  Terminate
+  Hangup
+  OtherSignal(Int)
+} derive(Eq, @debug.Debug)
+pub fn SignalKind::exit_code(Self) -> Int
+pub fn SignalKind::name(Self) -> String
+pub fn SignalKind::number(Self) -> Int
+
+pub(all) enum StdioBehavior {
+  Capture
+  Inherit
+  Discard
+} derive(Eq, @debug.Debug)
+
+pub struct TerminalInfo {
+  stdin_is_terminal : Bool
+  stdout_is_terminal : Bool
+  stderr_is_terminal : Bool
+  color_supported : Bool
+} derive(Eq, @debug.Debug)
+pub fn TerminalInfo::color_supported(Self) -> Bool
+pub fn TerminalInfo::new(Bool, Bool, Bool, Bool) -> Self
+pub fn TerminalInfo::stderr_is_terminal(Self) -> Bool
+pub fn TerminalInfo::stdin_is_terminal(Self) -> Bool
+pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
+
+// Type aliases
+
+// Traits
+pub(open) trait HostAsyncOutput {
+  async fn write_output(Self, OutputStream, Bytes) -> Int raise HostError
+}
+
+pub(open) trait HostAsyncProcess {
+  async fn run_process_async(Self, CommandSpec) -> ProcessResult raise HostError
+}
+
+pub(open) trait HostAsyncScriptTemp {
+  async fn create_script_temp_async(Self, @path.PathValue, String, String, Bytes, Bool) -> @path.PathValue raise HostError
+  async fn remove_script_temp_async(Self, @path.PathValue) -> Unit raise HostError
+}
+
+pub(open) trait HostAtomicFs {
+  async fn write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise HostError
+}
+
+pub(open) trait HostCacheStore {
+  async fn acquire_cache_lease(Self, @path.PathValue, String) -> CacheLease raise HostError
+  async fn read_cache_manifest(Self, CacheLease) -> Bytes? raise HostError
+  async fn write_cache_manifest(Self, CacheLease, Bytes) -> Unit raise HostError
+  async fn release_cache_lease(Self, CacheLease) -> Unit raise HostError
+  async fn clean_cache(Self, @path.PathValue, String?) -> Int raise HostError
+}
+
+pub(open) trait HostClock {
+  fn now_millis(Self) -> Int64 raise HostError
+}
+
+pub(open) trait HostEnv {
+  fn env_get(Self, String) -> String? raise HostError
+  fn env_entries(Self) -> Array[(String, String)] raise HostError
+  fn current_dir(Self) -> @path.PathValue raise HostError
+}
+
+pub(open) trait HostExecutable {
+  fn set_executable(Self, @path.PathValue) -> Unit raise HostError
+}
+
+pub(open) trait HostFs {
+  fn read_file(Self, @path.PathValue) -> Bytes raise HostError
+  fn read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise HostError
+  fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
+  fn file_exists(Self, @path.PathValue) -> Bool raise HostError
+  fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
+  fn metadata(Self, @path.PathValue) -> FileMetadata raise HostError
+  fn canonicalize(Self, @path.PathValue) -> @path.PathValue raise HostError
+  fn persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise HostError
+}
+
+pub(open) trait HostPlatform {
+  fn platform_info(Self) -> PlatformInfo raise HostError
+}
+
+pub(open) trait HostProcess {
+  fn run_process(Self, CommandSpec) -> ProcessResult raise HostError
+}
+
+pub(open) trait HostRandom {
+  fn random_bytes(Self, Int) -> Bytes raise HostError
+}
+
+pub(open) trait HostScriptTemp {
+  fn create_script_temp(Self, @path.PathValue, String, String, Bytes) -> @path.PathValue raise HostError
+  fn remove_script_temp(Self, @path.PathValue) -> Unit raise HostError
+}
+
+pub(open) trait HostSignal {
+  fn pending_signal(Self) -> SignalKind? raise HostError
+}
+
+pub(open) trait HostSourceReader {
+  async fn read_source(Self, @path.PathValue, Int) -> Bytes raise HostError
+}
+
+pub(open) trait HostTemp {
+  fn create_temp_file(Self, @path.PathValue, String, Bytes) -> @path.PathValue raise HostError
+  fn remove_temp_file(Self, @path.PathValue) -> Unit raise HostError
+}
+
+pub(open) trait HostTerminal {
+  fn terminal_info(Self) -> TerminalInfo raise HostError
+}

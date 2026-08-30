@@ -1,0 +1,4 @@
+import {
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/source",
+}

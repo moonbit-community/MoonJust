@@ -1,9 +1,0 @@
-import {
-  "moonbitlang/core/argparse",
-  "ZSeanYves/MoonJust/src/diagnostic",
-  "ZSeanYves/MoonJust/src/path",
-  "ZSeanYves/MoonJust/src/source",
-  "moonbitlang/core/array",
-  "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/string",
-}

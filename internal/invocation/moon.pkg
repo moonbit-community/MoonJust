@@ -1,0 +1,14 @@
+import {
+  "ZSeanYves/MoonJust/internal/builtin",
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/evaluator",
+  "ZSeanYves/MoonJust/internal/modulepath",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/syntax",
+  "ZSeanYves/MoonJust/internal/value",
+  "moonbitlang/core/string",
+  "moonbitlang/regexp",
+}
+
+supported_targets = "-all+native+wasm"

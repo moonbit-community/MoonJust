@@ -1,0 +1,117 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/cache"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const FORMAT_VERSION : Int = 1
+
+pub const KEY_ALGORITHM : String = "moonjust-cache-key-v1+blake3"
+
+pub const MAX_INPUTS : Int = 1024
+
+pub const MAX_MANIFEST_BYTES : Int = 262144
+
+pub const MAX_OUTPUTS : Int = 1024
+
+pub fn decode_manifest(String) -> CacheManifest raise CacheError
+
+pub fn validate_manifest(String, String, String, ArrayView[String]) -> CacheManifest raise CacheError
+
+pub fn validate_relative_path(String) -> Unit raise CacheError
+
+// Errors
+pub(all) suberror CacheError {
+  InvalidDigest(String)
+  InvalidPath(String)
+  DuplicatePath(String)
+  TooManyInputs(Int)
+  TooManyOutputs(Int)
+  ManifestTooLarge(Int)
+  MalformedManifest(String)
+  UnsupportedVersion(Int)
+  AlgorithmMismatch(String)
+  KeyMismatch
+  RecipeMismatch
+  OutputMismatch
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn CacheError::equal(Self, Self) -> Bool
+#deprecated
+pub fn CacheError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CacheError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct CacheKey {
+  recipe : String
+  body : String
+  interpreter : String
+  interpreter_arguments : Array[String]
+  environment : Array[(String, String)]
+  extension : String
+  working_directory : String
+  positional : Array[String]
+  extra : String
+  inputs : Array[InputDigest]
+  outputs : Array[String]
+} derive(Eq)
+pub fn CacheKey::canonical(Self) -> String
+pub fn CacheKey::debug_json(Self) -> String
+pub fn CacheKey::digest(Self) -> String
+#deprecated
+pub fn CacheKey::equal(Self, Self) -> Bool
+pub fn CacheKey::new(String, String, String, interpreter_arguments? : Array[String], environment? : Array[(String, String)], extension? : String, working_directory? : String, positional? : Array[String], extra? : String, inputs? : Array[InputDigest], outputs? : Array[String]) -> Self raise CacheError
+#deprecated
+pub fn CacheKey::not_equal(Self, Self) -> Bool
+pub fn CacheKey::outputs(Self) -> ArrayView[String]
+pub fn CacheKey::recipe(Self) -> String
+#deprecated
+pub fn CacheKey::to_repr(Self) -> @debug.Repr
+pub impl @debug.Debug for CacheKey
+
+pub struct CacheManifest {
+  version : Int
+  algorithm : String
+  key : String
+  recipe : String
+  outputs : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn CacheManifest::encode(Self) -> String
+#deprecated
+pub fn CacheManifest::equal(Self, Self) -> Bool
+pub fn CacheManifest::key(Self) -> String
+pub fn CacheManifest::new(String, String, ArrayView[String]) -> Self raise CacheError
+#deprecated
+pub fn CacheManifest::not_equal(Self, Self) -> Bool
+pub fn CacheManifest::outputs(Self) -> ArrayView[String]
+pub fn CacheManifest::recipe(Self) -> String
+#deprecated
+pub fn CacheManifest::to_repr(Self) -> @debug.Repr
+
+pub struct ContentHasher {
+  inner : @ZSeanYves/MoonJust/internal/builtin.Blake3Hasher
+}
+pub fn ContentHasher::finalize(Self) -> String
+pub fn ContentHasher::new() -> Self
+pub fn ContentHasher::update(Self, Bytes) -> Unit
+
+pub struct InputDigest {
+  path : String
+  digest : String
+} derive(Eq, @debug.Debug)
+pub fn InputDigest::digest(Self) -> String
+#deprecated
+pub fn InputDigest::equal(Self, Self) -> Bool
+pub fn InputDigest::new(String, String) -> Self raise CacheError
+#deprecated
+pub fn InputDigest::not_equal(Self, Self) -> Bool
+pub fn InputDigest::path(Self) -> String
+#deprecated
+pub fn InputDigest::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

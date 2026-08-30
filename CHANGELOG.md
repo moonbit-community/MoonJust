@@ -1,99 +1,155 @@
 # Changelog
 
-All notable changes to MoonJust will be documented here. The project follows
-[Semantic Versioning](https://semver.org/) independently of upstream `just`.
+This file records user-visible changes recovered from the repository's commit
+and pull-request history. MoonJust follows Semantic Versioning independently of
+the upstream just version it implements.
 
-## Unreleased
+The repository has not created Git tags or GitHub Releases yet. Dates below are
+the dates on which the corresponding moon.mod version entered source history;
+early 0.3.0 through 0.7.0-alpha.1 entries were development snapshots, not
+published releases.
 
-### MoonJust feature branch review
-
-- Replaced the former verification fan-out with the unified `tools/runner.py`
-  DAG, exact-head build registry, reusable Native/wasm artifacts and shared
-  evidence schema. Contract suites now emit one executable suite record with
-  independent case IDs and provenance.
-- Added hosted cloud-trend measurements with explicit cold/warm rounds and
-  removed the self-hosted machine as an authoritative performance gate.
-- Reduced CLI dispatch, planner/runtime coordination, source loading and
-  process-spawn duplication while preserving deterministic scheduling,
-  cancellation, cache leases, cleanup and Native/wasm behavior.
-- Closed the final macOS arm64 shared-wasm compatibility gap by normalizing
-  launcher architecture aliases to Rust-compatible `aarch64`/`x86_64` names.
-- Completed the upstream registration inventory: 2,417 rows are classified,
-  with no incomplete compatibility registration; completion and the two
-  documented Linux MoonX invalid-cwd cases remain explicit scope exclusions.
-- Completed the warning audit and added regression coverage for the portable
-  architecture boundary. The public API interface remains byte-identical.
-
-The release artifact-size gate remains a known independent exception while
-the current candidates stay around 1.1x of the frozen baseline; this does not
-change compatibility or functional claims.
-
-### Added
-
-- Release-candidate engineering for Linux x86_64, macOS x86_64 and
-  aarch64, Windows x86_64, and linear-memory wasm1 artifacts.
-- Deterministic archives, SHA-256 manifests, CycloneDX 1.5 SBOMs,
-  SLSA-compatible provenance, GitHub OIDC candidate attestations, exact
-  dependency/license audit, and twelve-class tamper rejection.
-- Mooncakes metadata and safe source-package validation, executable public API
-  documentation, and local MoonX registry staging with cold-cache checksum
-  validation.
-- Deny/default-deny, read-only inspect, controlled CI, and explicit execute
-  policies with real wasm smoke tests and documented capability boundaries.
-- Cache-disabled source-package rebuilds, fixed-path repeatability checks, and
-  previous-to-current query/execution upgrade plus byte-exact rollback rehearsal.
-- Native platform/architecture/TTY facts, signal-aware execution,
-  confirmation, chooser/editor workflows, deterministic terminal rendering,
-  source-aware Markdown extraction, and complete compatibility accounting.
-- Bounded FIFO recipe scheduling with `--jobs`, parallel dependency
-  groups, serial fences, deterministic output, and stable failure selection.
-- Versioned BLAKE3 cache keys, strict manifests, Native/wasm1
-  per-digest locks, atomic publication, selective clean, corruption recovery,
-  crash recovery, and cross-process contention handling.
-- Resource hardening with incremental input hashing, concurrently
-  drained process pipes, a 16 MiB per-stream capture budget, and locked stale
-  cache-temporary cleanup.
-- Shell-independent process IR with explicit environment and stdio
-  policies, signal-aware results, deterministic fake-host assertions, and
-  redacted structural diagnostics.
-- Ordinary recipe-line execution with interpolation, exact shell argv,
-  echo and quiet behavior, ignored failures, and side-effect-free dry runs.
-- Script/shebang execution, effectful backticks and `shell()`, ordered
-  dependencies, retained failure output, cancellation-safe cleanup, and a
-  policy-controlled wasm1 process adapter.
-- Repository foundation for Native and wasm1 development.
-- Compatibility planning baseline for `just 1.57.0`.
-- Reproducible upstream inventory and differential harness.
-- Isolated Native/wasm1 qualification for async host and parser ecosystem
-  candidates.
-- Independent-maintainer governance, required CI, and protected `main`.
-- Validated UTF-8 source storage, byte spans, line indexing, and source maps.
-- Structured, ANSI-free diagnostic IR and deterministic plain-text rendering.
-- Host-independent Unix and Windows lexical path values.
-- Project-owned Host capability traits and a deterministic in-memory FakeHost.
-- Typed application requests, failure stages, binary responses, and
-  upstream-compatible exit-status mapping.
-- Machine-checked architecture and compatibility manifests.
+## Unreleased - 0.1.2 development line
 
 ### Changed
 
-- Moved the public library facade from `ZSeanYves/MoonJust` to
-  `ZSeanYves/MoonJust/api`; update imports to use the `/api` package.
-- Replaced the pre-beta facade (`parse`, `format_source`, `compile_source`, and
-  `evaluate_expression`) with the API-owned `check_source`, `format_text`, and
-  `recipe_names` operations. Callers no longer receive implementation AST,
-  compilation, evaluator, or value types.
-- Moved all implementation packages from `src/*` to `internal/*`; only `api`
-  is a stable library package and `cmd/just` remains an executable entry point.
-- Phase 12 restored implementation packages to `src/*`, renamed behavior
-  tests away from coverage-only names, and added a standard-library naming
-  check to the fast verification tier.
-- Removed Tier A and broad compatibility claims. Strict official-harness
-  classifications and release gates now determine readiness.
+- Rebuilt MoonJust as a binary-only module with the executable in the root
+  package. moon run . replaces the former cmd/just path.
+- Removed the public api facade and moved all implementation packages under
+  internal/; this intentionally breaks the former MoonBit library surface but
+  does not change the just-compatible executable contract.
+- Established explicit application, project, query, planner, runtime, and Host
+  ownership around one forward-only execution chain.
+- Grouped Host contracts and the fs, native, process, testkit, and wasm
+  adapters below internal/host/.
+- Replaced the old executor/scheduler split with planning-owned graph and
+  schedule models plus runtime-owned process coordination.
+- Replaced custom release, architecture-count, contract-count, Python, Rust,
+  shell, C, and spike tooling with focused MoonBit behavior, compatibility,
+  platform, and benchmark runners.
+- Moved historical ADRs and delivery reports to docs/development/; current
+  architecture and maintenance records now have separate locations.
+
+### Performance
+
+- Reused invocation Host snapshots and fused redundant Wasm source reads.
+- Kept project loading and single-root semantic compilation on cached,
+  allocation-conscious paths.
+- Added safe synchronous paths for static CLI, summary, format, check, recipe
+  parsing, unchanged formatting, and empty dry-run requests.
+- Avoided dry-run execution-host/task materialization and retained optimized
+  empty DAG planning.
+- Reduced Windows drive-path conversion and repeated process-resolution work.
+- Added runtime-floor and paired benchmark evidence while preserving the
+  regular Moon build/publish path.
 
 ### Fixed
 
-- Redacted script bodies, arguments, `extra`, and environment values from
-  verbose cache-key diagnostics.
-- Replaced quadratic readiness rescans with an incremental stable scheduler
-  queue for large dependency graphs.
+- Preserved loader candidate error precedence, project dependency diagnostics,
+  source-size limits, and async signal compatibility while optimizing.
+- Made candidate executable paths stable after compatibility runners enter an
+  isolated case directory.
+- Made platform differential output exact and independent of per-process
+  temporary working-directory names.
+- Pinned every accepted diagnostic difference to exact candidate bytes with a
+  pure MoonBit SHA-256 implementation.
+
+### Verification
+
+- The current corpus reports 176 exact matches, 6 pinned known differences,
+  and 0 failures against official just 1.57.0.
+- Native/Wasm rewrite comparisons against the performance baseline have median
+  1.00x; artifact growth remains below one percent on both targets.
+- PR #69 passed Ubuntu, macOS, Windows, Wasm, formatting/interface, and official
+  differential CI before merge.
+
+## 0.1.1 - 2026-08-25
+
+### Changed
+
+- Prepared the ZSeanYves/MoonJust Mooncakes package at version 0.1.1 and
+  refreshed the English release documentation.
+- Adopted the latest compatible MoonBit dependency set and made registry update
+  handling more resilient.
+- Removed MoonJust-owned signal forwarding in favor of direct-child lifecycle
+  behavior and explicit async-only compatibility evidence.
+- Consolidated CI orchestration and separated platform, official differential,
+  and release-evidence checks.
+
+### Fixed
+
+- Waited for direct child completion while draining stdout/stderr concurrently.
+- Preserved the documented signal-forwarding limitation rather than masking it
+  with private process-group behavior.
+
+## 0.1.0 - 2026-08-24
+
+### Added
+
+- Completed the just 1.57 command surface across parsing, formatting, semantic
+  validation, project loading, evaluation, queries, recipe execution,
+  concurrency, caching, environment composition, working directories, terminal
+  interaction, and Native/Wasm Host adapters.
+- Added Linux, macOS, Windows, and Wasm compatibility evidence plus package,
+  artifact, dependency, provenance, repeatability, and upgrade checks.
+
+### Changed
+
+- Renamed the module from moonbit-community/MoonJust to ZSeanYves/MoonJust and
+  reset development metadata from 0.7.0-alpha.1 to the first intended package
+  version, 0.1.0.
+- Returned implementation packages to src/ for the Phase 12 layout, removed
+  project-owned production C shims, and retained platform behavior in MoonBit.
+- Classified the full historical 2,417-row upstream inventory and documented
+  completion, host, and signal boundaries explicitly.
+
+## Development Metadata History
+
+These versions appeared in moon.mod while the implementation was being built.
+They were never represented by repository tags or GitHub Releases.
+
+### 0.7.0-alpha.1 - 2026-08-13
+
+- Added source-package, cross-platform artifact, checksum, SBOM, provenance,
+  tamper-resistance, and upgrade/rollback engineering.
+- Marked the release-engineering snapshot as pre-release metadata.
+
+### 0.7.0 - 2026-08-13
+
+- Added platform and terminal facts, interactive flows, Markdown extraction,
+  and broad Tier B compatibility convergence work.
+- Completed the then-current upstream registration classification and platform
+  matrix.
+
+### 0.6.0 - 2026-08-11
+
+- Added bounded scheduling, parallel and subsequent dependencies, deterministic
+  failure selection, persistent cache keys, leases, atomic publication,
+  corruption recovery, and cross-process contention handling.
+
+### 0.5.0 - 2026-08-10
+
+- Added the sequential recipe executor, process adapters, ordinary and script
+  recipes, dry-run behavior, output capture, effectful evaluation, and
+  cancellation cleanup.
+
+### 0.3.0 - 2026-08-07
+
+- Added the composed Native/Wasm query CLI: check, format, init, list, show,
+  summary, usage, evaluate, dump, and JSON inspection.
+- Added atomic Host filesystem operations, dotenv, invocation parsing, working
+  directory modeling, and environment composition during the following Phase 7
+  work on this metadata line.
+
+### 0.1.0 - 2026-08-04
+
+- Established the repository, pinned official just 1.57.0 at commit
+  e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f, and created the initial
+  differential inventory.
+- Added source/span, diagnostics, lexical paths, Host contracts, the lexer,
+  parser, syntax tree, formatter, Markdown tangle, semantic compiler, loader,
+  evaluator, builtins, and the first Native/Wasm adapters.
+
+[Unreleased]: https://github.com/moonbit-community/MoonJust/compare/8ae279fe...HEAD
+[0.1.1]: https://github.com/moonbit-community/MoonJust/commit/8ae279fef0e3f445b19c57c24f34aa921165f1cb
+[0.1.0]: https://github.com/moonbit-community/MoonJust/commit/354869e00f88af167ce5fdb0a38a1f6687c71122

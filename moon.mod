@@ -1,8 +1,8 @@
 name = "ZSeanYves/MoonJust"
 
-version = "0.1.1"
+version = "0.1.2"
 
-readme = "README.mbt.md"
+readme = "README.md"
 
 repository = "https://github.com/moonbit-community/MoonJust"
 
@@ -21,15 +21,5 @@ import {
 }
 
 options(
-  exclude: [
-    "AGENTS.md",
-    "CONTRIBUTING.md",
-    "compat/",
-    "docs/adr/",
-    "docs/reports/",
-    "docs/spikes/",
-    "spikes/",
-    "tests/",
-    "tools/",
-  ],
+  exclude: [ "AGENTS.md", "CONTRIBUTING.md", "docs/", "tests/" ],
 )

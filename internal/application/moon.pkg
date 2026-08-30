@@ -1,0 +1,39 @@
+import {
+  "ZSeanYves/MoonJust/internal/cli",
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/formatter",
+  "ZSeanYves/MoonJust/internal/evaluator",
+  "ZSeanYves/MoonJust/internal/environment",
+  "ZSeanYves/MoonJust/internal/planner",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
+  "ZSeanYves/MoonJust/internal/host/process" @host_process,
+  "ZSeanYves/MoonJust/internal/runtime",
+  "ZSeanYves/MoonJust/internal/invocation",
+  "ZSeanYves/MoonJust/internal/lexer",
+  "ZSeanYves/MoonJust/internal/loader",
+  "ZSeanYves/MoonJust/internal/modulepath",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/project",
+  "ZSeanYves/MoonJust/internal/query",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/syntax",
+  "ZSeanYves/MoonJust/internal/value",
+  "ZSeanYves/MoonJust/internal/workdir",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/async",
+  "moonbitlang/async/stdio",
+}
+
+supported_targets = "-all+native+wasm"
+
+options(
+  targets: {
+    "perf_trace.mbt": [ "native", "wasm" ],
+    "perf_trace_stub.mbt": [ "wasm-gc", "js" ],
+  },
+)

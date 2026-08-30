@@ -1,0 +1,11 @@
+import {
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host/wasm" @host_wasm,
+  "ZSeanYves/MoonJust/internal/path",
+  "moonbitlang/async",
+  "moonbitlang/async/fs" @async_fs,
+  "moonbitlang/async/os_error",
+  "moonbitlang/core/env",
+}
+
+supported_targets = "-all+wasm"

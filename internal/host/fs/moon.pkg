@@ -1,0 +1,6 @@
+import {
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/path",
+}
+
+supported_targets = "-all+native+wasm"

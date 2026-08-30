@@ -1,4 +1,0 @@
-#!/bin/sh
-set -eu
-
-exec python3 tools/runner.py run --mode fast

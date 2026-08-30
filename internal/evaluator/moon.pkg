@@ -1,0 +1,20 @@
+import {
+  "ZSeanYves/MoonJust/internal/builtin",
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/formatter",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
+  "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/syntax",
+  "ZSeanYves/MoonJust/internal/value",
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+  "moonbitlang/x/time",
+}
+
+supported_targets = "-all+native+wasm"

@@ -1,0 +1,11 @@
+import {
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/lexer",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/syntax",
+  "moonbitlang/core/env",
+}
+
+import {
+  "moonbitlang/core/bench",
+} for "test"

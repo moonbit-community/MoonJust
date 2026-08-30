@@ -1,90 +1,113 @@
-# MoonJust architecture
+# Architecture
 
-## Design rule
+MoonJust is a binary-only MoonBit project. The root package owns the executable
+entrypoint; every reusable implementation package is private under `internal/`.
 
-MoonJust implements observable `just` behavior rather than translating Rust
-files one by one. The architecture keeps parsing, analysis, evaluation, and
-planning deterministic and independent from host I/O. Filesystem, environment,
-process, terminal, time, random, and signal operations enter through
-project-owned capabilities.
+## Execution chain
 
 ```text
-cmd/just
-  -> cli
-  -> loader -> source -> lexer -> syntax -> parser
-            -> semantic -> evaluator -> invocation -> workdir -> planner
-            -> runtime -> host
-                       -> host_native
-                       -> host_wasm
+main
+  -> application.classify_request
+  -> application.prepare_project
+  -> project.load_snapshot
+  -> query | planner
+  -> runtime.execute_plan
+  -> application.render_response
+  -> main.write_and_exit
 ```
 
-Dependencies flow from the command composition root toward leaf packages.
-`source`, `syntax`, `semantic value types`, `invocation`, and `diagnostic IR` do
-not import a host adapter. Target-specific `#cfg` and FFI are restricted to
-host adapters.
+Static `--help` and `--version` requests end before Host initialization. Wasm
+summary/check/format requests may use the target adapter's synchronous fast
+path; a rejected fast path returns to the same application chain without
+changing errors or output order.
 
-## Package ownership
+`application` is the only orchestration package. It owns routing, invocation
+facts, error conversion, response assembly, and the hand-off between project,
+query, planner, and runtime. Domain packages never import it.
 
-| Package | Responsibility | Must not own |
-| --- | --- | --- |
-| `api` | stable user-facing API and build metadata | parser internals or target FFI |
-| `source` | UTF-8 bytes, source IDs, byte spans, line index | terminal rendering |
-| `diagnostic` | structured diagnostic values and render contracts | process exits |
-| `path` | host-independent Unix/Windows lexical path values | filesystem canonicalization |
-| `lexer` | tokens and lexical state machines | semantic name resolution |
-| `syntax` | AST/CST types used by parser and formatter | filesystem loading |
-| `parser` | recursive-descent grammar | imports or command execution |
-| `formatter` | canonical source rendering and check diffs | source discovery |
-| `semantic` | settings, attributes, symbols, static validation | host side effects |
-| `loader` | source discovery and import/module graph | direct target FFI |
-| `evaluator` | pure and explicitly effectful expression evaluation | arbitrary global environment reads; implicit host access |
-| `environment` | dotenvy-compatible parsing, redacted errors, environment precedence and source loading | global environment mutation or direct process/filesystem access |
-| `invocation` | recipe argument and option parsing | global CLI parsing |
-| `workdir` | invocation/project/module cwd composition and no-cd precedence | filesystem canonicalization or process mutation |
-| `planner` | ordered dependency DAG and execution plan | process spawning |
-| `runtime` | scheduler, cache state machine, execution orchestration | backend-specific calls |
-| `host` | project-owned capability contracts and errors | third-party concrete types |
-| `host_native` | Native capability implementation | language semantics |
-| `host_wasm` | moonrun/moonx wasm1 capability implementation | browser compatibility claims |
-| `host_wasm/transaction` | policy-aware wasm1 atomic file transactions | synchronous core loading or direct WASI calls |
-| `cli` | argv validation and application request | parser internals |
+## Package map
 
-Packages are introduced only when their phase starts. Empty directories and
-placeholder public APIs are not committed merely to mirror this table.
+```text
+MoonJust (root executable)
+└── internal/application
+    ├── cli
+    ├── project ── loader ── parser ── lexer
+    │           └─ semantic ── evaluator ── builtin/value
+    ├── query
+    ├── planner ── invocation/environment/cache
+    ├── runtime ── planner/cache
+    └── host
+        ├── fs
+        ├── native
+        ├── process
+        ├── wasm
+        │   └── transaction
+        └── testkit (tests only)
+```
 
-## Dependency policy
+Supporting value packages are `source`, `syntax`, `diagnostic`, `path`,
+`modulepath`, and `workdir`. They contain data models and pure transformations,
+not application routing or process creation.
 
-1. MoonBit core packages are preferred.
-2. Official ecosystem packages are isolated behind MoonJust contracts.
-3. Community packages require target, license, maintenance, and differential
-   contract evidence.
-4. Compatibility-critical behavior is implemented in-project when no package
-   passes the contract.
-5. A package version is exact, and an update is a reviewed compatibility
-   change.
+## Ownership
 
-## Public API policy
+- `cli`: argument grammar, environment-backed options, validation, and response
+  values. It does not read a justfile.
+- `loader`: discovery, bounded source reads, canonical paths, imports, and the
+  loaded module graph.
+- `semantic` and `evaluator`: declarations, validation, scopes, settings,
+  values, and explicitly capability-gated effects.
+- `project`: immutable project input, source graph, semantic compilation, and
+  working-directory facts shared by query and planning.
+- `query`: read-only result models, deterministic ordering, display width, and
+  rendering support.
+- `planner`: dependency traversal, recipe expansion, dry-run eligibility,
+  scripts, scheduling data, and `ExecutionPlan` construction. It never starts a
+  process.
+- `runtime`: captured/live I/O, task coordination, cache execution,
+  cancellation, and process result conversion. It never reloads or reparses a
+  project.
+- `host`: capabilities, errors, and boundary value types only. `host/fs`
+  contains reusable file algorithms; the remaining children implement concrete
+  adapters.
 
-The `api` package owns public concrete types users are expected to inspect or
-construct. Internal implementation packages do not leak concrete types through
-the facade. Every public change is reviewed through generated
-`api/pkg.generated.mbti` and black-box tests.
+The `host/wasm` package has a Native-only `ReadOnlyFs` branch for compiling its
+inspection adapter on Native. The Wasm branch wraps `PortableHost`; no Wasm
+runtime path calls the Native implementation.
 
-## Target policy
+## File organization
 
-- `native`: production CLI target for supported Linux, macOS, and Windows
-  runners.
-- `wasm`: production CLI target under `moonx`/`moonrun` when the host grants
-  required capabilities.
-- `wasm-gc` and `js`: pure-core check targets until a later ADR expands scope.
-- Browser and arbitrary WASI recipe execution are not initial release promises.
+Root files are fixed by target responsibility:
 
-## Architecture tests
+```text
+main.mbt                 shared routing and final output
+runtime_native.mbt       Native Host and exit adapter
+runtime_portable.mbt     Wasm Host, exit adapter, and safe fast paths
+```
 
-CI enforces all-target type checking, Native/wasm tests, generated interface
-stability, and `tools/verification/checks/architecture.py`. The architecture check rejects
-target-specific FFI, conditional compilation, async implementation, and host
-adapter imports in completed pure-core packages. The `host` package may declare
-an async capability, but runtime imports and implementations remain confined to
-leaf adapters. Its package inventory expands when a new pure-core phase begins.
-Compatibility manifests are verified alongside the pinned upstream inventory.
+Within `application`, files are named for lifecycle responsibility:
+`routing`, `project_preparation`, `planning`, `responses`, and `errors`.
+Target-specific implementations use `_native` or `_portable`; async Host
+boundaries use `_async` only when the synchronous path has different
+capabilities. `trait_extensions.mbt` is reserved for package-local extension
+methods and does not contain orchestration.
+
+## Invariants
+
+- Project loading cannot start a process or write command output.
+- Query cannot mutate the project or construct runtime tasks.
+- Planner cannot import a concrete process adapter.
+- Runtime receives an existing plan and cannot import lexer, parser, or loader.
+- Host contracts do not depend on cache implementations or test doubles.
+- Native/Wasm differences are selected at root or Host leaves, never by hidden
+  global behavior in domain packages.
+- Loading caches end before recipe execution; execution observes file changes.
+
+## Verification
+
+All executable verification tools are MoonBit packages under `tests/`.
+`tests/compat` compares status, stdout, stderr, merged streams, filesystem
+effects, and live-output observations against just 1.57.0. Existing known
+differences are restricted by field and pinned candidate SHA-256. `tests/platform`
+runs a cross-platform candidate/oracle differential, and `tests/benchmark`
+uses interleaved paired samples after verifying workload output equivalence.

@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/MoonJust/internal/modulepath"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+pub(all) suberror ModulePathError {
+  InvalidModulePath(String)
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn ModulePathError::equal(Self, Self) -> Bool
+#deprecated
+pub fn ModulePathError::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ModulePathError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct ModulePath {
+  components : Array[String]
+} derive(Eq, Hash, @debug.Debug)
+pub fn ModulePath::as_string(Self) -> String
+pub fn ModulePath::child(Self, String) -> Self raise ModulePathError
+pub fn ModulePath::components(Self) -> ArrayView[String]
+#deprecated
+pub fn ModulePath::equal(Self, Self) -> Bool
+#deprecated
+pub fn ModulePath::hash(Self) -> Int
+#deprecated
+pub fn ModulePath::hash_combine(Self, Hasher) -> Unit
+pub fn ModulePath::is_root(Self) -> Bool
+pub fn ModulePath::new(Array[String]) -> Self raise ModulePathError
+#deprecated
+pub fn ModulePath::not_equal(Self, Self) -> Bool
+pub fn ModulePath::parent(Self) -> Self?
+pub fn ModulePath::parse(String) -> Self raise ModulePathError
+pub fn ModulePath::root() -> Self
+pub fn ModulePath::starts_with(Self, Self) -> Bool
+#deprecated
+pub fn ModulePath::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

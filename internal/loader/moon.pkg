@@ -1,0 +1,17 @@
+import {
+  "ZSeanYves/MoonJust/internal/diagnostic",
+  "ZSeanYves/MoonJust/internal/formatter",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/modulepath",
+  "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/source",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/syntax",
+}
+
+supported_targets = "-all+native+wasm"
+
+import {
+  "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
+} for "test"

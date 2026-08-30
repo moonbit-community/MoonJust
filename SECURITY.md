@@ -1,9 +1,8 @@
-# Security policy
+# Security Policy
 
-## Supported versions
-
-MoonJust is pre-release software. Security fixes currently target the `main`
-branch. A supported release table will be published before 1.0.
+MoonJust is distributed as a MoonBit executable. Security fixes are developed
+on the repository's active branch and verified with the same behavior tests as
+all other changes.
 
 ## Reporting a vulnerability
 
@@ -23,17 +22,5 @@ that spawned processes are contained by the parent `moonrun` policy. Review
 untrusted justfiles and use an operating-system or container sandbox when
 isolation is required.
 
-The policy examples are described in [`docs/RELEASE_POLICY.md`](docs/RELEASE_POLICY.md).
-In particular, `policies/execute.toml` grants ambient filesystem, environment,
-and child-process access. A spawned process is not sandboxed by the parent
-`moonrun` policy.
-
-## Release integrity
-
-Official release bundles contain SHA-256 checksums, a CycloneDX SBOM and a
-provenance statement binding the artifact to its source commit and MoonBit
-toolchain. GitHub release-candidate artifacts are attested by the candidate
-workflow using its OIDC identity. Formal publication remains a maintainer-only
-action. Verify the checksum before execution and the attestation against
-`moonbit-community/MoonJust`; do not trust an archive whose provenance commit
-is absent from this repository.
+A spawned process is not sandboxed by the parent `moonrun` policy. Use an
+operating-system or container sandbox when stronger isolation is required.
