@@ -46,6 +46,6 @@ moon run --target native ./tests/benchmark -- --candidate PATH --official PATH -
 Only functional behavior is tested: bytes written to stdout and stderr,
 status codes, file effects, environment, stdin timing, and platform policy.
 
-Current architecture and maintenance guidance live in `docs/maintenance/`.
-Historical ADRs and engineering reports remain available under
-`docs/development/`.
+Current architecture lives in `docs/ARCHITECTURE.md`. Maintenance-era reports
+live in `docs/maintenance/`; historical ADRs and development reports remain
+available under `docs/development/`.

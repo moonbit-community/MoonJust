@@ -5,4 +5,5 @@ development era. The documents are retained as historical evidence and may
 describe packages, APIs, workflows, or release practices that no longer
 exist.
 
-Current maintenance guidance lives in `docs/maintenance/`.
+The current architecture lives in `docs/ARCHITECTURE.md`, and maintenance-era
+reports live in `docs/maintenance/`.
