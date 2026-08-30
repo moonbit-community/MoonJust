@@ -9,32 +9,12 @@ fn option(args : ArrayView[String], name : String) -> String? {
 }
 
 ///|
-async fn platform_result(program : String) -> @testkit.RunResult {
-  let root = @fs.tmpdir(prefix="moonjust-platform")
-  defer (@fs.rmdir(root, recursive=true) catch { _ => () })
-  let justfile = @path.Path(root).join(Path("justfile")).to_string()
-  @fs.write_file(
-    justfile,
-    @utf8.encode("probe:\n  @echo {{invocation_directory()}}\n"),
-  )
-  let result = @testkit.run(
-    program,
-    ["--justfile", justfile, "probe"],
-    cwd=root,
-  )
-  {
-    status: result.status,
-    stdout: @testkit.replace_bytes(
-      result.stdout,
-      @utf8.encode(root)[:],
-      b"<CASE_ROOT>"[:],
-    ),
-    stderr: @testkit.replace_bytes(
-      result.stderr,
-      @utf8.encode(root)[:],
-      b"<CASE_ROOT>"[:],
-    ),
-  }
+async fn platform_result(
+  program : String,
+  justfile : String,
+  cwd : String,
+) -> @testkit.RunResult {
+  @testkit.run(program, ["--justfile", justfile, "probe"], cwd~)
 }
 
 ///|
@@ -61,8 +41,16 @@ async fn main {
     @sys.exit(2)
     return
   }
-  let expected = platform_result(official)
-  let actual = platform_result(candidate)
+  let root = @fs.tmpdir(prefix="moonjust-platform")
+  defer (@fs.rmdir(root, recursive=true) catch { _ => () })
+  let justfile = @path.Path(root).join(Path("justfile")).to_string()
+  @fs.write_file(
+    justfile,
+    @utf8.encode("probe:\n  @echo {{invocation_directory()}}\n"),
+  )
+  let cwd = @env.current_dir().unwrap_or(".")
+  let expected = platform_result(official, justfile, cwd)
+  let actual = platform_result(candidate, justfile, cwd)
   let failures : Array[String] = []
   if expected.status != actual.status {
     failures.push("exit status")
