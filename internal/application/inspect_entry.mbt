@@ -1,5 +1,6 @@
 ///|
-pub fn[T : @host.HostFs] execute_inspect_command(
+#cfg(target="native")
+fn[T : @host.HostFs] execute_inspect_command(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -35,8 +36,9 @@ pub fn[T : @host.HostFs] execute_inspect_command(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 #warnings("-unused_async-unused_trait_bound")
-pub async fn[T : @host.HostFs + @host.HostSourceReader] execute_inspect_command_async(
+async fn[T : @host.HostFs + @host.HostSourceReader] execute_inspect_command_async(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,

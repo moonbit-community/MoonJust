@@ -2,6 +2,7 @@
 /// A portable CLI run checks `default-list` immediately before planning. Keep
 /// that immutable load result for the following planner call so Wasm does not
 /// parse and compile the same project twice.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 priv struct PreparedRunProject {
   cwd : @path.PathValue
   stdin : BytesView
@@ -20,14 +21,17 @@ priv struct PreparedRunProject {
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 let prepared_run_project_cache : Ref[PreparedRunProject?] = Ref(None)
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 fn clear_prepared_run_project() -> Unit {
   prepared_run_project_cache.val = None
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 fn prepared_run_matches(
   prepared : PreparedRunProject,
   arguments : @cli.CliArguments,
@@ -51,6 +55,7 @@ fn prepared_run_matches(
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 fn cache_prepared_run_project(
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -80,6 +85,18 @@ fn cache_prepared_run_project(
 }
 
 ///|
+#cfg(target="native")
+fn take_prepared_run_project(
+  _arguments : @cli.CliArguments,
+  _context : @project.ProjectInput,
+  _platform : @host.PlatformInfo,
+  _environment : ArrayView[(String, String)],
+) -> @project.ProjectSnapshot? {
+  None
+}
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 fn take_prepared_run_project(
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,

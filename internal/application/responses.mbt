@@ -1,5 +1,5 @@
 ///|
-pub fn failure(message : String, exit_code : Int) -> @cli.ApplicationResponse {
+fn failure(message : String, exit_code : Int) -> @cli.ApplicationResponse {
   @cli.ApplicationResponse::new(
     b"",
     @utf8.encode(message.trim_end().to_owned() + "\n"),
@@ -26,7 +26,7 @@ const JUST_MAN_HEADER : String =
   #|[options] [recipe [arguments...]]
 
 ///|
-pub fn version_line() -> String {
+fn version_line() -> String {
   "moonjust v0.1.1"
 }
 

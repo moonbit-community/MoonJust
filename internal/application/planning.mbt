@@ -1,95 +1,4 @@
 ///|
-/// Validate and plan a run command without granting process capability.
-pub fn[
-  F : @host.HostFs,
-  E : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
-] plan_run_command(
-  host : F,
-  environment_host : E,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-) -> @planner.ExecutionPlan raise ApplicationError {
-  if arguments.command() != RunCommand {
-    raise UnsupportedCommand("execution planning for non-run command")
-  }
-  let loading_environment = @host.HostEnv::env_entries(environment_host) catch {
-    error => raise Host(error)
-  }
-  let snapshot = load_project_snapshot(
-    host,
-    arguments,
-    context,
-    semantic_target_platform(
-      @host.HostPlatform::platform_info(environment_host) catch {
-        error => raise Host(error)
-      },
-    ),
-    loading_environment,
-  )
-  let project = snapshot.compilation()
-  let directories = snapshot.directories()
-  let globals = evaluate_project_globals(project, arguments)
-  let invocations = @invocation.parse_project_invocations_in_environments(
-    project,
-    arguments.positional(),
-    globals,
-    allow_missing=arguments.flag("allow-missing"),
-  ) catch {
-    error => raise Invocation(error)
-  }
-  if arguments.flag("one") && invocations.length() != 1 {
-    raise Query(
-      "expected 1 command-line recipe invocation but found " +
-      invocations.length().to_string(),
-    )
-  }
-  let color_enabled = selected_color_active(environment_host, arguments)
-  let command_color = selected_command_color(arguments, color_enabled)
-  let options = execution_options(arguments, None, command_color, color_enabled)
-  let plans : Array[@planner.ExecutionPlan] = []
-  for project_invocation in invocations {
-    let path = project_invocation.module_path()
-    let invocation = project_invocation.invocation()
-    let compilation = project.module_compilation(path).unwrap()
-    let global = globals[path]
-    let module_setting = evaluated_string_setting(
-      compilation, global, "working-directory",
-    )
-    let cwd = project_module_cwd(
-      project,
-      directories,
-      path,
-      module_setting,
-      compilation.settings().bool("no-cd"),
-    )
-    let shell = selected_shell(compilation, global, arguments, cwd.flavor())
-    let environment = process_environment(
-      loading_environment,
-      global,
-      cwd.flavor(),
-      unexports=compilation.unexports(),
-    )
-    let values = invocation_values(compilation, invocation, global)
-    plans.push(
-      @planner.plan_recipe_graph(
-        compilation,
-        [@planner.RecipeRequest::new(invocation.recipe(), arguments=values)],
-        global,
-        shell,
-        cwd,
-        process_environment=environment,
-        options=options.with_echo_quiet(
-          options.echo_quiet() || compilation.settings().bool("quiet"),
-        ),
-      ) catch {
-        error => raise Planner(error)
-      },
-    )
-  }
-  @planner.combine_execution_plans(plans)
-}
-
-///|
 async fn[
   P : @host.HostAsyncProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
@@ -375,7 +284,7 @@ async fn[
 /// Async application boundary. All parsing, semantic work, invocation
 /// validation, and effectful interpolation are complete before runtime steps
 /// are handed to the process adapter.
-pub async fn[
+async fn[
   F : @host.HostFs + @host.HostSourceReader,
   P : @host.HostAsyncProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,

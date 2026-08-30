@@ -322,6 +322,7 @@ fn project_load_request(
 }
 
 ///|
+#cfg(target="native")
 fn[T : @host.HostFs] load_project_snapshot(
   host : T,
   arguments : @cli.CliArguments,

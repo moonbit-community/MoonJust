@@ -92,7 +92,7 @@ fn interactive_invocation_failure(
 ///|
 /// Open the selected justfile without parsing it first. This is intentionally
 /// usable as a recovery path for malformed source files.
-pub async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostAsyncProcess] execute_edit_command_async(
+async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostAsyncProcess] execute_edit_command_async(
   filesystem : F,
   effects : E,
   process : P,
@@ -273,7 +273,7 @@ fn decode_chooser_selections(
 /// Run the configured chooser and return one independent recipe invocation per
 /// selected output line. Exit status 130 is the chooser cancellation contract.
 #warnings("-unused_trait_bound")
-pub async fn[
+async fn[
   F : @host.HostFs + @host.HostSourceReader,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
   P : @host.HostAsyncProcess,

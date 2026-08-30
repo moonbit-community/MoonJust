@@ -1,10 +1,4 @@
 ///|
-/// Version of the stable JSON contract emitted by `--json` and JSON dump.
-pub fn inspect_json_schema_version() -> Int {
-  1
-}
-
-///|
 fn json_object(entries : Array[(String, Json)]) -> Json {
   Json::object(Map::from_array(entries))
 }

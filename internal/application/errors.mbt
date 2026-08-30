@@ -43,7 +43,7 @@ fn process_exit_label() -> String {
 }
 
 ///|
-pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
+fn ApplicationError::exit_code(self : ApplicationError) -> Int {
   match self {
     Cli(_) | UnsupportedCommand(_) => 2
     InteractiveProcess(termination=Exited(code), ..) => code
@@ -75,7 +75,7 @@ pub fn ApplicationError::exit_code(self : ApplicationError) -> Int {
 }
 
 ///|
-pub fn ApplicationError::message(self : ApplicationError) -> String {
+fn ApplicationError::message(self : ApplicationError) -> String {
   match self {
     Cli(Invalid(message)) | Cli(Config(message)) => message
     Cli(Unsupported(name)) => "error: option '\{name}' is not supported yet"
@@ -196,107 +196,10 @@ fn diagnostic_load_cwd(
 }
 
 ///|
-/// Render source-backed semantic and evaluation failures. Other application
-/// errors retain their stable one-line diagnostics because they do not carry a
-/// source span that can be validated against the loaded graph.
-pub fn[T : @host.HostFs] render_application_error(
-  host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-  error : ApplicationError,
-) -> String {
-  match error {
-    Evaluation(UnknownOverrides(..) as evaluation) =>
-      return "error: " + evaluation.message()
-    Evaluation(EmptyParameter(..) as evaluation) =>
-      return "error: " + evaluation.message()
-    Planner(Evaluation(EmptyParameter(..) as evaluation)) =>
-      return "error: " + evaluation.message()
-    Evaluation(FunctionRecursionLimit(..) as evaluation) =>
-      return "error: " + evaluation.message()
-    _ => ()
-  }
-  let diagnostic = match error {
-    Load(error) =>
-      match error.span() {
-        Some(span) => Some(error.to_diagnostic(span)) catch { _ => None }
-        None => None
-      }
-    Semantic(error) | ContextualSemantic(error~, ..) =>
-      Some(error.to_diagnostic()) catch {
-        _ => None
-      }
-    Evaluation(error) => Some(error.to_diagnostic()) catch { _ => None }
-    Invocation(error) => error.to_diagnostic() catch { _ => None }
-    Planner(error) => error.to_diagnostic() catch { _ => None }
-    _ => None
-  }
-  guard diagnostic is Some(diagnostic) else {
-    return stable_application_error_message(error)
-  }
-  let sources = @source.SourceMap::new()
-  let render_cwd = match error {
-    ContextualSemantic(cwd~, ..) => cwd
-    Load(_) => diagnostic_load_cwd(arguments, context.cwd())
-    _ => context.cwd()
-  }
-  let direct_source = match error {
-    Load(error) => error.diagnostic_source()
-    ContextualSemantic(source~, ..) => Some(source)
-    _ => None
-  }
-  match direct_source {
-    Some(source) =>
-      try sources.add(diagnostic_source(source, render_cwd)) catch {
-        _ => return stable_application_error_message(error)
-      } noraise {
-        _ => ()
-      }
-    None => {
-      let graph = try
-        load_graph_input_with_directories(host, arguments, context).0
-      catch {
-        _ => {
-          let loaded = try
-            load_input_with_directories(host, arguments, context).0
-          catch {
-            _ => return stable_application_error_message(error)
-          } noraise {
-            value => value
-          }
-          try
-            sources.add(diagnostic_source(loaded.source(), render_cwd))
-          catch {
-            _ => return stable_application_error_message(error)
-          } noraise {
-            _ => ()
-          }
-          return @diagnostic.render_text(diagnostic, sources) catch {
-            _ => stable_application_error_message(error)
-          }
-        }
-      } noraise {
-        value => value
-      }
-      for file in graph.files() {
-        try sources.add(diagnostic_source(file.source(), render_cwd)) catch {
-          _ => return stable_application_error_message(error)
-        } noraise {
-          _ => ()
-        }
-      }
-    }
-  }
-  @diagnostic.render_text(diagnostic, sources) catch {
-    _ => stable_application_error_message(error)
-  }
-}
-
-///|
 /// Async counterpart used by production command paths. Source recovery for a
 /// diagnostic observes the same bounded-read contract as the initial load.
 #warnings("-unused_async-unused_trait_bound")
-pub async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_async(
+async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_async(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,

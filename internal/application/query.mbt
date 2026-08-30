@@ -17,7 +17,8 @@ fn default_list_module_path(
 ///|
 /// Return a list response when `--default-list` or the selected module's
 /// `default-list` setting applies. Explicit recipe invocations return `None`.
-pub fn[
+#cfg(target="native")
+fn[
   F : @host.HostFs,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] execute_default_list_command(
@@ -81,8 +82,9 @@ pub fn[
 
 ///|
 /// Bounded-source variant used by the native and wasm CLI entry points.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 #warnings("-unused_async-unused_trait_bound")
-pub async fn[
+async fn[
   F : @host.HostFs + @host.HostSourceReader,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] execute_default_list_command_async(
@@ -296,8 +298,9 @@ pub fn[
 }
 
 ///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
 #warnings("-unused_async-unused_trait_bound")
-pub async fn[
+async fn[
   F : @host.HostFs + @host.HostSourceReader,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] execute_query_command_with_terminal_async(

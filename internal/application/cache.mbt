@@ -2,7 +2,7 @@
 /// Clear recognized cache manifests for the selected project. Permanent lock
 /// files and unrelated directory entries are intentionally preserved.
 #warnings("-unused_trait_bound")
-pub async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostCacheStore] execute_clean_command(
+async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostCacheStore] execute_clean_command(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,

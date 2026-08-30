@@ -230,7 +230,7 @@ fn evaluation_path(
 }
 
 ///|
-pub async fn[
+async fn[
   F : @host.HostFs + @host.HostSourceReader,
   P : @host.HostAsyncProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
