@@ -39,5 +39,6 @@ Future copied or adapted fixtures must append a row:
 | `src/formatter/markdown_test.mbt` | `src/tangle.rs` | Adapted fenced block, info string, ignored block, source-offset, and budget boundaries | `MJ-TANGLE-ORACLE-1.57.0` |
 | `src/semantic/semantic_test.mbt`, `src/loader/loader_test.mbt` | `src/settings.rs`, `src/attribute.rs`, `src/analyzer.rs`, `src/search.rs`, `src/loader.rs`, `src/module.rs` | Adapted setting/attribute inventories, static checks, discovery, graph, and source-chain cases to capability-backed MoonBit tests | `MJ-SEM-LOAD-ORACLE-1.57.0` |
 | `src/builtin/builtin_test.mbt`, `src/evaluator/evaluator_test.mbt` | `src/evaluator.rs`, `src/value.rs`, `src/function.rs`, `src/function/semver.rs`, `src/function/sha256.rs` | Adapted value, scope, builtin registry, SemVer/regexp, hash, effect, and budget cases without copying Rust implementation | `MJ-EVAL-BUILTIN-ORACLE-1.57.0` |
+| `tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt` | `tests/*.rs`, `src/*/tests` | Source-backed audit blocks preserving each migrated upstream test's input and expected assertion text; no runtime implementation copied | `MJ-UPSTREAM-SNAPSHOT-1.57.0` |
 
 No upstream implementation source was copied into MoonJust during initial development.
