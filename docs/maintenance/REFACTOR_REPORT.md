@@ -23,8 +23,9 @@ to the new bytes.
 
 The compatibility runner reads all 2,417 identities from the pinned just
 1.57.0 inventory and can write one JSON row per identity. The current corpus
-has 201 anchored executable identities, 30 explicit completion exclusions, 14
-runtime-signal exclusions, and 2,172 unclassified identities. The runner keeps
+has 201 anchored executable identities plus 20 MoonBit spec identities, 30
+explicit completion exclusions, 14 runtime-signal exclusions, and 2,152
+unclassified identities. The runner keeps
 that gap visible and fails strict coverage mode instead of inflating pass
 counts. Existing executable results remain 176 exact matches, 6 pinned known
 differences, and 0 failures.
@@ -36,6 +37,13 @@ sample-level ratio interval, and writes gate-compatible JSON. Wasm invocations
 use `moonrun <artifact> -- <program arguments>`; the separator is not passed
 to MoonJust. CI runs native and Wasm benchmark jobs on every OS matrix entry
 and uploads both reports.
+
+The first internal-spec migration covers all 20 upstream `clean::tests`
+identities. They now have one assertion per upstream id in
+`internal/path/upstream_clean_test.mbt`, indexed with source anchors in
+`tests/compatibility/upstream/just-1.57.0/spec-index.txt`. Coverage therefore
+reports 221 executed identities; the remaining unclassified rows are still
+visible and strict mode remains intentionally disabled until they are migrated.
 
 ## Starting Point
 

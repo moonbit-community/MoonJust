@@ -1,4 +1,29 @@
 ///|
+priv struct SpecCase {
+  fixture : String
+  anchor : String
+}
+
+///|
+fn parse_spec_index(text : String) -> Map[String, SpecCase] {
+  let result : Map[String, SpecCase] = Map([])
+  for raw in text.split("\n") {
+    let line = raw.trim().to_owned()
+    if line.is_empty() || line.has_prefix("#") {
+      continue
+    }
+    let fields = line.split("\t").collect()
+    if fields.length() >= 3 {
+      result[fields[0].to_owned()] = {
+        fixture: fields[1].to_owned(),
+        anchor: fields[2].to_owned(),
+      }
+    }
+  }
+  result
+}
+
+///|
 fn json_string(value : String) -> String {
   "\"" +
   value.replace_all(old="\\", new="\\\\").replace_all(old="\"", new="\\\"") +
@@ -20,6 +45,7 @@ fn excluded_reason(upstream_test : String) -> String? {
 fn coverage_status(
   upstream_test : String,
   metadata : Map[String, CaseMetadata],
+  specs : Map[String, SpecCase],
 ) -> (String, String, String, String) {
   for name, details in metadata {
     if details.upstream_tests.contains(upstream_test) {
@@ -31,6 +57,9 @@ fn coverage_status(
       let reason = details.allowed_difference.unwrap_or("")
       return (status, name, upstream_test, reason)
     }
+  }
+  if specs.get(upstream_test) is Some(spec) {
+    return ("moonbit-spec-exact", spec.fixture, spec.anchor, "")
   }
   match excluded_reason(upstream_test) {
     Some(reason) if upstream_test.has_prefix("completions::") =>
@@ -44,6 +73,7 @@ fn coverage_status(
 fn coverage_json(
   upstream_names : Set[String],
   metadata : Map[String, CaseMetadata],
+  specs : Map[String, SpecCase],
 ) -> String {
   let rows : Array[String] = []
   let mut exact = 0
@@ -53,7 +83,7 @@ fn coverage_json(
   let mut unclassified = 0
   for upstream_test in upstream_names {
     let (status, fixture, anchor, reason) = coverage_status(
-      upstream_test, metadata,
+      upstream_test, metadata, specs,
     )
     let candidate_digest = match status {
       "differential-known-difference" => {
@@ -73,6 +103,7 @@ fn coverage_json(
     match status {
       "differential-exact" => exact += 1
       "differential-known-difference" => known += 1
+      "moonbit-spec-exact" => exact += 1
       "excluded-completion" => completion += 1
       "excluded-signal" => signal += 1
       _ => unclassified += 1

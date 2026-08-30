@@ -514,6 +514,13 @@ async fn main {
     "tests/compatibility/upstream/just-1.57.0/test-list.txt",
   )
   let coverage_report = option(args, "--coverage-report")
+  let spec_index = parse_spec_index(
+    read_text(
+      option(args, "--spec-index").unwrap_or(
+        "tests/compatibility/upstream/just-1.57.0/spec-index.txt",
+      ),
+    ),
+  )
   let candidate = resolve_program(candidate_value)
   let official = resolve_program(official_value)
   let parsed_manifest = parse_manifest(read_text(manifest))
@@ -587,7 +594,7 @@ async fn main {
   // future full corpus can provide explicit exclusion files; until then every
   // unbound upstream row remains visible as unclassified.
   for upstream_test in upstream_names {
-    let (status, _, _, _) = coverage_status(upstream_test, metadata)
+    let (status, _, _, _) = coverage_status(upstream_test, metadata, spec_index)
     match status {
       "differential-exact" => {
         executed_total += 1
@@ -596,6 +603,10 @@ async fn main {
       "differential-known-difference" => {
         executed_total += 1
         known_difference_total += 1
+      }
+      "moonbit-spec-exact" => {
+        executed_total += 1
+        exact_total += 1
       }
       "excluded-completion" => excluded_completion_total += 1
       "excluded-signal" => excluded_signal_total += 1
@@ -606,7 +617,7 @@ async fn main {
     Some(path) =>
       @fs.write_file(
         path,
-        @utf8.encode(coverage_json(upstream_names, metadata)),
+        @utf8.encode(coverage_json(upstream_names, metadata, spec_index)),
       )
     None => ()
   }

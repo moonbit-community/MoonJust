@@ -1,0 +1,21 @@
+# upstream_id<TAB>fixture_or_spec<TAB>upstream_source_anchor
+clean::tests::empty_path_maps_to_current_dir	internal/path/upstream_clean_test.mbt:10	src/clean.rs:46
+clean::tests::single_current_dir_is_preserved	internal/path/upstream_clean_test.mbt:15	src/clean.rs:51
+clean::tests::multiple_current_dirs_are_collapsed	internal/path/upstream_clean_test.mbt:20	src/clean.rs:56
+clean::tests::leading_parent_dir_is_preserved	internal/path/upstream_clean_test.mbt:25	src/clean.rs:61
+clean::tests::multiple_parent_dirs_are_preserved	internal/path/upstream_clean_test.mbt:30	src/clean.rs:66
+clean::tests::trailing_slash_is_removed	internal/path/upstream_clean_test.mbt:35	src/clean.rs:71
+clean::tests::leading_current_dir_is_removed	internal/path/upstream_clean_test.mbt:40	src/clean.rs:76
+clean::tests::trailing_parent_dir_after_current_dir_is_preserved	internal/path/upstream_clean_test.mbt:45	src/clean.rs:81
+clean::tests::trailing_current_dir_is_removed	internal/path/upstream_clean_test.mbt:50	src/clean.rs:86
+clean::tests::intermediate_current_dir_is_removed	internal/path/upstream_clean_test.mbt:55	src/clean.rs:91
+clean::tests::multiple_current_dirs_are_removed	internal/path/upstream_clean_test.mbt:60	src/clean.rs:96
+clean::tests::parent_dir_after_root_is_removed	internal/path/upstream_clean_test.mbt:65	src/clean.rs:101
+clean::tests::current_dir_after_root_is_removed	internal/path/upstream_clean_test.mbt:70	src/clean.rs:106
+clean::tests::multiple_slashes_are_removed	internal/path/upstream_clean_test.mbt:75	src/clean.rs:111
+clean::tests::normal_after_root_is_preserved	internal/path/upstream_clean_test.mbt:80	src/clean.rs:116
+clean::tests::intermediate_parent_dir_is_removed	internal/path/upstream_clean_test.mbt:85	src/clean.rs:121
+clean::tests::trailing_parent_dir_pops_normal	internal/path/upstream_clean_test.mbt:90	src/clean.rs:126
+clean::tests::trailing_parent_dir_pops_normal_before_current	internal/path/upstream_clean_test.mbt:95	src/clean.rs:131
+clean::tests::normal_is_preserved	internal/path/upstream_clean_test.mbt:100	src/clean.rs:136
+clean::tests::parent_dir_after_normal_is_current	internal/path/upstream_clean_test.mbt:105	src/clean.rs:141
