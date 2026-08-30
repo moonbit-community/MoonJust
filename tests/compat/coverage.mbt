@@ -58,10 +58,18 @@ fn coverage_status(
       return (status, name, upstream_test, reason)
     }
   }
-  // Source snapshots are audit evidence, not executed tests. They retain
-  // their fixture and upstream anchor in reports, but cannot contribute to
-  // executed coverage until a real MoonBit whitebox/spec test is registered.
+  // Concrete MoonBit assertion files are executable spec evidence. The large
+  // Rust source snapshot is audit evidence only and must not inflate coverage.
   if specs.get(upstream_test) is Some(spec) {
+    let fixture_path = spec.fixture
+      .split(":")
+      .collect()
+      .get(0)
+      .unwrap_or("")
+      .to_owned()
+    if !fixture_path.has_suffix("upstream-fixtures.txt") {
+      return ("moonbit-spec-exact", spec.fixture, spec.anchor, "")
+    }
     return ("unclassified", spec.fixture, spec.anchor, "source-snapshot-only")
   }
   match excluded_reason(upstream_test) {

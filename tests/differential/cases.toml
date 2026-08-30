@@ -11968,3 +11968,19 @@ status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["shell::backtick_recipe_shell_not_found_error_message"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-B17-000"
+directory = "upstream-b17-000"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::single_downwards"]
+
+[[case]]
+id = "MJ-UPSTREAM-B18-034"
+directory = "upstream-b18-034"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["man::output"]
