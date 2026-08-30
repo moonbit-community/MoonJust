@@ -1,4 +1,10 @@
 ///|
+priv struct Program {
+  executable : String
+  prefix : Array[String]
+}
+
+///|
 fn option(args : ArrayView[String], name : String, fallback : String) -> String {
   for index, value in args {
     if value == name && index + 1 < args.length() {
@@ -6,6 +12,38 @@ fn option(args : ArrayView[String], name : String, fallback : String) -> String 
     }
   }
   fallback
+}
+
+///|
+async fn program(
+  args : ArrayView[String],
+  path_option : String,
+  runner_option : String,
+) -> Program {
+  let path = option(args, path_option, "")
+  let path = if path.contains("/") || path.contains("\\") {
+    @fs.realpath(path)
+  } else {
+    path
+  }
+  let runner = option(args, runner_option, "")
+  if runner.is_empty() {
+    { executable: path, prefix: [], }
+  } else {
+    { executable: runner, prefix: [path], }
+  }
+}
+
+///|
+fn program_arguments(
+  program : Program,
+  args : ArrayView[String],
+) -> Array[String] {
+  let result = program.prefix.copy()
+  for argument in args {
+    result.push(argument)
+  }
+  result
 }
 
 ///|
@@ -22,9 +60,13 @@ fn p95(values : Array[Int64]) -> Int64 {
 }
 
 ///|
-async fn sample(binary : String, cwd : String, args : Array[String]) -> Int64 {
+async fn sample(program : Program, cwd : String, args : Array[String]) -> Int64 {
   let started = @async.now()
-  let result = @testkit.run(binary, args, cwd~)
+  let result = @testkit.run(
+    program.executable,
+    program_arguments(program, args),
+    cwd~,
+  )
   if result.status != 0 {
     @stdio.stderr.write("benchmark command failed\n")
     @sys.exit(1)
@@ -34,13 +76,21 @@ async fn sample(binary : String, cwd : String, args : Array[String]) -> Int64 {
 
 ///|
 async fn behavior_matches(
-  candidate : String,
-  official : String,
+  candidate : Program,
+  official : Program,
   cwd : String,
   args : Array[String],
 ) -> Bool {
-  let actual = @testkit.run(candidate, args, cwd~)
-  let expected = @testkit.run(official, args, cwd~)
+  let actual = @testkit.run(
+    candidate.executable,
+    program_arguments(candidate, args),
+    cwd~,
+  )
+  let expected = @testkit.run(
+    official.executable,
+    program_arguments(official, args),
+    cwd~,
+  )
   actual.status == expected.status &&
   @testkit.bytes_equal(actual.stdout, expected.stdout) &&
   @testkit.bytes_equal(actual.stderr, expected.stderr)
@@ -49,14 +99,17 @@ async fn behavior_matches(
 ///|
 async fn main {
   let args = @env.args()[1:]
-  let candidate = option(args, "--candidate", "")
-  let official = option(args, "--official", "")
+  let candidate = program(args, "--candidate", "--candidate-runner")
+  let official = program(args, "--official", "--official-runner")
   let rounds = @string.parse_int(option(args, "--rounds", "15")[:]) catch {
     _ => 0
   }
-  guard !candidate.is_empty() && !official.is_empty() && rounds > 0 else {
+  guard !candidate.executable.is_empty() &&
+    !official.executable.is_empty() &&
+    rounds > 0 else {
     @stdio.stderr.write(
-      "Usage: moonjust-benchmark --candidate PATH --official PATH [--rounds N]\n",
+      "Usage: moonjust-benchmark --candidate PATH --official PATH " +
+      "[--candidate-runner PATH] [--official-runner PATH] [--rounds N]\n",
     )
     @sys.exit(2)
     return
