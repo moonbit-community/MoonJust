@@ -18,6 +18,10 @@ pub fn[T : @host.HostFs] load_snapshot(T, ProjectLoadRequest, allow_unstable? : 
 
 pub async fn[T : @host.HostFs + @host.HostSourceReader] load_snapshot_async(T, ProjectLoadRequest, allow_unstable? : Bool) -> ProjectSnapshot raise ProjectError
 
+pub fn[T : @host.HostFs] load_sources(T, ProjectLoadRequest) -> ProjectSources raise ProjectError
+
+pub async fn[T : @host.HostFs + @host.HostSourceReader] load_sources_async(T, ProjectLoadRequest) -> ProjectSources raise ProjectError
+
 // Errors
 pub(all) suberror ProjectError {
   Load(@loader.LoaderError)
@@ -64,6 +68,14 @@ pub fn ProjectSnapshot::compilation(Self) -> @semantic.ProjectCompilation
 pub fn ProjectSnapshot::directories(Self) -> @workdir.WorkingDirectoryModel
 pub fn ProjectSnapshot::graph(Self) -> @loader.LoadedGraph
 pub fn ProjectSnapshot::new(@loader.LoadedGraph, @semantic.ProjectCompilation, @workdir.WorkingDirectoryModel) -> Self
+
+pub struct ProjectSources {
+  graph : @loader.LoadedGraph
+  directories : @workdir.WorkingDirectoryModel
+}
+pub fn ProjectSources::directories(Self) -> @workdir.WorkingDirectoryModel
+pub fn ProjectSources::graph(Self) -> @loader.LoadedGraph
+pub fn ProjectSources::new(@loader.LoadedGraph, @workdir.WorkingDirectoryModel) -> Self
 
 pub(all) enum SourceSelection {
   Search

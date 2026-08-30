@@ -6,9 +6,8 @@ pub(all) enum SourceSelection {
 } derive(Debug)
 
 ///|
-/// Inputs required to load one project. The request is deliberately independent
-/// of CLI arguments so query and planner can share exactly the same discovery
-/// semantics.
+/// Inputs required to load one project. This type is independent of CLI
+/// representation so every caller shares discovery and directory semantics.
 pub struct ProjectLoadRequest {
   input : ProjectInput
   selection : SourceSelection
@@ -41,29 +40,115 @@ pub fn ProjectLoadRequest::new(
 }
 
 ///|
-fn working_directories(
+priv struct ResolvedProjectInput {
+  input : ProjectInput
+  path : @path.PathValue?
+  directories : @workdir.WorkingDirectoryModel
+}
+
+///|
+fn justfile_directories(
   input : ProjectInput,
-  selection : SourceSelection,
+  path : @path.PathValue,
   working_directory : @path.PathValue?,
-  resolved : @path.PathValue,
 ) -> @workdir.WorkingDirectoryModel raise ProjectError {
-  match selection {
-    Stdin =>
-      @workdir.WorkingDirectoryModel::from_stdin(
+  @workdir.WorkingDirectoryModel::from_justfile(
+    input.cwd(),
+    path,
+    working_directory~,
+  ) catch {
+    error => raise WorkingDirectory(error)
+  }
+}
+
+///|
+fn[T : @host.HostFs] resolve_project_input(
+  host : T,
+  request : ProjectLoadRequest,
+) -> ResolvedProjectInput raise ProjectError {
+  let input = request.input
+  match input.global_justfile() {
+    Some(path) => {
+      let project_directory = input
+        .global_project_directory()
+        .unwrap_or(path.parent().unwrap_or(input.cwd()))
+      let directories = @workdir.WorkingDirectoryModel::from_global_justfile(
         input.cwd(),
-        working_directory~,
+        path,
+        project_directory,
       ) catch {
         error => raise WorkingDirectory(error)
       }
-    File(_) | Search =>
-      @workdir.WorkingDirectoryModel::from_justfile(
-        input.cwd(),
-        resolved,
-        working_directory~,
-      ) catch {
-        error => raise WorkingDirectory(error)
+      { input, path: Some(path), directories, }
+    }
+    None =>
+      match request.selection {
+        Stdin => {
+          let directories = @workdir.WorkingDirectoryModel::from_stdin(
+            input.cwd(),
+            working_directory=request.working_directory,
+          ) catch {
+            error => raise WorkingDirectory(error)
+          }
+          { input, path: None, directories, }
+        }
+        File(path) => {
+          let directories = justfile_directories(
+            input,
+            path,
+            request.working_directory,
+          )
+          { input, path: directories.justfile(), directories, }
+        }
+        Search => {
+          let options = @loader.SearchOptions::new(
+            filename=request.filename,
+            ceiling=request.ceiling,
+          )
+          let path = @loader.discover(host, input.cwd(), options~) catch {
+            error => raise Load(error)
+          }
+          let directories = justfile_directories(
+            input,
+            path,
+            request.working_directory,
+          )
+          { input, path: Some(path), directories, }
+        }
       }
   }
+}
+
+///|
+pub fn[T : @host.HostFs] load_sources(
+  host : T,
+  request : ProjectLoadRequest,
+) -> ProjectSources raise ProjectError {
+  let resolved = resolve_project_input(host, request)
+  let graph = match resolved.path {
+    Some(path) =>
+      @loader.load_graph(
+        host,
+        path,
+        resolved.input.source_id(),
+        platform=request.platform,
+        environment=request.environment,
+      ) catch {
+        error => raise Load(error)
+      }
+    None =>
+      @loader.load_stdin_graph(
+        host,
+        resolved.input.stdin().to_owned(),
+        resolved.input.source_id(),
+        resolved.directories.project_directory(),
+        platform=request.platform,
+        environment=request.environment,
+      ) catch {
+        error => raise Load(error)
+      }
+  }
+  ProjectSources::new(graph, resolved.directories)
 }
 
 ///|
@@ -72,234 +157,73 @@ pub fn[T : @host.HostFs] load_snapshot(
   request : ProjectLoadRequest,
   allow_unstable? : Bool = false,
 ) -> ProjectSnapshot raise ProjectError {
-  let input = request.input
-  if input.global_justfile() is Some(global_path) {
-    let project_directory = input
-      .global_project_directory()
-      .unwrap_or(global_path.parent().unwrap_or(input.cwd()))
-    let directories = @workdir.WorkingDirectoryModel::from_global_justfile(
-      input.cwd(),
-      global_path,
-      project_directory,
-    ) catch {
-      error => raise WorkingDirectory(error)
-    }
-    let graph = @loader.load_graph(
-      host,
-      global_path,
-      input.source_id(),
-      platform=request.platform,
-      environment=request.environment,
-    ) catch {
-      error => raise Load(error)
-    }
-    let compilation = compile_loaded_graph(
-      graph,
-      allow_unstable~,
-      platform=request.platform,
-    )
-    return ProjectSnapshot::new(graph, compilation, directories)
-  }
-  match request.selection {
-    Stdin => {
-      let directories = @workdir.WorkingDirectoryModel::from_stdin(
-        input.cwd(),
-        working_directory=request.working_directory,
-      ) catch {
-        error => raise WorkingDirectory(error)
-      }
-      let graph = @loader.load_stdin_graph(
-        host,
-        input.stdin().to_owned(),
-        input.source_id(),
-        directories.project_directory(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-      let compilation = compile_loaded_graph(
-        graph,
-        allow_unstable~,
-        platform=request.platform,
-      )
-      ProjectSnapshot::new(graph, compilation, directories)
-    }
-    File(path) => {
-      let directories = working_directories(
-        input,
-        request.selection,
-        request.working_directory,
-        path,
-      )
-      let resolved = directories.justfile().unwrap()
-      let graph = @loader.load_graph(
-        host,
-        resolved,
-        input.source_id(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-      let compilation = compile_loaded_graph(
-        graph,
-        allow_unstable~,
-        platform=request.platform,
-      )
-      ProjectSnapshot::new(graph, compilation, directories)
-    }
-    Search => {
-      let options = @loader.SearchOptions::new(
-        filename=request.filename,
-        ceiling=request.ceiling,
-      )
-      let path = @loader.discover(host, input.cwd(), options~) catch {
-        error => raise Load(error)
-      }
-      let directories = working_directories(
-        input,
-        request.selection,
-        request.working_directory,
-        path,
-      )
-      let graph = @loader.load_graph(
-        host,
-        path,
-        input.source_id(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-      let compilation = compile_loaded_graph(
-        graph,
-        allow_unstable~,
-        platform=request.platform,
-      )
-      ProjectSnapshot::new(graph, compilation, directories)
-    }
-  }
+  let sources = load_sources(host, request)
+  let compilation = compile_loaded_graph(
+    sources.graph(),
+    allow_unstable~,
+    platform=request.platform,
+  )
+  ProjectSnapshot::new(sources.graph(), compilation, sources.directories())
 }
 
 ///|
-/// Async counterpart of `load_snapshot`. The target-specific loader keeps the
-/// project boundary identical for native and portable hosts while allowing the
-/// Wasm host to preserve its bounded async source reads.
+/// Portable hosts retain bounded asynchronous reads while sharing all path and
+/// working-directory resolution with the synchronous loader.
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+pub async fn[T : @host.HostFs + @host.HostSourceReader] load_sources_async(
+  host : T,
+  request : ProjectLoadRequest,
+) -> ProjectSources raise ProjectError {
+  let resolved = resolve_project_input(host, request)
+  let graph = match resolved.path {
+    Some(path) =>
+      @loader.load_graph_async(
+        host,
+        path,
+        resolved.input.source_id(),
+        platform=request.platform,
+        environment=request.environment,
+      ) catch {
+        error => raise Load(error)
+      }
+    None =>
+      @loader.load_stdin_graph_async(
+        host,
+        resolved.input.stdin().to_owned(),
+        resolved.input.source_id(),
+        resolved.directories.project_directory(),
+        platform=request.platform,
+        environment=request.environment,
+      ) catch {
+        error => raise Load(error)
+      }
+  }
+  ProjectSources::new(graph, resolved.directories)
+}
+
+///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub async fn[T : @host.HostFs + @host.HostSourceReader] load_snapshot_async(
   host : T,
   request : ProjectLoadRequest,
   allow_unstable? : Bool = false,
 ) -> ProjectSnapshot raise ProjectError {
-  let input = request.input
-  if input.global_justfile() is Some(global_path) {
-    let project_directory = input
-      .global_project_directory()
-      .unwrap_or(global_path.parent().unwrap_or(input.cwd()))
-    let directories = @workdir.WorkingDirectoryModel::from_global_justfile(
-      input.cwd(),
-      global_path,
-      project_directory,
-    ) catch {
-      error => raise WorkingDirectory(error)
-    }
-    let graph = @loader.load_graph_async(
-      host,
-      global_path,
-      input.source_id(),
-      platform=request.platform,
-      environment=request.environment,
-    ) catch {
-      error => raise Load(error)
-    }
-    let compilation = compile_loaded_graph(
-      graph,
-      allow_unstable~,
-      platform=request.platform,
-    )
-    return ProjectSnapshot::new(graph, compilation, directories)
-  }
-  match request.selection {
-    Stdin => {
-      let directories = @workdir.WorkingDirectoryModel::from_stdin(
-        input.cwd(),
-        working_directory=request.working_directory,
-      ) catch {
-        error => raise WorkingDirectory(error)
-      }
-      let graph = @loader.load_stdin_graph_async(
-        host,
-        input.stdin().to_owned(),
-        input.source_id(),
-        directories.project_directory(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-      let compilation = compile_loaded_graph(
-        graph,
-        allow_unstable~,
-        platform=request.platform,
-      )
-      ProjectSnapshot::new(graph, compilation, directories)
-    }
-    File(path) => {
-      let directories = working_directories(
-        input,
-        request.selection,
-        request.working_directory,
-        path,
-      )
-      let resolved = directories.justfile().unwrap()
-      let graph = @loader.load_graph_async(
-        host,
-        resolved,
-        input.source_id(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-      let compilation = compile_loaded_graph(
-        graph,
-        allow_unstable~,
-        platform=request.platform,
-      )
-      ProjectSnapshot::new(graph, compilation, directories)
-    }
-    Search => {
-      let options = @loader.SearchOptions::new(
-        filename=request.filename,
-        ceiling=request.ceiling,
-      )
-      let path = @loader.discover(host, input.cwd(), options~) catch {
-        error => raise Load(error)
-      }
-      let directories = working_directories(
-        input,
-        request.selection,
-        request.working_directory,
-        path,
-      )
-      let graph = @loader.load_graph_async(
-        host,
-        path,
-        input.source_id(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-      let compilation = compile_loaded_graph(
-        graph,
-        allow_unstable~,
-        platform=request.platform,
-      )
-      ProjectSnapshot::new(graph, compilation, directories)
-    }
-  }
+  let sources = load_sources_async(host, request)
+  let compilation = compile_loaded_graph(
+    sources.graph(),
+    allow_unstable~,
+    platform=request.platform,
+  )
+  ProjectSnapshot::new(sources.graph(), compilation, sources.directories())
+}
+
+///|
+#cfg(target="native")
+pub fn[T : @host.HostFs] load_sources_async(
+  host : T,
+  request : ProjectLoadRequest,
+) -> ProjectSources raise ProjectError {
+  load_sources(host, request)
 }
 
 ///|
