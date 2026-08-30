@@ -118,7 +118,6 @@ pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
 pub fn PlatformInfo::pid(Self) -> Int?
 pub fn PlatformInfo::portable_runtime(Self) -> Bool
 
-#alias(ProcessOutput, deprecated)
 pub struct ProcessResult {
   termination : ProcessTermination
   stdout : Bytes
