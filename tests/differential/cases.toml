@@ -11984,3 +11984,12 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["man::output"]
+
+[[case]]
+id = "MJ-UPSTREAM-B19-000"
+directory = "upstream-b19-000"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["imports::trailing_spaces_after_import_are_ignored"]
+reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."

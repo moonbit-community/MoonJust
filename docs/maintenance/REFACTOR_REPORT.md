@@ -25,12 +25,12 @@ The compatibility runner reads all 2,417 identities from the pinned just
 1.57.0 inventory and writes one JSON row per identity. Every source-only row
 retains its upstream anchor and original input/expected assertion text, while
 only real executable fixtures contribute to executed coverage. The current
-local report contains 1,343 executed identities (1,339 exact and 4 pinned
+local report contains 1,396 executed identities (1,392 exact and 4 pinned
 known differences), 30 completion exclusions, 14 runtime-signal exclusions,
-and 1,030 source-snapshot identities still awaiting executable migration. The
+and 977 source-snapshot identities still awaiting executable migration. The
 runner validates deterministic official output snapshots and reports source
 evidence separately; CI does not enable strict coverage until that count is
-zero. The executable corpus currently has 1,318 exact matches, 6 pinned known
+zero. The executable corpus currently has 1,322 exact matches, 6 pinned known
 differences, and 0 failures.
 
 The benchmark runner now generates larger check, format, summary, DAG, no-op,
@@ -268,9 +268,9 @@ passed all six jobs.
 
 ## Compatibility Result
 
-The maintained differential corpus contains 1,324 executable scenarios:
+The maintained differential corpus contains 1,328 executable scenarios:
 
-- 1,318 exact matches;
+- 1,322 exact matches;
 - 6 explicit known differences;
 - 0 failures.
 
