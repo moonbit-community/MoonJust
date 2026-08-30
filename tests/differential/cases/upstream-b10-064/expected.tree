@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	44
+set lists
+
+x := show(env(['ZADDY', 'BAR']))
+

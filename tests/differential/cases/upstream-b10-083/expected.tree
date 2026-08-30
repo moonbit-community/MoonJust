@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	21
+set lists
+
+x := / []
+

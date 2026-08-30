@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	34
+foo:
+  echo foo
+
+_bar:
+  echo bar
+

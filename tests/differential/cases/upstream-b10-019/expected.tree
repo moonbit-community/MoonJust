@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	52
+set lists
+[arg('bar', pattern=['A', 'B'])]
+foo bar:
+

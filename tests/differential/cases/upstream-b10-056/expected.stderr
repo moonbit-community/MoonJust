@@ -1,0 +1,1 @@
+error: recipe `bar` parameter `first` requires at least one element but received empty list

@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	46
+set lists
+
+foo := if 'foo' == 'foo' { 'foo' }
+

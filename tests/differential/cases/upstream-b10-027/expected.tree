@@ -1,0 +1,11 @@
+dir	./home
+file	./true	8
+KEY=VAR
+
+file	./justfile	79
+set lists
+set dotenv-filename := assert('a' == 'a', 'fail')
+
+foo:
+  @echo $KEY
+

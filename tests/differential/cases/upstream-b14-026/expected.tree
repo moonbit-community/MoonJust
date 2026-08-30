@@ -1,0 +1,12 @@
+dir	./sub
+file	./sub/justfile	42
+set dotenv-path := '.'
+@foo:
+ echo ${KEY}
+
+file	./.env	8
+KEY=ROOT
+dir	./home
+file	./justfile	1
+
+

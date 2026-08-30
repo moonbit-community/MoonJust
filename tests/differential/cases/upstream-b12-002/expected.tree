@@ -1,0 +1,4 @@
+dir	./bar
+file	./bar/baz	3
+qux
+dir	./home

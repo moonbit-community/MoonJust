@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	43
+set lists
+
+[arg('bar', max='0')]
+foo *bar:
+

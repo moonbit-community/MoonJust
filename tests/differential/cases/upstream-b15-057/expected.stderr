@@ -1,0 +1,1 @@
+error: user-defined functions are currently unstable, invoke `just` with `--unstable`, set the `JUST_UNSTABLE` environment variable, or add `set unstable` to your `justfile` to enable unstable features

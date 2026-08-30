@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	33
+[cache]
+[script]
+foo:
+  echo bar
+
+dir	./.justcache
+file	./.justcache/foo	3
+bar

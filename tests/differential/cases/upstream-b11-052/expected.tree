@@ -1,0 +1,11 @@
+dir	./home
+file	./bar.env	7
+KEY=bar
+file	./foo.env	7
+KEY=foo
+file	./justfile	29
+set lists
+
+@foo:
+  echo $KEY
+

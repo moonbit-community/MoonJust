@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	63
+export value := 'default'
+
+[cache]
+[script]
+foo:
+  echo $value
+

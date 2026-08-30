@@ -1,0 +1,17 @@
+dir	./a
+dir	./a/b
+file	./a/b/justfile	41
+set fallback := true
+
+foo:
+  echo subdir
+
+file	./a/justfile	19
+bar:
+  echo subdir
+
+dir	./home
+file	./justfile	17
+baz:
+  echo root
+

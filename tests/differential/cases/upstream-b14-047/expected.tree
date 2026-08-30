@@ -1,0 +1,8 @@
+dir	./sub
+file	./sub/shafile	14
+just is great
+
+dir	./home
+file	./justfile	32
+x := sha256_file('sub/shafile')
+

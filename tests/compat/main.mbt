@@ -33,7 +33,8 @@ priv struct CaseResult {
 ///|
 fn usage() -> String {
   "Usage: moonjust-compat --candidate PATH --official PATH " +
-  "[--cases PATH] [--manifest PATH] [--upstream-list PATH] [--strict-coverage]"
+  "[--cases PATH] [--manifest PATH] [--upstream-list PATH] " +
+  "[--record-expected] [--strict-coverage]"
 }
 
 ///|

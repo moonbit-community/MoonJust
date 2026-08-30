@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	57
+set lists
+
+foo:
+  @echo {{ if [] { "t" } else { "f" } }}
+

@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	49
+[cache(inputs = 'foo')]
+[script]
+bar:
+  echo bar
+

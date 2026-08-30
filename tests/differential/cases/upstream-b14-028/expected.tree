@@ -1,0 +1,10 @@
+dir	./sub
+dir	./home
+file	./justfile	60
+set dotenv-path := '.custom-env'
+
+@echo:
+  echo $DOTENV_KEY
+
+file	./.custom-env	23
+DOTENV_KEY=dotenv-value

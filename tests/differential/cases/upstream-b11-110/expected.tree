@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	47
+set lists
+
+x := style(['red', 'green'], 'foo')
+

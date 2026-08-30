@@ -1,0 +1,10 @@
+dir	./home
+dir	./child
+file	./child/justfile	18
+foo:
+ @echo CHILD
+
+file	./justfile	17
+foo:
+ @echo ROOT
+

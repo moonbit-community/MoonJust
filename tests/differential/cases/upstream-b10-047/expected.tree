@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	54
+set lists
+
+[confirm(['foo', 'bar'])]
+@foo:
+  echo FOO
+

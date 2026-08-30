@@ -1,0 +1,11 @@
+dir	./home
+file	./.env.bar	7
+BAR=bar
+file	./.env.foo	7
+FOO=foo
+file	./justfile	34
+set lists
+
+@foo:
+  echo $FOO $BAR
+

@@ -1,0 +1,7 @@
+error: list value [",", ";"] passed to `join_list()`
+the behavior of lists with many built-in functions is undecided
+see https://github.com/casey/just#lists
+ ——▶ justfile:4:12
+  │
+4 │   @echo {{ join_list(['bar', 'baz'], [',', ';']) }}
+  │            ^^^^^^^^^

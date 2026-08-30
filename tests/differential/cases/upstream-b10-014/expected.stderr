@@ -1,0 +1,5 @@
+error: attribute key `min` requires value
+ ——▶ justfile:3:13
+  │
+3 │ [arg('bar', min)]
+  │             ^^^

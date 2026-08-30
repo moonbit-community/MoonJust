@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	69
+set lists
+
+foo *args: *(bar *args *args)
+
+bar baz bob:
+  @echo "bar"
+

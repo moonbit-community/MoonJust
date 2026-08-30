@@ -1,0 +1,5 @@
+error: attribute `arg` arguments must be string literals
+ ——▶ justfile:3:13
+  │
+3 │ [arg('bar', min=('2'))]
+  │             ^^^

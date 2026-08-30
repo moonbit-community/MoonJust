@@ -1,0 +1,15 @@
+dir	./home
+file	./foo.just	33
+[cache]
+[script]
+baz:
+  echo baz
+
+file	./justfile	42
+mod foo
+
+[cache]
+[script]
+bar:
+  echo bar
+

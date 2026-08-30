@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	41
+mod sub
+
+foo *args:
+  @echo foo {{args}}
+
+file	./sub.just	16
+bar:
+ @echo bar
+

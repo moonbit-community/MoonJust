@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	68
+value := 'default'
+
+[cache(extra = value)]
+[script]
+foo:
+  echo bar
+

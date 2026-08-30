@@ -58,8 +58,11 @@ fn coverage_status(
       return (status, name, upstream_test, reason)
     }
   }
+  // Source snapshots are audit evidence, not executed tests. They retain
+  // their fixture and upstream anchor in reports, but cannot contribute to
+  // executed coverage until a real MoonBit whitebox/spec test is registered.
   if specs.get(upstream_test) is Some(spec) {
-    return ("moonbit-spec-exact", spec.fixture, spec.anchor, "")
+    return ("unclassified", spec.fixture, spec.anchor, "source-snapshot-only")
   }
   match excluded_reason(upstream_test) {
     Some(reason) if upstream_test.has_prefix("completions::") =>

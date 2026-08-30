@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	28
+set lists
+
+x := bool('foo')
+

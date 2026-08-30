@@ -1,0 +1,1 @@
+error: recipe `foo` parameter `bar` got 0 values but takes at least 2

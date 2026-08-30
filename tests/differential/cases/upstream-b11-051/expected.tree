@@ -1,0 +1,13 @@
+dir	./home
+file	./bar.env	7
+KEY=bar
+file	./foo.env	7
+KEY=foo
+file	./justfile	91
+set lists
+set dotenv-override
+set dotenv-path := ['foo.env', 'bar.env']
+
+@foo:
+  echo $KEY
+

@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	66
+foo() := "t"
+
+x := if foo() { "t" } else { "f" }
+
+bar:
+  @echo hi
+

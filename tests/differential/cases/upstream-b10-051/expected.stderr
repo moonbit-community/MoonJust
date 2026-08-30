@@ -1,0 +1,5 @@
+error: `shell` setting requires at least one element but evaluated to empty list
+ ——▶ justfile:2:5
+  │
+2 │ set shell := [[]]
+  │     ^^^^^

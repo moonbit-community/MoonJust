@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	42
+set lists
+
+x := env_var(['ZADDY', 'BAR'])
+

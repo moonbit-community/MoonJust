@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	53
+value := 'default'
+
+[cache]
+[script]
+foo:
+  echo bar
+

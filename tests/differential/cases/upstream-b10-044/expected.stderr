@@ -1,0 +1,5 @@
+error: assert failed: foo bar
+ ——▶ justfile:4:6
+  │
+4 │   {{ assert('a' != 'a', ['foo', 'bar']) }}
+  │      ^^^^^^

@@ -1,0 +1,5 @@
+error: list value ["foo", "bar"] used as a `[working-directory]` attribute
+ ——▶ justfile:3:2
+  │
+3 │ [working-directory(['foo', 'bar'])]
+  │  ^^^^^^^^^^^^^^^^^

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	65
+set lists
+
+[arg('bar', long, flag)]
+@foo bar:
+  echo bar={{bar}}
+

@@ -1,0 +1,12 @@
+dir	./home
+file	./foo.just	58
+baz first *rest:
+ @echo first={{ first }} rest={{ rest }}
+
+file	./justfile	47
+set lists
+
+mod foo
+
+bar *args: (foo::baz args)
+

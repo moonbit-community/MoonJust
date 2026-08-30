@@ -1,0 +1,12 @@
+dir	./home
+file	./justfile	67
+[cache]
+[script]
+foo:
+  echo foo
+
+[cache]
+[script]
+bar:
+  echo bar
+

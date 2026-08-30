@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	45
+set lists
+
+x := ['a', 'b'] + ['c', 'd', 'e']
+

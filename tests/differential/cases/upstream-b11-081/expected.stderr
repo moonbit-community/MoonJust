@@ -1,0 +1,5 @@
+error: mapped dependencies may not have multiple starred arguments
+ ——▶ justfile:3:24
+  │
+3 │ foo *args: *(bar *args *args)
+  │                        ^

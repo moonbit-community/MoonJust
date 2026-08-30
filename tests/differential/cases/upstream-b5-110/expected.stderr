@@ -1,0 +1,5 @@
+error: call to function `datetime` failed: failed to format time with format string `%#z`
+ ——▶ justfile:1:6
+  │
+1 │ x := datetime('%#z')
+  │      ^^^^^^^^

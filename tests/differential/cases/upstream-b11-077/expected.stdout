@@ -1,0 +1,2 @@
+all: ["baz", "bob"] arg: "baz"
+all: ["baz", "bob"] arg: "bob"
