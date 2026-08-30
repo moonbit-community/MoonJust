@@ -36,6 +36,12 @@ Pure lexical and semantic invariants are indexed in
 MoonBit assertion file or to a source-backed block in
 `upstream/just-1.57.0/upstream-fixtures.txt`, together with the upstream source
 line that defines the case. Snapshot blocks preserve the original upstream
-test body under explicit `input` and `expected` sections; the MoonBit runner
-checks that the block exists and contains an assertion marker before counting
-it as `moonbit-spec-exact`.
+test body under explicit `input` and `expected` sections; they are audit-only
+until a real MoonBit assertion is registered, and therefore remain
+`unclassified` in coverage reports.
+
+Use `--record-expected` once a deterministic black-box fixture is ready to
+write the official status, stdout, stderr, and filesystem snapshot into the
+case directory. Normal runs validate those snapshots before comparing the
+candidate, while regex-backed upstream cases use their declared pattern for
+the corresponding stream.

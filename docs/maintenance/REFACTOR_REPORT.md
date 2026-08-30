@@ -22,14 +22,16 @@ Native and Wasm both report `moonjust v0.1.2`, with the version digest updated
 to the new bytes.
 
 The compatibility runner reads all 2,417 identities from the pinned just
-1.57.0 inventory and writes one JSON row per identity. Every non-excluded row
-now has a source-backed fixture or MoonBit assertion, an upstream source
-anchor, and an explicit input/expected section. The current report contains
-2,373 executed identities (2,369 exact and 4 pinned known differences), 30
-completion exclusions, 14 runtime-signal exclusions, and zero unclassified
-identities. The runner validates fixture markers and strict coverage is now a
-CI hard gate. Existing executable results remain 176 exact matches, 6 pinned
-known differences, and 0 failures.
+1.57.0 inventory and writes one JSON row per identity. Every source-only row
+retains its upstream anchor and original input/expected assertion text, while
+only real executable fixtures contribute to executed coverage. The current
+local report contains 1,343 executed identities (1,339 exact and 4 pinned
+known differences), 30 completion exclusions, 14 runtime-signal exclusions,
+and 1,030 source-snapshot identities still awaiting executable migration. The
+runner validates deterministic official output snapshots and reports source
+evidence separately; CI does not enable strict coverage until that count is
+zero. The executable corpus currently has 1,318 exact matches, 6 pinned known
+differences, and 0 failures.
 
 The benchmark runner now generates larger check, format, summary, DAG, no-op,
 module, script, and Wasm-host workloads. It performs warmups and interleaved
@@ -45,8 +47,9 @@ attribute, lexer, and parser units with one assertion per migrated id in
 indexed in the pinned source snapshot
 `tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt`; each block
 preserves the upstream test body, source location, input, and expected
-assertion text for audit and future executable promotion. Coverage is now
-complete and strict mode is enabled in CI.
+assertion text for audit and future executable promotion. These rows are
+explicitly unclassified until a real MoonBit assertion or black-box fixture is
+registered.
 
 ## Starting Point
 
@@ -265,9 +268,9 @@ passed all six jobs.
 
 ## Compatibility Result
 
-The maintained differential corpus contains 219 executable scenarios:
+The maintained differential corpus contains 1,324 executable scenarios:
 
-- 213 exact matches;
+- 1,318 exact matches;
 - 6 explicit known differences;
 - 0 failures.
 

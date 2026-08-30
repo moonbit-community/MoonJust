@@ -102,8 +102,8 @@ or container sandbox when isolation is required; see SECURITY.md.
 The oracle is official just 1.57.0 at upstream commit
 e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f.
 
-The maintained black-box corpus currently runs 219 executable scenarios. It reports 213
-byte-exact matches and six explicit known differences:
+The maintained black-box corpus currently runs 1,324 executable scenarios. It reports
+1,318 byte-exact matches and six explicit known differences:
 
 - --version and --help retain MoonJust product identity;
 - one unstable-function error has MoonJust diagnostic presentation;
@@ -117,9 +117,11 @@ claim, and raw signal behavior remains limited to the direct-child lifecycle
 described by the historical ADRs.
 
 The pinned upstream inventory contains 2,417 test identities. The current
-report has 2,373 executed identities, 30 completion exclusions, 14 runtime
-signal exclusions, and zero unclassified rows. CI runs the same report with
-`--strict-coverage`, so a newly unbound upstream case fails the job.
+report has 1,343 executed upstream identities (1,339 exact and four pinned
+known differences), 30 completion exclusions, 14 runtime signal exclusions,
+and 1,030 source-snapshot identities still awaiting executable migration.
+CI publishes this report without strict mode during migration; `--strict-coverage`
+will become a hard gate only after the unclassified count reaches zero.
 
 ## Architecture
 
