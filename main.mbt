@@ -1,4 +1,12 @@
 ///|
+#warnings("-unused_constructor")
+priv enum ImmediateResult {
+  NotHandled
+  Handled
+  Text(String)
+}
+
+///|
 #cfg(all(target="native", not(platform="windows")))
 fn init {
   @host_process.prepare_signal_forwarding()
@@ -77,22 +85,11 @@ fn main {
   let argv = @env.args()[1:]
   match @application.static_invocation_text(argv) {
     Some(text) => println(text)
-    None => {
-      let hint = sync_file_command_hint(argv)
-      let summary = if hint == 1 { try_sync_summary(argv) } else { None }
-      match summary {
-        Some(text) => println(text)
-        None => {
-          let command : @cli.CommandKind? = match hint {
-            2 => Some(CheckCommand)
-            3 => Some(FormatCommand)
-            _ => None
-          }
-          if command is None || !try_sync_file_command(argv, command.unwrap()) {
-            @async.run_async_main(() => async_main())
-          }
-        }
+    None =>
+      match try_runtime_fast_path(argv) {
+        Text(text) => println(text)
+        Handled => ()
+        NotHandled => @async.run_async_main(() => async_main())
       }
-    }
   }
 }

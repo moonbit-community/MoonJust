@@ -172,3 +172,28 @@ fn sync_file_command_hint(argv : ArrayView[String]) -> Int {
     0
   }
 }
+
+///|
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+fn try_runtime_fast_path(argv : ArrayView[String]) -> ImmediateResult {
+  match sync_file_command_hint(argv) {
+    1 =>
+      match try_sync_summary(argv) {
+        Some(text) => Text(text)
+        None => NotHandled
+      }
+    2 =>
+      if try_sync_file_command(argv, CheckCommand) {
+        Handled
+      } else {
+        NotHandled
+      }
+    3 =>
+      if try_sync_file_command(argv, FormatCommand) {
+        Handled
+      } else {
+        NotHandled
+      }
+    _ => NotHandled
+  }
+}

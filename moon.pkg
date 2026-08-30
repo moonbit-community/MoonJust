@@ -7,15 +7,11 @@ import {
   "ZSeanYves/MoonJust/internal/host/wasm" @host_wasm,
   "ZSeanYves/MoonJust/internal/path",
   "ZSeanYves/MoonJust/internal/lexer",
-  "ZSeanYves/MoonJust/internal/planner",
   "ZSeanYves/MoonJust/internal/project",
-  "ZSeanYves/MoonJust/internal/runtime",
   "moonbitlang/async",
-  "moonbitlang/async/io",
   "moonbitlang/async/stdio",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
-  "moonbitlang/core/json",
 }
 
 pkgtype(kind: "executable")
