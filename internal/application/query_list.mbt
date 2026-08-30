@@ -11,7 +11,7 @@ fn write_list_line(
   builder.write_string(prefix)
   builder.write_string(rendered)
   if !annotations.is_empty() {
-    let padding = Int::max(1, maximum - display_width(label) + 1)
+    let padding = Int::max(1, maximum - @query.display_width(label) + 1)
     for _ in 0..<padding {
       builder.write_char(' ')
     }
@@ -89,7 +89,7 @@ fn list_text(
       continue
     }
     let signature = recipe_signature(recipe)
-    let signature_width = display_width(signature)
+    let signature_width = @query.display_width(signature)
     if signature_width <= 50 {
       maximum = Int::max(maximum, signature_width)
     }
@@ -121,7 +121,7 @@ fn list_text(
     }
     if alias_style == "separate" {
       for alias_name in aliases {
-        let alias_width = display_width(
+        let alias_width = @query.display_width(
           alias_name + signature.view(start_offset=name.length()).to_owned(),
         )
         if alias_width <= 50 {
@@ -149,7 +149,7 @@ fn list_text(
           continue
         }
         if target.contains("::") {
-          maximum = Int::max(maximum, display_width(symbol.name()))
+          maximum = Int::max(maximum, @query.display_width(symbol.name()))
           rows.push({
             name: symbol.name(),
             signature: symbol.name(),
@@ -191,7 +191,7 @@ fn list_text(
         } else {
           name + " ..."
         }
-        maximum = Int::max(maximum, display_width(signature))
+        maximum = Int::max(maximum, @query.display_width(signature))
         let doc = match
           evaluated_module_attribute(project, child, globals, "doc") {
           Some(value) if !value.trim().is_empty() => Some(value)
@@ -262,7 +262,7 @@ fn list_text(
     }
   }
   if !arguments.flag("unsorted") {
-    groups.sort_by(lexical_compare)
+    groups.sort_by(@query.lexical_compare)
   }
   let sections : Array[String?] = []
   if arguments.values("group").is_empty() {
@@ -345,7 +345,8 @@ fn list_text(
           color,
           rendered=row.rendered_signature,
         )
-      } else if display_width(row.signature) > 50 && row.doc is Some(value) {
+      } else if @query.display_width(row.signature) > 50 &&
+        row.doc is Some(value) {
         builder.write_string(prefix)
         builder.write_string(paint("#", "34", color))
         builder.write_char(' ')

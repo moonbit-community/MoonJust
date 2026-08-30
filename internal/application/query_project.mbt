@@ -143,7 +143,7 @@ fn direct_child_modules(
   }
   if !unsorted {
     result.sort_by(fn(left, right) {
-      lexical_compare(left.as_string(), right.as_string())
+      @query.lexical_compare(left.as_string(), right.as_string())
     })
   }
   result

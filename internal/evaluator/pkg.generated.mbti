@@ -49,6 +49,8 @@ pub fn evaluate_with_context(@syntax.Expression, EvaluationContext, environment?
 
 pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_with_effects(T, @syntax.Expression, EvaluationContext, EffectShell, quiet? : Bool, environment? : Environment, limits? : EvaluationLimits, functions? : FunctionEnvironment) -> @value.Value raise EvaluationError
 
+pub fn expression_is_effectful(@syntax.Expression) -> Bool
+
 pub fn install_constants(Environment, @path.PathFlavor) -> Unit
 
 pub fn recipe_variable_references(@semantic.Compilation, ArrayView[String]) -> Array[String]

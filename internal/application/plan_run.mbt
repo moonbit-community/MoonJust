@@ -504,7 +504,7 @@ pub async fn[
     perf_detail_mark("run.invocations")
     let sync_dry_run = arguments.flag("dry-run") &&
       !arguments.flag("explain") &&
-      project_supports_sync_dry_run(project)
+      @planner.supports_sync_dry_run(project)
     let pure_sync_globals = sync_dry_run &&
       project_supports_pure_sync_globals(project, arguments)
     let invocation_directory = shell_invocation_directory(

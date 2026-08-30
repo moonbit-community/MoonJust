@@ -53,6 +53,8 @@ pub fn render_elapsed_message(String, Int64) -> Bytes
 
 pub fn render_failure_message(ExecutionError, Bool) -> Bytes
 
+pub fn supports_sync_dry_run(@semantic.ProjectCompilation) -> Bool
+
 pub fn valid_timestamp_format(String) -> Bool
 
 // Errors

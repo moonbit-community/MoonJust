@@ -225,7 +225,7 @@ fn chooser_candidates(
       )
     }
   }
-  candidates.sort_by(lexical_compare)
+  candidates.sort_by(@query.lexical_compare)
   candidates
 }
 

@@ -219,18 +219,6 @@ fn styled_recipe_signature(recipe : @syntax.Recipe, color : Bool) -> String {
 }
 
 ///|
-fn lexical_compare(left : String, right : String) -> Int {
-  let length = Int::min(left.length(), right.length())
-  for index in 0..<length {
-    let order = left.unsafe_get(index).compare(right.unsafe_get(index))
-    if order != 0 {
-      return order
-    }
-  }
-  left.length().compare(right.length())
-}
-
-///|
 fn edit_distance(left : String, right : String) -> Int {
   let a = left.to_array()
   let b = right.to_array()
@@ -258,7 +246,7 @@ fn edit_distance(left : String, right : String) -> Int {
 
 ///|
 fn closest_name(requested : String, names : Array[String]) -> String? {
-  names.sort_by(lexical_compare)
+  names.sort_by(@query.lexical_compare)
   let mut suggestion : String? = None
   let mut best = 3
   for name in names {
@@ -348,7 +336,7 @@ fn alias_names(
       result.push(symbol.name())
     }
   }
-  result.sort_by(lexical_compare)
+  result.sort_by(@query.lexical_compare)
   result
 }
 

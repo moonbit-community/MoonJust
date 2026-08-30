@@ -1,16 +1,4 @@
 ///|
-pub fn lexical_compare(left : String, right : String) -> Int {
-  let length = Int::min(left.length(), right.length())
-  for index in 0..<length {
-    let order = left.unsafe_get(index).compare(right.unsafe_get(index))
-    if order != 0 {
-      return order
-    }
-  }
-  left.length().compare(right.length())
-}
-
-///|
 pub fn visible_recipe_names(
   compilation : @semantic.Compilation,
   request : QueryRequest,

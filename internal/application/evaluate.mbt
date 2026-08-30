@@ -68,7 +68,7 @@ fn evaluate_text(
     None => {
       let private = private_assignments(ast)
       let names = compilation.variable_names().to_owned()
-      names.sort_by(lexical_compare)
+      names.sort_by(@query.lexical_compare)
       let mut maximum = 0
       for name in names {
         if !private.contains(name) {
@@ -131,7 +131,7 @@ fn evaluated_environment_text(
     None => {
       let private = private_assignments(ast)
       let names = compilation.variable_names().to_owned()
-      names.sort_by(lexical_compare)
+      names.sort_by(@query.lexical_compare)
       let mut maximum = 0
       for name in names {
         if !private.contains(name) {

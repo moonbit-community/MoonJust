@@ -316,7 +316,7 @@ fn attribute_json(attribute : @syntax.Attribute) -> Json {
     }
     if attribute.name() == "continue" {
       values.sort_by(fn(left, right) {
-        lexical_compare(left.stringify(), right.stringify())
+        @query.lexical_compare(left.stringify(), right.stringify())
       })
     }
     return json_object([(attribute.name(), Json::array(values))])
@@ -356,7 +356,7 @@ fn recipe_json(
 ) -> Json {
   let attribute_nodes = recipe.attributes().to_owned()
   attribute_nodes.sort_by(fn(left, right) {
-    lexical_compare(left.name(), right.name())
+    @query.lexical_compare(left.name(), right.name())
   })
   let attributes = attribute_nodes.map(attribute_json)
   let body : Array[Json] = []
@@ -543,7 +543,7 @@ fn inspect_json(
   let private = private_assignments(loaded.ast())
   let assignment_entries : Array[(String, Json)] = []
   let names = compilation.variable_names().to_owned()
-  names.sort_by(lexical_compare)
+  names.sort_by(@query.lexical_compare)
   for name in names {
     guard compilation.variable(name) is Some(assignment) else { continue }
     assignment_entries.push(
@@ -568,13 +568,15 @@ fn inspect_json(
       )
     }
   }
-  alias_entries.sort_by(fn(left, right) { lexical_compare(left.0, right.0) })
+  alias_entries.sort_by(fn(left, right) {
+    @query.lexical_compare(left.0, right.0)
+  })
   let docs = recipe_docs(loaded.ast())
   let recipe_entries : Array[(String, Json)] = []
   let source_recipe_names = compilation.recipe_names()
   let first = source_recipe_names.get(0)
   let recipe_names = source_recipe_names.to_owned()
-  recipe_names.sort_by(lexical_compare)
+  recipe_names.sort_by(@query.lexical_compare)
   for name in recipe_names {
     guard compilation.recipe(name) is Some(recipe) else { continue }
     recipe_entries.push(
@@ -587,7 +589,7 @@ fn inspect_json(
       unexports.push(name)
     }
   }
-  unexports.sort_by(lexical_compare)
+  unexports.sort_by(@query.lexical_compare)
   // just's JSON oracle keeps the lexical Windows temp path. macOS is the
   // only platform where the upstream JSON tests canonicalize this field.
   let source_path = if loaded.path().flavor() == Windows {
@@ -632,7 +634,7 @@ fn inspect_json(
         )
       }
       module_entries.sort_by(fn(left, right) {
-        lexical_compare(left.0, right.0)
+        @query.lexical_compare(left.0, right.0)
       })
     }
     _ => ()

@@ -175,7 +175,7 @@ fn query_text(
       if values.is_empty() {
         ""
       } else {
-        values.sort_by(lexical_compare)
+        values.sort_by(@query.lexical_compare)
         values.join(" ") + "\n"
       }
     }
@@ -205,7 +205,7 @@ fn query_text(
       }
       let values = groups
       if !arguments.flag("unsorted") {
-        values.sort_by(lexical_compare)
+        values.sort_by(@query.lexical_compare)
       }
       if values.is_empty() {
         ""

@@ -10,6 +10,8 @@ import {
 // Values
 pub fn build_query(@cli.CliArguments) -> QueryRequest
 
+pub fn display_width(String) -> Int
+
 pub fn lexical_compare(String, String) -> Int
 
 pub fn try_fast_summary(@loader.LoadedGraph, QueryRequest) -> QueryResult?
