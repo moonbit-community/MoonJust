@@ -1,0 +1,9 @@
+dir	./home
+file	./foo.just	27
+x := 'a'
+bar:
+ @echo {{x}}
+
+file	./justfile	8
+mod foo
+

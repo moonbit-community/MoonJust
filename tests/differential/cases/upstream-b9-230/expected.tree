@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	83
+default:
+  echo before
+  echo {{ if '' =~ '(' { 'a' } else { 'b' } }}
+  echo after
+

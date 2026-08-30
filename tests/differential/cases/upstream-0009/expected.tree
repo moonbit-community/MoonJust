@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	52
+alias a := foo
+alias b := foo
+
+# comment
+foo:
+
+bar:
+

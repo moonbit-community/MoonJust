@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	25
+[extension: '.txt']
+baz:
+

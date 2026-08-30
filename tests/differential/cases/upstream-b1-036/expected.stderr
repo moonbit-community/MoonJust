@@ -1,0 +1,1 @@
+error: import `/private<CASE_ROOT>/a` in `/private<CASE_ROOT>/b` is circular

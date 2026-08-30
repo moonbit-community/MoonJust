@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	16
+foo:
+  @-exit 1
+

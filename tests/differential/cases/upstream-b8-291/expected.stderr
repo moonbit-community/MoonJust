@@ -1,0 +1,5 @@
+error: call to undefined function `bar`
+ ——▶ justfile:1:7
+  │
+1 │ foo x=bar():
+  │       ^^^

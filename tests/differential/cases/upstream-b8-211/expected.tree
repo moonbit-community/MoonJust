@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	38
+foo:
+ echo hello
+ echo {{`exit 123`}}
+

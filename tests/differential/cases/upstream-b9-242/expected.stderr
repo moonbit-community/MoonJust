@@ -1,0 +1,5 @@
+error: recipe `bar` has both `[script]` and `[shell]` attributes
+ ——▶ justfile:2:1
+  │
+2 │ bar:
+  │ ^^^

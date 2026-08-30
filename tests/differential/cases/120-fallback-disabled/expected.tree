@@ -1,0 +1,10 @@
+dir	./bar
+file	./bar/justfile	19
+baz:
+  echo subdir
+
+dir	./home
+file	./justfile	17
+bar:
+  echo root
+

@@ -1,0 +1,8 @@
+b:
+  echo b
+a:
+  echo a
+d:
+  echo d
+c:
+  echo c

@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	75
+set default-script
+set ignore-comments
+
+foo:
+  # {{ undefined }}
+  echo ok
+

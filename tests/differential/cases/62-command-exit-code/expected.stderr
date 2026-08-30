@@ -1,0 +1,1 @@
+error: command `sh` `-c` `exit 42` failed: exit status: 42

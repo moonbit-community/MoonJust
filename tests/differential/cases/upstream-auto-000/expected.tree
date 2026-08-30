@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	59
+set shell := ['python3', '-c']
+
+foos := `print('foo' * 4)`
+

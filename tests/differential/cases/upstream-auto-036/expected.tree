@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	51
+foo: (
+bar 'bar'
+)
+  echo foo
+
+bar x:
+  echo {{x}}
+

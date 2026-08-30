@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	59
+set dotenv-load := false
+
+foo:
+  @echo $JUST_TEST_VARIABLE
+
+file	./.env.special	22
+JUST_TEST_VARIABLE=bar

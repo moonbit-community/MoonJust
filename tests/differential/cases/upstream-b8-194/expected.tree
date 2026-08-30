@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	51
+default stdin = `cat justfile`:
+  echo '{{stdin}}'
+

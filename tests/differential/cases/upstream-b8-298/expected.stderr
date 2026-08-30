@@ -1,0 +1,5 @@
+error: unknown start of token '%'
+ ——▶ justfile:1:25
+  │
+1 │ assembly_source_files = %(wildcard src/arch/$(arch)/*.s)
+  │                         ^

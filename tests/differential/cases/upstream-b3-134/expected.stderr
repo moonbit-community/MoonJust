@@ -1,0 +1,5 @@
+error: unicode escape sequences must not be empty
+ ——▶ justfile:1:6
+  │
+1 │ x := "\u{}"
+  │      ^^^^^^

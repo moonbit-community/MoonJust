@@ -1,0 +1,2 @@
+sh: `?': not a valid identifier
+error: recipe `foo` failed on line 2 with exit code 2

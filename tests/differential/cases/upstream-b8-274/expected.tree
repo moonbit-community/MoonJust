@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	33
+@quiet:
+  #!/bin/sh
+  echo hello
+

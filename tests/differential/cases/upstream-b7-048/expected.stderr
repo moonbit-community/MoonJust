@@ -1,0 +1,5 @@
+error: module `foo` defined on line 1 is redefined as an alias on line 3
+ ——▶ justfile:3:7
+  │
+3 │ alias foo := bar
+  │       ^^^

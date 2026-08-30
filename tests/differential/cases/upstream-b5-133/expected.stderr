@@ -1,0 +1,5 @@
+error: expected character `&`
+ ——▶ justfile:1:2
+  │
+1 │ &~
+  │  ^

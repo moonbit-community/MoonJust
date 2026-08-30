@@ -1,0 +1,12 @@
+var := `echo stderr 1>&2; echo backtick`
+
+command:
+  @touch /this/is/not/a/file
+  {{var}}
+  echo {{`echo command interpolation`}}
+
+shebang:
+  #!/bin/sh
+  touch /this/is/not/a/file
+  {{var}}
+  echo {{`echo shebang interpolation`}}

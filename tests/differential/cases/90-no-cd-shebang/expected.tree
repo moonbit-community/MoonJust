@@ -1,0 +1,11 @@
+dir	./home
+dir	./child
+file	./child/data.txt	8
+shebang
+
+file	./justfile	44
+[no-cd]
+default:
+  #!/bin/sh
+  cat data.txt
+

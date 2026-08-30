@@ -1,0 +1,19 @@
+dir	./foo
+file	./foo/.env	11
+SUB_KEY=sub
+file	./foo/mod.just	37
+set dotenv-load
+foo:
+ @echo $SUB_KEY
+
+file	./.env	13
+ROOT_KEY=root
+dir	./home
+file	./justfile	57
+set dotenv-load
+
+mod foo
+
+bar:
+  @echo ${SUB_KEY:-unset}
+

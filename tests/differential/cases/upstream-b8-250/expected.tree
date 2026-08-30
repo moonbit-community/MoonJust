@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	53
+# comment
+a B C +D='hello':
+  echo {{B}} {{C}} {{D}}
+

@@ -1,0 +1,5 @@
+error: unterminated unicode escape sequence
+ ——▶ justfile:1:6
+  │
+1 │ x := "\u{1f917"
+  │      ^^^^^^^^^^

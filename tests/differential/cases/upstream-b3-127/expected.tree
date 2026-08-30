@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	13
+x := "\q"
+a:
+

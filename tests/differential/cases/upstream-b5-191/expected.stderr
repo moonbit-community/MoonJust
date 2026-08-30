@@ -1,0 +1,5 @@
+error: function `datetime` called with 0 arguments but takes 1
+ ——▶ justfile:1:6
+  │
+1 │ x := datetime()
+  │      ^^^^^^^^

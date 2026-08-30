@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	14
+x:
+  echo XYZ
+

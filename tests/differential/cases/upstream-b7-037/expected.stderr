@@ -1,0 +1,5 @@
+error: could not find source file for module `foo`
+ ——▶ justfile:1:5
+  │
+1 │ mod foo
+  │     ^^^

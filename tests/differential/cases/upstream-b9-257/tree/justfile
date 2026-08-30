@@ -1,0 +1,2 @@
+[doc('bar')]
+set quiet

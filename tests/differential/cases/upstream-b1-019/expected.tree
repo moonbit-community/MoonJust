@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	78
+[group('alpha')]
+a:
+[group('alpha')]
+[group('beta')]
+b:
+c:
+[group('beta')]
+d:
+

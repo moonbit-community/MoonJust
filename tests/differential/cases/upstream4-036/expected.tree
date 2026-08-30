@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	79
+export FOO := 'export'
+
+[env('FOO', 'attribute')]
+bar:
+  #!/bin/sh
+  echo $FOO
+

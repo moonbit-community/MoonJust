@@ -1,0 +1,5 @@
+error: function `f` called with 2 arguments but takes 1
+ ——▶ justfile:3:11
+  │
+3 │ result := f('one', 'two')
+  │           ^

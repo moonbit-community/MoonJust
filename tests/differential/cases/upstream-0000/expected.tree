@@ -1,0 +1,18 @@
+dir	./home
+file	./bar.just	16
+baz:
+ @echo BAZ
+
+file	./foo.just	24
+mod bar
+baz:
+ @echo FOO
+
+file	./justfile	55
+mod foo
+
+alias b := foo::bar::baz
+
+baz:
+  @echo 'HERE'
+

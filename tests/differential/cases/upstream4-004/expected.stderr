@@ -1,0 +1,5 @@
+error: assignment `x` has invalid attribute `group`
+ ——▶ justfile:2:1
+  │
+2 │ x := 'foo'
+  │ ^

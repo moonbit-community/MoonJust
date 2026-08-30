@@ -1,0 +1,6 @@
+set lists
+
+[cache(extra = 'a', inputs = ['foo'], outputs = ['bar'])]
+[script]
+baz:
+  echo baz

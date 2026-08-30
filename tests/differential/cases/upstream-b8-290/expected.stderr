@@ -1,0 +1,5 @@
+error: call to undefined function `foo`
+ ——▶ justfile:1:8
+  │
+1 │ foo := foo() + 'hello'
+  │        ^^^

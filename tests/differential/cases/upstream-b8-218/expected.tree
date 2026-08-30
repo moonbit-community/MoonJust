@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	33
+y := 'foo'
+foo x=y:
+  echo {{x}}
+

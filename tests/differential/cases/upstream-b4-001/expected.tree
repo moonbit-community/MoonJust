@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	48
+foo:
+  @echo FOO
+bar:
+  @echo BAR
+baz: foo::bar
+

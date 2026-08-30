@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	53
+b := a
+a := `echo hello`
+bar:
+ echo '{{`exit 200`}}'
+

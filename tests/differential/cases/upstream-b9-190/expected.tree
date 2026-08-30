@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	84
+set no-exit-message
+
+hello:
+  #!/usr/bin/env bash
+  echo 'Hello, World!'
+  exit 100
+

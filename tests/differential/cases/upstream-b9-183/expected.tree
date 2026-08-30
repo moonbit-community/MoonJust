@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	19
+foo:
+x := '''ǩ'''
+

@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	68
+set ignore-comments
+
+foo:
+  #!/bin/sh
+  # {{ undefined }}
+  echo ok
+

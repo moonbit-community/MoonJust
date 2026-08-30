@@ -1,0 +1,14 @@
+dir	./foo
+file	./foo/mod.just	30
+[no-cd]
+foo:
+  @cat root_file
+
+dir	./home
+file	./justfile	24
+mod foo
+
+main: foo::foo
+
+file	./root_file	4
+ROOT

@@ -1,0 +1,5 @@
+error: variable `a` has multiple definitions
+ ——▶ justfile:2:1
+  │
+2 │ a := 'hello'
+  │ ^

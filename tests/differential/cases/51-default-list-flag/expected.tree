@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	22
+foo:
+  @echo foo
+bar:
+

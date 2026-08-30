@@ -1,0 +1,5 @@
+error: could not find source file for import
+ ——▶ justfile:1:8
+  │
+1 │ import './import.justfile'
+  │        ^^^^^^^^^^^^^^^^^^^

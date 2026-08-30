@@ -1,0 +1,5 @@
+error: `[arg(min)]` requires `set lists`
+ ——▶ justfile:1:13
+  │
+1 │ [arg('bar', min='2')]
+  │             ^^^

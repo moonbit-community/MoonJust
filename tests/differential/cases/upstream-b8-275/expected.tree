@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	30
+bar:
+hello baz arg='foo' bar:
+

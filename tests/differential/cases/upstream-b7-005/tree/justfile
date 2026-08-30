@@ -1,0 +1,2 @@
+[no-cd]
+mod foo

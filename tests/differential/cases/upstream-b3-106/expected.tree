@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	31
+mod foo x'$JUST_TEST_VARIABLE'
+
+file	./mod.just	16
+@bar:
+ echo BAR
+

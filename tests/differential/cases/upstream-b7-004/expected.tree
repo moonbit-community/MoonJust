@@ -1,0 +1,10 @@
+dir	./home
+file	./foo.just	35
+bar := 'CHILD'
+foo:
+ @echo {{bar}}
+
+file	./justfile	24
+mod foo
+bar := 'PARENT'
+

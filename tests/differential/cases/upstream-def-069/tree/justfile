@@ -1,0 +1,5 @@
+export A := 'hello'
+export B := `if [ -n "${A+1}" ]; then echo defined; else echo undefined; fi`
+
+foo:
+  echo $B

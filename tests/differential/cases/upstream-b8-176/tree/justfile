@@ -1,0 +1,3 @@
+foo value='foo':
+  echo {{value}}
+alias f := foo

@@ -1,0 +1,5 @@
+error: dependency `a` got 3 arguments but takes at most 2 arguments
+ ——▶ justfile:2:5
+  │
+2 │ b: (a '0' '1' '2')
+  │     ^

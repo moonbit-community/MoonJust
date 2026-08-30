@@ -1,0 +1,16 @@
+dir	./foo
+file	./foo/.env	7
+KEY=sub
+file	./foo/mod.just	33
+set dotenv-load
+foo:
+ @echo $KEY
+
+file	./.env	8
+KEY=root
+dir	./home
+file	./justfile	25
+set dotenv-load
+
+mod foo
+

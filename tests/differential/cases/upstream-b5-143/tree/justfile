@@ -1,0 +1,1 @@
+x := choose('foo', HEX)

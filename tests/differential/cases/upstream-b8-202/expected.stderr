@@ -1,0 +1,5 @@
+error: unknown setting `foo`
+ ——▶ justfile:1:5
+  │
+1 │ set foo
+  │     ^^^

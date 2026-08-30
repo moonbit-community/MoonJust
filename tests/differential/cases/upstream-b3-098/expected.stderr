@@ -1,0 +1,1 @@
+error: recipe `foo` could not be run because just could not find the shell `NOT_A_REAL_SHELL`: No such file or directory (os error 2)

@@ -1,0 +1,10 @@
+dir	./foo
+dir	./foo/bar
+file	./foo/bar/.keep	1
+
+
+dir	./home
+file	./justfile	31
+default:
+  echo should-not-run
+

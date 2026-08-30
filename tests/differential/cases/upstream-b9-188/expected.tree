@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	60
+[no-exit-message]
+@hello:
+  echo 'Hello, World!'
+  exit 100
+

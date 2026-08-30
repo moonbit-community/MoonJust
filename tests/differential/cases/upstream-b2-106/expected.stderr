@@ -1,0 +1,2 @@
+echo arg=baz=bar
+echo barbbaz

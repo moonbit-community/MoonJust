@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	50
+foo PARAM='foo':
+  echo {{PARAM}}
+alias _f := foo
+

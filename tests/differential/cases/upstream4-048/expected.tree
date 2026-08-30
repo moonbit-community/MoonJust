@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	92
+[macos, windows, linux, openbsd, freebsd, dragonfly, netbsd, android]
+[linux]
+foo:
+  exit 1
+

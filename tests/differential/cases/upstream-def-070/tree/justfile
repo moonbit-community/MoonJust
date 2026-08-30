@@ -1,0 +1,8 @@
+export FOO := 'a'
+baz := 'c'
+export BAR := 'b'
+export ABC := FOO + BAR + baz
+
+wut:
+  #!/bin/sh
+  echo $FOO $BAR $ABC

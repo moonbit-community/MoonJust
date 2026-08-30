@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	32
+export x := 'FOO'
+y := `exit 1`
+

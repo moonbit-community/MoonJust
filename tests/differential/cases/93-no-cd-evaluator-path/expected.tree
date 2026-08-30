@@ -1,0 +1,16 @@
+dir	./inv
+file	./inv/data.txt	11
+invocation
+
+dir	./home
+file	./data.txt	7
+module
+
+file	./justfile	61
+set no-cd
+
+file := `cat data.txt`
+
+@default:
+  echo {{file}}
+

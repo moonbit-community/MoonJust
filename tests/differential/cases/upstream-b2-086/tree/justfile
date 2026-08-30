@@ -1,0 +1,4 @@
+[arg('baz', short='b')]
+@foo bar='BAR' baz:
+  echo bar={{bar}}
+  echo baz={{baz}}

@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	40
+[working-directory('foo')]
+[no-cd]
+bar:
+

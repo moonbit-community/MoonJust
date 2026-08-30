@@ -1,0 +1,4 @@
+--color
+always
+--command-color
+purple

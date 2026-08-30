@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	26
+x := 'FOO'
+
+y := `exit 1`
+

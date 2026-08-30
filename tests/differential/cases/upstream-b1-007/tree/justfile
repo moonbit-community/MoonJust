@@ -1,0 +1,12 @@
+# comment   with   spaces
+
+export x := `backtick
+with
+lines`
+
+recipe: deps
+    echo "$x"
+
+deps:
+    echo {{ x }}
+    echo '$x'

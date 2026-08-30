@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	45
+foo:
+  @echo FOO
+
+[default]
+bar:
+  @echo BAR
+

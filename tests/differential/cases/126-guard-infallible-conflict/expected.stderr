@@ -1,0 +1,5 @@
+error: the guard `?` and infallible `-` sigils may not be used together
+ ——▶ justfile:4:3
+  │
+4 │   -?exit 2
+  │   ^^^^^^^^

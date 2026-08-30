@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	37
+x := "foo" == "bar"
+
+foo:
+  @echo hi
+

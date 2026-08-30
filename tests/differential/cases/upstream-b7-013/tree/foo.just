@@ -1,0 +1,2 @@
+foo bar:
+ @echo FOO

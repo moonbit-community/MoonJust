@@ -1,0 +1,5 @@
+error: variable `name` not defined
+ ——▶ justfile:1:6
+  │
+1 │ [env(name, 'value')]
+  │      ^^^^

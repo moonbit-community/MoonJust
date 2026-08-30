@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	61
+# This is a doc comment
+[no-exit-message]
+hello:
+  @exit 100
+

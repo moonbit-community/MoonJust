@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	63
+set working-directory := if '' =~ '(' {
+  'a'
+} else {
+  'b'
+}
+

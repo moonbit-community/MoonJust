@@ -1,0 +1,5 @@
+[default]
+bar:
+
+[default]
+foo:

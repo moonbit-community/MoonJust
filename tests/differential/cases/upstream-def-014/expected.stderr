@@ -1,0 +1,3 @@
+echo $DOTENV_KEY
+sh: DOTENV_KEY: unbound variable
+error: recipe `bar` failed on line 4 with exit code 127

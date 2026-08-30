@@ -1,0 +1,5 @@
+error: the `num_jobs()` function requires `set lists`
+ ——▶ justfile:2:12
+  │
+2 │   @echo {{ num_jobs() }}
+  │            ^^^^^^^^

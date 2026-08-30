@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	65
+set unstable
+x := 'bar'
+f() := x
+run:
+  @printf '%s\n' '{{f()}}'
+

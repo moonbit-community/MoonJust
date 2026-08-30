@@ -1,0 +1,18 @@
+dir	./home
+file	./a.just	42
+import 'common.just'
+show:
+ @echo x={{x}}
+
+file	./b.just	42
+import 'common.just'
+show:
+ @echo x={{x}}
+
+file	./justfile	31
+mod a 'a.just'
+
+mod b 'b.just'
+
+file	./common.just	10
+x := 'foo'

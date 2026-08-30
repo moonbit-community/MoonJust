@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	15
+fail:
+  exit 7
+

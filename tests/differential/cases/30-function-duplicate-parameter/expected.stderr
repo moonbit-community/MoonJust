@@ -1,0 +1,5 @@
+error: function `f` has duplicate parameter `a`
+ ——▶ justfile:2:6
+  │
+2 │ f(a, a) := a
+  │      ^

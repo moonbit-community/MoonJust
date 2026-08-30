@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	10
+mod tools
+
+file	./tools.just	24
+value := 'module-value'
+

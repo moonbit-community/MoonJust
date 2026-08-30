@@ -1,0 +1,5 @@
+error: `minimum-version` setting must be a plain string literal
+ ——▶ justfile:1:5
+  │
+1 │ set minimum-version := x'1.0.0'
+  │     ^^^^^^^^^^^^^^^

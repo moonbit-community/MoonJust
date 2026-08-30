@@ -1,0 +1,3 @@
+set export
+
+foo := 'bar'

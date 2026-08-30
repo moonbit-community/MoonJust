@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	18
+@foo:
+  #!/bin/sh
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	57
+set no-exit-message
+
+[exit-message]
+default:
+  @exit 100
+

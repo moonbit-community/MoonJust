@@ -1,0 +1,5 @@
+error: assert failed: fail
+ ——▶ justfile:1:26
+  │
+1 │ set working-directory := assert('foo' == 'bar', 'fail')
+  │                          ^^^^^^

@@ -1,0 +1,5 @@
+error: indentation must be spaces or tabs
+ ——▶ justfile:1:20
+  │
+1 │ set indentation := 'x'
+  │                    ^^^

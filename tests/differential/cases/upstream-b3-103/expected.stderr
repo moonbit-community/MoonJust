@@ -1,0 +1,5 @@
+error: shell expansion failed: error looking key 'FOOOOOOOOOOOOOOOOOOOOOOOOOOOOO' up: environment variable not found
+ ——▶ justfile:1:7
+  │
+1 │ x := x'$FOOOOOOOOOOOOOOOOOOOOOOOOOOOOO'
+  │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

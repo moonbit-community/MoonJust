@@ -1,0 +1,5 @@
+error: short option name for parameter `bar` contains multiple characters
+ ——▶ justfile:1:19
+  │
+1 │ [arg('bar', short='abc')]
+  │                   ^^^^^

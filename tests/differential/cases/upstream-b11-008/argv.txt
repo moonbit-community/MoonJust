@@ -1,0 +1,6 @@
+--unstable
+bar
+foo
+baz
+--clean
+foo::baz

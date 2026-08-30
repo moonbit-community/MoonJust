@@ -1,0 +1,5 @@
+error: recipe `foo` defines option `-b` multiple times
+ ——▶ justfile:2:19
+  │
+2 │ [arg('baz', short='b')]
+  │                   ^^^

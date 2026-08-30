@@ -1,0 +1,5 @@
+error: variable `a` not defined
+ ——▶ justfile:1:15
+  │
+1 │ foo x=replace(a, b, c):
+  │               ^

@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	36
+foo:
+  echo {{ trim('   bar   ') }}
+

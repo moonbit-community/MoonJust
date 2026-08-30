@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	84
+# This is a doc comment
+[no-exit-message]
+@hello:
+  echo 'Hello, World!'
+  exit 100
+

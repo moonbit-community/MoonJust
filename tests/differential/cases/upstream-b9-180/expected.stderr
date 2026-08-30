@@ -1,0 +1,5 @@
+error: variable `z` is defined in terms of itself
+ ——▶ justfile:1:1
+  │
+1 │ z := z
+  │ ^

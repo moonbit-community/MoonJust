@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	31
+[group('a')]
+[group('a')]
+foo:
+

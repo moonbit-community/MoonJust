@@ -1,0 +1,5 @@
+error: `dotenv-command` set on line 1 is incompatible with `dotenv-path`
+ ——▶ justfile:2:5
+  │
+2 │ set dotenv-path := 'foo'
+  │     ^^^^^^^^^^^

@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	45
+default:
+  echo `echo hello 1>&2`
+  exit 100
+

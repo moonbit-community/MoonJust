@@ -1,0 +1,2 @@
+--no-aliases
+--list

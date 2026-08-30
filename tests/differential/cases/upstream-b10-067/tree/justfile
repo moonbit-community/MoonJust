@@ -1,0 +1,6 @@
+set lists
+
+a := 'foo'
+b := ['bar']
+c := ['baz', 'bob']
+d := []

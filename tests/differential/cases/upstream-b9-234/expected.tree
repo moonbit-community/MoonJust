@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	84
+@foo:
+  '{{just_executable()}}' --request '{"environment-variable": "FOO_BAR_BAZ"}'
+

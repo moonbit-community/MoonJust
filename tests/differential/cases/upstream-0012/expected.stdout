@@ -1,0 +1,4 @@
+Available recipes:
+    bar
+    foo # comment
+    f   # alias for `foo`

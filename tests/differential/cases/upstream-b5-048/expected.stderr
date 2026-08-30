@@ -1,0 +1,5 @@
+error: expected '*', ':', '$', identifier, or '+', but found '{'
+ ——▶ justfile:3:2
+  │
+3 │ u{feff}
+  │  ^

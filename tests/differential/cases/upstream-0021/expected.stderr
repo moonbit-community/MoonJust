@@ -1,0 +1,5 @@
+error: variable `bar` not defined
+ ——▶ justfile:1:21
+  │
+1 │ [arg('bar', pattern=bar)]
+  │                     ^^^

@@ -1,0 +1,5 @@
+error: recipe `a` depends on itself
+ ——▶ justfile:1:4
+  │
+1 │ a: a
+  │    ^

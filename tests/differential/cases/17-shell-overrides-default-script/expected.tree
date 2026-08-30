@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	56
+set default-script := true
+
+[shell]
+foo:
+  printf shell
+

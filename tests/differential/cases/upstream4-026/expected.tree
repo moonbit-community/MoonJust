@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	38
+[confirm: 'yes']
+[confirm: 'no']
+baz:
+

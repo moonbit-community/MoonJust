@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	35
+foo:
+  echo {{ uppercase('bar') }}
+

@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	29
+set working-directory := foo
+

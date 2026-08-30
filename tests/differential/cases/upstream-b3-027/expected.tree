@@ -1,0 +1,16 @@
+dir	./home
+file	./bar.just	0
+
+file	./foo.just	0
+
+file	./justfile	130
+# Module foo
+mod foo
+
+# comment
+mod very_long_name_for_module "bar.just" # comment
+
+# will change your world
+recipe:
+    @echo Hi
+

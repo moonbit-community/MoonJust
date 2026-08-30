@@ -1,0 +1,3 @@
+foo:
+    bar
+alias f := foo

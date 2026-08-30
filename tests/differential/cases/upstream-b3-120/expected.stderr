@@ -1,0 +1,5 @@
+error: variable `b` not defined
+ ——▶ justfile:5:10
+  │
+5 │   echo {{b}}
+  │          ^

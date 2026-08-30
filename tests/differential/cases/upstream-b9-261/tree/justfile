@@ -1,0 +1,3 @@
+dir := 'hello'
+
+mod foo

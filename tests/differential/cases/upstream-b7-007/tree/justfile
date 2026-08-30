@@ -1,0 +1,1 @@
+mod foo 'sub/foo.just'

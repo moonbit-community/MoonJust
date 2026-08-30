@@ -1,0 +1,17 @@
+dir	./home
+dir	./tools
+dir	./tools/data
+file	./tools/data/file.txt	5
+FILE
+
+file	./tools/mod.just	83
+set working-directory := 'data'
+
+file := `cat file.txt`
+
+@default:
+  echo {{file}}
+
+file	./justfile	10
+mod tools
+

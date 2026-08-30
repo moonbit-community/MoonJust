@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	30
+@baz:
+  #!/bin/sh
+  echo fizz
+

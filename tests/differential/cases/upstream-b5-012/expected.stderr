@@ -1,0 +1,5 @@
+error: invalid `max` value `18446744073709551616`: number too large to fit in target type
+ ——▶ justfile:1:17
+  │
+1 │ [arg('bar', max='18446744073709551616')]
+  │                 ^^^^^^^^^^^^^^^^^^^^^^

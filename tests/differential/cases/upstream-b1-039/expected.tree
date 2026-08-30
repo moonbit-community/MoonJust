@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	43
+import './import.justfile'
+
+a: b
+  @echo A
+
+file	./import.justfile	13
+b:
+  @echo B
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	51
+set default-list
+foo:
+  @echo foo
+bar:
+  @echo bar
+

@@ -1,0 +1,5 @@
+error: `no-cd` set on line 1 is incompatible with `working-directory`
+ ——▶ justfile:2:5
+  │
+2 │ set working-directory := 'bar'
+  │     ^^^^^^^^^^^^^^^^^

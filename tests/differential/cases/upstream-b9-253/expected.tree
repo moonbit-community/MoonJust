@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	51
+set working-directory := HEX
+
+@foo:
+  cat file.txt
+
+dir	./0123456789abcdef
+file	./0123456789abcdef/file.txt	3
+bar

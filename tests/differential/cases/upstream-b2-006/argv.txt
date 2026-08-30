@@ -1,0 +1,3 @@
+--choose
+--chooser
+echo foo bar

@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	35
+foo:
+  {{'@echo foo 2>/dev/null'}}
+

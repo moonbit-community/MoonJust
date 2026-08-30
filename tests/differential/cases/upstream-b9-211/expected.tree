@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	48
+[parallel]
+foo: a b
+
+a:
+  sleep 1
+
+b:
+  sleep 1
+

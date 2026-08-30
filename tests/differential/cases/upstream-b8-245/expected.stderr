@@ -1,0 +1,5 @@
+error: `\'` is not a valid escape sequence
+ ——▶ justfile:1:6
+  │
+1 │ X := "\'"
+  │      ^^^^

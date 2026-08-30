@@ -1,0 +1,12 @@
+dir	./home
+file	./justfile	145
+# this does a thing
+hello a b='B	' c='C':
+  echo {{a}} {{b}} {{c}}
+
+# something else
+a Z="\t z":
+
+# this recipe will not appear
+_private-recipe:
+

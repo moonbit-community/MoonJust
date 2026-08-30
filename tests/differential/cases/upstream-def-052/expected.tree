@@ -1,0 +1,9 @@
+dir	./home
+file	./foo.just	5
+bar:
+
+file	./justfile	22
+mod foo
+
+foo := 'bar'
+

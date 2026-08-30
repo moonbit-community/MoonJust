@@ -1,0 +1,15 @@
+Available recipes:
+    c
+
+    [alpha]
+    f
+    e
+    b # Doc comment
+    a
+
+    [beta]
+    f
+    b # Doc comment
+
+    [multi word group]
+    d

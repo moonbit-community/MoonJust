@@ -1,0 +1,5 @@
+error: backtick failed with exit code 1
+ ——▶ justfile:1:11
+  │
+1 │ unused := `exit 1`
+  │           ^^^^^^^^

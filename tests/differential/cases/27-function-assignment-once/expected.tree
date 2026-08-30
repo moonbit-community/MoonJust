@@ -1,0 +1,11 @@
+dir	./home
+file	./count	4
+hit
+
+file	./justfile	128
+set unstable
+x := `echo hit >> count; wc -l < count | tr -d ' '`
+f() := x
+run:
+  @printf '%s %s %s\n' '{{x}}' '{{f()}}' '{{x}}'
+

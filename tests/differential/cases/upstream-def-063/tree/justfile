@@ -1,0 +1,4 @@
+export EXPORTED_VARIABLE := 'A-IS-A'
+
+recipe:
+  echo {{`echo recipe $EXPORTED_VARIABLE`}}

@@ -1,0 +1,12 @@
+dir	./home
+file	./justfile	73
+default: a \
+         b \
+         c
+a:
+  echo a
+b:
+  echo b
+c:
+  echo c
+

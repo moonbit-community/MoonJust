@@ -1,0 +1,3 @@
+Trying ../justfile
+===> running recipe `bar`...
+echo bar

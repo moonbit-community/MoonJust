@@ -1,0 +1,13 @@
+dir	./foo
+file	./foo/baz	3
+BAZ
+file	./foo/mod.just	20
+import 'import.just'
+file	./foo/import.just	15
+bar:
+ @cat baz
+
+dir	./home
+file	./justfile	8
+mod foo
+

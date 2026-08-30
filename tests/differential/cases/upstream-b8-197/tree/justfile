@@ -1,0 +1,3 @@
+a := `printf Hello,`
+bar:
+ printf '{{a + `printf ' world.'`}}'

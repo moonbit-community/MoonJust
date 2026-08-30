@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	29
+@foo:
+  ?() { echo bar; }; ?
+

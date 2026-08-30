@@ -1,0 +1,16 @@
+dir	./home
+file	./justfile	23
+x := 'parent'
+
+mod sub
+
+file	./sub.just	77
+set unstable
+
+a := f()
+f() := x
+x := 'sub'
+
+foo:
+    @echo {{ a }} {{ f() }}
+

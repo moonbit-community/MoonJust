@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	38
+HEX := `echo foo`
+
+set tempdir := HEX
+

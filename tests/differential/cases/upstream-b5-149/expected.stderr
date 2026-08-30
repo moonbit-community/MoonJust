@@ -1,0 +1,5 @@
+error: call to function `error` failed: Thing Not Supported
+ ——▶ justfile:1:6
+  │
+1 │ x := error ('Thing Not Supported')
+  │      ^^^^^

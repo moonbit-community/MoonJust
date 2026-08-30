@@ -1,0 +1,13 @@
+dir	./sub
+file	./sub/.env	7
+KEY=SUB
+file	./sub/justfile	33
+default:
+	echo KEY=${KEY:-unset}
+
+file	./.env	8
+KEY=ROOT
+dir	./home
+file	./justfile	1
+
+

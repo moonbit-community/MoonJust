@@ -1,0 +1,5 @@
+error: found multiple source files for module `foo`: `foo/justfile` and `foo.just`
+ ——▶ justfile:1:5
+  │
+1 │ mod foo
+  │     ^^^

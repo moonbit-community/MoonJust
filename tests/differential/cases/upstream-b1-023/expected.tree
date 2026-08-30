@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	47
+[private]
+[group: 'A']
+foo:
+
+[group: 'B']
+bar:
+

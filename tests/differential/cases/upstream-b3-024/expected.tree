@@ -1,0 +1,6 @@
+dir	./home
+file	./foo.just	4
+bar:
+file	./justfile	8
+mod foo
+

@@ -1,0 +1,12 @@
+dir	./home
+file	./justfile	68
+a := ```
+  printf '
+  foo
+  bar
+  '
+```
+
+@default:
+  printf '{{a}}'
+

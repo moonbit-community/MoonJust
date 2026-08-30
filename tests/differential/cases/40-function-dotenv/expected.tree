@@ -1,0 +1,10 @@
+file	./.env	10
+VAR=VALUE
+
+dir	./home
+file	./justfile	65
+set dotenv-required
+set unstable
+f() := env('VAR')
+result := f()
+

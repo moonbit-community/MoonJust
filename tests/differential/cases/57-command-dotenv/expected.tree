@@ -1,0 +1,8 @@
+file	./.env	24
+DOTENV_KEY=dotenv-value
+
+dir	./home
+file	./justfile	19
+set dotenv-load
+x:
+

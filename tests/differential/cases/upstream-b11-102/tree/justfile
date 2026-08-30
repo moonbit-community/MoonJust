@@ -1,0 +1,15 @@
+set quiet
+
+[parallel]
+a: b c
+  echo a
+
+b: x
+  echo b
+
+c: x
+  echo c
+
+x:
+  sleep 1
+  echo x

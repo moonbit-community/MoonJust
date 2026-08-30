@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	61
+[env('foo', 'bar')]
+baz x=`echo ${foo}.txt`:
+    @echo {{x}}
+

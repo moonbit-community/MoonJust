@@ -1,0 +1,2 @@
+error: justfile does not contain recipe `hell`
+Did you mean `hello`, an alias for `bar`?

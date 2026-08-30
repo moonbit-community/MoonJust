@@ -1,0 +1,11 @@
+dir	./home
+file	./bar.just	40
+x := 'X'
+bar a=x:
+ echo {{ a }} {{ x }}
+
+file	./justfile	23
+mod bar
+
+foo: bar::bar
+

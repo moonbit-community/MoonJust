@@ -1,0 +1,2 @@
+[private]
+mod foo

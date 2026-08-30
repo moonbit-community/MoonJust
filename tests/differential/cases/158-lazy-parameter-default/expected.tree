@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	38
+set lazy
+
+x := `exit 1`
+
+foo value=x:
+

@@ -1,0 +1,3 @@
+dir=bob
+bob=foo
+foo::foo

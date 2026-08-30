@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	57
+# Environment-selected explanation
+default:
+  echo ready
+

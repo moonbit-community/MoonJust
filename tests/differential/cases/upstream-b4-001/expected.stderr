@@ -1,0 +1,5 @@
+error: recipe `baz` has unknown dependency `foo::bar`
+ ——▶ justfile:5:11
+  │
+5 │ baz: foo::bar
+  │           ^^^

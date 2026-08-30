@@ -1,0 +1,13 @@
+dir	./home
+file	./justfile	73
+a:
+  @echo ROOT
+
+import './import.justfile'
+
+set allow-duplicate-recipes
+
+file	./import.justfile	18
+a:
+  @echo IMPORT
+

@@ -1,0 +1,4 @@
+foo:
+ #!/bin/sh
+ echo hello
+ echo {{`exit 123`}}

@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	54
+set ignore-comments
+
+some_recipe:
+  # {{ undefined }}
+

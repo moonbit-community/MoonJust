@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	29
+x := !'foo'
+
+foo:
+  @echo hi
+

@@ -1,0 +1,13 @@
+dir	./foo
+file	./foo/bar	3
+BAR
+file	./foo/mod.just	15
+foo:
+ @cat bar
+
+dir	./home
+file	./justfile	24
+mod foo
+
+main: foo::foo
+

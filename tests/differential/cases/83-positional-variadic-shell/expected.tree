@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	75
+set positional-arguments
+
+default *values:
+  echo $1
+  echo $2
+  echo "$@"
+

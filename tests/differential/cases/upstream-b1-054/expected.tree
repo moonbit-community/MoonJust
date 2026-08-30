@@ -1,0 +1,13 @@
+file	./a	10
+import 'c'
+file	./b	10
+import 'c'
+file	./c	0
+
+dir	./home
+file	./justfile	28
+import 'a'
+import 'b'
+
+bar:
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./foo.just	20
+foo bar:
+ @echo FOO
+
+file	./justfile	8
+mod foo
+

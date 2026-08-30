@@ -1,0 +1,10 @@
+dir	./baz
+file	./baz/file.txt	3
+BAZ
+dir	./home
+file	./justfile	63
+dir := 'foo'
+set working-directory := dir
+bar:
+  @cat file.txt
+

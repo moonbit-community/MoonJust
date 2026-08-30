@@ -1,0 +1,12 @@
+dir	./home
+file	./foo.just	49
+set default-list := true
+
+bar:
+  @echo BAR
+
+baz:
+
+file	./justfile	8
+mod foo
+

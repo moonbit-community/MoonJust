@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	45
+[script("sh", "-eu")]
+foo:
+  printf explicit
+

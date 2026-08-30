@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	55
+set dotenv-required
+set dotenv-command := 'true'
+
+foo:
+

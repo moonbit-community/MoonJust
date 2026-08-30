@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	45
+foo: && (bar 'hello')
+
+bar x:
+  echo {{ x }}
+

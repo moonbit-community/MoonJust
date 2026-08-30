@@ -194,6 +194,53 @@ async fn read_optional_bytes(path : String) -> Bytes {
 }
 
 ///|
+async fn read_optional_text(path : String) -> String? {
+  if @fs.exists(path) {
+    Some(@fs.read_file(path).text())
+  } else {
+    None
+  }
+}
+
+///|
+async fn write_expected(case_dir : String, result : CaseResult) -> Unit {
+  @fs.write_file(
+    join(case_dir, "expected.status"),
+    @utf8.encode(result.status.to_string() + "\n"),
+  )
+  @fs.write_file(join(case_dir, "expected.stdout"), result.stdout)
+  @fs.write_file(join(case_dir, "expected.stderr"), result.stderr)
+  @fs.write_file(join(case_dir, "expected.tree"), result.tree)
+  match result.merged {
+    Some(bytes) => @fs.write_file(join(case_dir, "expected.merged"), bytes)
+    None => ()
+  }
+}
+
+///|
+async fn expected_snapshot(case_dir : String) -> CaseResult? {
+  guard @fs.exists(join(case_dir, "expected.status")) else { return None }
+  let status = @string.parse_int(
+    read_text(join(case_dir, "expected.status")).trim(),
+  ) catch {
+    _ => return None
+  }
+  let merged = if @fs.exists(join(case_dir, "expected.merged")) {
+    Some(@fs.read_file(join(case_dir, "expected.merged")).binary())
+  } else {
+    None
+  }
+  Some({
+    status,
+    stdout: @fs.read_file(join(case_dir, "expected.stdout")).binary(),
+    stderr: @fs.read_file(join(case_dir, "expected.stderr")).binary(),
+    merged,
+    tree: @fs.read_file(join(case_dir, "expected.tree")).binary(),
+    live: true,
+  })
+}
+
+///|
 async fn arguments(case_dir : String, root : String) -> Array[String] {
   let path = join(case_dir, "argv.txt")
   if !@fs.exists(path) {
@@ -392,17 +439,25 @@ fn difference_fields(
   expected : CaseResult,
   actual : CaseResult,
   metadata : CaseMetadata,
+  stdout_regex : String?,
+  stderr_regex : String?,
 ) -> Array[String] {
   let fields : Array[String] = []
   if compares(metadata, "status") && expected.status != actual.status {
     fields.push("status")
   }
-  if compares(metadata, "stdout") &&
-    !@testkit.bytes_equal(expected.stdout, actual.stdout) {
+  let stdout_differs = match stdout_regex {
+    Some(pattern) => !regex_matches(pattern, actual.stdout)
+    None => !@testkit.bytes_equal(expected.stdout, actual.stdout)
+  }
+  if compares(metadata, "stdout") && stdout_differs {
     fields.push("stdout")
   }
-  if compares(metadata, "stderr") &&
-    !@testkit.bytes_equal(expected.stderr, actual.stderr) {
+  let stderr_differs = match stderr_regex {
+    Some(pattern) => !regex_matches(pattern, actual.stderr)
+    None => !@testkit.bytes_equal(expected.stderr, actual.stderr)
+  }
+  if compares(metadata, "stderr") && stderr_differs {
     fields.push("stderr")
   }
   if compares(metadata, "merged") {
@@ -422,6 +477,13 @@ fn difference_fields(
     fields.push("live")
   }
   fields
+}
+
+///|
+fn regex_matches(pattern : String, bytes : Bytes) -> Bool {
+  let regexp = @regexp.compile(pattern[:]) catch { _ => return false }
+  let text = @utf8.decode(bytes) catch { _ => return false }
+  regexp.execute(text[:]).matched()
 }
 
 ///|
@@ -507,6 +569,7 @@ async fn main {
   }
   let cases_root = option(args, "--cases").unwrap_or("tests/differential/cases")
   let selected_case = option(args, "--case")
+  let record_expected = has_flag(args, "--record-expected")
   let manifest = option(args, "--manifest").unwrap_or(
     "tests/differential/cases.toml",
   )
@@ -693,9 +756,47 @@ async fn main {
       )
       continue
     }
-    let expected = run_side(official, case_dir, details, "official")
+    let stdout_regex = read_optional_text(join(case_dir, "stdout.regex"))
+    let stderr_regex = read_optional_text(join(case_dir, "stderr.regex"))
+    let official_result = run_side(official, case_dir, details, "official")
+    match stdout_regex {
+      Some(pattern) if !regex_matches(pattern, official_result.stdout) =>
+        failures.push(name + ": official stdout does not match stdout.regex")
+      _ => ()
+    }
+    match stderr_regex {
+      Some(pattern) if !regex_matches(pattern, official_result.stderr) =>
+        failures.push(name + ": official stderr does not match stderr.regex")
+      _ => ()
+    }
+    if record_expected {
+      write_expected(case_dir, official_result)
+    }
+    let expected = if record_expected {
+      official_result
+    } else {
+      match expected_snapshot(case_dir) {
+        Some(snapshot) => {
+          let snapshot_differences = difference_fields(
+            snapshot, official_result, details, stdout_regex, stderr_regex,
+          )
+          if !snapshot_differences.is_empty() {
+            failures.push(
+              name +
+              ": recorded official result differs in [" +
+              snapshot_differences.join(", ") +
+              "]",
+            )
+          }
+          snapshot
+        }
+        None => official_result
+      }
+    }
     let actual = run_side(candidate, case_dir, details, "candidate")
-    let differences = difference_fields(expected, actual, details)
+    let differences = difference_fields(
+      expected, actual, details, stdout_regex, stderr_regex,
+    )
     let expectation = read_text(join(case_dir, "expectation")).trim().to_owned()
     let expected_status = if details.status == "expected-difference" {
       "difference"

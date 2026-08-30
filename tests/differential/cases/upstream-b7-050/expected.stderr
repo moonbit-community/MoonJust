@@ -1,0 +1,5 @@
+error: module `foo` defined on line 1 is redefined as a recipe on line 2
+ ——▶ justfile:2:1
+  │
+2 │ foo:
+  │ ^^^

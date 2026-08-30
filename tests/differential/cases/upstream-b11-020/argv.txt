@@ -1,0 +1,5 @@
+--unstable
+value=bar
+foo
+value=baz
+foo

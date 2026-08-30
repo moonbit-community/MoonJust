@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	63
+a := `printf Hello,`
+bar:
+ printf '{{a + `printf ' world.'`}}'
+

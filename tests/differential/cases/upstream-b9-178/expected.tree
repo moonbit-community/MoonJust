@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	24
+x := y
+y := z
+z := x
+a:
+

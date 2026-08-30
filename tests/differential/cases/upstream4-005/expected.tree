@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	23
+a := HEX
+
+HEX := 'foo'
+

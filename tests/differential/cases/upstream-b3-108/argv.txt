@@ -1,0 +1,9 @@
+bar
+A
+B
+bar
+A
+B
+bar
+A
+B

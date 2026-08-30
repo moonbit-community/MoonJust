@@ -1,0 +1,5 @@
+error: recipe `foo` has unknown dependency `bar`
+ ——▶ justfile:1:9
+  │
+1 │ foo: && bar
+  │         ^^^

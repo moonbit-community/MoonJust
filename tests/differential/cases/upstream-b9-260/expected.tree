@@ -1,0 +1,19 @@
+dir	./bar
+file	./bar/file.txt	2
+ok
+dir	./home
+file	./foo.just	65
+dir := 'bar'
+
+set working-directory := dir
+
+foo:
+  @cat file.txt
+
+file	./justfile	37
+mod foo
+
+dir := 'root'
+
+bob := 'baz'
+

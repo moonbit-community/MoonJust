@@ -1,0 +1,10 @@
+dir	./home
+file	./foo.just	16
+baz:
+ @echo FOO
+
+file	./justfile	34
+mod foo
+
+alias b := foo::bar::baz
+

@@ -1,0 +1,2 @@
+recipe:
+    echo {{ hello + 'bar' + bar }}

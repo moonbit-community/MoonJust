@@ -1,0 +1,2 @@
+task:
+ @cat file

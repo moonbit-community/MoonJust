@@ -1,0 +1,5 @@
+error: `minimum-version` setting has invalid version `foo`: expected `MAJOR.MINOR.PATCH`
+ ——▶ justfile:1:24
+  │
+1 │ set minimum-version := 'foo'
+  │                        ^^^^^

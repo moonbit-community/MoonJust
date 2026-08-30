@@ -1,0 +1,3 @@
+set dotenv-required
+
+foo:

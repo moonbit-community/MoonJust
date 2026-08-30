@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	32
+import './import.justfile'
+foo:
+
+file	./import.justfile	4
+bar:

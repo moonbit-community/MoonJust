@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	48
+foo: && bar
+  echo foo
+  false
+
+bar:
+  echo bar
+

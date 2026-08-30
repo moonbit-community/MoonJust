@@ -1,0 +1,5 @@
+error: negation operator requires `set lists`
+ ——▶ justfile:1:6
+  │
+1 │ x := !'foo'
+  │      ^

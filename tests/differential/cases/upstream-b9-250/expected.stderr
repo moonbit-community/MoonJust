@@ -1,0 +1,5 @@
+error: cannot call backticks in const context
+ ——▶ justfile:1:26
+  │
+1 │ set working-directory := `pwd`
+  │                          ^^^^^

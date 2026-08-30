@@ -1,0 +1,5 @@
+error: variable `foo` not defined
+ ——▶ justfile:1:26
+  │
+1 │ set working-directory := foo
+  │                          ^^^

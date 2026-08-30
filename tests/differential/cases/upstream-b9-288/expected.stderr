@@ -1,0 +1,5 @@
+error: variable `x` not defined
+ ——▶ justfile:1:10
+  │
+1 │ [confirm(x)]
+  │          ^

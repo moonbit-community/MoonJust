@@ -1,0 +1,5 @@
+error: unknown key `input` for `cache` attribute
+ ——▶ justfile:1:8
+  │
+1 │ [cache(input = 'foo')]
+  │        ^^^^^

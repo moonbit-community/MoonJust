@@ -1,0 +1,5 @@
+error: mapped dependencies require `set lists`
+ ——▶ justfile:1:14
+  │
+1 │ foo *args: *(bar *args)
+  │              ^^^

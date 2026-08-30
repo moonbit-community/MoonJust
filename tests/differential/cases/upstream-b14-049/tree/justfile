@@ -1,0 +1,1 @@
+path := absolute_path('./test_file')

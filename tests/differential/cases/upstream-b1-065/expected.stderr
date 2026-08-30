@@ -1,0 +1,5 @@
+error: list literals require `set lists`
+ ——▶ justfile:3:6
+  │
+3 │ x := []
+  │      ^

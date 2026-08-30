@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	23
+u{feff}foo:
+  echo bar
+

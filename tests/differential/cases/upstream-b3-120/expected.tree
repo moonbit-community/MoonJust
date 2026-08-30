@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	48
+a:
+  echo '{{'a' + '
+  ' + 'b'}}'
+
+  echo {{b}}
+

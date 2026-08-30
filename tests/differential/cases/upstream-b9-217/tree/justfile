@@ -1,0 +1,3 @@
+unexport foo # bar
+
+baz:

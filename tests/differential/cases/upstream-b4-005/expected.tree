@@ -1,0 +1,12 @@
+dir	./home
+file	./foo.just	16
+bar:
+ @echo BAR
+
+file	./justfile	60
+mod foo
+baz:
+  @echo BAZ
+quux: foo::bar && baz
+  @echo QUUX
+

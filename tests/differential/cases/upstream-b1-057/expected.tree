@@ -1,0 +1,14 @@
+dir	./home
+file	./justfile	88
+f := 'bar'
+
+import './import.justfile'
+
+set allow-duplicate-variables
+
+a:
+  @echo {{f}}
+
+file	./import.justfile	11
+f := 'foo'
+

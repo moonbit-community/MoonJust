@@ -1,0 +1,3 @@
+[1;36m===> running recipe `a`...[0m
+echo hi
+hi

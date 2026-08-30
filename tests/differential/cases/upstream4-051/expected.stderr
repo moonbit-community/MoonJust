@@ -1,0 +1,5 @@
+error: positional attribute arguments cannot follow keyword attribute arguments
+ ——▶ justfile:1:21
+  │
+1 │ [arg(pattern='BAR', 'bar')]
+  │                     ^^^^^

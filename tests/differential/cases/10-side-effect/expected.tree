@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	34
+write:
+  printf done > result.txt
+
+file	./result.txt	4
+done

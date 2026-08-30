@@ -1,0 +1,5 @@
+error: recipe `a` has duplicate parameter `foo`
+ ——▶ justfile:1:7
+  │
+1 │ a foo foo:
+  │       ^^^

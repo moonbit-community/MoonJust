@@ -1,0 +1,3 @@
+alias hello := bar
+
+bar:

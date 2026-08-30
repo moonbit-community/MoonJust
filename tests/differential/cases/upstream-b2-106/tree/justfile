@@ -1,0 +1,7 @@
+foo := `exit 1`
+a := 'a'
+baz := 'baz'
+
+recipe arg:
+ echo arg={{arg}}
+ echo {{foo + a + baz}}

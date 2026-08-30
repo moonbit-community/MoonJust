@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	26
+a := ''
+x := y
+y := x
+
+a:
+

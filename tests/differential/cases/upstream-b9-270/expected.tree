@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	41
+export FOO := 'hello'
+a $FOO:
+ echo $FOO
+

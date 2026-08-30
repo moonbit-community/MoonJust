@@ -1,0 +1,5 @@
+error: variable `y` not defined
+ ——▶ justfile:3:14
+  │
+3 │ foo: && (bar y)
+  │              ^

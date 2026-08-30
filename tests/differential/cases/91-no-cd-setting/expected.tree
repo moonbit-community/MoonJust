@@ -1,0 +1,14 @@
+dir	./home
+dir	./child
+file	./child/data.txt	11
+invocation
+
+file	./data.txt	7
+module
+
+file	./justfile	35
+set no-cd
+
+default:
+  cat data.txt
+

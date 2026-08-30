@@ -1,0 +1,5 @@
+error: expected '&&', '!=', '!~', '||', comment, end of file, end of line, '==', '=~', '(', '+', '++', or '/', but found backtick
+ ——▶ justfile:1:9
+  │
+1 │ foo := f`echo {{ arch() }}`
+  │         ^^^^^^^^^^^^^^^^^^^

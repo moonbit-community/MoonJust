@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	70
+a := 'foo'
+a := 'bar'
+
+set allow-duplicate-variables
+
+b:
+  echo {{a}}
+

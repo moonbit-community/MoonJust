@@ -1,0 +1,5 @@
+error: variable `foo` not defined
+ ——▶ justfile:6:11
+  │
+6 │   echo '{{foo}}'
+  │           ^^^

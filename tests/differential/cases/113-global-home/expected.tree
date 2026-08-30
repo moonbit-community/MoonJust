@@ -1,0 +1,5 @@
+dir	./home
+file	./home/justfile	22
+@default:
+  echo home
+

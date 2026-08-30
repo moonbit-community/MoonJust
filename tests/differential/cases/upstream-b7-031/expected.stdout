@@ -1,0 +1,14 @@
+Available recipes:
+    c
+
+    [alpha]
+    a
+    foo:
+        d
+    zee:
+        f
+
+    [beta]
+    b
+    bar:
+        e

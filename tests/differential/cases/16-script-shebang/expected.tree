@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	34
+foo:
+  #!/bin/sh
+  printf shebang
+

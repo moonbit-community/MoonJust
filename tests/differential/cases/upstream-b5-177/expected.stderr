@@ -1,0 +1,5 @@
+error: function `shell` called with 0 arguments but takes 1 or more
+ ——▶ justfile:1:8
+  │
+1 │ var := shell()
+  │        ^^^^^

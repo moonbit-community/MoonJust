@@ -1,0 +1,69 @@
+dir	./baz
+dir	./baz/foo
+file	./baz/foo/bar.just	285
+imf := module_file()
+imd := module_directory()
+
+import-outer: import-inner
+
+@import-inner pmf=module_file() pmd=module_directory():
+  echo import
+  echo '{{ imf }}'
+  echo '{{ imd }}'
+  echo '{{ pmf }}'
+  echo '{{ pmd }}'
+  echo '{{ module_file() }}'
+  echo '{{ module_directory() }}'
+
+file	./baz/mod.just	287
+import 'foo/bar.just'
+
+mmf := module_file()
+mmd := module_directory()
+
+outer: inner
+
+@inner pmf=module_file() pmd=module_directory():
+  echo module
+  echo '{{ mmf }}'
+  echo '{{ mmd }}'
+  echo '{{ pmf }}'
+  echo '{{ pmd }}'
+  echo '{{ module_file() }}'
+  echo '{{ module_directory() }}'
+
+dir	./foo
+file	./foo/bar.just	285
+imf := module_file()
+imd := module_directory()
+
+import-outer: import-inner
+
+@import-inner pmf=module_file() pmd=module_directory():
+  echo import
+  echo '{{ imf }}'
+  echo '{{ imd }}'
+  echo '{{ pmf }}'
+  echo '{{ pmd }}'
+  echo '{{ module_file() }}'
+  echo '{{ module_directory() }}'
+
+dir	./home
+file	./justfile	293
+import 'foo/bar.just'
+mod baz
+
+rmf := module_file()
+rmd := module_directory()
+
+outer: inner
+
+@inner pmf=module_file() pmd=module_directory():
+  echo root
+  echo '{{ rmf }}'
+  echo '{{ rmd }}'
+  echo '{{ pmf }}'
+  echo '{{ pmd }}'
+  echo '{{ module_file() }}'
+  echo '{{ module_directory() }}'
+

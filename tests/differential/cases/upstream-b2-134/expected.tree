@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	38
+mod sub
+
+foo: sub::deep
+    @echo foo
+
+file	./sub.just	21
+deep:
+    @echo deep
+

@@ -1,0 +1,12 @@
+dir	./bar
+file	./bar/justfile	21
+set fallback := true
+
+dir	./home
+file	./foo.just	17
+baz:
+  @echo BAZ
+
+file	./justfile	8
+mod foo
+

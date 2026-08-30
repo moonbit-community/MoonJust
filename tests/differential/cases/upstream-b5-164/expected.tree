@@ -1,0 +1,6 @@
+file	./bar	3
+baz
+dir	./home
+file	./justfile	19
+foo := read('bar')
+

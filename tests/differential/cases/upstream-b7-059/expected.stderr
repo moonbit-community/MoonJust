@@ -1,0 +1,1 @@
+error: recipe `x` depends on absent module `a::b`

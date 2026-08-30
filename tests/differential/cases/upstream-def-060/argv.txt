@@ -1,0 +1,4 @@
+--set
+BAR
+bye
+FOO=hello

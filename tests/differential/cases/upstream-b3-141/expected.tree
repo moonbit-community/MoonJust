@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	37
+foo a=	`echo blaaaaaah:
+  echo {{a}}
+

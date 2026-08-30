@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	47
+set default-script
+
+[script('cat')]
+foo:
+  FOO
+

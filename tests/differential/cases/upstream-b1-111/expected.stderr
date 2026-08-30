@@ -1,0 +1,5 @@
+error: the `split()` function requires `set lists`
+ ——▶ justfile:1:6
+  │
+1 │ x := split("foo", ",")
+  │      ^^^^^

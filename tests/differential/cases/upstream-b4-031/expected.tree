@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	36
+mod? foo
+
+bar: foo::baz
+  @echo bar
+

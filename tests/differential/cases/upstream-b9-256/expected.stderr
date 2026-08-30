@@ -1,0 +1,5 @@
+error: cannot call functions in const context
+ ——▶ justfile:1:26
+  │
+1 │ set working-directory := arch()
+  │                          ^^^^

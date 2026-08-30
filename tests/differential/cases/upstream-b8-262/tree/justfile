@@ -1,0 +1,16 @@
+b: a
+  echo b
+  @mv a b
+
+a:
+  echo a
+  @touch F
+  @touch a
+
+d: c
+  echo d
+  @rm c
+
+c: b
+  echo c
+  @mv b c

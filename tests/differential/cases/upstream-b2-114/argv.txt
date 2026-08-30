@@ -1,0 +1,11 @@
+--set
+foo
+bar
+--set
+baz
+bob
+--set
+a
+b
+a
+b

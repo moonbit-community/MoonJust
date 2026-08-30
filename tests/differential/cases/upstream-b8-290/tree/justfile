@@ -1,0 +1,2 @@
+foo := foo() + 'hello'
+bar:

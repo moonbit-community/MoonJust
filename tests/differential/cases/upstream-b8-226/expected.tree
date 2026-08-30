@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	38
+a FOO LUZ='hello':
+b: (a '0' '1' '2')
+

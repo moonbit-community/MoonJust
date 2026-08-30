@@ -1,0 +1,5 @@
+error: call to function `shell` failed: process exited with status code 1
+ ——▶ justfile:1:8
+  │
+1 │ var := shell('exit 1')
+  │        ^^^^^

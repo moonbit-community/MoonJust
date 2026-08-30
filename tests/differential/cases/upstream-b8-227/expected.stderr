@@ -1,0 +1,5 @@
+error: dependency `a` got 0 arguments but takes 1 argument
+ ——▶ justfile:2:4
+  │
+2 │ b: a
+  │    ^

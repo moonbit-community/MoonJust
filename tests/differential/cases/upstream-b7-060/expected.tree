@@ -1,0 +1,16 @@
+dir	./home
+dir	./outer
+dir	./outer/inner
+file	./outer/inner/file	6
+NESTED
+file	./outer/inner/mod.just	17
+task:
+ @cat file
+
+file	./outer/mod.just	9
+mod inner
+file	./justfile	36
+mod outer
+
+main: outer::inner::task
+

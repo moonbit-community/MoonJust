@@ -1,0 +1,5 @@
+dir	./home
+file	./tasks.just	20
+named:
+  echo named
+

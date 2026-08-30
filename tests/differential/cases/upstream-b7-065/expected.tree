@@ -1,0 +1,9 @@
+dir	./home
+dir	./commands
+file	./commands/foo.just	16
+foo:
+ @echo FOO
+
+file	./justfile	29
+mod? foo 'commands/foo.just'
+

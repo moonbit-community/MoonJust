@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	39
+set script-interpreter := ['foo', bar]
+

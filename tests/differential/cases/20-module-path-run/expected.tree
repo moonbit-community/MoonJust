@@ -1,0 +1,11 @@
+dir	./home
+dir	./tools
+file	./tools/marker	6
+module
+file	./tools/mod.just	32
+tool:
+  @printf module > marker
+
+file	./justfile	10
+mod tools
+

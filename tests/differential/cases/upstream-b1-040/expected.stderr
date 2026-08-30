@@ -1,0 +1,5 @@
+error: expected keyword `x` but found identifier `foo`
+ ——▶ justfile:1:8
+  │
+1 │ import foo"bar.just"
+  │        ^^^

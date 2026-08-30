@@ -1,0 +1,5 @@
+error: alias `foo` has an unknown target `bar`
+ ——▶ justfile:1:7
+  │
+1 │ alias foo := bar
+  │       ^^^

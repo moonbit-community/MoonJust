@@ -1,0 +1,6 @@
+outer
+import-outer
+baz
+outer
+baz
+import-outer

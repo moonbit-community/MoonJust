@@ -1,0 +1,11 @@
+dir	./foo
+file	./foo/baz	0
+
+file	./foo/mod.just	38
+bar:
+  @echo {{ blake3_file('baz') }}
+
+dir	./home
+file	./justfile	8
+mod foo
+

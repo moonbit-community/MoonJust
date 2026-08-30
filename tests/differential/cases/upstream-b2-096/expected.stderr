@@ -1,0 +1,5 @@
+error: argument attribute `value` only valid with `long` or `short`
+ ——▶ justfile:1:13
+  │
+1 │ [arg('bar', value='baz')]
+  │             ^^^^^

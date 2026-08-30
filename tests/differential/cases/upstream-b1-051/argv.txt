@@ -1,0 +1,4 @@
+--working-directory
+.
+--justfile
+subdir/a.justfile

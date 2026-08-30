@@ -1,0 +1,9 @@
+file	./.env	23
+DOTENV_KEY=dotenv-value
+dir	./home
+file	./justfile	106
+set dotenv-load := false
+
+@foo:
+  if [ -n "${DOTENV_KEY+1}" ]; then echo defined; else echo undefined; fi
+

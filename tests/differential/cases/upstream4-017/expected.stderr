@@ -1,0 +1,5 @@
+error: variable `undefined` not defined
+ ——▶ justfile:1:6
+  │
+1 │ [doc(undefined)]
+  │      ^^^^^^^^^

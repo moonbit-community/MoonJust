@@ -1,0 +1,1 @@
+error: recipe `foo` option `-b` cannot be passed more than once

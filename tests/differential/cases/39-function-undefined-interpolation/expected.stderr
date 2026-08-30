@@ -1,0 +1,5 @@
+error: call to undefined function `missing`
+ ——▶ justfile:3:10
+  │
+3 │   echo {{missing()}}
+  │          ^^^^^^^

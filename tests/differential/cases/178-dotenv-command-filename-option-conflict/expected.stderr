@@ -1,0 +1,5 @@
+error: the argument '--dotenv-command <COMMAND>' cannot be used with '--dotenv-filename <DOTENV_FILENAME>'
+
+Usage: just --dotenv-command <COMMAND> --color <COLOR> [ARGUMENTS]...
+
+For more information, try '--help'.

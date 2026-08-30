@@ -1,0 +1,6 @@
+error: found a mix of tabs and spaces in leading whitespace: `␉␠`
+leading whitespace may consist of tabs or spaces, but not both
+ ——▶ justfile:2:1
+  │
+2 │      echo hello
+  │ ^^^^^

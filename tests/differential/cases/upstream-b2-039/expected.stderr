@@ -1,0 +1,5 @@
+error: argument attribute for undefined argument ``
+ ——▶ justfile:1:6
+  │
+1 │ [arg('', short)]
+  │      ^^

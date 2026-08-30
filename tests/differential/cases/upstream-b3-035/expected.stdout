@@ -1,0 +1,2 @@
+Available recipes:
+    recipe [OPTIONS] qux baz='z'

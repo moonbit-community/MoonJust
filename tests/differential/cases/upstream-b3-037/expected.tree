@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	42
+# Comment `with unclosed backtick
+recipe:
+

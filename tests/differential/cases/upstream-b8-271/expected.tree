@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	101
+set shell := ['pwsh', '-NoProfile', '-c']
+
+pwd:
+  @Test-Path {{invocation_directory()}} > result.txt
+

@@ -1,0 +1,5 @@
+error: expected backtick, '!', '[', identifier, '(', '/', or string, but found comment
+ ——▶ justfile:2:11
+  │
+2 │   echo {{ # hello
+  │           ^^^^^^^

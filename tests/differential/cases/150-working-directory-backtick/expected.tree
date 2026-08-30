@@ -1,0 +1,13 @@
+dir	./foo
+file	./foo/file.txt	5
+FILE
+
+dir	./home
+file	./justfile	82
+set working-directory := 'foo'
+
+file := `cat file.txt`
+
+@default:
+  echo {{file}}
+

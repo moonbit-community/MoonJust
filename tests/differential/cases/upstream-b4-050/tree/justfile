@@ -1,0 +1,2 @@
+unexport foo:
+  @echo {{foo}}

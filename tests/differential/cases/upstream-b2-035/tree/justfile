@@ -1,0 +1,3 @@
+[arg('bar', long='bar')]
+@foo bar='baz' *rest:
+  echo bar={{bar}} rest={{rest}}

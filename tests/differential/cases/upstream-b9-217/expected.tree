@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	25
+unexport foo # bar
+
+baz:
+

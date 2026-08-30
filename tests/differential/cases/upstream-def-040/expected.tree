@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	27
+a := 'x'
+b := 'y'
+c := 'z'
+

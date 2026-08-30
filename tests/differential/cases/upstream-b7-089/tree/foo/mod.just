@@ -1,0 +1,2 @@
+bar:
+  @cat data.txt

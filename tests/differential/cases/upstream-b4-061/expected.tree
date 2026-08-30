@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	56
+[working-directory(`echo foo`)]
+@baz:
+  echo bob > fred
+

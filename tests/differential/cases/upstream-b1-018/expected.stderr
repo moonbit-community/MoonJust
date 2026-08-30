@@ -1,0 +1,5 @@
+error: `[group('a')]` attribute first used on line 1 is duplicated on line 2
+ ——▶ justfile:2:2
+  │
+2 │ [group('a')]
+  │  ^^^^^

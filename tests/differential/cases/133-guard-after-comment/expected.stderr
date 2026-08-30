@@ -1,0 +1,5 @@
+error: the guard `?` and infallible `-` sigils may not be used together
+ ——▶ justfile:6:3
+  │
+6 │   -?bar
+  │   ^^^^^

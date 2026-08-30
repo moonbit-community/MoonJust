@@ -1,0 +1,2 @@
+[confirm(x)]
+foo:

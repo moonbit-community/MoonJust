@@ -1,0 +1,5 @@
+error: variable `JUST_TEST_VARIABLE` is unexported multiple times
+ ——▶ justfile:6:10
+  │
+6 │ unexport JUST_TEST_VARIABLE
+  │          ^^^^^^^^^^^^^^^^^^

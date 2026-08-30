@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	30
+foo:
+  echo {{(
+    'a'
+  )}}
+

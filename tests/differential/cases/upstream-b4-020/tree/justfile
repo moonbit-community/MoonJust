@@ -1,0 +1,4 @@
+[private]
+mod foo
+
+baz:

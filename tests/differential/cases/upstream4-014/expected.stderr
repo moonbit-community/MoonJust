@@ -1,0 +1,5 @@
+error: invalid signal `SIGTERM`: expected `SIGHUP`, `SIGINT`, or `SIGQUIT`
+ ——▶ justfile:1:11
+  │
+1 │ [continue('SIGTERM')]
+  │           ^^^^^^^^^

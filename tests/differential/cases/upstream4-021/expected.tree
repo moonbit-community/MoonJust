@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	32
+a := b
+b := 'bar'
+[doc(a)]
+foo:
+

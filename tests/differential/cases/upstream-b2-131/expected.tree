@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	74
+hello := 'foo'
+bar := hello + hello
+recipe:
+ echo {{hello + 'bar' + bar}}
+

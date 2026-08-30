@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	59
+foo *args: *(bar *args)
+
+bar arg:
+  @echo "bar: {{ arg }}"
+

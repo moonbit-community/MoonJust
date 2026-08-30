@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	35
+foo := f'}}'
+
+@baz:
+  echo {{foo}}
+

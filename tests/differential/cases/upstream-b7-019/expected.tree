@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	72
+mod? foo
+
+build: foo::setup
+  @echo BUILD
+
+deploy: build
+  @echo DEPLOY
+

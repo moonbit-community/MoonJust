@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	59
+foo bar='baz':
+    @echo {{ bar }}
+
+baz: foo
+    @echo baz
+

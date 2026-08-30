@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	45
+# Non-document comment
+[doc]
+foo:
+  echo foo
+

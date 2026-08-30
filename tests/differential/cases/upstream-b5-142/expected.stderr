@@ -1,0 +1,5 @@
+error: call to function `choose` failed: alphabet contains repeated character `a`
+ ——▶ justfile:1:6
+  │
+1 │ x := choose('10', 'aa')
+  │      ^^^^^^

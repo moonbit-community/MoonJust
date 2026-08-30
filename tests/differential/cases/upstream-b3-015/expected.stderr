@@ -1,0 +1,5 @@
+error: expected '&&', '!=', '!~', '||', '==', '=~', format string continue, format string end, '(', '+', '++', or '/', but found identifier
+ ——▶ justfile:2:13
+  │
+2 │ x := f'{{ a x }}plain'
+  │             ^

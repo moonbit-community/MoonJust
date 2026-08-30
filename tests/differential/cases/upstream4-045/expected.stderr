@@ -1,0 +1,5 @@
+error: shell recipe `baz` has script recipe attribute `extension`
+ ——▶ justfile:2:1
+  │
+2 │ baz:
+  │ ^^^

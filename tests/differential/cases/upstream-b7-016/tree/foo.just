@@ -1,0 +1,2 @@
+setup:
+ @echo SETUP

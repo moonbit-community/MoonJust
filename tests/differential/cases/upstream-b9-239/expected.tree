@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	45
+set default-script := false
+
+foo:
+  echo foo
+

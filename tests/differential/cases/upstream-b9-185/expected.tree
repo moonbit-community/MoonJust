@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	46
+# This is a doc comment
+[]
+hello:
+  @exit 100
+

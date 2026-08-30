@@ -1,0 +1,12 @@
+dir	./foo
+file	./foo/file.txt	3
+baz
+dir	./home
+file	./justfile	65
+bar := `pwd`
+
+set working-directory := bar
+
+@foo:
+  cat file.txt
+

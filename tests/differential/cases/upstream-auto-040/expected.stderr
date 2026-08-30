@@ -1,0 +1,5 @@
+error: unexpected closing delimiter `]`
+ ——▶ justfile:1:1
+  │
+1 │ ]
+  │ ^

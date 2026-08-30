@@ -1,0 +1,8 @@
+--unstable
+foo
+--bar
+a
+--bar
+b
+--bar
+c

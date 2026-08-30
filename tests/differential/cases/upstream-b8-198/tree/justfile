@@ -1,0 +1,3 @@
+a := `echo Hello,`
+bar:
+ echo '{{a + `echo ' world.'`}}'

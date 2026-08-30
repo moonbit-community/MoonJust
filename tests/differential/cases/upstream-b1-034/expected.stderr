@@ -1,0 +1,5 @@
+error: variable `undefined` not defined
+ ——▶ justfile:5:8
+  │
+5 │   # {{ undefined }}
+  │        ^^^^^^^^^

@@ -1,0 +1,5 @@
+error: recipe `foo` defines option `--bar` multiple times
+ ——▶ justfile:1:18
+  │
+1 │ [arg('aaa', long='bar')]
+  │                  ^^^^^

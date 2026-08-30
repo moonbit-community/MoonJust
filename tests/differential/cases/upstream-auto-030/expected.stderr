@@ -1,0 +1,5 @@
+error: variable `b` not defined
+ ——▶ justfile:1:32
+  │
+1 │ a := if '' == '' { '' } else { b }
+  │                                ^

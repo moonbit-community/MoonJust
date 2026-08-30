@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	21
+a := b
+b := c
+c := b
+

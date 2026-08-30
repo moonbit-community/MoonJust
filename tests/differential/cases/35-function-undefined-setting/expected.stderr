@@ -1,0 +1,5 @@
+error: call to undefined function `missing`
+ ——▶ justfile:2:16
+  │
+2 │ set tempdir := missing()
+  │                ^^^^^^^

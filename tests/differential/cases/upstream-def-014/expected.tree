@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	41
+set dotenv-load
+
+bar:
+  echo $DOTENV_KEY
+

@@ -1,0 +1,1 @@
+x := sha256_file('sub/shafile')

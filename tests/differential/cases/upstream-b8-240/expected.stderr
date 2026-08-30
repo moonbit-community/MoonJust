@@ -1,0 +1,5 @@
+error: recipe line has extra leading whitespace
+ ——▶ justfile:3:3
+  │
+3 │             echo goodbye
+  │         ^^^^^^^^^^^^^^^^

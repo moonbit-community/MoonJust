@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	37
+echo A B C:
+  echo {{A}} {{B}} {{C}}
+

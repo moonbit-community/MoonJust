@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	40
+x := if foo == bar { baz } else { qux }
+

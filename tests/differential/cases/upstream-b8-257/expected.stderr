@@ -1,0 +1,5 @@
+error: recipe `a` has unknown dependency `y`
+ ——▶ justfile:3:6
+  │
+3 │ a: x y
+  │      ^

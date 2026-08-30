@@ -1,0 +1,5 @@
+error: the `join_list()` function requires `set lists`
+ ——▶ justfile:1:6
+  │
+1 │ x := join_list("foo")
+  │      ^^^^^^^^^

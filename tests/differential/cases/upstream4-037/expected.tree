@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	49
+[env('MY_VAR', 'my_value')]
+foo:
+  @echo $MY_VAR
+

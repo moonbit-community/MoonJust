@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	64
+set lazy
+
+x := assert('foo' == 'bar', 'fail')
+
+foo:
+  @echo foo
+

@@ -1,0 +1,2 @@
+bar:
+hello baz arg='foo' bar:

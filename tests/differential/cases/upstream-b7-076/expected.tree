@@ -1,0 +1,12 @@
+file	./.env	23
+DOTENV_KEY=dotenv-value
+dir	./home
+file	./foo.just	24
+foo:
+ @echo $DOTENV_KEY
+
+file	./justfile	25
+set dotenv-load
+
+mod foo
+

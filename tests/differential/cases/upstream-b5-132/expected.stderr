@@ -1,0 +1,5 @@
+error: recipe `foo` defined on line 1 is redefined as a module on line 4
+ ——▶ justfile:4:5
+  │
+4 │ mod foo 'foo.just'
+  │     ^^^

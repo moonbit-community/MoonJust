@@ -1,0 +1,16 @@
+dir	./home
+file	./a.just	15
+import 'c.just'
+file	./b.just	15
+import 'c.just'
+file	./c.just	29
+x := 'y'
+
+@bar:
+  echo hello
+
+file	./justfile	41
+import 'a.just'
+import 'b.just'
+foo: bar
+

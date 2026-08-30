@@ -1,0 +1,3 @@
+import x'$JUST_TEST_VARIABLE'
+
+foo: bar

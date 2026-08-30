@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	26
+set shell := ['foo', bar]
+

@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	28
+set guards
+
+@foo:
+  ?exit 2
+

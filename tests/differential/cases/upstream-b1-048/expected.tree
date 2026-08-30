@@ -1,0 +1,11 @@
+dir	./foo
+file	./foo/bar.just	16
+bar:
+ @echo BAR
+
+file	./foo/import.just	17
+import 'bar.just'
+dir	./home
+file	./justfile	25
+import 'foo/import.just'
+

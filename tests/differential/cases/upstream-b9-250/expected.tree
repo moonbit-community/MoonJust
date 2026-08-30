@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	31
+set working-directory := `pwd`
+

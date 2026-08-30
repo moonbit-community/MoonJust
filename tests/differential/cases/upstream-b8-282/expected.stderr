@@ -1,0 +1,5 @@
+error: expected ':' or '=', but found '+'
+ ——▶ justfile:1:8
+  │
+1 │ foo *a +b:
+  │        ^

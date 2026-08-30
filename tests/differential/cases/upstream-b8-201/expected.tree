@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	64
+password := `read PW && echo $PW`
+
+default:
+  echo {{password}}
+

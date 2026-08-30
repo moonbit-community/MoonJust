@@ -1,0 +1,6 @@
+echo hello
+error: backtick failed with exit code 123
+ ——▶ justfile:3:9
+  │
+3 │  echo {{`exit 123`}}
+  │         ^^^^^^^^^^

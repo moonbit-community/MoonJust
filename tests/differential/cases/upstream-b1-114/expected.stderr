@@ -1,0 +1,5 @@
+error: logical operators require `set lists`
+ ——▶ justfile:1:12
+  │
+1 │ x := 'foo' && 'bar'
+  │            ^^

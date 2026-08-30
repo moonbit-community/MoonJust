@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	35
+[private]
+alias hello := bar
+
+bar:
+

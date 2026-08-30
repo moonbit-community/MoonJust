@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	40
+foo: && bar
+  echo foo
+
+bar:
+  echo bar
+

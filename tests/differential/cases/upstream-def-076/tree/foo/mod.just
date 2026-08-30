@@ -1,0 +1,2 @@
+bar:
+  @echo "{{ canonicalize('baz') }}"

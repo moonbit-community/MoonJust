@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	53
+set unstable
+set lists
+
+include := []
+
+x := !include
+

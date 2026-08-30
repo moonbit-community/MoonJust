@@ -1,0 +1,14 @@
+dir	./home
+dir	./tools
+dir	./tools/nested
+file	./tools/nested/mod.just	6
+deep:
+
+file	./tools/mod.just	23
+mod nested
+tool value:
+
+file	./justfile	16
+mod tools
+root:
+

@@ -1,0 +1,11 @@
+dir	./foo
+file	./foo/baz	0
+
+file	./foo/mod.just	38
+bar:
+  @echo {{ path_exists('baz') }}
+
+dir	./home
+file	./justfile	8
+mod foo
+

@@ -1,0 +1,3 @@
+set lists
+
+x := env_var(['ZADDY', 'BAR'])

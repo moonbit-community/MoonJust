@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	49
+[arg('foo', long)]
+bar foo='baz':
+  echo {{foo}}
+
