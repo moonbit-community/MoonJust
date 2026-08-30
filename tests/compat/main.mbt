@@ -590,6 +590,19 @@ async fn main {
       }
     }
   }
+  for upstream_test, spec in spec_index {
+    let fixture_file = spec.fixture.split(":").collect().get(0).unwrap_or("")
+    if fixture_file.is_empty() || !@fs.exists(fixture_file) {
+      failures.push(
+        upstream_test + ": spec fixture is missing: " + spec.fixture,
+      )
+    }
+    if spec.anchor.is_empty() {
+      failures.push(
+        upstream_test + ": spec is missing an upstream source anchor",
+      )
+    }
+  }
   // Count coverage by upstream row, rather than by local fixture count. A
   // future full corpus can provide explicit exclusion files; until then every
   // unbound upstream row remains visible as unclassified.

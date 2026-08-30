@@ -19,3 +19,15 @@ clean::tests::trailing_parent_dir_pops_normal	internal/path/upstream_clean_test.
 clean::tests::trailing_parent_dir_pops_normal_before_current	internal/path/upstream_clean_test.mbt:95	src/clean.rs:131
 clean::tests::normal_is_preserved	internal/path/upstream_clean_test.mbt:100	src/clean.rs:136
 clean::tests::parent_dir_after_normal_is_current	internal/path/upstream_clean_test.mbt:105	src/clean.rs:141
+invocation_parser::tests::single_no_arguments	internal/invocation/upstream_parser_test.mbt:10	src/invocation_parser.rs:332
+invocation_parser::tests::single_with_argument	internal/invocation/upstream_parser_test.mbt:18	src/invocation_parser.rs:343
+invocation_parser::tests::single_argument_count_mismatch	internal/invocation/upstream_parser_test.mbt:27	src/invocation_parser.rs:354
+invocation_parser::tests::single_unknown	internal/invocation/upstream_parser_test.mbt:38	src/invocation_parser.rs:370
+invocation_parser::tests::multiple_unknown	internal/invocation/upstream_parser_test.mbt:49	src/invocation_parser.rs:383
+invocation_parser::tests::complex_grouping	internal/invocation/upstream_parser_test.mbt:58	src/invocation_parser.rs:580
+invocation_parser::tests::long_argument	internal/invocation/upstream_parser_test.mbt:80	src/invocation_parser.rs:616
+invocation_parser::tests::repeatable_long_option	internal/invocation/upstream_parser_test.mbt:90	src/invocation_parser.rs:633
+invocation_parser::tests::long_argument_with_positional	internal/invocation/upstream_parser_test.mbt:101	src/invocation_parser.rs:653
+invocation_parser::tests::long_argument_terminator	internal/invocation/upstream_parser_test.mbt:113	src/invocation_parser.rs:673
+invocation_parser::tests::no_recipes	internal/invocation/upstream_parser_test.mbt:124	src/invocation_parser.rs:519
+invocation_parser::tests::default_recipe_requires_arguments	internal/invocation/upstream_parser_test.mbt:135	src/invocation_parser.rs:538
