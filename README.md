@@ -28,8 +28,8 @@ main -> cli.parse_invocation -> application.classify_request
 ```
 
 Implementation packages live below `internal/`. `host` defines capabilities,
-`host_native` and `host_wasm` implement platform boundaries, and
-`host_testkit` is test-only. Project loading produces an immutable snapshot;
+`host/native` and `host/wasm` implement platform boundaries, and
+`host/testkit` is test-only. Project loading produces an immutable snapshot;
 planning never starts a process and runtime never reparses a justfile.
 
 ## Compatibility checks
@@ -40,6 +40,7 @@ run:
 
 ```text
 moon run --target native ./tests/compat -- --candidate PATH --official PATH
+moon run --target native ./tests/platform -- --candidate PATH --official PATH
 moon run --target native ./tests/benchmark -- --candidate PATH --official PATH --rounds 15
 ```
 

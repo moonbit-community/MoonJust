@@ -18,15 +18,31 @@ the root executable.
 - Hardened the compatibility runner so manifest identity, expected outcome,
   compared fields, explicit difference reasons, and upstream test anchors must
   agree.
+- Grouped Host contracts and adapters under `internal/host/`, with `fs`,
+  `native`, `process`, `testkit`, and `wasm` as explicit child packages.
+- Centralized project source preparation in `project`, moved effect and
+  dry-run eligibility policies to `evaluator` and `planner`, and moved shared
+  ordering and display-width behavior to `query`.
+- Reduced `application` to its actual cross-package entrypoints, removed dead
+  synchronous wrappers, and renamed files by lifecycle responsibility.
+- Isolated Native and portable fast paths behind one root result type while
+  preserving the existing Wasm startup optimizations.
 - Kept comparisons byte-exact for status, stdout, stderr, merged output,
   filesystem effects, and declared live-output observations.
+- Pinned the candidate side of every known difference with a pure MoonBit
+  SHA-256 check, so a different diagnostic cannot pass merely because it uses
+  the same output stream.
+- Replaced the substring-only platform probe with real candidate/oracle
+  execution and changed the benchmark runner to interleaved paired median/p95
+  samples after a behavior-equivalence check.
 - Fixed CI executable resolution after runners change into temporary case
   directories. The testkit resolves path-based programs before execution.
 
 ## Validation
 
-Remote CI run `33295810860` passed on Ubuntu, macOS, Windows, Wasm, formatting
-and interface checks, and the just 1.57 differential job.
+The last pre-reorganization remote CI run `33299447247` passed on Ubuntu,
+macOS, Windows, Wasm, formatting and interface checks, and the just 1.57
+differential job. The reorganized branch is validated again before delivery.
 
 The local compatibility run reported 176 exact matches, 6 explicitly declared
 known differences, and 0 failures. Native and Wasm package tests each passed
