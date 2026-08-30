@@ -1,7 +1,7 @@
 import {
   "ZSeanYves/MoonJust/internal/cache",
   "ZSeanYves/MoonJust/internal/host",
-  "ZSeanYves/MoonJust/internal/host_native",
+  "ZSeanYves/MoonJust/internal/host/native" @host_native,
   "ZSeanYves/MoonJust/internal/path",
   "moonbitlang/async",
   "moonbitlang/async/fs" @async_fs,

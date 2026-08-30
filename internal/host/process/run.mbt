@@ -29,8 +29,8 @@ async fn run_process_with_output_limit(
       )
       let program = wrapped_program
       let arguments = wrapped_arguments
-      let (stdout_reader, stdout_target) = @process.read_from_process()
-      let (stderr_reader, stderr_target) = @process.read_from_process()
+      let (stdout_reader, stdout_target) = @async_process.read_from_process()
+      let (stderr_reader, stderr_target) = @async_process.read_from_process()
       let stdout_regular = if command.stdout() == Inherit {
         stdio_is_regular(@stdio.stdout.fd())
       } else {
@@ -55,7 +55,7 @@ async fn run_process_with_output_limit(
         let child_stdin = if command.inherits_stdin() {
           None
         } else {
-          let (child_stdin, writer) = @process.write_to_process()
+          let (child_stdin, writer) = @async_process.write_to_process()
           child_group.spawn_bg(() => {
             defer writer.close()
             if !command.stdin().is_empty() {

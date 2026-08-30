@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ZSeanYves/MoonJust/internal/host_process"
+package "ZSeanYves/MoonJust/internal/host/process"
 
 import {
   "ZSeanYves/MoonJust/internal/host",

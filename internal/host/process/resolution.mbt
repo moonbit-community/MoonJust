@@ -134,7 +134,7 @@ async fn windows_native_program(
   }
   let cygpath = @env.get_env_var("JUST_CYGPATH").unwrap_or("cygpath")
   let (status, stdout, _) = try
-    @process.collect_output(cygpath, ["--windows", program], cwd~)
+    @async_process.collect_output(cygpath, ["--windows", program], cwd~)
   catch {
     _ => return program
   } noraise {
@@ -292,7 +292,7 @@ async fn resolve_process_program_cached(
 ///|
 async fn read_bounded_process_output(
   output_mutex : @async.Mutex,
-  reader : @process.ReadFromProcess,
+  reader : @async_process.ReadFromProcess,
   limit : Int,
   retain : Bool,
   process : ObservedProcess,

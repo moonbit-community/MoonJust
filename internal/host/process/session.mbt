@@ -31,7 +31,7 @@ let process_resolution_cache : Map[String, String] = Map([])
 
 ///|
 priv enum ObservedProcess {
-  Managed(@process.Process)
+  Managed(@async_process.Process)
 }
 
 ///|
@@ -47,12 +47,12 @@ async fn[X] spawn_observed_process(
   arguments : ArrayView[String],
   environment : Map[String, String],
   inherit_environment : Bool,
-  stdin : &@process.ProcessInput,
-  stdout : &@process.ProcessOutput,
-  stderr : &@process.ProcessOutput,
+  stdin : &@async_process.ProcessInput,
+  stdout : &@async_process.ProcessOutput,
+  stderr : &@async_process.ProcessOutput,
   cwd : String,
 ) -> ObservedProcess {
-  let process = @process.spawn(
+  let process = @async_process.spawn(
     group,
     program,
     arguments,
@@ -62,7 +62,7 @@ async fn[X] spawn_observed_process(
     stdout~,
     stderr~,
     cwd~,
-    cancel_handler=@process.graceful_cancel(timeout=5000),
+    cancel_handler=@async_process.graceful_cancel(timeout=5000),
     no_wait=true,
   )
   Managed(process)

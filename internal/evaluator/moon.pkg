@@ -3,7 +3,7 @@ import {
   "ZSeanYves/MoonJust/internal/diagnostic",
   "ZSeanYves/MoonJust/internal/formatter",
   "ZSeanYves/MoonJust/internal/host",
-  "ZSeanYves/MoonJust/internal/host_fs",
+  "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
   "ZSeanYves/MoonJust/internal/parser",
   "ZSeanYves/MoonJust/internal/path",
   "ZSeanYves/MoonJust/internal/semantic",
