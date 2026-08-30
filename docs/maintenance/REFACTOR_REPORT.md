@@ -265,9 +265,9 @@ passed all six jobs.
 
 ## Compatibility Result
 
-The maintained differential corpus contains 182 executable scenarios:
+The maintained differential corpus contains 219 executable scenarios:
 
-- 176 exact matches;
+- 213 exact matches;
 - 6 explicit known differences;
 - 0 failures.
 
