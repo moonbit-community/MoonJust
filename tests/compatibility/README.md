@@ -15,3 +15,18 @@ test inventory.
 The files under `upstream/` are provenance and oracle metadata. They do not
 replace executable behavior tests and are never treated as a source of
 implementation code.
+
+Use `--coverage-report PATH` to emit one JSON row for every identity in the
+pinned upstream inventory. The runner uses only these statuses:
+`differential-exact`, `differential-known-difference`,
+`excluded-completion`, `excluded-signal`, and `unclassified`. Supplying
+`--strict-coverage` fails when any identity is unclassified; it is never
+silently counted as a pass. Every executable upstream behavior must carry a
+real fixture, input, expected output, exit status, and source anchor. Internal
+parser, semantic, evaluator, and formatter behavior belongs in MoonBit
+whitebox tests with exact token, AST, diagnostic, value, or byte assertions.
+
+Completion generation and runtime signal identity/forwarding are excluded only
+for their documented shell-protocol and OS-process-group reasons. Static signal
+validation, option parsing, diagnostics, and all other platform-testable
+behavior remain in scope.

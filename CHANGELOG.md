@@ -29,6 +29,14 @@ published releases.
   platform, and benchmark runners.
 - Moved historical ADRs and delivery reports to docs/development/; current
   architecture and maintenance records now have separate locations.
+- Made `moon.mod` version 0.1.2 authoritative for the executable identity and
+  added a preflight check that rejects a mismatched `--version` response.
+- Expanded compatibility evidence to emit a per-identity report for all 2,417
+  pinned upstream test names, with explicit completion/signal exclusions and
+  visible unclassified coverage.
+- Reworked the benchmark runner around larger workloads, warmups, interleaved
+  batches, ratio intervals and JSON gate artifacts for Native and Wasm. Wasm
+  runner arguments now use the required `moonrun ... -- ...` form.
 
 ### Performance
 

@@ -14,6 +14,29 @@ PR #69 contains the complete PR #68 commit line. This document is a work
 record, not an architecture contract. The maintained package boundaries and
 execution invariants are documented in [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
 
+## Current Validation Work
+
+The 0.1.2 consistency pass now uses `moon.mod` as the product version source
+and checks the candidate static `--version` response before running cases.
+Native and Wasm both report `moonjust v0.1.2`, with the version digest updated
+to the new bytes.
+
+The compatibility runner reads all 2,417 identities from the pinned just
+1.57.0 inventory and can write one JSON row per identity. The current corpus
+has 201 anchored executable identities, 30 explicit completion exclusions, 14
+runtime-signal exclusions, and 2,172 unclassified identities. The runner keeps
+that gap visible and fails strict coverage mode instead of inflating pass
+counts. Existing executable results remain 176 exact matches, 6 pinned known
+differences, and 0 failures.
+
+The benchmark runner now generates larger check, format, summary, DAG, no-op,
+module, script, and Wasm-host workloads. It performs warmups and interleaved
+candidate/oracle samples across batches, reports median/p95 ratios and a
+sample-level ratio interval, and writes gate-compatible JSON. Wasm invocations
+use `moonrun <artifact> -- <program arguments>`; the separator is not passed
+to MoonJust. CI runs native and Wasm benchmark jobs on every OS matrix entry
+and uploads both reports.
+
 ## Starting Point
 
 The common upstream baseline was 8ae279fe, the 0.1.1 preparation commit.

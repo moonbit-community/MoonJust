@@ -9,7 +9,7 @@ status = "expected-difference"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 allowed_difference = "product-identity"
-candidate_stdout_sha256 = "b24e024aef27a5efc712fbadcd4a838e2a5ce90063bf9406744f885fd98212c2"
+candidate_stdout_sha256 = "fe067b170556d8aba92b0c2dbe34309e22dca7ba561dc75e6a64ab667b5cb792"
 reason = "ADR 0001 requires MoonJust product identity in version output."
 
 [[case]]

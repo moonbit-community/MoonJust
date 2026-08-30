@@ -32,7 +32,8 @@ priv struct CaseResult {
 
 ///|
 fn usage() -> String {
-  "Usage: moonjust-compat --candidate PATH --official PATH [--cases PATH] [--manifest PATH]"
+  "Usage: moonjust-compat --candidate PATH --official PATH " +
+  "[--cases PATH] [--manifest PATH] [--upstream-list PATH] [--strict-coverage]"
 }
 
 ///|
@@ -43,6 +44,16 @@ fn option(args : ArrayView[String], name : String) -> String? {
     }
   }
   None
+}
+
+///|
+fn has_flag(args : ArrayView[String], name : String) -> Bool {
+  for value in args {
+    if value == name {
+      return true
+    }
+  }
+  false
 }
 
 ///|
@@ -443,6 +454,28 @@ async fn official_is_pinned(program : String) -> Bool {
 }
 
 ///|
+fn module_version(text : String) -> String? {
+  for raw in text.split("\n") {
+    let line = raw.trim().to_owned()
+    if line.has_prefix("version =") {
+      return quoted_value(line)
+    }
+  }
+  None
+}
+
+///|
+async fn candidate_version_matches(program : String, version : String) -> Bool {
+  let result = @testkit.run(program, ["--version"])
+  result.status == 0 &&
+  @testkit.bytes_equal(
+    result.stdout,
+    @utf8.encode("moonjust v" + version + "\n"),
+  ) &&
+  result.stderr.is_empty()
+}
+
+///|
 fn upstream_test_names(text : String) -> Set[String] {
   let names : Array[String] = []
   for raw in text.split("\n") {
@@ -480,6 +513,7 @@ async fn main {
   let upstream_list = option(args, "--upstream-list").unwrap_or(
     "tests/compatibility/upstream/just-1.57.0/test-list.txt",
   )
+  let coverage_report = option(args, "--coverage-report")
   let candidate = resolve_program(candidate_value)
   let official = resolve_program(official_value)
   let parsed_manifest = parse_manifest(read_text(manifest))
@@ -487,8 +521,24 @@ async fn main {
   let upstream_names = upstream_test_names(read_text(upstream_list))
   let mut matched = 0
   let mut known = 0
+  let mut executed_total = 0
+  let mut exact_total = 0
+  let mut known_difference_total = 0
+  let mut excluded_completion_total = 0
+  let mut excluded_signal_total = 0
   let mut selected_found = false
   let failures : Array[String] = []
+  let expected_version = module_version(read_text("moon.mod"))
+  match expected_version {
+    Some(version) if candidate_version_matches(candidate, version) => ()
+    Some(version) =>
+      failures.push(
+        "candidate --version does not match moon.mod (expected moonjust v" +
+        version +
+        ")",
+      )
+    None => failures.push("moon.mod does not declare a product version")
+  }
   if !official_is_pinned(official) {
     failures.push("official oracle must report exactly `just 1.57.0`")
   }
@@ -532,6 +582,33 @@ async fn main {
         )
       }
     }
+  }
+  // Count coverage by upstream row, rather than by local fixture count. A
+  // future full corpus can provide explicit exclusion files; until then every
+  // unbound upstream row remains visible as unclassified.
+  for upstream_test in upstream_names {
+    let (status, _, _, _) = coverage_status(upstream_test, metadata)
+    match status {
+      "differential-exact" => {
+        executed_total += 1
+        exact_total += 1
+      }
+      "differential-known-difference" => {
+        executed_total += 1
+        known_difference_total += 1
+      }
+      "excluded-completion" => excluded_completion_total += 1
+      "excluded-signal" => excluded_signal_total += 1
+      _ => ()
+    }
+  }
+  match coverage_report {
+    Some(path) =>
+      @fs.write_file(
+        path,
+        @utf8.encode(coverage_json(upstream_names, metadata)),
+      )
+    None => ()
   }
   for name in @fs.readdir(cases_root, include_hidden=false, sort=true) {
     if selected_case is Some(selected) && name != selected {
@@ -632,8 +709,33 @@ async fn main {
     known.to_string() +
     " failures=" +
     failures.length().to_string() +
+    " version=" +
+    (if failures.is_empty() { "pass" } else { "fail" }) +
+    " upstream_total=" +
+    upstream_names.length().to_string() +
+    " executed_total=" +
+    executed_total.to_string() +
+    " exact_total=" +
+    exact_total.to_string() +
+    " known_difference_total=" +
+    known_difference_total.to_string() +
+    " excluded_completion_total=" +
+    excluded_completion_total.to_string() +
+    " excluded_signal_total=" +
+    excluded_signal_total.to_string() +
+    " unclassified_total=" +
+    (upstream_names.length() -
+    executed_total -
+    excluded_completion_total -
+    excluded_signal_total).to_string() +
     "\n",
   )
+  if has_flag(args, "--strict-coverage") &&
+    upstream_names.length() !=
+    executed_total + excluded_completion_total + excluded_signal_total {
+    @stdio.stderr.write("FAIL  upstream coverage is incomplete\n")
+    @sys.exit(1)
+  }
   if !failures.is_empty() {
     @sys.exit(1)
   }

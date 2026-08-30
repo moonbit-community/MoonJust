@@ -7,7 +7,7 @@ MoonJust is a pure MoonBit implementation of the user-visible behavior of
 and linear-memory Wasm targets, with compatibility pinned to official
 just 1.57.0.
 
-The repository is currently on the 0.1.2 development line. It has no library
+The current product version is 0.1.2. It has no library
 facade: the root package is the executable and everything below internal/ is an
 implementation detail.
 
@@ -63,6 +63,15 @@ moon build --release --target native .
 _build/native/release/build/MoonJust.exe --version
 ~~~
 
+When using MoonX, write MoonX's separator once before MoonJust's arguments:
+
+~~~bash
+moonx ZSeanYves/MoonJust@0.1.2 -- build
+moonx ZSeanYves/MoonJust@0.1.2 -- --version
+~~~
+
+The recipe name is passed directly; it does not need another `--`.
+
 The Wasm artifact is built with:
 
 ~~~bash
@@ -93,7 +102,7 @@ or container sandbox when isolation is required; see SECURITY.md.
 The oracle is official just 1.57.0 at upstream commit
 e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f.
 
-The maintained black-box corpus currently runs 182 scenarios. It reports 176
+The maintained black-box corpus currently runs 182 executable scenarios. It reports 176
 byte-exact matches and six explicit known differences:
 
 - --version and --help retain MoonJust product identity;
@@ -106,6 +115,11 @@ SHA-256. A changed diagnostic therefore fails instead of being accepted by a
 broad substring rule. Shell completion is not part of the current compatibility
 claim, and raw signal behavior remains limited to the direct-child lifecycle
 described by the historical ADRs.
+
+The pinned upstream inventory contains 2,417 test identities. The compatibility
+runner emits a coverage report for every identity; completion and runtime
+signal-forwarding cases are explicit exclusions, while any other unbound
+identity is reported as unclassified rather than counted as a pass.
 
 ## Architecture
 
@@ -167,7 +181,8 @@ moon build --release --target native .
 
 moon run --target native ./tests/compat -- \
   --candidate _build/native/release/build/MoonJust.exe \
-  --official just
+  --official just \
+  --coverage-report _build/coverage.json
 
 moon run --target native ./tests/platform -- \
   --candidate _build/native/release/build/MoonJust.exe \
@@ -176,13 +191,27 @@ moon run --target native ./tests/platform -- \
 moon run --target native ./tests/benchmark -- \
   --candidate _build/native/release/build/MoonJust.exe \
   --official just \
-  --rounds 15
+  --target native \
+  --batches 3 \
+  --rounds 15 \
+  --output _build/performance-gate-native.json
+
+moon run --target native ./tests/benchmark -- \
+  --candidate _build/wasm/release/build/MoonJust.wasm \
+  --candidate-runner moonrun \
+  --official just \
+  --target wasm \
+  --batches 3 \
+  --rounds 15 \
+  --output _build/performance-gate-wasm.json
 ~~~
 
 The compatibility runner compares only declared observable behavior: exit
 status, stdout, stderr, merged output, filesystem effects, and live-output
 observations. The benchmark first verifies behavior equivalence, then executes
-interleaved paired samples and reports median and p95 ratios.
+interleaved paired samples and reports median and p95 ratios. Non-startup
+workloads use larger generated justfiles and retain raw sample and batch
+metadata in JSON.
 
 ## Documentation
 
