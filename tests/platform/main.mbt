@@ -38,6 +38,19 @@ async fn platform_result(program : String) -> @testkit.RunResult {
 }
 
 ///|
+fn describe(label : String, bytes : Bytes) -> String {
+  let text = @utf8.decode(bytes) catch { _ => "<non-utf8>" }
+  label +
+  " length=" +
+  bytes.length().to_string() +
+  " sha256=" +
+  @crypto.bytes_to_hex_string(@crypto.sha256(bytes)) +
+  " text=" +
+  text +
+  "\n"
+}
+
+///|
 async fn main {
   let args = @env.args()[1:]
   guard option(args, "--candidate") is Some(candidate) &&
@@ -64,6 +77,14 @@ async fn main {
     @stdio.stderr.write(
       "platform differential failed: " + failures.join(", ") + "\n",
     )
+    if failures.contains("stdout") {
+      @stdio.stderr.write(describe("expected stdout", expected.stdout))
+      @stdio.stderr.write(describe("actual stdout", actual.stdout))
+    }
+    if failures.contains("stderr") {
+      @stdio.stderr.write(describe("expected stderr", expected.stderr))
+      @stdio.stderr.write(describe("actual stderr", actual.stderr))
+    }
     @sys.exit(1)
     return
   }
