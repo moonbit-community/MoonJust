@@ -117,9 +117,9 @@ claim, and raw signal behavior remains limited to the direct-child lifecycle
 described by the historical ADRs.
 
 The pinned upstream inventory contains 2,417 test identities. The current
-report has 1,638 executed upstream identities (1,634 exact and four pinned
+report has 1,695 executed upstream identities (1,691 exact and four pinned
 known differences), 30 completion exclusions, 14 runtime signal exclusions,
-and 735 source-snapshot identities still awaiting executable migration.
+and 678 source-snapshot identities still awaiting executable migration.
 CI publishes this report without strict mode during migration; `--strict-coverage`
 will become a hard gate only after the unclassified count reaches zero.
 
