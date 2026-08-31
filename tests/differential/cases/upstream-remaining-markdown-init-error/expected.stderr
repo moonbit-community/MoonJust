@@ -1,1 +1,1 @@
-error: justfile `/private<CASE_ROOT>/foo.md` already exists
+error: justfile `<CASE_ROOT>/foo.md` already exists

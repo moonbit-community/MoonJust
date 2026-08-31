@@ -1,1 +1,1 @@
-error: cache input does not exist: `/private<CASE_ROOT>/foo`
+error: cache input does not exist: `<CASE_ROOT>/foo`

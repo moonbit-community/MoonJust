@@ -1,2 +1,2 @@
 error: no justfile found
-wrote justfile to `/private<CASE_ROOT>/justfile`
+wrote justfile to `<CASE_ROOT>/justfile`

@@ -1,1 +1,1 @@
-error: failed to load environment file from `/private<CASE_ROOT>/.env`: Error parsing line: 'bar baz', error at line index: 4
+error: failed to load environment file from `<CASE_ROOT>/.env`: Error parsing line: 'bar baz', error at line index: 4

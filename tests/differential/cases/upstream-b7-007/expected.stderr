@@ -1,1 +1,1 @@
-error: import `/private<CASE_ROOT>/justfile` in `/private<CASE_ROOT>/sub/foo.just` is circular
+error: import `<CASE_ROOT>/justfile` in `<CASE_ROOT>/sub/foo.just` is circular

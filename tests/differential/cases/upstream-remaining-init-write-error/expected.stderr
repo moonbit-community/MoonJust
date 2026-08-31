@@ -1,1 +1,1 @@
-error: failed to write justfile to `/private<CASE_ROOT>/justfile`: Is a directory (os error 21)
+error: failed to write justfile to `<CASE_ROOT>/justfile`: Is a directory (os error 21)

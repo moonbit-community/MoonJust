@@ -666,7 +666,13 @@ async fn tree_snapshot(root : String) -> Bytes {
 
 ///|
 fn normalize(bytes : Bytes, root : String) -> Bytes {
-  @testkit.replace_bytes(bytes, @utf8.encode(root)[:], b"<CASE_ROOT>"[:])
+  let private_root = @utf8.encode("/private" + root)[:]
+  let normalized = @testkit.replace_bytes(
+    bytes,
+    private_root,
+    b"<CASE_ROOT>"[:],
+  )
+  @testkit.replace_bytes(normalized, @utf8.encode(root)[:], b"<CASE_ROOT>"[:])
 }
 
 ///|

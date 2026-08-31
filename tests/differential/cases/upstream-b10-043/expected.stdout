@@ -1,1 +1,1 @@
-["/private<CASE_ROOT>/bar", "/private<CASE_ROOT>/baz bob"]
+["<CASE_ROOT>/bar", "<CASE_ROOT>/baz bob"]

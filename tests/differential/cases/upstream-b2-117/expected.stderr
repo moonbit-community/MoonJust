@@ -1,1 +1,1 @@
-error: multiple candidate justfiles found in `/private<CASE_ROOT>`: `.justfile` and `justfile`
+error: multiple candidate justfiles found in `<CASE_ROOT>`: `.justfile` and `justfile`
