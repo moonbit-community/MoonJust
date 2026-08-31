@@ -32,8 +32,13 @@ async fn[T : @host.HostFs + @host.HostSourceReader + @host.HostCacheStore] execu
   } else if !existed {
     @utf8.encode("recipe cache not found\n")
   } else {
-    let noun = if removed == 1 { "cache entry" } else { "cache entries" }
-    @utf8.encode("removed \{removed} \{noun}\n")
+    @utf8.encode(
+      "removed " +
+      @diagnostic.Count::numbered_irregular(
+        "cache entry", "cache entries", removed,
+      ).to_string() +
+      "\n",
+    )
   }
   @cli.ApplicationResponse::success(stderr~)
 }

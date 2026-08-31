@@ -4,6 +4,8 @@ pub struct FakeHost {
   denied : Set[@host.HostCapability]
   unavailable : Set[@host.HostCapability]
   files : Map[@path.PathValue, Bytes]
+  non_executable_files : Set[@path.PathValue]
+  directories : Set[@path.PathValue]
   mut temp_serial : Int
   mut fail_next_persist : Bool
   script_temp_creations : Array[(@path.PathValue, Bytes)]
@@ -35,6 +37,8 @@ pub fn FakeHost::new(
     denied: Set([]),
     unavailable: Set([]),
     files: Map([]),
+    non_executable_files: Set([]),
+    directories: Set([cwd]),
     temp_serial: 0,
     fail_next_persist: false,
     script_temp_creations: [],
@@ -155,6 +159,23 @@ pub fn FakeHost::put_file(
   contents : Bytes,
 ) -> Unit {
   self.files[path] = contents
+}
+
+///|
+/// Register a regular file that must be rejected by executable lookup.
+pub fn FakeHost::put_non_executable_file(
+  self : FakeHost,
+  path : @path.PathValue,
+  contents : Bytes,
+) -> Unit {
+  self.files[path] = contents
+  self.non_executable_files.add(path)
+}
+
+///|
+/// Register an empty directory without inventing a marker file.
+pub fn FakeHost::put_directory(self : FakeHost, path : @path.PathValue) -> Unit {
+  self.directories.add(path)
 }
 
 ///|
@@ -328,7 +349,7 @@ pub impl @host.HostFs for FakeHost with fn file_exists(
   path : @path.PathValue,
 ) -> Bool raise @host.HostError {
   self.require(@host.FsRead)
-  self.files.contains(path)
+  self.files.contains(path) || self.directories.contains(path)
 }
 
 ///|
@@ -353,6 +374,17 @@ pub impl @host.HostFs for FakeHost with fn read_dir(
       }
     }
   }
+  for directory in self.directories {
+    let value = directory.as_string()
+    if value.has_prefix(prefix) {
+      let rest = value.view(start_offset=prefix.length()).to_owned()
+      if !rest.is_empty() &&
+        !rest.contains(path.flavor().separator().to_string()) &&
+        !result.contains(rest) {
+        result.push(rest)
+      }
+    }
+  }
   result.sort()
   result
 }
@@ -365,7 +397,14 @@ pub impl @host.HostFs for FakeHost with fn metadata(
   self.require(@host.FsRead)
   match self.files.get(path) {
     Some(contents) =>
-      @host.FileMetadata::new(true, false, contents.length().to_int64())
+      @host.FileMetadata::new_with_executable(
+        true,
+        false,
+        contents.length().to_int64(),
+        !self.non_executable_files.contains(path),
+      )
+    None if self.directories.contains(path) =>
+      @host.FileMetadata::new(false, true, 0L)
     None => raise @host.NotFound(path)
   }
 }

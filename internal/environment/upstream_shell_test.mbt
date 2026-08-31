@@ -88,3 +88,24 @@ test "upstream settings::tests::shell_present_but_not_shell_args" {
   )
   assert_eq(shell.program(), "lol")
 }
+
+///|
+test "upstream shell::cmd" {
+  let shell = shell_config("cmd.exe", ["/C"])
+  assert_eq(shell.program(), "cmd.exe")
+  assert_eq(shell.arguments(), ["/C"])
+}
+
+///|
+test "upstream shell::powershell" {
+  let shell = shell_config("powershell.exe", ["-c"])
+  assert_eq(shell.program(), "powershell.exe")
+  assert_eq(shell.arguments(), ["-c"])
+}
+
+///|
+test "upstream shell::flag" {
+  let shell = shell_config("/tmp/shell", ["-cu"])
+  assert_eq(shell.program(), "/tmp/shell")
+  assert_eq(shell.arguments(), ["-cu"])
+}

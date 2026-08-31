@@ -1,0 +1,2 @@
+--justfile
+<CASE_ROOT>/justfile

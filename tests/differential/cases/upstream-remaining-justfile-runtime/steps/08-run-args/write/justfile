@@ -1,0 +1,2 @@
+a return code:
+    @x() { {{ return }} {{ code + '0' }}; }; x

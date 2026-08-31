@@ -8,3 +8,4 @@ set quiet := false
 
 foo:
   echo bar
+

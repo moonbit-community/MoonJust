@@ -32,8 +32,9 @@ published releases.
 - Made `moon.mod` version 0.1.2 authoritative for the executable identity and
   added a preflight check that rejects a mismatched `--version` response.
 - Expanded compatibility evidence to emit a per-identity report for all 2,417
-  pinned upstream test names, with explicit completion/signal exclusions and
-  visible unclassified coverage.
+  pinned upstream test names. The strict report has 2,362 executed identities
+  (2,358 exact and four pinned known differences), 34 completion exclusions,
+  21 signal exclusions, and zero unclassified identities.
 - Reworked the benchmark runner around larger workloads, warmups, interleaved
   batches, ratio intervals and JSON gate artifacts for Native and Wasm. Wasm
   runner arguments now use the required `moonrun ... -- ...` form.
@@ -64,8 +65,8 @@ published releases.
 
 ### Verification
 
-- The current corpus reports 176 exact matches, 6 pinned known differences,
-  and 0 failures against official just 1.57.0.
+- The current executable corpus reports 1,411 exact matches, 6 pinned known
+  differences, and 0 failures against official just 1.57.0.
 - Native/Wasm rewrite comparisons against the performance baseline have median
   1.00x; artifact growth remains below one percent on both targets.
 - PR #69 passed Ubuntu, macOS, Windows, Wasm, formatting/interface, and official

@@ -71,6 +71,12 @@ fn join(left : String, right : String) -> String {
 }
 
 ///|
+/// Keep runner-only symlink metadata outside the isolated project tree.
+fn link_metadata_path(root : String) -> String {
+  root + ".moonjust-tree-links"
+}
+
+///|
 fn quoted_value(line : String) -> String? {
   guard line.find("\"") is Some(start) else { return None }
   let rest = line.view(start_offset=start + 1)
@@ -322,7 +328,9 @@ async fn arguments(case_dir : String, root : String) -> Array[String] {
   }
   let result : Array[String] = []
   for line in read_text(path).split("\n") {
-    if !line.is_empty() {
+    if line == "<EMPTY>" {
+      result.push("")
+    } else if !line.is_empty() {
       result.push(expand(line.to_owned(), root))
     }
   }
@@ -376,9 +384,10 @@ async fn apply_symlinks(directory : String, root : String) -> Unit {
   if !@fs.exists(descriptor) {
     return
   }
+  let link_metadata = link_metadata_path(root)
   for raw in read_text(descriptor).split("\n") {
     let fields = raw.split("\t").collect()
-    if fields.length() != 2 {
+    if fields.length() < 2 {
       continue
     }
     @fs.symlink(
@@ -386,6 +395,71 @@ async fn apply_symlinks(directory : String, root : String) -> Unit {
       target=fields[1].view(),
       force_symlink=true,
     )
+    // A fixture may mark a host executable symlink as a tree link. Recording
+    // the target keeps snapshots portable without copying ELF/Mach-O bytes.
+    if fields.length() >= 3 && fields[2] == "link" {
+      let existing = if @fs.exists(link_metadata) {
+        @fs.read_file(link_metadata).text()
+      } else {
+        ""
+      }
+      @fs.write_file(
+        link_metadata,
+        @utf8.encode(
+          existing + fields[0].to_owned() + "\t" + fields[1].to_owned() + "\n",
+        ),
+      )
+    }
+  }
+}
+
+///|
+async fn apply_expanded_files(directory : String, root : String) -> Unit {
+  let descriptor = join(directory, "expand.list")
+  if !@fs.exists(descriptor) {
+    return
+  }
+  for raw in read_text(descriptor).split("\n") {
+    let relative = raw.trim().to_owned()
+    if relative.is_empty() {
+      continue
+    }
+    let path = join(root, relative)
+    let text = @fs.read_file(path).text()
+    @fs.write_file(path, @utf8.encode(expand(text, root)))
+  }
+}
+
+///|
+async fn apply_directories(directory : String, root : String) -> Unit {
+  let descriptor = join(directory, "directories.list")
+  if !@fs.exists(descriptor) {
+    return
+  }
+  for raw in read_text(descriptor).split("\n") {
+    let relative = raw.trim().to_owned()
+    if !relative.is_empty() {
+      @fs.mkdir(join(root, relative), recursive=true)
+    }
+  }
+}
+
+///|
+async fn apply_trimmed_files(directory : String, root : String) -> Unit {
+  let descriptor = join(directory, "trim-final-newline.list")
+  if !@fs.exists(descriptor) {
+    return
+  }
+  for raw in read_text(descriptor).split("\n") {
+    let relative = raw.trim().to_owned()
+    if relative.is_empty() {
+      continue
+    }
+    let path = join(root, relative)
+    let bytes = @fs.read_file(path).binary()
+    if bytes.length() > 0 && bytes[bytes.length() - 1] == b'\n' {
+      @fs.write_file(path, bytes[:bytes.length() - 1].to_owned())
+    }
   }
 }
 
@@ -395,17 +469,21 @@ async fn prepare_root(case_dir : String, root : String, cwd : String) -> Unit {
     @fs.mkdir(join(root, "home"), recursive=true)
   }
   copy_tree(join(case_dir, "tree"), root)
-  apply_symlinks(case_dir, root)
-  if !cwd.is_empty() {
-    if !@fs.exists(join(root, cwd)) {
-      @fs.mkdir(join(root, cwd), recursive=true)
-    }
+  apply_directories(case_dir, root)
+  apply_trimmed_files(case_dir, root)
+  if !cwd.is_empty() && !@fs.exists(join(root, cwd)) {
+    @fs.mkdir(join(root, cwd), recursive=true)
   }
+  apply_expanded_files(case_dir, root)
+  apply_symlinks(case_dir, root)
 }
 
 ///|
 async fn apply_step_changes(step_dir : String, root : String) -> Unit {
   copy_tree(join(step_dir, "write"), root)
+  apply_directories(step_dir, root)
+  apply_trimmed_files(step_dir, root)
+  apply_expanded_files(step_dir, root)
   apply_symlinks(step_dir, root)
   let remove = join(step_dir, "remove.list")
   if @fs.exists(remove) {
@@ -498,6 +576,8 @@ async fn append_tree_snapshot(
   current : String,
   relative : String,
   output : Array[Byte],
+  root : String,
+  links : Map[String, String],
 ) -> Unit {
   if relative == ".justcache" {
     let entries : Array[(String, Bytes)] = []
@@ -514,8 +594,9 @@ async fn append_tree_snapshot(
     })
     for _, entry in entries {
       let name = entry.0
-      let bytes = entry.1
-      let path = normalized_tree_path(".justcache/" + name, bytes[:])
+      let raw_bytes = entry.1
+      let bytes = normalize(raw_bytes, root)
+      let path = normalized_tree_path(".justcache/" + name, raw_bytes[:])
       append_bytes(
         output,
         @utf8.encode(
@@ -534,13 +615,23 @@ async fn append_tree_snapshot(
     } else {
       relative + "/" + name
     }
+    match links.get(raw_path) {
+      Some(target) => {
+        append_bytes(
+          output,
+          @utf8.encode("link\t./" + raw_path + "\t" + target + "\n")[:],
+        )
+        continue
+      }
+      None => ()
+    }
     match @fs.kind(full) {
       Directory => {
         append_bytes(output, @utf8.encode("dir\t./" + raw_path + "\n")[:])
-        append_tree_snapshot(full, raw_path, output)
+        append_tree_snapshot(full, raw_path, output, root, links)
       }
       Regular => {
-        let bytes = @fs.read_file(full).binary()
+        let bytes = normalize(@fs.read_file(full).binary(), root)
         let path = normalized_tree_path(raw_path, bytes[:])
         append_bytes(
           output,
@@ -559,7 +650,17 @@ async fn append_tree_snapshot(
 ///|
 async fn tree_snapshot(root : String) -> Bytes {
   let output : Array[Byte] = []
-  append_tree_snapshot(root, "", output)
+  let links : Map[String, String] = Map([])
+  let metadata = link_metadata_path(root)
+  if @fs.exists(metadata) {
+    for line in @fs.read_file(metadata).text().split("\n") {
+      let fields = line.split("\t").collect()
+      if fields.length() == 2 && !fields[0].is_empty() {
+        links[fields[0].to_owned()] = fields[1].to_owned()
+      }
+    }
+  }
+  append_tree_snapshot(root, "", output, root, links)
   Bytes::from_array(output)
 }
 
@@ -577,6 +678,7 @@ async fn run_side(
 ) -> CaseResult {
   let root = @fs.tmpdir(prefix="moonjust-compat-" + side)
   defer (@fs.rmdir(root, recursive=true) catch { _ => () })
+  defer (@fs.remove(link_metadata_path(root).view()) catch { _ => () })
   prepare_root(case_dir, root, metadata.cwd)
   let cwd = if metadata.cwd.is_empty() {
     root
@@ -592,7 +694,7 @@ async fn run_side(
       stdout: concatenate_step_stream(steps, true),
       stderr: concatenate_step_stream(steps, false),
       merged: None,
-      tree: tree_snapshot(root),
+      tree: normalize(tree_snapshot(root), root),
       live: true,
       steps,
     }
@@ -648,7 +750,7 @@ async fn run_side(
     stdout: normalize(stdout, root),
     stderr: normalize(stderr, root),
     merged,
-    tree: tree_snapshot(root),
+    tree: normalize(tree_snapshot(root), root),
     live,
     steps: [
       {
@@ -688,11 +790,13 @@ fn difference_fields(
       fields.push("status")
     }
     if compares(metadata, "stdout") &&
+      stdout_regex is None &&
       !@testkit.bytes_equal(expected_step.stdout, actual_step.stdout) &&
       !fields.contains("stdout") {
       fields.push("stdout")
     }
     if compares(metadata, "stderr") &&
+      stderr_regex is None &&
       !@testkit.bytes_equal(expected_step.stderr, actual_step.stderr) &&
       !fields.contains("stderr") {
       fields.push("stderr")
@@ -801,14 +905,14 @@ async fn candidate_version_matches(program : String, version : String) -> Bool {
 
 ///|
 fn upstream_test_names(text : String) -> Set[String] {
-  let names : Array[String] = []
+  let names : Set[String] = Set([])
   for raw in text.split("\n") {
     let name = raw.trim().to_owned()
     if !name.is_empty() {
-      names.push(name)
+      names.add(name)
     }
   }
-  Set(names)
+  names
 }
 
 ///|

@@ -19,6 +19,92 @@ fn assert_tokens_remaining(
 }
 
 ///|
+test "upstream lexer::tests::indent_recipe_dedent_indent" {
+  assert_tokens_remaining("a\n  b:\n    c\n  d\n    e\n", [
+    (TokenKind::Identifier, "a"),
+    (TokenKind::Eol, "\n"),
+    (TokenKind::Indent, "  "),
+    (TokenKind::Identifier, "b"),
+    (TokenKind::Colon, ":"),
+    (TokenKind::Eol, "\n"),
+    (TokenKind::Indent, "    "),
+    (TokenKind::Text, "c"),
+    (TokenKind::Eol, "\n"),
+    (TokenKind::Dedent, ""),
+    (TokenKind::Whitespace, "  "),
+    (TokenKind::Identifier, "d"),
+    (TokenKind::Eol, "\n"),
+    (TokenKind::Indent, "    "),
+    (TokenKind::Identifier, "e"),
+    (TokenKind::Eol, "\n"),
+    (TokenKind::Dedent, ""),
+    (TokenKind::Dedent, ""),
+  ])
+}
+
+///|
+test "upstream lexer::tests::tokenize_multiple" {
+  assert_tokens_remaining(
+    "\nhello:\n  a\n  b\n\n  c\n\n  d\n\n# hello\nbob:\n  frank\n\n",
+    [
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Identifier, "hello"),
+      (TokenKind::Colon, ":"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Indent, "  "),
+      (TokenKind::Text, "a"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Whitespace, "  "),
+      (TokenKind::Text, "b"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Whitespace, "  "),
+      (TokenKind::Text, "c"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Whitespace, "  "),
+      (TokenKind::Text, "d"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Dedent, ""),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Comment, "# hello"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Identifier, "bob"),
+      (TokenKind::Colon, ":"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Indent, "  "),
+      (TokenKind::Text, "frank"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Eol, "\n"),
+      (TokenKind::Dedent, ""),
+    ],
+  )
+}
+
+///|
+test "upstream lexer::tests::presume_error" {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(898),
+    "justfile",
+    "&x",
+  )
+  try lex(source) catch {
+    UnexpectedCharacter(expected~, found~, span~) => {
+      assert_eq(expected, "&")
+      assert_eq(found, "x")
+      assert_eq(span.start_byte(), 1)
+      assert_eq(span.length(), 1)
+      let error = LexerError::UnexpectedCharacter(expected~, found~, span~)
+      assert_eq(error.code(), "MJ-LEX-0003")
+      assert_eq(error.message(), "expected character `&`")
+    }
+    error => fail("unexpected lexer error: \{Repr(error)}")
+  } noraise {
+    _ => fail("expected lexer error")
+  }
+}
+
+///|
 test "upstream lexer::tests::tokenize_names" {
   assert_tokens_remaining("foo\nbar-bob\nb-bob_asdfAAAA\ntest123\n", [
     (TokenKind::Identifier, "foo"),

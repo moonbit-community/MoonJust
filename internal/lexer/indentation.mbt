@@ -28,7 +28,9 @@ fn Lexer::consume_leading(self : Lexer, count : Int, kind : TokenKind) -> Unit {
 fn Lexer::emit_dedent(self : Lexer) -> Unit {
   self.indentation.pop() |> ignore
   self.emit_empty(Dedent)
-  if self.indentation.length() == 1 {
+  // Recipe text mode begins at exactly one indentation frame. Leaving that
+  // frame must restore normal tokenization even when the recipe is nested.
+  if self.recipe_body || self.indentation.length() == 1 {
     self.recipe_body = false
   }
 }

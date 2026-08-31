@@ -13,3 +13,4 @@ bar:
 file	./windows.just	21
 bar:
   @echo windows
+

@@ -7,3 +7,4 @@ foo:
 [windows]
 foo:
   echo baz
+

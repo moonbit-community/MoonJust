@@ -1,0 +1,2 @@
+--justfile
+sub/foo.md

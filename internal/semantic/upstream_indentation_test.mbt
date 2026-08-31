@@ -35,3 +35,21 @@ test "upstream indentation::tests::from_str_error" {
     }
   }
 }
+
+///|
+test "upstream indentation::tests::from_str" {
+  for value in ["    ", "  ", "\t", "\t\t"] {
+    let compilation = try! @semantic.compile_source(
+      @source.Source::from_text(
+        @source.SourceId::new(913),
+        "justfile",
+        "set indentation := '" + value + "'\nfoo:\n",
+      ),
+      allow_unstable=true,
+    )
+    match compilation.settings().get("indentation") {
+      Some(setting) => assert_eq(setting.as_text(), Some(value))
+      None => fail("missing indentation setting")
+    }
+  }
+}

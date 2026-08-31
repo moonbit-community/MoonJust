@@ -1,0 +1,9 @@
+dir	./a
+dir	./a/b
+dir	./a/b/c
+dir	./a/b/c/d
+dir	./home
+file	./Justfile	18
+default:
+	echo ok
+

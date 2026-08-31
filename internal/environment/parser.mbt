@@ -160,7 +160,12 @@ fn parse_value(
       if character == '#' {
         break
       }
-      raise Parse(line~, column=index + 1)
+      raise ParseValue(
+        line~,
+        column=index + 1,
+        value=String::from_array(chars[start:]),
+        index=index - start,
+      )
     }
     if escaped {
       match character {

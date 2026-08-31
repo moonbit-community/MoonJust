@@ -8,3 +8,4 @@ x := 'baz'
 
 foo:
   @echo {{ x }}
+

@@ -72,6 +72,25 @@ fn search_prefixed_invocation(
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
 ) -> (@cli.CliArguments, @project.ProjectInput) raise ApplicationError {
+  let path_prefixed = !arguments.positional().is_empty() &&
+    ({
+      let first = arguments.positional()[0]
+      first == "." ||
+      first == ".." ||
+      first.contains("/") ||
+      first.contains("\\")
+    })
+  if path_prefixed &&
+    (
+      arguments.flag("global-justfile") ||
+      arguments.value("justfile") is Some(_) ||
+      arguments.value("working-directory") is Some(_)
+    ) {
+    raise Query(
+      "path-prefixed recipes may not be used with `--global-justfile`, " +
+      "`--working-directory`, or `--justfile`",
+    )
+  }
   if arguments.command() != RunCommand ||
     arguments.flag("global-justfile") ||
     arguments.value("justfile") is Some(_) ||

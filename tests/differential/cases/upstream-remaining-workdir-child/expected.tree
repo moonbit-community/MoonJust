@@ -1,0 +1,16 @@
+dir	./home
+dir	./child
+file	./child/data	2
+OK
+file	./child/justfile	184
+foo := `cat data`
+
+shell bar=`cat data`: shebang
+  echo expression: {{foo}}
+  echo default: {{bar}}
+  echo shell: `cat data`
+
+shebang:
+  #!/usr/bin/env sh
+  echo 'shebang:' `cat data`
+

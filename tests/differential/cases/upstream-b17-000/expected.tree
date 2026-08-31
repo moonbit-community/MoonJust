@@ -1,0 +1,6 @@
+dir	./home
+dir	./child
+file	./justfile	18
+default:
+	echo ok
+

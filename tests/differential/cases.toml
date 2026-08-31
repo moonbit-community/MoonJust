@@ -2,6 +2,714 @@ schema_version = 3
 upstream = "just 1.57.0"
 
 [[case]]
+id = "MJ-UPSTREAM-REMAINING-JUSTFILE-RUNTIME"
+directory = "upstream-remaining-justfile-runtime"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["justfile::tests::code_error", "justfile::tests::export_failure", "justfile::tests::missing_all_arguments", "justfile::tests::missing_all_defaults", "justfile::tests::missing_some_arguments", "justfile::tests::missing_some_arguments_variadic", "justfile::tests::missing_some_defaults", "justfile::tests::run_args", "justfile::tests::unknown_recipe_no_suggestion", "justfile::tests::unknown_recipe_show_alias_suggestion", "justfile::tests::unknown_recipe_with_suggestion"]
+reason = "Runs every remaining upstream justfile execution/error vector as an independent persistent fixture step."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-LIST-UNSORTED"
+directory = "upstream-remaining-list-unsorted"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["list::unsorted_list_order"]
+reason = "Preserves source and imported recipe order when sorting is disabled."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-ARG-DOT"
+directory = "upstream-remaining-search-arg-dot"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+cwd = "child"
+upstream_tests = ["search_arguments::passing_dot_as_argument_is_allowed"]
+reason = "Passes a literal dot positional argument through a child justfile."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-CHOOSE-DEFAULT"
+directory = "upstream-remaining-choose-default"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["choose::default"]
+reason = "Chooser selects the first available recipe through a deterministic head command."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-CHOOSE-CANCELLED"
+directory = "upstream-remaining-choose-cancelled"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["choose::cancelled_by_user"]
+reason = "Chooser cancellation status 130 is preserved without output."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-CHOOSE-STATUS"
+directory = "upstream-remaining-choose-status"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["choose::status_error"]
+reason = "Chooser nonzero status is reported as an invocation error."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-ERROR-LONG-PATH"
+directory = "upstream-remaining-error-long-path"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["error_messages::file_path_is_indented_if_justfile_is_long"]
+reason = "Preserves the indented diagnostic gutter for a long justfile path."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-ERROR-ABSOLUTE-PATH"
+directory = "upstream-remaining-error-absolute-path"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["error_messages::file_paths_not_in_subdir_are_absolute"]
+reason = "Uses an absolute diagnostic path when an import escapes the justfile directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-RUN-DAG"
+directory = "upstream-remaining-run-dag"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["run::dependency_traversal_is_not_exponential"]
+reason = "Traverses a shared-dependency diamond without duplicate expansion."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-RUN-TWICE"
+directory = "upstream-remaining-run-twice"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["run::tests::run_can_be_called_more_than_once"]
+reason = "Runs the same empty recipe invocation twice in one persistent test session."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-COMPILER-CYCLE"
+directory = "upstream-remaining-compiler-cycle"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["compiler::tests::recursive_includes_fail"]
+reason = "Rejects a two-file circular import with the complete source diagnostic."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-EDIT-PRECEDENCE"
+directory = "upstream-remaining-edit-precedence"
+owner_area = "application"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["edit::editor_precedence"]
+reason = "Runs VISUAL, EDITOR, and the default vim lookup as independent editor invocations; the host executable symlink is recorded by target rather than binary bytes."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-EDIT-WORKING-DIRECTORY"
+directory = "upstream-remaining-edit-working-directory"
+cwd = "child"
+owner_area = "application"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["edit::editor_working_directory"]
+reason = "Editor receives the discovered justfile and runs from its project directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-EDIT-INVALID"
+directory = "upstream-remaining-edit-invalid"
+owner_area = "application"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["edit::invalid_justfile"]
+reason = "Edit opens malformed source without requiring semantic compilation."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-EDIT-INVOKE-ERROR"
+directory = "upstream-remaining-edit-invoke-error"
+owner_area = "application"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["edit::invoke_error"]
+reason = "Preserves editor path validation and platform-specific invocation diagnostics."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-EDIT-STATUS-ERROR"
+directory = "upstream-remaining-edit-status-error"
+owner_area = "application"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["edit::status_error"]
+reason = "Propagates a nonzero editor exit status and its diagnostic."
+
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-CONCAT"
+directory = "upstream-remaining-markdown-concat"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::code_blocks_are_concatenated"]
+reason = "Executes declarations split across two just code blocks."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-DUMP"
+directory = "upstream-remaining-markdown-dump"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::dump"]
+reason = "Compares the complete dump extracted from Markdown."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-CASE-INSENSITIVE"
+directory = "upstream-remaining-markdown-case-insensitive"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::extension_is_case_insensitive"]
+reason = "Executes a just block from an uppercase MD extension."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-FMT-STDOUT"
+directory = "upstream-remaining-markdown-fmt-stdout"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::format_prints_to_stdout"]
+reason = "Formats extracted just code to stdout while preserving the Markdown file."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-INIT-ERROR"
+directory = "upstream-remaining-markdown-init-error"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::init_error"]
+reason = "Rejects init for an existing Markdown justfile path."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-NAME"
+directory = "upstream-remaining-markdown-name"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::justfile_found_by_name_is_tangled"]
+reason = "Discovers a named Markdown justfile and executes its recipe."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-LINE-NUMBERS"
+directory = "upstream-remaining-markdown-line-numbers"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::line_numbers_are_preserved"]
+reason = "Compares the complete parser diagnostic at the original Markdown line."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-NO-BLOCKS"
+directory = "upstream-remaining-markdown-no-blocks"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::no_code_blocks"]
+reason = "Loads Markdown without just blocks and compares the no-recipes result."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-IGNORE-OTHER"
+directory = "upstream-remaining-markdown-ignore-other"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::non_just_code_blocks_are_ignored"]
+reason = "Ignores non-just and nested fenced blocks before executing the selected block."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-WORKDIR"
+directory = "upstream-remaining-markdown-workdir"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::with_working_directory"]
+reason = "Executes a Markdown recipe under an explicit working directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MARKDOWN-FILE-DIRECTORY"
+directory = "upstream-remaining-markdown-file-directory"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["markdown::working_directory_is_markdown_file_directory"]
+reason = "Uses the Markdown file's parent as the implicit working directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-CURRENT"
+directory = "upstream-remaining-init-current"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::current_dir"]
+reason = "Initializes the current directory and compares the complete generated file tree."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-ALTERNATE-MARKER"
+directory = "upstream-remaining-init-alternate-marker"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::alternate_marker"]
+reason = "Initializes beside an empty _darcs marker directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-EXISTS"
+directory = "upstream-remaining-init-exists"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::exists"]
+reason = "Runs init twice in one sandbox and compares success then already-exists failure."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-FMT"
+directory = "upstream-remaining-init-fmt"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::fmt_compatibility"]
+reason = "Initializes then checks the generated file with the upstream formatting invocation."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-INVOCATION-DIRECTORY"
+directory = "upstream-remaining-init-invocation-directory"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::invocation_directory"]
+reason = "Initializes in the invocation directory containing an empty .git marker."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-PARENT"
+directory = "upstream-remaining-init-parent"
+cwd = "sub"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::parent_dir"]
+reason = "Initializes in the parent VCS root while invoked from a child directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-SEARCH-DIRECTORY"
+directory = "upstream-remaining-init-search-directory"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::search_directory"]
+reason = "Initializes the explicit search directory containing a VCS marker."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-JUSTFILE"
+directory = "upstream-remaining-init-justfile"
+cwd = "sub"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::justfile"]
+reason = "Initializes an explicit absolute justfile outside the invocation directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-JUSTFILE-WORKDIR"
+directory = "upstream-remaining-init-justfile-workdir"
+cwd = "sub"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::justfile_and_working_directory"]
+reason = "Combines init, explicit justfile, and explicit working directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-NAME-INVOCATION"
+directory = "upstream-remaining-init-name-invocation"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::justfile_name_from_invocation_directory"]
+reason = "Uses a custom justfile name in the invocation directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-NAME-SEARCH"
+directory = "upstream-remaining-init-name-search"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::justfile_name_from_search_directory"]
+reason = "Uses a custom justfile name in an explicit search directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-INIT-WRITE-ERROR"
+directory = "upstream-remaining-init-write-error"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["init::write_error"]
+reason = "Attempts to initialize where the justfile target is an existing directory and compares the complete failure."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-DOWN"
+directory = "upstream-remaining-search-down"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::test_downwards_path_argument"]
+reason = "Executes every one-level downward path spelling from the upstream test."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-DOWN-MULTIPLE"
+directory = "upstream-remaining-search-down-multiple"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::test_downwards_multiple_path_argument"]
+reason = "Executes every multi-level downward path spelling from the upstream test."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-UP"
+directory = "upstream-remaining-search-up"
+cwd = "a"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::test_upwards_path_argument"]
+reason = "Executes both one-level upward directory and recipe path forms."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-UP-MULTIPLE"
+directory = "upstream-remaining-search-up-multiple"
+cwd = "a/b"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::test_upwards_multiple_path_argument"]
+reason = "Executes both multi-level upward directory and recipe path forms."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-SYMLINK-PARENT"
+directory = "upstream-remaining-search-symlink-parent"
+cwd = "sub"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::justfile_symlink_parent"]
+reason = "Finds and executes a parent source through a justfile symlink."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-WORKDIR-ABSOLUTE-JUSTFILE"
+directory = "upstream-remaining-workdir-absolute-justfile"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["working_directory::justfile_without_working_directory"]
+reason = "Executes an absolute explicit justfile from its parent directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-WORKDIR-RELATIVE-JUSTFILE"
+directory = "upstream-remaining-workdir-relative-justfile"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["working_directory::justfile_without_working_directory_relative"]
+reason = "Executes a relative explicit justfile from its parent directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-WORKDIR-SEARCH-PARENT"
+directory = "upstream-remaining-workdir-search-parent"
+cwd = "subdir"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["working_directory::change_working_directory_to_search_justfile_parent"]
+reason = "Searches upward and executes with the discovered justfile parent as cwd."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-WORKDIR-EXPLICIT"
+directory = "upstream-remaining-workdir-explicit"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["working_directory::justfile_and_working_directory"]
+reason = "Combines absolute justfile and explicit working-directory arguments."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-WORKDIR-CHILD"
+directory = "upstream-remaining-workdir-child"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["working_directory::search_dir_child"]
+reason = "Uses a child path request and executes in the child's project directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-WORKDIR-PARENT"
+directory = "upstream-remaining-workdir-parent"
+cwd = "child"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["working_directory::search_dir_parent"]
+reason = "Uses a parent path request and executes in the parent's project directory."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-IMPORT-TILDE"
+directory = "upstream-remaining-import-tilde"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["imports::import_paths_beginning_with_tilde_are_expanded_to_homdir"]
+reason = "Expands HOME in an import path and executes the imported recipe."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MODULE-TILDE"
+directory = "upstream-remaining-module-tilde"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["modules::modulepaths_beginning_with_tilde_are_expanded_to_homdir"]
+reason = "Expands HOME in a module path and executes the module recipe."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MODULE-AMBIGUOUS-OUTSIDE"
+directory = "upstream-remaining-module-ambiguous-outside"
+cwd = "root"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["modules::modules_outside_justfile_directory_require_unambiguous_file"]
+reason = "Loads an absolute external module directory with two candidate files and compares the diagnostic."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MODULE-NESTED-DEFAULT-LIST"
+directory = "upstream-remaining-module-nested-default-list"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["modules::nested_module_subcommand_lists_recipes_with_default_list"]
+reason = "Executes all three nested module path spellings and compares default-list output."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-ATTRIBUTES-EXTENSION"
+directory = "upstream-remaining-attributes-extension"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["attributes::extension"]
+reason = "Executes the extension attribute and compares the generated script name and cleanup tree."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-DOTENV-ERROR"
+directory = "upstream-remaining-dotenv-error"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["dotenv::error_message"]
+reason = "Loads the same malformed dotenv input and compares the complete normalized diagnostic."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MISC-COLOR-ALWAYS"
+directory = "upstream-remaining-misc-color-always"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["misc::color_always"]
+reason = "Compares the complete ANSI-colored backtick diagnostic."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MISC-COLORS-NO-CONTEXT"
+directory = "upstream-remaining-misc-colors-no-context"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["misc::colors_no_context"]
+reason = "Compares the complete ANSI-colored runtime diagnostic without source context."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MISC-INFALLIBLE"
+directory = "upstream-remaining-misc-infallible"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["misc::infallible_command"]
+reason = "Executes an infallible command and compares output and exit status."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-MISC-LIST-EMPTY"
+directory = "upstream-remaining-misc-list-empty"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["misc::list_empty_prefix_and_heading"]
+reason = "Passes real empty heading and prefix arguments and compares the complete list output."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-SPONGEBOB"
+directory = "upstream-remaining-search-spongebob"
+cwd = "a"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::found_spongebob_case"]
+reason = "Searches upward for a mixed-case justfile and executes its default recipe."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-JUSTFILE-NAME"
+directory = "upstream-remaining-search-justfile-name"
+cwd = "subdir"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::justfile_name_skips_default_justfile"]
+reason = "Uses a custom justfile name while a nearer default justfile exists."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-NO-PARENT"
+directory = "upstream-remaining-search-no-parent"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::justfile_with_no_parent_returns_correct_error"]
+reason = "Compares the root-justfile parent error exactly."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-NOT-FOUND"
+directory = "upstream-remaining-search-not-found"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::not_found"]
+reason = "Searches an empty sandbox and compares the complete not-found result."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SEARCH-CAPITALIZED"
+directory = "upstream-remaining-search-capitalized"
+cwd = "a/b/c/d"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["search::test_capitalized_justfile_search"]
+reason = "Searches upward for a capitalized Justfile and executes its recipe."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-SHOW-INVALID-PATH"
+directory = "upstream-remaining-show-invalid-path"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["show::show_invalid_path"]
+reason = "Passes an invalid module path to show and compares the exact error."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-LIST-INVALID-PATH"
+directory = "upstream-remaining-list-invalid-path"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["list::list_invalid_path"]
+reason = "Passes an invalid module path to list and compares the exact error."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-LIST-SUBMODULES-REQUIRES-LIST"
+directory = "upstream-remaining-list-submodules-requires-list"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["list::list_submodules_requires_list"]
+reason = "Validates the complete CLI error when list-submodules is used without list."
+
+[[case]]
+id = "MJ-UPSTREAM-REMAINING-STDIN-INIT-ERROR"
+directory = "upstream-remaining-stdin-init-error"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["justfile_from_stdin::init_error"]
+reason = "Combines stdin justfile mode with init and compares the exact rejection."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-DEPENDENCY-ARGUMENT"
+directory = "upstream-json-dependency-argument"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::dependency_argument"]
+reason = "Compares the complete official JSON document for dependency argument expressions."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-DOC-OVERRIDE"
+directory = "upstream-json-doc-override"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::doc_attribute_overrides_comment"]
+reason = "Compares the complete official JSON document when a doc attribute overrides a comment."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-DUPLICATE-RECIPES"
+directory = "upstream-json-duplicate-recipes"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::duplicate_recipes"]
+reason = "Compares the complete official JSON document after duplicate recipe resolution."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-DUPLICATE-VARIABLES"
+directory = "upstream-json-duplicate-variables"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::duplicate_variables"]
+reason = "Compares the complete official JSON document after duplicate variable resolution."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-MODULE"
+directory = "upstream-json-module"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::module"]
+reason = "Compares the complete official nested module JSON document."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-MODULE-DEPENDENCIES"
+directory = "upstream-json-module-dependencies"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::module_dependencies"]
+reason = "Compares the complete official JSON document for cross-module dependencies."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-MODULE-EMPTY-DOC"
+directory = "upstream-json-module-empty-doc"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::module_doc_attribute_empty_string"]
+reason = "Compares the complete official module JSON document with an explicit empty doc."
+
+[[case]]
+id = "MJ-UPSTREAM-JSON-PRIVATE-RECIPE"
+directory = "upstream-json-private-recipe"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["json::recipes_with_private_attribute_are_private"]
+reason = "Compares the complete official JSON document for private recipe metadata."
+
+[[case]]
 id = "MJ-UPSTREAM-CACHE-HIT-SKIPS"
 directory = "upstream-cache-hit-skips"
 owner_area = "upstream-blackbox"

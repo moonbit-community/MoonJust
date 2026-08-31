@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	29
+this is not a valid justfile
+

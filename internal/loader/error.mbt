@@ -66,7 +66,7 @@ pub fn LoaderError::message(self : LoaderError) -> String {
       "multiple candidate justfiles found in `" +
       directory.as_string() +
       "`: " +
-      found.map(fn(name) { "`" + name + "`" }).join(" and ")
+      @diagnostic.join_list(found, "and", ticked=true)
     ExplicitFileMissing(path~) =>
       "explicit justfile is missing: " + path.as_string()
     ImportFileMissing(_) => "could not find source file for import"

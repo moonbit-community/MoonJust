@@ -1,0 +1,2 @@
+recipe:
+  @exit 100

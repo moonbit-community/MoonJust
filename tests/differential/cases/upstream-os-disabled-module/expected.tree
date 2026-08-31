@@ -5,3 +5,4 @@ mod foo
 
 bar:
   @echo bar
+

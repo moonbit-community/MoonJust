@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	52
+set allow-duplicate-variables
+x := 'foo'
+x := 'bar'
+

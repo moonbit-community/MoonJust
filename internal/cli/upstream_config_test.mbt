@@ -161,6 +161,19 @@ test "upstream config::tests::set_override" {
 }
 
 ///|
+test "upstream config::tests::overrides_override_sets" {
+  let parsed = try! upstream_cli([
+    "--set", "foo", "0", "--set", "bar", "1", "foo=bar", "bar=baz",
+  ])
+  let effective : Map[String, String] = Map([])
+  for entry in parsed.variable_overrides() {
+    effective[entry.0] = entry.1
+  }
+  assert_eq([effective["foo"], effective["bar"]], ["bar", "baz"])
+  assert_true(parsed.positional().is_empty())
+}
+
+///|
 test "upstream config::tests::set_two" {
   let parsed = try! upstream_cli(["--set", "foo", "bar", "--set", "bar", "baz"])
   assert_eq(parsed.variable_overrides(), [("foo", "bar"), ("bar", "baz")])

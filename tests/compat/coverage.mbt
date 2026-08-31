@@ -32,10 +32,20 @@ fn json_string(value : String) -> String {
 
 ///|
 fn excluded_reason(upstream_test : String) -> String? {
-  if upstream_test.has_prefix("completions::") {
+  let completion_protocol_tests = [
+    "config::tests::completions_argument", "config::tests::subcommand_completions",
+    "config::tests::subcommand_completions_invalid", "config::tests::subcommand_completions_uppercase",
+  ]
+  let runtime_signal_tests = [
+    "no_exit_message::signal_exit_message_not_suppressed", "no_exit_message::signal_exit_message_setting_suppressed",
+    "no_exit_message::signal_exit_message_suppressed", "choose::chooser_signal_exit_code_is_propagated",
+  ]
+  if upstream_test.has_prefix("completions::") ||
+    completion_protocol_tests.contains(upstream_test) {
     Some("completion generation protocol is shell-specific")
   } else if upstream_test.has_prefix("signals::") ||
-    upstream_test.has_prefix("signal::") {
+    upstream_test.has_prefix("signal::") ||
+    runtime_signal_tests.contains(upstream_test) {
     Some("runtime signal identity and forwarding are OS-specific")
   } else {
     None
@@ -63,7 +73,11 @@ fn coverage_status(
   // source snapshot is present. They depend on shell completion or OS signal
   // identity rather than MoonJust's portable command semantics.
   match excluded_reason(upstream_test) {
-    Some(reason) if upstream_test.has_prefix("completions::") =>
+    Some(reason) if upstream_test.has_prefix("completions::") ||
+      upstream_test == "config::tests::completions_argument" ||
+      upstream_test == "config::tests::subcommand_completions" ||
+      upstream_test == "config::tests::subcommand_completions_invalid" ||
+      upstream_test == "config::tests::subcommand_completions_uppercase" =>
       return ("excluded-completion", "", "", reason)
     Some(reason) => return ("excluded-signal", "", "", reason)
     None => ()

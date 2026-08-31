@@ -1,0 +1,4 @@
+--justfile
+foo.md
+--working-directory
+bar

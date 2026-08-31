@@ -92,14 +92,51 @@ fn LazyEnvironment::cycle(
     }
   }
   cycle.push(name)
-  let name_span = @source.Span::new(
-    span.source_id(),
-    span.start_byte(),
-    span.start_byte() + name.length(),
-  ) catch {
-    _ => span
+  // Report the cycle from a stable root. Uppercase justfile constants may be
+  // referenced before their textual definition, so the first evaluating frame
+  // is not necessarily the diagnostic root used by just 1.57. Rotate to the
+  // lexicographically smallest member to make both name and span deterministic.
+  let mut root = cycle[0]
+  let mut root_index = 0
+  for index in 1..<(cycle.length() - 1) {
+    let candidate = cycle[index]
+    if variable_name_compare(candidate, root) < 0 {
+      root = candidate
+      root_index = index
+    }
   }
-  VariableCycle(name~, stack=cycle, span=name_span)
+  let normalized : Array[String] = []
+  for index in root_index..<(cycle.length() - 1) {
+    normalized.push(cycle[index])
+  }
+  for index in 0..<root_index {
+    normalized.push(cycle[index])
+  }
+  normalized.push(root)
+  let root_span = self.compilation
+    .variable(root)
+    .map(fn(assignment) { assignment.span() })
+    .unwrap_or(span)
+  let name_span = @source.Span::new(
+    root_span.source_id(),
+    root_span.start_byte(),
+    root_span.start_byte() + root.length(),
+  ) catch {
+    _ => root_span
+  }
+  VariableCycle(name=root, stack=normalized, span=name_span)
+}
+
+///|
+fn variable_name_compare(left : String, right : String) -> Int {
+  let common = left.length().min(right.length())
+  for index in 0..<common {
+    let order = left.unsafe_get(index).compare(right.unsafe_get(index))
+    if order != 0 {
+      return order
+    }
+  }
+  left.length().compare(right.length())
 }
 
 ///|

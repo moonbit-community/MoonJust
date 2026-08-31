@@ -1,0 +1,17 @@
+dir	./home
+file	./foo.md	80
+```sh
+garbage[
+```
+
+````
+```just
+garbage[
+```
+````
+
+```just
+@foo:
+ echo bar
+```
+

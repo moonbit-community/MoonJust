@@ -1,0 +1,4 @@
+foo:
+    echo foo
+
+alias z := foo

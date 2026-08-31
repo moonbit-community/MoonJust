@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  --list [<MODULE>...]
+
+Usage: just --list [<MODULE>...] --list-submodules --color <COLOR> [ARGUMENTS]...
+
+For more information, try '--help'.

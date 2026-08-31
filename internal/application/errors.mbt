@@ -139,6 +139,21 @@ fn stable_application_error_message(error : ApplicationError) -> String {
 }
 
 ///|
+fn color_error_message(
+  arguments : @cli.CliArguments,
+  message : String,
+) -> String {
+  guard arguments.value("color") == Some("always") &&
+    !message.contains("\u{001b}[") &&
+    message.strip_prefix("error: ") is Some(detail) else {
+    return message
+  }
+  "\u{001b}[1;31merror\u{001b}[0m: \u{001b}[1m" +
+  detail.trim_end().to_owned() +
+  "\u{001b}[0m"
+}
+
+///|
 fn diagnostic_source(
   source : @source.Source,
   cwd : @path.PathValue,
@@ -205,6 +220,18 @@ async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_asy
   context : @project.ProjectInput,
   error : ApplicationError,
 ) -> String {
+  let color = arguments.value("color") == Some("always")
+  fn render_diagnostic(
+    diagnostic : @diagnostic.Diagnostic,
+    sources : @source.SourceMap,
+    color : Bool,
+  ) -> String raise @diagnostic.DiagnosticError {
+    if color {
+      @diagnostic.render_colored_text(diagnostic, sources)
+    } else {
+      @diagnostic.render_text(diagnostic, sources)
+    }
+  }
   match error {
     Evaluation(UnknownOverrides(..) as evaluation) =>
       return "error: " + evaluation.message()
@@ -271,7 +298,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_asy
           } noraise {
             _ => ()
           }
-          return @diagnostic.render_text(diagnostic, sources) catch {
+          return render_diagnostic(diagnostic, sources, color) catch {
             _ => stable_application_error_message(error)
           }
         }
@@ -287,7 +314,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_asy
       }
     }
   }
-  @diagnostic.render_text(diagnostic, sources) catch {
+  render_diagnostic(diagnostic, sources, color) catch {
     _ => stable_application_error_message(error)
   }
 }

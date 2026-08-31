@@ -174,13 +174,13 @@ test "upstream analyzer::tests::duplicate_parameter" {
 ///|
 test "upstream analyzer::tests::function_argument_count_too_high_unary_opt" {
   assert_function_arity(
-    "x := env('foo', 'foo', 'foo')", "env", "1 or 2", 3, 5, 3,
+    "x := env('foo', 'foo', 'foo')", "env", "1 to 2", 3, 5, 3,
   )
 }
 
 ///|
 test "upstream analyzer::tests::function_argument_count_too_low_unary_opt" {
-  assert_function_arity("x := env()", "env", "1 or 2", 0, 5, 3)
+  assert_function_arity("x := env()", "env", "1 to 2", 0, 5, 3)
 }
 
 ///|

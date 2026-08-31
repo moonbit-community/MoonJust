@@ -109,3 +109,24 @@ test "clean normal_is_preserved" {
 test "clean parent_dir_after_normal_is_current" {
   assert_clean_path("foo/..", ".", PathFlavor::Unix)
 }
+
+///|
+test "upstream search::tests::clean" {
+  for
+    expected in [
+      ("/", "foo", "/foo"),
+      ("/bar", "/foo", "/foo"),
+      ("/", "..", "/"),
+      ("/", "/..", "/"),
+      ("/..", "", "/"),
+      ("/../../../..", "../../../", "/"),
+      ("/.", "./", "/"),
+      ("/foo/../", "bar", "/bar"),
+      ("/foo/bar", "..", "/foo"),
+      ("/foo/bar/", "..", "/foo"),
+    ] {
+    let prefix = try! PathValue::new(expected.0, Unix)
+    let suffix = try! PathValue::new(expected.1, Unix)
+    assert_eq(try! prefix.join(suffix).clean().as_string(), expected.2)
+  }
+}

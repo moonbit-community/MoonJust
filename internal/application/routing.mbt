@@ -191,10 +191,9 @@ async fn[F : @host.HostFs + @host.HostSourceReader] application_failure(
   context : @project.ProjectInput,
   error : ApplicationError,
 ) -> @cli.ApplicationResponse {
-  let response = failure(
-    render_application_error_async(host, arguments, context, error),
-    error.exit_code(),
-  )
+  let message = render_application_error_async(host, arguments, context, error)
+  let message = color_error_message(arguments, message)
+  let response = failure(message, error.exit_code())
   if arguments.flag("quiet") {
     @cli.ApplicationResponse::new(
       response.stdout().to_owned(),
@@ -347,7 +346,7 @@ async fn[
             )
           _ => error.message()
         }
-        failure(message, error.exit_code())
+        failure(color_error_message(arguments, message), error.exit_code())
       }
   } noraise {
     value => value

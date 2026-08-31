@@ -13,3 +13,4 @@ foo:
 file	./windows.just	21
 foo:
   @echo windows
+

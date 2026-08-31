@@ -1,0 +1,3 @@
+echo expression: OK
+echo default: OK
+echo shell: `cat data`

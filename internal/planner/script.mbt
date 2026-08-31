@@ -38,7 +38,7 @@ fn parse_shebang(line : String) -> ShebangCommand? {
 
 ///|
 fn executable_name(program : String) -> String {
-  let normalized = program.replace(old="\\", new="/")
+  let normalized = program.replace_all(old="\\", new="/")
   normalized.split("/").last().unwrap_or(normalized[:]).to_owned()
 }
 
@@ -49,6 +49,23 @@ fn inferred_extension(program : String) -> String {
     "powershell" | "powershell.exe" | "pwsh" | "pwsh.exe" => ".ps1"
     _ => ""
   }
+}
+
+///|
+fn include_shebang_line(
+  program : String,
+  platform : @host.PlatformInfo,
+) -> Bool {
+  platform.operating_system() != Windows &&
+  !["cmd", "cmd.exe"].contains(executable_name(program))
+}
+
+///|
+fn selected_script_extension(
+  configuration : ScriptConfiguration,
+  program : String,
+) -> String {
+  configuration.extension().unwrap_or(inferred_extension(program))
 }
 
 ///|
@@ -151,14 +168,8 @@ fn script_bytes(
 /// remain part of the command text shown by dry-run and command echo output.
 /// Consecutive leading shebang lines are each replaced by an empty line so the
 /// generated script retains source line alignment.
-fn execution_script_contents(
-  contents : Bytes,
-  has_shebang : Bool,
-  platform : @host.PlatformInfo,
-) -> Bytes {
-  guard platform.operating_system() == Windows && has_shebang else {
-    return contents
-  }
+fn execution_script_contents(contents : Bytes, strip_shebang : Bool) -> Bytes {
+  guard strip_shebang else { return contents }
   let bytes = contents[:]
   let mut line_start = 0
   if bytes.length() >= 3 &&
@@ -334,9 +345,7 @@ pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(
     Some(value) => value.interpreter
     None => configuration.interpreter().program()
   }
-  let extension = configuration
-    .extension()
-    .unwrap_or(inferred_extension(program))
+  let extension = selected_script_extension(configuration, program)
   let path = @host.HostScriptTemp::create_script_temp(
     host,
     configuration.temporary_directory(),
@@ -344,8 +353,11 @@ pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(
     extension,
     execution_script_contents(
       planned.contents,
-      planned.shebang is Some(_),
-      configuration.platform(),
+      parsed
+      .map(value => {
+        !include_shebang_line(value.interpreter, configuration.platform())
+      })
+      .unwrap_or(false),
     ),
   ) catch {
     error => raise Host(error)
@@ -403,9 +415,7 @@ pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(
     Some(value) => value.interpreter
     None => configuration.interpreter().program()
   }
-  let extension = configuration
-    .extension()
-    .unwrap_or(inferred_extension(program))
+  let extension = selected_script_extension(configuration, program)
   let path = @host.HostAsyncScriptTemp::create_script_temp_async(
     host,
     configuration.temporary_directory(),
@@ -413,8 +423,11 @@ pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(
     extension,
     execution_script_contents(
       planned.contents,
-      planned.shebang is Some(_),
-      configuration.platform(),
+      parsed
+      .map(value => {
+        !include_shebang_line(value.interpreter, configuration.platform())
+      })
+      .unwrap_or(false),
     ),
     parsed is Some(_),
   ) catch {

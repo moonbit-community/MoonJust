@@ -137,23 +137,34 @@ fn version_parts(value : String) -> (Int, Int, Int)? {
   let mut part = 0
   let mut number = 0
   let mut has_digit = false
+  let mut digits = 0
+  let mut leading_zero = false
   for character in text {
     if character == '.' {
-      if part >= 2 || !has_digit {
+      if part >= 2 || !has_digit || (digits > 1 && leading_zero) {
         return None
       }
       numbers[part] = number
       part += 1
       number = 0
       has_digit = false
+      digits = 0
+      leading_zero = false
     } else if character.is_ascii_digit() {
+      if digits == 0 {
+        leading_zero = character == '0'
+      }
+      digits += 1
+      if digits > 9 {
+        return None
+      }
       number = number * 10 + character.to_int() - 48
       has_digit = true
     } else {
       return None
     }
   }
-  if part != 2 || !has_digit {
+  if part != 2 || !has_digit || (digits > 1 && leading_zero) {
     return None
   }
   numbers[2] = number

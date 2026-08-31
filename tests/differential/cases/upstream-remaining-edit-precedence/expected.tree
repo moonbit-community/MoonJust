@@ -1,0 +1,6 @@
+link	./vim	/bin/cat
+dir	./home
+file	./justfile	18
+foo:
+    echo foo
+

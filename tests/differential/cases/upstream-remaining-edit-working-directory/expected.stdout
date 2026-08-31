@@ -1,0 +1,4 @@
+#!/bin/sh
+cat "$0"
+pwd
+/private<CASE_ROOT>

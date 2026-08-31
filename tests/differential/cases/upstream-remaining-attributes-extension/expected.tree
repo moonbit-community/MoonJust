@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	47
+[extension: '.txt']
+baz:
+  #!/bin/sh
+  echo $0
+

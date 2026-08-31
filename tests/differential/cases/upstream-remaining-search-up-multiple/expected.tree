@@ -1,0 +1,11 @@
+dir	./a
+dir	./a/b
+file	./a/b/justfile	19
+default:
+	echo bad
+
+dir	./home
+file	./justfile	18
+default:
+	echo ok
+

@@ -156,6 +156,54 @@ test "upstream which_function::pathext_not_applied_when_candidate_has_extension"
 }
 
 ///|
+test "upstream which_function::ignores_nonexecutable_candidates" {
+  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let host = @host_testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+  )
+  host.set_env("PATH", "/workspace/dummy:/workspace/subdir")
+  host.put_non_executable_file(
+    try! cwd.join(@path.PathValue::new("dummy/foo.exe", @path.Unix)),
+    b"regular",
+  )
+  host.put_file(
+    try! cwd.join(@path.PathValue::new("subdir/foo.exe", @path.Unix)),
+    b"#!/bin/sh",
+  )
+  let value = try! call_non_process_effect_with_context(
+    host,
+    "which",
+    [@value.Value::String("foo.exe")],
+    EvaluationContext::new(cwd~, lists=true),
+    @source.Span::origin(@source.SourceId::new(932)),
+  )
+  assert_eq(value.elements(), ["/workspace/subdir/foo.exe"])
+}
+
+///|
+test "upstream which_function::skips_non_executable_files" {
+  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let host = @host_testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+  )
+  host.set_env("PATH", "/workspace")
+  host.put_non_executable_file(
+    try! cwd.join(@path.PathValue::new("hi", @path.Unix)),
+    b"regular",
+  )
+  let value = try! call_non_process_effect_with_context(
+    host,
+    "which",
+    [@value.Value::String("hi")],
+    EvaluationContext::new(cwd~, lists=true),
+    @source.Span::origin(@source.SourceId::new(933)),
+  )
+  assert_true(value.elements().is_empty())
+}
+
+///|
 test "upstream which_function::handles_absolute_path" {
   let value = try! which_case(
     "/workspace/subdir/foo.exe",

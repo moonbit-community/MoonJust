@@ -1,0 +1,10 @@
+dir	./home
+file	./foo.just	5
+bar:
+
+file	./justfile	28
+mod foo
+
+bar:
+baz: foo::bar
+

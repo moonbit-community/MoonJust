@@ -1,0 +1,9 @@
+file	./.env	12
+FOO=bar baz
+
+dir	./home
+file	./justfile	22
+set dotenv-load
+
+foo:
+

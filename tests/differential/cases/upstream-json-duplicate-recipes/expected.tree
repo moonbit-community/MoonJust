@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	58
+set allow-duplicate-recipes
+alias f := foo
+
+foo:
+foo bar:
+

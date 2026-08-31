@@ -64,3 +64,11 @@ test "upstream format_string::un_indented_format_strings" {
     "\n  a\n  b\n  c\n",
   )
 }
+
+///|
+test "upstream format_string::dump" {
+  assert_eq(try! eval_upstream_format("f''"), "")
+  assert_eq(try! eval_upstream_format("f''''''"), "")
+  assert_eq(try! eval_upstream_format("f'{{'a'}}b{{'c'}}d'"), "abcd")
+  assert_eq(try! eval_upstream_format("f'''{{'a'}}b{{'c'}}d'''"), "abcd")
+}

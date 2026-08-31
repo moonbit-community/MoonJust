@@ -17,8 +17,12 @@ import {
   "moonbitlang/x/time",
 }
 
-supported_targets = "-all+native+wasm"
-
 import {
   "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
 } for "test"
+
+import {
+  "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
+} for "wbtest"
+
+supported_targets = "-all+native+wasm"

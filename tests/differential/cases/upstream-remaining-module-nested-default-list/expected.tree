@@ -1,0 +1,15 @@
+dir	./home
+file	./bar.just	49
+set default-list := true
+
+baz:
+  @echo BAZ
+
+qux:
+
+file	./foo.just	8
+mod bar
+
+file	./justfile	8
+mod foo
+

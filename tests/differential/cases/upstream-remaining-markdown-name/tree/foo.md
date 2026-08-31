@@ -1,0 +1,4 @@
+```just
+@foo:
+ echo bar
+```

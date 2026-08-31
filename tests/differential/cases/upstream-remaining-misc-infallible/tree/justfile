@@ -1,0 +1,2 @@
+infallible:
+  -exit 101

@@ -1,0 +1,1 @@
+error: cannot use justfile from standard input with `--init`

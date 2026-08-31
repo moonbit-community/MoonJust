@@ -1,0 +1,4 @@
+--init
+--justfile-name
+foo
+sub/

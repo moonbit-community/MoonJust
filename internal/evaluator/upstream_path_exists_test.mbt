@@ -139,6 +139,30 @@ test "upstream functions::source_file" {
 }
 
 ///|
+test "upstream invocation_directory::invocation_directory_native" {
+  let directory = try! @path.PathValue::new("/workspace", @path.Unix)
+  assert_eq(
+    try! context_effect_value(
+      "invocation_directory_native",
+      EvaluationContext::new(invocation_directory_native=directory),
+    ),
+    "/workspace",
+  )
+}
+
+///|
+test "upstream invocation_directory::test_invocation_directory" {
+  let directory = try! @path.PathValue::new("/workspace", @path.Unix)
+  assert_eq(
+    try! context_effect_value(
+      "invocation_directory",
+      EvaluationContext::new(invocation_directory=directory),
+    ),
+    "/workspace",
+  )
+}
+
+///|
 test "upstream functions::read_file_not_found" {
   let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
   let message = context_effect_failure(

@@ -10,3 +10,4 @@ f() := 'windows'
 
 foo:
   @echo {{ f() }}
+

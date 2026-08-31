@@ -1,0 +1,10 @@
+dir	./bar
+file	./bar/baz	3
+qux
+dir	./home
+file	./foo.md	27
+```just
+@foo:
+ cat baz
+```
+

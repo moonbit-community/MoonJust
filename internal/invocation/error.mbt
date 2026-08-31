@@ -102,7 +102,7 @@ pub fn InvocationError::code(self : InvocationError) -> String {
 
 ///|
 fn counted(count : Int, singular : String) -> String {
-  count.to_string() + " " + singular + (if count == 1 { "" } else { "s" })
+  @diagnostic.Count::numbered(singular, count).to_string()
 }
 
 ///|

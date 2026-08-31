@@ -1,0 +1,4 @@
+--justfile
+<CASE_ROOT>/justfile
+--working-directory
+<CASE_ROOT>/sub

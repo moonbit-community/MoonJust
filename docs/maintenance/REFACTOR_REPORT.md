@@ -25,13 +25,12 @@ The compatibility runner reads all 2,417 identities from the pinned just
 1.57.0 inventory and writes one JSON row per identity. Every source-only row
 retains its upstream anchor and original input/expected assertion text, while
 only real executable fixtures contribute to executed coverage. The current
-local report contains 2,116 executed identities (2,112 exact and 4 pinned
-known differences), 30 completion exclusions, 17 runtime-signal exclusions,
-and 254 source-snapshot identities still awaiting executable migration. The
-runner validates deterministic official output snapshots and reports source
-evidence separately; CI does not enable strict coverage until that count is
-zero. The executable corpus currently has 1,333 exact matches, 6 pinned known
-differences, and 0 failures.
+local strict report contains 2,362 executed identities (2,358 exact and 4
+pinned known differences), 34 completion exclusions, 21 runtime-signal
+exclusions, and zero unclassified identities. The executable corpus runs 1,417
+scenarios: 1,411 exact matches, 6 pinned known differences, and 0 failures.
+CI enables `--strict-coverage`, so missing fixtures or stale anchors fail the
+compatibility job.
 
 The benchmark runner now generates larger check, format, summary, DAG, no-op,
 module, script, and Wasm-host workloads. It performs warmups and interleaved
@@ -41,15 +40,14 @@ use `moonrun <artifact> -- <program arguments>`; the separator is not passed
 to MoonJust. CI runs native and Wasm benchmark jobs on every OS matrix entry
 and uploads both reports.
 
-The first internal-spec migrations cover the upstream path, invocation,
-attribute, lexer, and parser units with one assertion per migrated id in
-`internal/*/upstream_*_test.mbt`. The remaining upstream identities are
-indexed in the pinned source snapshot
-`tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt`; each block
-preserves the upstream test body, source location, input, and expected
-assertion text for audit and future executable promotion. These rows are
-explicitly unclassified until a real MoonBit assertion or black-box fixture is
-registered.
+Internal-spec coverage uses exact MoonBit assertions for parser, lexer,
+semantic, evaluator, formatter, host, and planner behavior. The remaining
+observable behavior is exercised by black-box fixtures under
+`tests/differential/cases`; every one of the 2,417 pinned identities is now
+classified as executed, a named known difference, or an explicitly excluded
+completion/signal case. The pinned source snapshot remains provenance: it
+retains each upstream body, source location, input, and expected assertion text
+without acting as a substitute for executable evidence.
 
 ## Starting Point
 
@@ -268,9 +266,9 @@ passed all six jobs.
 
 ## Compatibility Result
 
-The maintained differential corpus contains 1,339 executable scenarios:
+The maintained differential corpus contains 1,417 executable scenarios:
 
-- 1,333 exact matches;
+- 1,411 exact matches;
 - 6 explicit known differences;
 - 0 failures.
 
@@ -279,9 +277,9 @@ one unstable-function diagnostic presentation, and three dotenv option-conflict
 diagnostics. No new difference was added to make the rewrite pass. Completion
 remains outside the claimed compatibility surface.
 
-Native and Wasm package tests each pass 18 behavior tests. Those counts are
-reported only as run results; they are not quality gates or compatibility
-claims.
+The clean local verification ran 960 native tests and 960 Wasm tests, with no
+failures. These counts are reported only as run results; they are not quality
+gates or compatibility claims.
 
 ## Performance and Size Protection
 

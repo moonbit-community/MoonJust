@@ -33,12 +33,11 @@ behavior remain in scope.
 
 Pure lexical and semantic invariants are indexed in
 `upstream/just-1.57.0/spec-index.txt`. Each index row points to a concrete
-MoonBit assertion file or to a source-backed block in
-`upstream/just-1.57.0/upstream-fixtures.txt`, together with the upstream source
-line that defines the case. Snapshot blocks preserve the original upstream
-test body under explicit `input` and `expected` sections; they are audit-only
-until a real MoonBit assertion is registered, and therefore remain
-`unclassified` in coverage reports.
+MoonBit assertion file or black-box fixture, together with the upstream source
+line that defines the case. The source snapshot preserves the original test
+body under explicit `input` and `expected` sections for provenance; it is not
+used as a substitute for executable evidence. The strict report currently has
+zero unclassified identities.
 
 Use `--record-expected` once a deterministic black-box fixture is ready to
 write the official status, stdout, stderr, and filesystem snapshot into the

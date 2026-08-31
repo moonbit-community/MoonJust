@@ -391,6 +391,75 @@ test "upstream functions::join_unix" {
 }
 
 ///|
+test "upstream functions::join_windows" {
+  let cwd = try! @path.PathValue::new("C:\\workspace", @path.Windows)
+  let host = @host_testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(
+      @host.OperatingSystem::Windows,
+      "test",
+      @path.Windows,
+    ),
+  )
+  let value = try! call_non_process_effect_with_context(
+    host,
+    "join",
+    [
+      @value.Value::String("a"),
+      @value.Value::String("b"),
+      @value.Value::String("c"),
+      @value.Value::String("d"),
+    ],
+    EvaluationContext::new(cwd~),
+    @source.Span::origin(@source.SourceId::new(715)),
+  )
+  assert_eq(value.to_string(), "a\\b\\c\\d")
+  let rooted = try! call_non_process_effect_with_context(
+    host,
+    "join",
+    [
+      @value.Value::String("a"),
+      @value.Value::String("\\b"),
+      @value.Value::String("\\c"),
+      @value.Value::String("d"),
+    ],
+    EvaluationContext::new(cwd~),
+    @source.Span::origin(@source.SourceId::new(716)),
+  )
+  assert_eq(rooted.to_string(), "\\c\\d")
+}
+
+///|
+test "upstream functions::shell_with_powershell" {
+  let cwd = try! @path.PathValue::new("C:\\workspace", @path.Windows)
+  let host = @host_testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(
+      @host.OperatingSystem::Windows,
+      "test",
+      @path.Windows,
+    ),
+  )
+  let expected = try! @host.CommandSpec::new("pwsh.exe", [
+    "-NoLogo", "-Command", "Write-Output bar",
+  ])
+  expected.set_cwd(cwd)
+  expected.set_inherit_stdin(true)
+  expected.set_stdout(@host.Capture)
+  expected.set_stderr(@host.Inherit)
+  host.expect_process(expected, @host.ProcessResult::new(0, b"bar\r\n", b""))
+  let value = try! call_shell_effect(
+    host,
+    [@value.Value::String("Write-Output bar")],
+    EvaluationContext::new(cwd~),
+    EffectShell::new("pwsh.exe", ["-NoLogo", "-Command"]),
+    @source.Span::origin(@source.SourceId::new(717)),
+  )
+  assert_eq(value.to_string(), "bar")
+  assert_eq(host.pending_process_expectations(), 0)
+}
+
+///|
 test "upstream functions::just_version" {
   let source = @source.Source::from_text(
     @source.SourceId::new(714),

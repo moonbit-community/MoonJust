@@ -441,6 +441,8 @@ async fn[F : @host.HostFs + @host.HostSourceReader] read_dotenv_runtime_file(
   Some(
     @environment.parse_dotenv(text, ambient~) catch {
       Parse(line~, column~) => raise Dotenv(ParseFile(path~, line~, column~))
+      ParseValue(line~, column~, value~, index~) =>
+        raise Dotenv(ParseFileValue(path~, line~, column~, value~, index~))
       error => raise Dotenv(error)
     },
   )
