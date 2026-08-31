@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	50
+[unix]
+foo:
+  echo bar
+
+[windows]
+foo:
+  echo baz

@@ -9,6 +9,24 @@ fn eval_upstream_list(text : String) -> String raise EvaluationError {
 }
 
 ///|
+fn eval_upstream_list_context(text : String) -> String raise EvaluationError {
+  let source = @source.Source::from_text(
+    @source.SourceId::new(717),
+    "expr",
+    text,
+  )
+  let expression = @parser.parse_expression(source) catch {
+    error => raise Parse(error)
+  }
+  let context = EvaluationContext::new(
+    cwd=try! @path.PathValue::new("/tmp", @path.Unix),
+    lists=true,
+    environment=[],
+  )
+  evaluate_with_context(expression, context).display()
+}
+
+///|
 test "upstream lists::append_appends_to_each_element_of_a_list" {
   assert_eq(
     try! eval_upstream_list("append('.c', ['bar', 'baz bob'])"),
@@ -136,4 +154,80 @@ test "upstream lists::len" {
 ///|
 test "upstream lists::fstring_interpolations_space_join_lists" {
   assert_eq(try! eval_upstream_list("f\"{{['bar', 'baz']}}\""), "\"bar baz\"")
+}
+
+///|
+test "upstream lists::absolute_path_of_empty_list_is_empty" {
+  assert_eq(try! eval_upstream_list_context("absolute_path([])"), "[]")
+}
+
+///|
+test "upstream lists::append_does_not_split_single_strings_with_lists_setting" {
+  assert_eq(
+    try! eval_upstream_list_context("append('.c', 'foo bar')"),
+    "\"foo bar.c\"",
+  )
+}
+
+///|
+test "upstream lists::quote_of_empty_list_is_empty" {
+  assert_eq(try! eval_upstream_list_context("quote([])"), "[]")
+}
+
+///|
+test "upstream lists::quote_quotes_each_element_of_a_list" {
+  assert_eq(
+    try! eval_upstream_list_context("quote(['bar', 'baz bob'])"),
+    "[\"'bar'\", \"'baz bob'\"]",
+  )
+}
+
+///|
+test "upstream lists::split_without_separator_of_whitespace_is_empty" {
+  assert_eq(try! eval_upstream_list_context("split('  \t ')"), "[]")
+}
+
+///|
+test "upstream lists::split_without_separator_splits_on_whitespace" {
+  assert_eq(
+    try! eval_upstream_list_context("split('  foo \t bar  baz ')"),
+    "[\"foo\", \"bar\", \"baz\"]",
+  )
+}
+
+///|
+test "upstream lists::env_returns_default_when_no_variable_present" {
+  assert_eq(
+    try! eval_upstream_list_context("env(['ZADDY', 'XYZ'], 'baz')"),
+    "\"baz\"",
+  )
+}
+
+///|
+test "upstream lists::env_returns_list_default" {
+  assert_eq(
+    try! eval_upstream_list_context("env(['ZADDY'], ['a', 'b'])"),
+    "[\"a\", \"b\"]",
+  )
+}
+
+///|
+test "upstream lists::env_var_or_default_accepts_list_of_keys" {
+  assert_eq(
+    try! eval_upstream_list_context("env_var_or_default(['ZADDY', 'XYZ'], [])"),
+    "[]",
+  )
+}
+
+///|
+test "upstream lists::env_with_empty_key_list_uses_default" {
+  assert_eq(try! eval_upstream_list_context("env([], 'baz')"), "\"baz\"")
+}
+
+///|
+test "upstream booleans::bool_false_values" {
+  assert_eq(try! eval_upstream_list_context("bool([])"), "[]")
+  assert_eq(try! eval_upstream_list_context("bool(\"\")"), "[]")
+  assert_eq(try! eval_upstream_list_context("bool(\"0\")"), "[]")
+  assert_eq(try! eval_upstream_list_context("bool(\"false\")"), "[]")
 }

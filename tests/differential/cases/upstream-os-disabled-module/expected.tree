@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	36
+[windows]
+mod foo
+
+bar:
+  @echo bar

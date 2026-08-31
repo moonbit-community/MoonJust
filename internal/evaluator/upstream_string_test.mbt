@@ -32,3 +32,8 @@ test "upstream string::unicode_escapes_with_all_hex_digits" {
 test "upstream string::valid_unicode_escape" {
   assert_eq(try! eval_upstream_string("\"\\u{61}\""), "a")
 }
+
+///|
+test "upstream string::maximum_valid_unicode_escape" {
+  assert_eq(try! eval_upstream_string("\"\\u{10FFFF}\""), "\u{10FFFF}")
+}

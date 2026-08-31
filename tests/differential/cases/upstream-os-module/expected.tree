@@ -1,0 +1,15 @@
+dir	./home
+file	./justfile	61
+[unix]
+mod foo 'unix.just'
+
+[windows]
+mod foo 'windows.just'
+
+file	./unix.just	18
+bar:
+  @echo unix
+
+file	./windows.just	21
+bar:
+  @echo windows

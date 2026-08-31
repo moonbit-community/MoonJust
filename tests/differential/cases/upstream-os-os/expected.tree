@@ -1,0 +1,33 @@
+dir	./home
+file	./justfile	230
+[macos]
+foo:
+  @echo bar
+
+[windows]
+foo:
+  @echo baz
+
+[linux]
+foo:
+  @echo quxx
+
+[openbsd]
+foo:
+  @echo bob
+
+[freebsd]
+foo:
+  @echo corge
+
+[dragonfly]
+foo:
+  @echo grault
+
+[netbsd]
+foo:
+  @echo garply
+
+[android]
+foo:
+  @echo babs

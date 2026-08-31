@@ -18,3 +18,7 @@ import {
 }
 
 supported_targets = "-all+native+wasm"
+
+import {
+  "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
+} for "test"

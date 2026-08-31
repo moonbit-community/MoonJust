@@ -11993,3 +11993,102 @@ status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["imports::trailing_spaces_after_import_are_ignored"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-001"
+directory = "upstream-os-assignment"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::assignment"]
+reason = "Pinned just 1.57.0 OS attribute assignment fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-002"
+directory = "upstream-os-setting"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::setting"]
+reason = "Pinned just 1.57.0 OS attribute setting fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-003"
+directory = "upstream-os-alias"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::alias"]
+reason = "Pinned just 1.57.0 OS attribute alias fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-004"
+directory = "upstream-os-family"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::os_family"]
+reason = "Pinned just 1.57.0 OS family fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-005"
+directory = "upstream-os-function"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::function"]
+reason = "Pinned just 1.57.0 OS attribute function fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-006"
+directory = "upstream-os-import"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::import"]
+reason = "Pinned just 1.57.0 OS attribute import fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-007"
+directory = "upstream-os-module"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::module"]
+reason = "Pinned just 1.57.0 OS attribute module fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-008"
+directory = "upstream-os-disabled-module"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::disabled_module_file_not_required"]
+reason = "Pinned just 1.57.0 disabled OS module fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-009"
+directory = "upstream-os-disabled-import"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::disabled_import_file_not_required"]
+reason = "Pinned just 1.57.0 disabled OS import fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-010"
+directory = "upstream-os-unexport"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::unexport"]
+reason = "Pinned just 1.57.0 OS unexport fixture."
+
+[[case]]
+id = "MJ-UPSTREAM-OS-011"
+directory = "upstream-os-os"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["os_attributes::os"]
+reason = "Pinned just 1.57.0 OS selector fixture."

@@ -34,7 +34,8 @@ fn json_string(value : String) -> String {
 fn excluded_reason(upstream_test : String) -> String? {
   if upstream_test.has_prefix("completions::") {
     Some("completion generation protocol is shell-specific")
-  } else if upstream_test.has_prefix("signals::") {
+  } else if upstream_test.has_prefix("signals::") ||
+    upstream_test.has_prefix("signal::") {
     Some("runtime signal identity and forwarding are OS-specific")
   } else {
     None
@@ -58,6 +59,15 @@ fn coverage_status(
       return (status, name, upstream_test, reason)
     }
   }
+  // Explicitly excluded upstream suites remain excluded even when their
+  // source snapshot is present. They depend on shell completion or OS signal
+  // identity rather than MoonJust's portable command semantics.
+  match excluded_reason(upstream_test) {
+    Some(reason) if upstream_test.has_prefix("completions::") =>
+      return ("excluded-completion", "", "", reason)
+    Some(reason) => return ("excluded-signal", "", "", reason)
+    None => ()
+  }
   // Concrete MoonBit assertion files are executable spec evidence. The large
   // Rust source snapshot is audit evidence only and must not inflate coverage.
   if specs.get(upstream_test) is Some(spec) {
@@ -72,12 +82,7 @@ fn coverage_status(
     }
     return ("unclassified", spec.fixture, spec.anchor, "source-snapshot-only")
   }
-  match excluded_reason(upstream_test) {
-    Some(reason) if upstream_test.has_prefix("completions::") =>
-      ("excluded-completion", "", "", reason)
-    Some(reason) => ("excluded-signal", "", "", reason)
-    None => ("unclassified", "", "", "")
-  }
+  ("unclassified", "", "", "")
 }
 
 ///|
