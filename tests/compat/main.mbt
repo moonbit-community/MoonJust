@@ -42,7 +42,7 @@ priv struct StepResult {
 fn usage() -> String {
   "Usage: moonjust-compat --candidate PATH --official PATH " +
   "[--cases PATH] [--manifest PATH] [--upstream-list PATH] " +
-  "[--record-expected] [--strict-coverage]"
+  "[--record-expected] [--verify-snapshots] [--strict-coverage]"
 }
 
 ///|
@@ -672,7 +672,12 @@ fn normalize(bytes : Bytes, root : String) -> Bytes {
     private_root,
     b"<CASE_ROOT>"[:],
   )
-  @testkit.replace_bytes(normalized, @utf8.encode(root)[:], b"<CASE_ROOT>"[:])
+  let normalized = @testkit.replace_bytes(
+    normalized,
+    @utf8.encode(root)[:],
+    b"<CASE_ROOT>"[:],
+  )
+  @testkit.replace_bytes(normalized, b"/private/tmp/"[:], b"/tmp/"[:])
 }
 
 ///|
@@ -942,6 +947,7 @@ async fn main {
   let cases_root = option(args, "--cases").unwrap_or("tests/differential/cases")
   let selected_case = option(args, "--case")
   let record_expected = has_flag(args, "--record-expected")
+  let verify_snapshots = has_flag(args, "--verify-snapshots")
   let manifest = option(args, "--manifest").unwrap_or(
     "tests/differential/cases.toml",
   )
@@ -1144,27 +1150,28 @@ async fn main {
     if record_expected {
       write_expected(case_dir, official_result)
     }
-    let expected = if record_expected {
-      official_result
-    } else {
-      match expected_snapshot(case_dir) {
-        Some(snapshot) => {
-          let snapshot_differences = difference_fields(
-            snapshot, official_result, details, stdout_regex, stderr_regex,
+    let expected_snapshot_result = expected_snapshot(case_dir)
+    match expected_snapshot_result {
+      Some(snapshot) if verify_snapshots && !record_expected => {
+        let snapshot_differences = difference_fields(
+          snapshot, official_result, details, stdout_regex, stderr_regex,
+        )
+        if !snapshot_differences.is_empty() {
+          failures.push(
+            name +
+            ": recorded official result differs in [" +
+            snapshot_differences.join(", ") +
+            "]",
           )
-          if !snapshot_differences.is_empty() {
-            failures.push(
-              name +
-              ": recorded official result differs in [" +
-              snapshot_differences.join(", ") +
-              "]",
-            )
-          }
-          snapshot
         }
-        None => official_result
       }
+      Some(_) => ()
+      None => failures.push(name + ": missing expected result snapshot")
     }
+    // The live official oracle is authoritative on every runner. Recorded
+    // snapshots document the fixture and are optionally audited on the same
+    // platform with --verify-snapshots.
+    let expected = official_result
     let actual = run_side(candidate, case_dir, details, "candidate")
     let differences = difference_fields(
       expected, actual, details, stdout_regex, stderr_regex,
