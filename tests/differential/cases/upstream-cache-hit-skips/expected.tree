@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	33
+[cache]
+[script]
+foo:
+  echo bar
+
+dir	./.justcache
+file	./.justcache/<CACHE_KEY>.json	16
+{"recipe":"foo"}

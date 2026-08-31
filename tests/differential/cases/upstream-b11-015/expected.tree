@@ -2,6 +2,11 @@ dir	./home
 file	./justfile	33
 [cache]
 [script]
-foo:
+bob:
   echo bar
 
+dir	./.justcache
+file	./.justcache/<CACHE_KEY-bob>.json	16
+{"recipe":"bob"}
+file	./.justcache/<CACHE_KEY-foo>.json	16
+{"recipe":"foo"}

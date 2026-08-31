@@ -6,5 +6,5 @@ foo:
   echo bar
 
 dir	./.justcache
-file	./.justcache/foo	3
+file	./.justcache/foo	4
 bar

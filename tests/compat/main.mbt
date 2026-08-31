@@ -28,6 +28,14 @@ priv struct CaseResult {
   merged : Bytes?
   tree : Bytes
   live : Bool
+  steps : Array[StepResult]
+}
+
+///|
+priv struct StepResult {
+  status : Int
+  stdout : Bytes
+  stderr : Bytes
 }
 
 ///|
@@ -204,6 +212,25 @@ async fn read_optional_text(path : String) -> String? {
 }
 
 ///|
+fn concatenate_step_stream(
+  steps : ArrayView[StepResult],
+  use_stdout : Bool,
+) -> Bytes {
+  let output : Array[Byte] = []
+  for step in steps {
+    append_bytes(
+      output,
+      if use_stdout {
+        step.stdout[:]
+      } else {
+        step.stderr[:]
+      },
+    )
+  }
+  Bytes::from_array(output)
+}
+
+///|
 async fn write_expected(case_dir : String, result : CaseResult) -> Unit {
   @fs.write_file(
     join(case_dir, "expected.status"),
@@ -216,10 +243,53 @@ async fn write_expected(case_dir : String, result : CaseResult) -> Unit {
     Some(bytes) => @fs.write_file(join(case_dir, "expected.merged"), bytes)
     None => ()
   }
+  let steps_root = join(case_dir, "steps")
+  if @fs.exists(steps_root) {
+    let names = @fs.readdir(steps_root, include_hidden=false, sort=true)
+    for index, name in names {
+      guard result.steps.get(index) is Some(step) else { continue }
+      let directory = join(steps_root, name)
+      @fs.write_file(
+        join(directory, "expected.status"),
+        @utf8.encode(step.status.to_string() + "\n"),
+      )
+      @fs.write_file(join(directory, "expected.stdout"), step.stdout)
+      @fs.write_file(join(directory, "expected.stderr"), step.stderr)
+    }
+  }
 }
 
 ///|
 async fn expected_snapshot(case_dir : String) -> CaseResult? {
+  let steps_root = join(case_dir, "steps")
+  if @fs.exists(steps_root) {
+    let steps : Array[StepResult] = []
+    for name in @fs.readdir(steps_root, include_hidden=false, sort=true) {
+      let directory = join(steps_root, name)
+      guard @fs.kind(directory) == Directory else { continue }
+      guard @fs.exists(join(directory, "expected.status")) else { return None }
+      let status = @string.parse_int(
+        read_text(join(directory, "expected.status")).trim(),
+      ) catch {
+        _ => return None
+      }
+      steps.push({
+        status,
+        stdout: @fs.read_file(join(directory, "expected.stdout")).binary(),
+        stderr: @fs.read_file(join(directory, "expected.stderr")).binary(),
+      })
+    }
+    guard !steps.is_empty() else { return None }
+    return Some({
+      status: steps[steps.length() - 1].status,
+      stdout: concatenate_step_stream(steps, true),
+      stderr: concatenate_step_stream(steps, false),
+      merged: None,
+      tree: @fs.read_file(join(case_dir, "expected.tree")).binary(),
+      live: true,
+      steps,
+    })
+  }
   guard @fs.exists(join(case_dir, "expected.status")) else { return None }
   let status = @string.parse_int(
     read_text(join(case_dir, "expected.status")).trim(),
@@ -231,13 +301,16 @@ async fn expected_snapshot(case_dir : String) -> CaseResult? {
   } else {
     None
   }
+  let stdout = @fs.read_file(join(case_dir, "expected.stdout")).binary()
+  let stderr = @fs.read_file(join(case_dir, "expected.stderr")).binary()
   Some({
     status,
-    stdout: @fs.read_file(join(case_dir, "expected.stdout")).binary(),
-    stderr: @fs.read_file(join(case_dir, "expected.stderr")).binary(),
+    stdout,
+    stderr,
     merged,
     tree: @fs.read_file(join(case_dir, "expected.tree")).binary(),
     live: true,
+    steps: [{ status, stdout, stderr, }],
   })
 }
 
@@ -298,16 +371,88 @@ async fn copy_tree(source : String, destination : String) -> Unit {
 }
 
 ///|
+async fn apply_symlinks(directory : String, root : String) -> Unit {
+  let descriptor = join(directory, "symlinks.list")
+  if !@fs.exists(descriptor) {
+    return
+  }
+  for raw in read_text(descriptor).split("\n") {
+    let fields = raw.split("\t").collect()
+    if fields.length() != 2 {
+      continue
+    }
+    @fs.symlink(
+      join(root, fields[0].to_owned()).view(),
+      target=fields[1].view(),
+      force_symlink=true,
+    )
+  }
+}
+
+///|
 async fn prepare_root(case_dir : String, root : String, cwd : String) -> Unit {
   if !@fs.exists(join(root, "home")) {
     @fs.mkdir(join(root, "home"), recursive=true)
   }
   copy_tree(join(case_dir, "tree"), root)
+  apply_symlinks(case_dir, root)
   if !cwd.is_empty() {
     if !@fs.exists(join(root, cwd)) {
       @fs.mkdir(join(root, cwd), recursive=true)
     }
   }
+}
+
+///|
+async fn apply_step_changes(step_dir : String, root : String) -> Unit {
+  copy_tree(join(step_dir, "write"), root)
+  apply_symlinks(step_dir, root)
+  let remove = join(step_dir, "remove.list")
+  if @fs.exists(remove) {
+    for raw in read_text(remove).split("\n") {
+      let relative = raw.trim().to_owned()
+      if relative.is_empty() {
+        continue
+      }
+      let path = join(root, relative)
+      @fs.rmdir(path, recursive=true) catch {
+        _ => @fs.remove(path.view()) catch { _ => () }
+      }
+    }
+  }
+}
+
+///|
+async fn run_steps(
+  program : String,
+  case_dir : String,
+  root : String,
+  cwd : String,
+) -> Array[StepResult] {
+  let result : Array[StepResult] = []
+  let steps_root = join(case_dir, "steps")
+  for name in @fs.readdir(steps_root, include_hidden=false, sort=true) {
+    let step_dir = join(steps_root, name)
+    guard @fs.kind(step_dir) == Directory else { continue }
+    apply_step_changes(step_dir, root)
+    let args = arguments(step_dir, root)
+    let stdin = read_optional_bytes(join(step_dir, "stdin"))
+    let env = environment(step_dir, root)
+    let execution = @testkit.run(
+      program,
+      args,
+      stdin~,
+      cwd~,
+      extra_env=env,
+      inherit_env=false,
+    )
+    result.push({
+      status: execution.status,
+      stdout: normalize(execution.stdout, root),
+      stderr: normalize(execution.stderr, root),
+    })
+  }
+  result
 }
 
 ///|
@@ -318,21 +463,85 @@ fn append_bytes(output : Array[Byte], input : BytesView) -> Unit {
 }
 
 ///|
+fn normalized_tree_path(path : String, bytes : BytesView) -> String {
+  guard path.has_prefix(".justcache/") && path.has_suffix(".json") else {
+    return path
+  }
+  let name = path
+    .strip_prefix(".justcache/")
+    .unwrap_or(path)
+    .strip_suffix(".json")
+    .unwrap_or("")
+  if name.length() == 64 &&
+    name.all(fn(character) {
+      character.is_ascii_digit() || (character >= 'a' && character <= 'f')
+    }) {
+    let text = @utf8.decode(bytes) catch { _ => "" }
+    let recipe = match text.find("\"recipe\":\"") {
+      Some(start) => {
+        let tail = text.view(start_offset=start + 10)
+        match tail.find("\"") {
+          Some(end) => tail[:end].to_owned()
+          None => "unknown"
+        }
+      }
+      None => "unknown"
+    }
+    ".justcache/<CACHE_KEY-" + recipe + ">.json"
+  } else {
+    path
+  }
+}
+
+///|
 async fn append_tree_snapshot(
   current : String,
   relative : String,
   output : Array[Byte],
 ) -> Unit {
+  if relative == ".justcache" {
+    let entries : Array[(String, Bytes)] = []
+    for name in @fs.readdir(current, include_hidden=true, sort=true) {
+      let full = join(current, name)
+      if @fs.kind(full) == Regular {
+        entries.push((name, @fs.read_file(full).binary()))
+      }
+    }
+    entries.sort_by(fn(left, right) {
+      normalized_tree_path(".justcache/" + left.0, left.1[:]).compare(
+        normalized_tree_path(".justcache/" + right.0, right.1[:]),
+      )
+    })
+    for _, entry in entries {
+      let name = entry.0
+      let bytes = entry.1
+      let path = normalized_tree_path(".justcache/" + name, bytes[:])
+      append_bytes(
+        output,
+        @utf8.encode(
+          "file\t./" + path + "\t" + bytes.length().to_string() + "\n",
+        )[:],
+      )
+      append_bytes(output, bytes[:])
+      output.push(b'\n')
+    }
+    return
+  }
   for name in @fs.readdir(current, include_hidden=true, sort=true) {
     let full = join(current, name)
-    let path = if relative.is_empty() { name } else { relative + "/" + name }
+    let raw_path = if relative.is_empty() {
+      name
+    } else {
+      relative + "/" + name
+    }
     match @fs.kind(full) {
       Directory => {
-        append_bytes(output, @utf8.encode("dir\t./" + path + "\n")[:])
-        append_tree_snapshot(full, path, output)
+        append_bytes(output, @utf8.encode("dir\t./" + raw_path + "\n")[:])
+        append_tree_snapshot(full, raw_path, output)
       }
       Regular => {
         let bytes = @fs.read_file(full).binary()
+        let path = normalized_tree_path(raw_path, bytes[:])
         append_bytes(
           output,
           @utf8.encode(
@@ -342,7 +551,7 @@ async fn append_tree_snapshot(
         append_bytes(output, bytes[:])
         output.push(b'\n')
       }
-      _ => append_bytes(output, @utf8.encode("other\t./" + path + "\n")[:])
+      _ => append_bytes(output, @utf8.encode("other\t./" + raw_path + "\n")[:])
     }
   }
 }
@@ -373,6 +582,20 @@ async fn run_side(
     root
   } else {
     join(root, metadata.cwd)
+  }
+  let steps_root = join(case_dir, "steps")
+  if @fs.exists(steps_root) {
+    let steps = run_steps(program, case_dir, root, cwd)
+    let last = steps[steps.length() - 1]
+    return {
+      status: last.status,
+      stdout: concatenate_step_stream(steps, true),
+      stderr: concatenate_step_stream(steps, false),
+      merged: None,
+      tree: tree_snapshot(root),
+      live: true,
+      steps,
+    }
   }
   let args = arguments(case_dir, root)
   let stdin = read_optional_bytes(join(case_dir, "stdin"))
@@ -427,6 +650,13 @@ async fn run_side(
     merged,
     tree: tree_snapshot(root),
     live,
+    steps: [
+      {
+        status,
+        stdout: normalize(stdout, root),
+        stderr: normalize(stderr, root),
+      },
+    ],
   }
 }
 
@@ -444,22 +674,52 @@ fn difference_fields(
   stderr_regex : String?,
 ) -> Array[String] {
   let fields : Array[String] = []
-  if compares(metadata, "status") && expected.status != actual.status {
+  if expected.steps.length() != actual.steps.length() {
     fields.push("status")
+    fields.push("stdout")
+    fields.push("stderr")
+    return fields
+  }
+  for index, expected_step in expected.steps {
+    let actual_step = actual.steps[index]
+    if compares(metadata, "status") &&
+      expected_step.status != actual_step.status &&
+      !fields.contains("status") {
+      fields.push("status")
+    }
+    if compares(metadata, "stdout") &&
+      !@testkit.bytes_equal(expected_step.stdout, actual_step.stdout) &&
+      !fields.contains("stdout") {
+      fields.push("stdout")
+    }
+    if compares(metadata, "stderr") &&
+      !@testkit.bytes_equal(expected_step.stderr, actual_step.stderr) &&
+      !fields.contains("stderr") {
+      fields.push("stderr")
+    }
+  }
+  if compares(metadata, "status") && expected.status != actual.status {
+    if !fields.contains("status") {
+      fields.push("status")
+    }
   }
   let stdout_differs = match stdout_regex {
     Some(pattern) => !regex_matches(pattern, actual.stdout)
     None => !@testkit.bytes_equal(expected.stdout, actual.stdout)
   }
   if compares(metadata, "stdout") && stdout_differs {
-    fields.push("stdout")
+    if !fields.contains("stdout") {
+      fields.push("stdout")
+    }
   }
   let stderr_differs = match stderr_regex {
     Some(pattern) => !regex_matches(pattern, actual.stderr)
     None => !@testkit.bytes_equal(expected.stderr, actual.stderr)
   }
   if compares(metadata, "stderr") && stderr_differs {
-    fields.push("stderr")
+    if !fields.contains("stderr") {
+      fields.push("stderr")
+    }
   }
   if compares(metadata, "merged") {
     match (expected.merged, actual.merged) {

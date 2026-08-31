@@ -1,1 +1,2 @@
-recipe cache not found
+error: recipe `bar` failed to create cache output `foo`
+removed 1 cache entry

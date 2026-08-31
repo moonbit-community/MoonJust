@@ -7,3 +7,8 @@ export value := 'default'
 foo:
   echo $value
 
+dir	./.justcache
+file	./.justcache/<CACHE_KEY-foo>.json	16
+{"recipe":"foo"}
+file	./.justcache/<CACHE_KEY-foo>.json	16
+{"recipe":"foo"}

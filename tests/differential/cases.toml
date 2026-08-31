@@ -2,6 +2,15 @@ schema_version = 3
 upstream = "just 1.57.0"
 
 [[case]]
+id = "MJ-UPSTREAM-CACHE-HIT-SKIPS"
+directory = "upstream-cache-hit-skips"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::hit_skips_execution"]
+reason = "Runs both upstream invocations in one persistent sandbox and compares every step plus the final cache tree."
+
+[[case]]
 id = "MJ-COMPAT-0001"
 directory = "01-version"
 owner_area = "query-cli"
@@ -10504,7 +10513,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["arg_attribute::pattern_list_match"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays both accepted pattern values as separate upstream invocations in one sandbox.
 
 [[case]]
 id = "MJ-UPSTREAM-B10-020"
@@ -11125,7 +11134,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_path_removes_empty_entries"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-008"
@@ -11134,7 +11143,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_path_removes_exact_recipe"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-009"
@@ -11143,7 +11152,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_path_removes_subtree"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-011"
@@ -11152,7 +11161,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_removes_cache_directory"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-012"
@@ -11161,7 +11170,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_removes_entries_but_leaves_unexpected_entries"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-013"
@@ -11170,7 +11179,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_reports_plural_count"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-015"
@@ -11179,7 +11188,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::different_recipes_do_not_share_entries"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-016"
@@ -11215,7 +11224,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::environment_invalidates_cache"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-022"
@@ -11224,7 +11233,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::extra_invalidates_cache"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-028"
@@ -11251,7 +11260,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::no_cache_reruns_on_hit"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-040"
@@ -11269,7 +11278,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::symlink_to_file_is_followed"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-042"
@@ -11278,7 +11287,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::unexported_variable_does_not_invalidate_cache"]
-reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
+reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
 id = "MJ-UPSTREAM-B11-046"
