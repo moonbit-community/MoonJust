@@ -225,6 +225,11 @@ fn platform_matches(platform : String?, current : String) -> Bool {
 }
 
 ///|
+fn strip_cr(line : StringView) -> StringView {
+  line.strip_suffix("\r").unwrap_or(line)
+}
+
+///|
 async fn read_text(path : String) -> String {
   @fs.read_file(path).text() catch {
     _ => ""
@@ -359,7 +364,8 @@ async fn arguments(case_dir : String, root : String) -> Array[String] {
     return []
   }
   let result : Array[String] = []
-  for line in read_text(path).split("\n") {
+  for raw in read_text(path).split("\n") {
+    let line = strip_cr(raw)
     if line == "<EMPTY>" {
       result.push("")
     } else if !line.is_empty() {
@@ -382,7 +388,8 @@ async fn environment(case_dir : String, root : String) -> Map[String, String] {
   if !@fs.exists(path) {
     return values
   }
-  for line in read_text(path).split("\n") {
+  for raw in read_text(path).split("\n") {
+    let line = strip_cr(raw)
     guard !line.is_empty() && line.find("=") is Some(index) else { continue }
     let name = line[:index].to_owned()
     let value = line[index + 1:].to_owned()
