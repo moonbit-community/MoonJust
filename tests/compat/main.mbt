@@ -864,6 +864,76 @@ fn regex_matches(pattern : String, bytes : Bytes) -> Bool {
 }
 
 ///|
+async fn write_difference_bytes(
+  case_name : String,
+  field : String,
+  side : String,
+  bytes : Bytes,
+) -> Unit {
+  let limit = 4096
+  let displayed = if bytes.length() > limit { bytes[:limit] } else { bytes[:] }
+  let text = @utf8.decode(displayed) catch { _ => "<non-UTF-8>" }
+  @stdio.stderr.write(
+    "DIFF  " +
+    case_name +
+    " " +
+    field +
+    " " +
+    side +
+    " length=" +
+    bytes.length().to_string() +
+    " sha256=" +
+    @crypto.bytes_to_hex_string(@crypto.sha256(bytes)) +
+    "\n<<<\n" +
+    text +
+    (if bytes.length() > limit { "\n<truncated>" } else { "" }) +
+    "\n>>>\n",
+  )
+}
+
+///|
+async fn write_difference_details(
+  name : String,
+  fields : ArrayView[String],
+  official : CaseResult,
+  candidate : CaseResult,
+) -> Unit {
+  if fields.contains("status") {
+    @stdio.stderr.write(
+      "DIFF  " +
+      name +
+      " status official=" +
+      official.status.to_string() +
+      " candidate=" +
+      candidate.status.to_string() +
+      "\n",
+    )
+  }
+  if fields.contains("stdout") {
+    write_difference_bytes(name, "stdout", "official", official.stdout)
+    write_difference_bytes(name, "stdout", "candidate", candidate.stdout)
+  }
+  if fields.contains("stderr") {
+    write_difference_bytes(name, "stderr", "official", official.stderr)
+    write_difference_bytes(name, "stderr", "candidate", candidate.stderr)
+  }
+  if fields.contains("merged") {
+    match official.merged {
+      Some(bytes) => write_difference_bytes(name, "merged", "official", bytes)
+      None => ()
+    }
+    match candidate.merged {
+      Some(bytes) => write_difference_bytes(name, "merged", "candidate", bytes)
+      None => ()
+    }
+  }
+  if fields.contains("tree") {
+    write_difference_bytes(name, "tree", "official", official.tree)
+    write_difference_bytes(name, "tree", "candidate", candidate.tree)
+  }
+}
+
+///|
 fn expected_difference_allowed(
   reason : String?,
   fields : ArrayView[String],
@@ -1205,6 +1275,7 @@ async fn main {
         "XDIFF " + name + " [" + differences.join(", ") + "]\n",
       )
     } else {
+      write_difference_details(name, differences, expected, actual)
       failures.push(
         name +
         ": expected " +
