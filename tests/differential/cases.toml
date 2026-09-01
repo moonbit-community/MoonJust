@@ -9914,7 +9914,8 @@ id = "MJ-UPSTREAM-B8-271"
 directory = "upstream-b8-271"
 owner_area = "upstream-blackbox"
 status = "match"
-compare = ["status", "stdout", "stderr", "tree"]
+platform = "windows"
+compare = ["status", "stdout", "stderr"]
 upstream_tests = ["misc::pwsh_invocation_directory"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 

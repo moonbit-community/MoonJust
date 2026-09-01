@@ -31,6 +31,12 @@ for their documented shell-protocol and OS-process-group reasons. Static signal
 validation, option parsing, diagnostics, and all other platform-testable
 behavior remain in scope.
 
+Cases whose upstream test is conditionally compiled for one operating system
+may declare `platform = "windows"`, `"macos"`, or `"linux"` in the manifest.
+The runner reports such a case as skipped on other systems and executes it on
+the matching CI runner; this preserves the upstream test's own platform guard
+instead of inventing a cross-platform result.
+
 Pure lexical and semantic invariants are indexed in
 `upstream/just-1.57.0/spec-index.txt`. Each index row points to a concrete
 MoonBit assertion file or black-box fixture, together with the upstream source
@@ -41,6 +47,7 @@ zero unclassified identities.
 
 Use `--record-expected` once a deterministic black-box fixture is ready to
 write the official status, stdout, stderr, and filesystem snapshot into the
-case directory. Normal runs validate those snapshots before comparing the
-candidate, while regex-backed upstream cases use their declared pattern for
-the corresponding stream.
+case directory. Normal runs execute the official 1.57.0 binary as the live
+oracle; `--verify-snapshots` additionally checks recorded official snapshots
+on the current platform. Regex-backed upstream cases use their declared
+pattern for the corresponding stream.

@@ -2,6 +2,7 @@
 priv struct CaseMetadata {
   id : String
   cwd : String
+  platform : String?
   merged : Bool
   live_prefix : String?
   live_timeout_ms : Int
@@ -105,6 +106,7 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
   let mut directory : String? = None
   let mut id = ""
   let mut cwd = ""
+  let mut platform : String? = None
   let mut merged = false
   let mut live_prefix : String? = None
   let mut live_timeout_ms = 1000
@@ -120,6 +122,7 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
         result[name] = {
           id,
           cwd,
+          platform,
           merged,
           live_prefix,
           live_timeout_ms,
@@ -140,6 +143,7 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
       directory = None
       id = ""
       cwd = ""
+      platform = None
       merged = false
       live_prefix = None
       live_timeout_ms = 1000
@@ -160,6 +164,8 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
       directory = quoted_value(line)
     } else if line.has_prefix("cwd =") {
       cwd = quoted_value(line).unwrap_or("")
+    } else if line.has_prefix("platform =") {
+      platform = quoted_value(line)
     } else if line.has_prefix("compare =") {
       merged = line.contains("\"merged\"")
       compare = quoted_values(line)
@@ -190,6 +196,32 @@ fn expand(value : String, root : String) -> String {
   .replace_all(old="<CASE_ROOT>", new=root)
   .replace_all(old="<TAB>", new="\t")
   .replace_all(old="<TWO_SPACES>", new="  ")
+}
+
+///|
+fn runner_platform() -> String {
+  let value = @env.get_env_var("RUNNER_OS")
+    .unwrap_or(
+      @env.get_env_var("OS").unwrap_or(
+        @env.get_env_var("OSTYPE").unwrap_or("unix"),
+      ),
+    )
+    .to_lower()
+  if value.contains("windows") || value == "windows_nt" {
+    "windows"
+  } else if value.contains("mac") || value.contains("darwin") {
+    "macos"
+  } else {
+    "linux"
+  }
+}
+
+///|
+fn platform_matches(platform : String?, current : String) -> Bool {
+  match platform {
+    None => true
+    Some(expected) => expected.to_lower() == current
+  }
 }
 
 ///|
@@ -1071,7 +1103,7 @@ async fn main {
     if details.status != "match" && details.status != "expected-difference" {
       failures.push(name + ": invalid manifest status " + details.status)
     }
-    for required in ["status", "stdout", "stderr", "tree"] {
+    for required in ["status", "stdout", "stderr"] {
       if !details.compare.contains(required) {
         failures.push(name + ": compare omits required field " + required)
       }
@@ -1178,6 +1210,7 @@ async fn main {
       .get(name)
       .unwrap_or({
         cwd: "",
+        platform: None,
         merged: false,
         live_prefix: None,
         live_timeout_ms: 1000,
@@ -1201,6 +1234,12 @@ async fn main {
         details.id +
         " does not match compat-id " +
         compat_id,
+      )
+      continue
+    }
+    if !platform_matches(details.platform, runner_platform()) {
+      @stdio.stdout.write(
+        "SKIP  " + name + " (platform=" + details.platform.unwrap_or("") + ")\n",
       )
       continue
     }

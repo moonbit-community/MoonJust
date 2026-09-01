@@ -19,7 +19,11 @@ pub fn[T : @host.HostFs] discover(
   }
   let mut current = start
   while true {
-    match find_candidate(host, current, options.filename()) {
+    let candidate = find_candidate(host, current, options.filename()) catch {
+      Host(NotFound(path)) => raise MissingSearchDirectory(path)
+      error => raise error
+    }
+    match candidate {
       Some(path) => return path
       None => ()
     }
