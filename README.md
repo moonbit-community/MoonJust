@@ -188,44 +188,45 @@ then run the MoonBit tools:
 ~~~bash
 cargo install just --version 1.57.0 --locked
 moon build --release --target native .
+moon build --release --target native ./tests/benchmark
 
 moon run --target native ./tests/compat -- \
   --candidate _build/native/release/build/MoonJust.exe \
   --official just \
+  --verify-snapshots --strict-coverage \
   --coverage-report _build/coverage.json
 
 moon run --target native ./tests/platform -- \
   --candidate _build/native/release/build/MoonJust.exe \
   --official just
 
-moon run --target native ./tests/benchmark -- \
+_build/native/release/build/tests/benchmark/benchmark.exe \
   --candidate _build/native/release/build/MoonJust.exe \
   --official just \
   --target native \
-  --batches 3 \
-  --rounds 15 \
+  --profile full --enforce \
   --output _build/performance-gate-native.json
 
-moon run --target native ./tests/benchmark -- \
+_build/native/release/build/tests/benchmark/benchmark.exe \
   --candidate _build/wasm/release/build/MoonJust.wasm \
   --candidate-runner moonrun \
   --official just \
   --target wasm \
-  --batches 3 \
-  --rounds 15 \
+  --profile full --enforce \
   --output _build/performance-gate-wasm.json
 ~~~
 
 The compatibility runner compares only declared observable behavior: exit
 status, stdout, stderr, merged output, filesystem effects, and live-output
 observations. The benchmark first verifies behavior equivalence, then executes
-interleaved paired samples and reports median and p95 ratios. Non-startup
-workloads use larger generated justfiles and retain raw sample and batch
-metadata in JSON. Pull-request CI currently collects one batch of 15 samples;
-main-branch runs collect three batches. The generated reports are evidence for
-performance tracking, but CI does not currently pass `--enforce`, so a green
-CI result does not imply that every performance threshold is met. Short
-official runtimes on Unix hosts can also make millisecond ratios noisy.
+interleaved paired processes and reports median/p95 ratios, batch ratios, raw
+samples, fixture setup, and calibration data in schema 2 JSON. `smoke` uses one
+batch of five pairs for pull requests; `full` uses three batches of fifteen
+pairs and is run by the scheduled/manual performance workflow with `--enforce`.
+The benchmark runner itself is built once and invoked directly, while each
+candidate and official sample remains a real independent CLI process. The
+`run-noops` workload is calibrated per runner to an official duration between
+32ms and 500ms; failure to find a valid scale is reported instead of skipped.
 
 ## Documentation
 

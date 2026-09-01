@@ -14,6 +14,13 @@ pub(all) struct LiveRunResult {
 }
 
 ///|
+/// A command resolved once and then reused across repeated observations.
+pub(all) struct PreparedProgram {
+  executable : String
+  prefix : Array[String]
+}
+
+///|
 async fn resolve_program(program : String) -> String {
   if program.contains("/") || program.contains("\\") {
     @fs.realpath(program)
@@ -23,31 +30,49 @@ async fn resolve_program(program : String) -> String {
 }
 
 ///|
-pub async fn run(
+pub async fn prepare_program(
+  program : String,
+  runner? : String = "",
+) -> PreparedProgram {
+  let path = resolve_program(program)
+  let executable = if runner.is_empty() {
+    path
+  } else {
+    resolve_program(runner)
+  }
+  if runner.is_empty() {
+    { executable, prefix: [], }
+  } else if runner.contains("moonrun") {
+    { executable, prefix: [path, "--"], }
+  } else {
+    { executable, prefix: [path], }
+  }
+}
+
+///|
+pub fn PreparedProgram::arguments(
+  self : PreparedProgram,
+  args : ArrayView[String],
+) -> Array[String] {
+  let result = self.prefix.copy()
+  for argument in args {
+    result.push(argument)
+  }
+  result
+}
+
+///|
+async fn collect(
   program : String,
   args : Array[String],
-  stdin? : Bytes,
-  cwd? : String,
-  extra_env? : Map[String, String] = Map([]),
-  inherit_env? : Bool = true,
+  stdin_path : String?,
+  cwd : String?,
+  extra_env : Map[String, String],
+  inherit_env : Bool,
 ) -> RunResult {
-  let program = resolve_program(program)
-  let input_dir = match stdin {
-    Some(_) => Some(@fs.tmpdir(prefix="moonjust-input"))
+  let input = match stdin_path {
+    Some(path) => Some(@process.redirect_from_file(path))
     None => None
-  }
-  defer (if input_dir is Some(path) {
-    @fs.rmdir(path, recursive=true) catch {
-      _ => ()
-    }
-  })
-  let input = match (input_dir, stdin) {
-    (Some(dir), Some(data)) => {
-      let path = @path.Path(dir).join(Path("stdin.bin")).to_string()
-      @fs.write_file(path, data)
-      Some(@process.redirect_from_file(path))
-    }
-    _ => None
   }
   let output = match (input, cwd) {
     (Some(source), Some(directory)) =>
@@ -88,6 +113,62 @@ pub async fn run(
       )
   }
   { status: output.0, stdout: output.1.binary(), stderr: output.2.binary(), }
+}
+
+///|
+pub async fn run_prepared(
+  program : PreparedProgram,
+  args : Array[String],
+  stdin_path? : String,
+  cwd? : String,
+  extra_env? : Map[String, String] = Map([]),
+  inherit_env? : Bool = true,
+) -> RunResult {
+  collect(
+    program.executable,
+    program.arguments(args),
+    stdin_path,
+    cwd,
+    extra_env,
+    inherit_env,
+  )
+}
+
+///|
+pub async fn run(
+  program : String,
+  args : Array[String],
+  stdin? : Bytes,
+  cwd? : String,
+  extra_env? : Map[String, String] = Map([]),
+  inherit_env? : Bool = true,
+) -> RunResult {
+  let prepared = prepare_program(program)
+  let input_dir = match stdin {
+    Some(_) => Some(@fs.tmpdir(prefix="moonjust-input"))
+    None => None
+  }
+  defer (if input_dir is Some(path) {
+    @fs.rmdir(path, recursive=true) catch {
+      _ => ()
+    }
+  })
+  let input = match (input_dir, stdin) {
+    (Some(dir), Some(data)) => {
+      let path = @path.Path(dir).join(Path("stdin.bin")).to_string()
+      @fs.write_file(path, data)
+      Some(path)
+    }
+    _ => None
+  }
+  collect(
+    prepared.executable,
+    prepared.arguments(args),
+    input,
+    cwd,
+    extra_env,
+    inherit_env,
+  )
 }
 
 ///|

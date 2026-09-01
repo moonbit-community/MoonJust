@@ -17,15 +17,6 @@ const MOONJUST_CHANGELOG : String =
   #|and functional compatibility runners.
 
 ///|
-const JUST_MAN_HEADER : String =
-  #|.TH just 1
-  #|.SH NAME
-  #|just \\- a command runner for project-specific tasks
-  #|.SH SYNOPSIS
-  #|.B just
-  #|[options] [recipe [arguments...]]
-
-///|
 pub fn static_invocation_text(argv : ArrayView[String]) -> String? {
   if argv.length() != 1 {
     return None
@@ -34,7 +25,7 @@ pub fn static_invocation_text(argv : ArrayView[String]) -> String? {
     "--help" | "-h" => Some(@cli.render_help().trim_end().to_owned())
     "--version" | "-V" => Some(version_line())
     "--changelog" => Some(MOONJUST_CHANGELOG)
-    "--man" => Some(JUST_MAN_HEADER)
+    "--man" => Some(JUST_MAN_PAGE)
     _ => None
   }
 }

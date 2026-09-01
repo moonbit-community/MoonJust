@@ -81,3 +81,17 @@ test "upstream changelog::print_changelog" {
   assert_true(text.contains("MoonJust"))
   assert_true(text.contains("just 1.57.0"))
 }
+
+///|
+test "upstream man::print_complete_page" {
+  let response = static_invocation_response(["--man"]).unwrap()
+  assert_eq(response.exit_code(), 0)
+  assert_eq(response.stdout().length(), 8211)
+  assert_eq(
+    @crypto.bytes_to_hex_string(@crypto.sha256(response.stdout())),
+    "7243ceeec8f8dd1a140676d6d1c6855a930bbd0d33e27a81cd1106e28953cc60",
+  )
+  let text = try! @utf8.decode(response.stdout().to_owned())
+  assert_true(text.has_prefix(".ie \\n(.g .ds Aq \\(aq"))
+  assert_true(text.has_suffix("Casey Rodarmor <casey@rodarmor.com>\n"))
+}
