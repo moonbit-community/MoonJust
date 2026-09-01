@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	57
+assembly_source_files = %(wildcard src/arch/$(arch)/*.s)
+

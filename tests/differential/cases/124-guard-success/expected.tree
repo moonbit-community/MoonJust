@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	53
+set guards
+
+@foo:
+  ?[[ 'foo' == 'foo' ]]
+  echo baz
+

@@ -1,0 +1,4 @@
+foo:
+ echo hello
+ echo {{`exit 111`}}
+a := `exit 222`

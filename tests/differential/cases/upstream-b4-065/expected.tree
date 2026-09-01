@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	59
+[working-directory(target)]
+@baz target:
+  echo bob > fred
+

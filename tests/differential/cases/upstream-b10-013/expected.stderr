@@ -1,0 +1,5 @@
+error: argument attribute `min` only valid with `multiple` or a variadic parameter
+ ——▶ justfile:3:13
+  │
+3 │ [arg('bar', min='2')]
+  │             ^^^

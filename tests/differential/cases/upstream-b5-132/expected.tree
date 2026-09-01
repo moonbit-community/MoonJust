@@ -1,0 +1,9 @@
+dir	./home
+file	./foo.just	4
+foo:
+file	./justfile	35
+foo:
+ echo foo
+
+mod foo 'foo.just'
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	77
+set positional-arguments
+
+[arg('bar', short='b')]
+@foo bar:
+  echo args="$@"
+

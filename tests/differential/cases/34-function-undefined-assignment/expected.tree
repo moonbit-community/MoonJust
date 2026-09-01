@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	33
+set unstable
+result := missing()
+

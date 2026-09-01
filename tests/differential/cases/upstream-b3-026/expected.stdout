@@ -1,0 +1,7 @@
+Available recipes:
+    bar:
+        [BAZ]
+        baz
+
+    [FOO]
+    foo

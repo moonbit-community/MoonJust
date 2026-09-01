@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	48
+prefix := 'hello '
+[doc(prefix + 'world')]
+foo:
+

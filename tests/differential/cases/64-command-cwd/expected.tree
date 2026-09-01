@@ -1,0 +1,7 @@
+file	./bar	4
+baz
+
+dir	./foo
+dir	./home
+file	./justfile	0
+

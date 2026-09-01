@@ -1,0 +1,7 @@
+export foo := 'a'
+baz := 'c'
+export bar := 'b'
+export abc := foo + bar + baz
+
+wut:
+    echo $foo $bar $baz

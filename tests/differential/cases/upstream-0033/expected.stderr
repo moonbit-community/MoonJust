@@ -1,0 +1,1 @@
+error: argument `aa` passed to recipe `foo` parameter `bar` does not match pattern `a|b`

@@ -16,6 +16,8 @@ pub struct FakeHost {
   denied : @set.Set[@host.HostCapability]
   unavailable : @set.Set[@host.HostCapability]
   files : Map[@path.PathValue, Bytes]
+  non_executable_files : @set.Set[@path.PathValue]
+  directories : @set.Set[@path.PathValue]
   mut temp_serial : Int
   mut fail_next_persist : Bool
   script_temp_creations : Array[(@path.PathValue, Bytes)]
@@ -67,7 +69,9 @@ pub fn FakeHost::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool)
 pub fn FakeHost::platform_info(Self) -> @host.PlatformInfo raise @host.HostError
 pub fn FakeHost::process_calls(Self) -> ArrayView[@host.CommandSpec]
 pub fn FakeHost::push_signal(Self, @host.SignalKind) -> Unit
+pub fn FakeHost::put_directory(Self, @path.PathValue) -> Unit
 pub fn FakeHost::put_file(Self, @path.PathValue, Bytes) -> Unit
+pub fn FakeHost::put_non_executable_file(Self, @path.PathValue, Bytes) -> Unit
 pub fn FakeHost::random_bytes(Self, Int) -> Bytes raise @host.HostError
 pub async fn FakeHost::read_cache_manifest(Self, @host.CacheLease) -> Bytes? raise @host.HostError
 pub fn FakeHost::read_dir(Self, @path.PathValue) -> Array[String] raise @host.HostError

@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	52
+x := if "foo" { "t" } else { "f" }
+
+foo:
+  @echo hi
+

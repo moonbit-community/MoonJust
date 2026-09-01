@@ -1,0 +1,16 @@
+dir	./home
+file	./justfile	59
+[unix]
+import 'unix.just'
+
+[windows]
+import 'windows.just'
+
+file	./unix.just	18
+foo:
+  @echo unix
+
+file	./windows.just	21
+foo:
+  @echo windows
+

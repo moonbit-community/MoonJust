@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	49
+@bar: foo
+  echo BAR
+
+[confirm]
+@foo:
+  echo FOO
+

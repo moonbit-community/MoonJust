@@ -1,0 +1,4 @@
+b := a
+a := `exit 100`
+bar:
+ echo '{{`exit 200`}}'

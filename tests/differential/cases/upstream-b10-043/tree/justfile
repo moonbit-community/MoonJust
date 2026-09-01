@@ -1,0 +1,3 @@
+set lists
+
+x := show(absolute_path(['bar', 'baz bob']))

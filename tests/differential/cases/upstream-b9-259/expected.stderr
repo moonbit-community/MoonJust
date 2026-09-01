@@ -1,0 +1,5 @@
+error: cannot access non-const variable `foo` in const context
+ ——▶ justfile:3:26
+  │
+3 │ set working-directory := foo
+  │                          ^^^

@@ -1,0 +1,5 @@
+error: expected '&&', '!=', '!~', '||', '==', '=~', '}}', '(', '+', '++', or '/', but found identifier
+ ——▶ justfile:4:12
+  │
+4 │   # {{ foo bar }}
+  │            ^^^

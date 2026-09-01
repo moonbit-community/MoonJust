@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	67
+# Non-document comment
+[doc('The real docstring')]
+foo:
+  echo foo
+

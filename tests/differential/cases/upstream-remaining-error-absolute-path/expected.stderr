@@ -1,0 +1,5 @@
+error: expected '*', ':', '$', identifier, or '+', but found end of file
+ ——▶ <CASE_ROOT>/bar.just:1:4
+  │
+1 │ baz
+  │    ^

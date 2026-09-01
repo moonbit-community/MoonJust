@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	46
+default: a\
+        b
+a:
+  echo a
+b:
+  echo b
+

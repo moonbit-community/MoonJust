@@ -1,0 +1,4 @@
+Available recipes:
+    bar
+    f       # alias for `foo::bar`
+    foo ...

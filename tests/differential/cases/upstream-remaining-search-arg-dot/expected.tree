@@ -1,0 +1,10 @@
+dir	./home
+dir	./child
+file	./child/justfile	54
+say ARG:
+    '{{just_executable()}}' ../say {{ ARG }}
+
+file	./justfile	28
+say ARG:
+    echo {{ ARG }}
+

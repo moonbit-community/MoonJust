@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	42
+stdin := `cat`
+
+default:
+  echo {{stdin}}
+

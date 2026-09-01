@@ -1,0 +1,2 @@
+[arg('', short)]
+foo bar:

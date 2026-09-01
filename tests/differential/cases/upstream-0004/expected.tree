@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	25
+mod? foo
+
+alias f := foo
+

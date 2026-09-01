@@ -1,0 +1,3 @@
+a := 'hello'
+a := 'hello'
+foo:

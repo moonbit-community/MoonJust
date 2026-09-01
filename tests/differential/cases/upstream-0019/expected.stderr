@@ -1,0 +1,9 @@
+error: failed to parse argument pattern
+ ——▶ justfile:1:13
+  │
+1 │ [arg('bar', pattern='{')]
+  │             ^^^^^^^
+caused by: regex parse error:
+    {
+    ^
+error: repetition operator missing expression

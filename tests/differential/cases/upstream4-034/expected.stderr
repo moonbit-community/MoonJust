@@ -1,0 +1,5 @@
+error: call to function `env` failed: environment variable `foo` not present
+ ——▶ justfile:3:12
+  │
+3 │   @echo {{ env('foo') }}.txt
+  │            ^^^

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	46
+# foo command
+foo:
+  echo foo
+
+alias f := foo
+

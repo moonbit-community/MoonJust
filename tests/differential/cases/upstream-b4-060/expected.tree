@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	28
+[working-directory(x)]
+foo:
+

@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	37
+alias f := foo
+
+# comment
+foo:
+
+bar:
+

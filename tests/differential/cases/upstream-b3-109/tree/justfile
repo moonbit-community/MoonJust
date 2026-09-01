@@ -1,0 +1,1 @@
+x := x '$JUST_TEST_VARIABLE'

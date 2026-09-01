@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	44
+foo:
+  echo a\
+         b  \
+             c
+

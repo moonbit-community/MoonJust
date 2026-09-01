@@ -1,0 +1,5 @@
+error: shell recipe `foo` has script recipe attribute `cache`
+ ——▶ justfile:2:1
+  │
+2 │ foo:
+  │ ^^^

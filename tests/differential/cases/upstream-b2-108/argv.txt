@@ -1,0 +1,10 @@
+--set
+a::x
+bar
+a::show
+b::show
+--set
+b::x
+bar
+a::show
+b::show

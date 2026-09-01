@@ -1,0 +1,5 @@
+error: alias `foo` first defined on line 1 is redefined on line 2
+ ——▶ justfile:2:7
+  │
+2 │ alias foo := baz
+  │       ^^^

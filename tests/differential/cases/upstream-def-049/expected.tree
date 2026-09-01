@@ -1,0 +1,8 @@
+dir	./home
+file	./foo.just	18
+a := 'x'
+b := 'y'
+
+file	./justfile	8
+mod foo
+

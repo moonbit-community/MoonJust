@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	82
+foo *args: (bar args)
+
+bar first *rest:
+  @echo first={{ first }} rest={{ rest }}
+

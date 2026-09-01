@@ -1,0 +1,3 @@
+echo foo
+false
+error: recipe `foo` failed on line 3 with exit code 1

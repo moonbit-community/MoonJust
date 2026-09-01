@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	15
+a: b
+b: c
+c: b
+

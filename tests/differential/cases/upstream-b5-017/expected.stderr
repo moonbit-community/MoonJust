@@ -1,0 +1,5 @@
+error: argument attribute `min` `3` exceeds `max` `2`
+ ——▶ justfile:1:13
+  │
+1 │ [arg('bar', min='3', max='2')]
+  │             ^^^

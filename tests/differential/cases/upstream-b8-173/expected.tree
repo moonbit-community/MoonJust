@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	49
+bar:
+  echo bar
+alias foo := bar
+foo:
+  echo foo
+

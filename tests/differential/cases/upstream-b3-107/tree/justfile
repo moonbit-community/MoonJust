@@ -1,0 +1,4 @@
+set dotenv-filename := x'$JUST_TEST_VARIABLE'
+
+@foo:
+  echo $DOTENV_KEY

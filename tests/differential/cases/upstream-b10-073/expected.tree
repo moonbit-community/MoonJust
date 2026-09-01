@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	58
+set lists
+set tempdir := ['foo', 'bar']
+
+foo:
+  @echo bar
+

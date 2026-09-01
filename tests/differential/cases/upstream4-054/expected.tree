@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	31
+[private('foo')]
+foo:
+  exit 1
+

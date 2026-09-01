@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	5
+foo:
+
+file	./.justfile	5
+foo:
+

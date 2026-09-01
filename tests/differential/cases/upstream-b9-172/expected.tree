@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	20
+u{200b}foo := 'bar'
+

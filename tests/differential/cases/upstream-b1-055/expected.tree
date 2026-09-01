@@ -1,0 +1,12 @@
+file	./baz	3
+BAZ
+dir	./foo
+file	./foo/import.justfile	35
+bar:
+ #!/usr/bin/env bash
+ cat baz
+
+dir	./home
+file	./justfile	29
+import 'foo/import.justfile'
+

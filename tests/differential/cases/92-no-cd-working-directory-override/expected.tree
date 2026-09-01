@@ -1,0 +1,12 @@
+dir	./home
+file	./justfile	68
+set no-cd
+
+[working-directory('workspace')]
+default:
+  cat data.txt
+
+dir	./workspace
+file	./workspace/data.txt	10
+workspace
+

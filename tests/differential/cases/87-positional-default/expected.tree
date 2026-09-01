@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	62
+set positional-arguments
+
+default value='fallback':
+  echo $1
+

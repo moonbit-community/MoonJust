@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	20
+a: b
+b: c
+c: d
+d: a
+

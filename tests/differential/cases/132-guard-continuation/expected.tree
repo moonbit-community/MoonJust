@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	36
+set guards
+
+foo:
+  echo a \
+  -?bar
+

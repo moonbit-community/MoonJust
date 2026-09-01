@@ -1,0 +1,5 @@
+error: unknown attribute `unknown-attribute`
+ ——▶ justfile:2:2
+  │
+2 │ [unknown-attribute]
+  │  ^^^^^^^^^^^^^^^^^

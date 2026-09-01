@@ -1,0 +1,11 @@
+dir	./home
+file	./bar.just	20
+[group('BAZ')]
+baz:
+
+file	./justfile	29
+[group('FOO')]
+foo:
+
+mod bar
+

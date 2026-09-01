@@ -112,6 +112,7 @@ fn render_label(
   builder : StringBuilder,
   sources : @source.SourceMap,
   label : DiagnosticLabel,
+  color : Bool,
 ) -> Unit raise DiagnosticError {
   let span = label.span()
   let source = require_source(sources, span.source_id())
@@ -156,18 +157,50 @@ fn render_label(
   let width = Int::max(1, line_end_column - start_visual_column)
   let gutter_width = start.line().to_string().length()
   write_repeated(builder, ' ', gutter_width)
+  if color {
+    builder.write_string("\u{001b}[1;34m——▶\u{001b}[0m")
+  } else {
+    builder.write_string("——▶")
+  }
   builder.write_string(
-    "——▶ \{source.name()}:\{start.line()}:\{start.byte_column() + 1}\n",
+    " \{source.name()}:\{start.line()}:\{start.byte_column() + 1}\n",
   )
   write_repeated(builder, ' ', gutter_width + 1)
-  builder.write_string("│\n")
   builder.write_string(
-    "\{start.line()} │ \{expanded_source_line(line_text)}\n",
+    if color {
+      "\u{001b}[1;34m│\u{001b}[0m\n"
+    } else {
+      "│\n"
+    },
   )
+  if color {
+    builder.write_string("\u{001b}[1;34m\{start.line()} │\u{001b}[0m ")
+  } else {
+    builder.write_string("\{start.line()} │ ")
+  }
+  builder.write_string(expanded_source_line(line_text) + "\n")
   write_repeated(builder, ' ', gutter_width + 1)
-  builder.write_string("│ ")
+  builder.write_string(
+    if color {
+      "\u{001b}[1;34m│\u{001b}[0m "
+    } else {
+      "│ "
+    },
+  )
   write_repeated(builder, ' ', start_visual_column)
+  if color {
+    builder.write_string(
+      if label.style() is Primary {
+        "\u{001b}[1;31m"
+      } else {
+        "\u{001b}[1;34m"
+      },
+    )
+  }
   write_repeated(builder, marker, width)
+  if color {
+    builder.write_string("\u{001b}[0m")
+  }
   if label.message() != "" {
     builder.write_string(" \{label.message()}")
   }
@@ -299,17 +332,35 @@ fn contextual_message(
 
 ///|
 /// Render a deterministic, color-free diagnostic for snapshots and plain text.
-pub fn render_text(
+fn render(
   diagnostic : Diagnostic,
   sources : @source.SourceMap,
+  color : Bool,
 ) -> String raise DiagnosticError {
   let builder = StringBuilder()
-  builder.write_string(
-    "\{diagnostic.severity().as_string()}: \{contextual_message(diagnostic, sources)}\n",
-  )
-  render_label(builder, sources, diagnostic.primary())
+  if color {
+    let severity_color = match diagnostic.severity() {
+      Error => "31"
+      Warning => "33"
+      Info => "34"
+    }
+    builder.write_string(
+      "\u{001b}[1;" +
+      severity_color +
+      "m" +
+      diagnostic.severity().as_string() +
+      "\u{001b}[0m: \u{001b}[1m" +
+      contextual_message(diagnostic, sources) +
+      "\u{001b}[0m\n",
+    )
+  } else {
+    builder.write_string(
+      "\{diagnostic.severity().as_string()}: \{contextual_message(diagnostic, sources)}\n",
+    )
+  }
+  render_label(builder, sources, diagnostic.primary(), color)
   for label in diagnostic.secondary() {
-    render_label(builder, sources, label)
+    render_label(builder, sources, label, color)
   }
   for trailer in diagnostic.trailers() {
     builder.write_string(trailer)
@@ -329,4 +380,22 @@ pub fn render_text(
     None => ()
   }
   builder.to_string()
+}
+
+///|
+/// Render a deterministic, color-free diagnostic for snapshots and plain text.
+pub fn render_text(
+  diagnostic : Diagnostic,
+  sources : @source.SourceMap,
+) -> String raise DiagnosticError {
+  render(diagnostic, sources, false)
+}
+
+///|
+/// Render the same diagnostic structure with the ANSI styles used by just.
+pub fn render_colored_text(
+  diagnostic : Diagnostic,
+  sources : @source.SourceMap,
+) -> String raise DiagnosticError {
+  render(diagnostic, sources, true)
 }

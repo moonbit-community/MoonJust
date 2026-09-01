@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	53
+bar := `echo BAR`
+[arg('bar', pattern=bar)]
+foo bar:
+

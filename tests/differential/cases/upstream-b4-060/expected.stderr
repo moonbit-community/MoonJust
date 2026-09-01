@@ -1,0 +1,5 @@
+error: variable `x` not defined
+ ——▶ justfile:1:20
+  │
+1 │ [working-directory(x)]
+  │                    ^

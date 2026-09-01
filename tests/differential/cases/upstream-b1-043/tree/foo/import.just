@@ -1,0 +1,2 @@
+bar:
+ @cat baz

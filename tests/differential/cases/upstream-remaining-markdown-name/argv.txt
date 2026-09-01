@@ -1,0 +1,3 @@
+--justfile-name
+foo.md
+foo

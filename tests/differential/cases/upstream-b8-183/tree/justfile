@@ -1,0 +1,2 @@
+foo A:
+  echo {{A}}

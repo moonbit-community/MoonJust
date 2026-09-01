@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	72
+set dotenv-filename := '.env.special'
+
+foo:
+  @echo $JUST_TEST_VARIABLE
+
+file	./.env.special	22
+JUST_TEST_VARIABLE=bar
+file	./.env.superspecial	22
+JUST_TEST_VARIABLE=baz

@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	14
+x := "\u1234"
+

@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	49
+foo:
+  {{ assert('a' == 'a', 'error message') }}
+

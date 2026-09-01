@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	66
+foo:
+  echo {{ if 'a' != 'a' { `exit 1` } else { 'otherwise' } }}
+

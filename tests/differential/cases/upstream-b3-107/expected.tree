@@ -1,0 +1,9 @@
+file	./.env	23
+DOTENV_KEY=dotenv-value
+dir	./home
+file	./justfile	72
+set dotenv-filename := x'$JUST_TEST_VARIABLE'
+
+@foo:
+  echo $DOTENV_KEY
+

@@ -1,0 +1,26 @@
+dir	./foo
+dir	./foo/bar
+file	./foo/bar/.env	5
+C=300
+file	./foo/bar/mod.just	37
+set dotenv-load
+baz:
+ @echo $A $B $C
+
+file	./foo/.env	4
+B=20
+file	./foo/mod.just	24
+set dotenv-load
+mod bar
+
+file	./.env	12
+A=1
+B=2
+C=3
+
+dir	./home
+file	./justfile	25
+set dotenv-load
+
+mod foo
+

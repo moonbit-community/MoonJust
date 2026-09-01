@@ -1,0 +1,5 @@
+error: attribute key `multiple` takes no value
+ ——▶ justfile:1:19
+  │
+1 │ [arg('bar', long, multiple='baz')]
+  │                   ^^^^^^^^

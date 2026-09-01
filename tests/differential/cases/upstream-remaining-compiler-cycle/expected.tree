@@ -1,0 +1,10 @@
+dir	./home
+dir	./subdir
+file	./subdir/b	24
+import '../justfile'
+b:
+
+file	./justfile	25
+import './subdir/b'
+a: b
+

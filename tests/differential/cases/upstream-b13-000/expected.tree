@@ -1,0 +1,11 @@
+dir	./foo
+file	./foo/bar	5
+hello
+dir	./home
+file	./justfile	55
+set working-directory := 'bar'
+
+[no-cd]
+foo:
+  cat bar
+

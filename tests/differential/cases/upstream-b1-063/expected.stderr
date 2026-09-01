@@ -1,0 +1,2 @@
+echo a
+error: recipe `foo` failed on line 4 with exit code 7

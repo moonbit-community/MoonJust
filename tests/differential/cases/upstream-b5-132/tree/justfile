@@ -1,0 +1,4 @@
+foo:
+ echo foo
+
+mod foo 'foo.just'

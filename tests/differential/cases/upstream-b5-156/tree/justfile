@@ -1,0 +1,2 @@
+foo:
+  echo {{ lowercase('BAR') }}

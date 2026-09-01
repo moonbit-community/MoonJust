@@ -1,0 +1,3 @@
+Available recipes:
+    a Z="\t z"
+    hello a b='B	' c='C' # this does a thing

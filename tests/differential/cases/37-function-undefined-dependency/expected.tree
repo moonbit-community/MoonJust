@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	45
+set unstable
+dep value:
+run: (dep missing())
+

@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	26
+set dotenv-required
+
+foo:
+

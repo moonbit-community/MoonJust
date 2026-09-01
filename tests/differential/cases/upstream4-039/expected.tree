@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	37
+[env('A', 'B', 'C')]
+foo:
+  echo bar
+

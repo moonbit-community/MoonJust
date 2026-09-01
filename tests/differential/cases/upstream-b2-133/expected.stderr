@@ -1,0 +1,2 @@
+error: justfile does not contain recipe `fo`
+Did you mean `foo`, an alias for `hello`?

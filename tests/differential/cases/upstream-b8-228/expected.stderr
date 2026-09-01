@@ -1,0 +1,7 @@
+#!/bin/sh
+touch /this/is/not/a/file
+`echo stderr 1>&2; echo backtick`
+echo `echo shebang interpolation`
+touch /this/is/not/a/file
+`echo stderr 1>&2; echo backtick`
+echo `echo command interpolation`

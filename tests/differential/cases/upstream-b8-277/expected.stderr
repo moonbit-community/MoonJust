@@ -1,0 +1,5 @@
+error: parameter `bar` follows variadic parameter
+ ——▶ justfile:2:16
+  │
+2 │ hello baz *arg bar:
+  │                ^^^

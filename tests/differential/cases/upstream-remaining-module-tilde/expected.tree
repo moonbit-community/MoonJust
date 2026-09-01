@@ -1,0 +1,9 @@
+dir	./home
+dir	./foobar
+file	./foobar/mod.just	19
+foo:
+ @echo FOOBAR
+
+file	./justfile	21
+mod foo '~/mod.just'
+

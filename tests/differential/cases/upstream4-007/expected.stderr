@@ -1,0 +1,5 @@
+error: expected keyword `true` or `false` but found identifier `fals`
+ ——▶ justfile:1:15
+  │
+1 │ set export := fals
+  │               ^^^^

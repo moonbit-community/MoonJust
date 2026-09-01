@@ -1,0 +1,9 @@
+file	./.env	23
+DOTENV_KEY=dotenv-value
+dir	./home
+file	./justfile	57
+set dotenv-load
+X:=`echo $DOTENV_KEY`
+echo:
+  echo {{X}}
+

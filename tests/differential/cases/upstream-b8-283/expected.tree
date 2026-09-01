@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	43
+a x y *z='HELLO':
+  echo {{x}} {{y}} {{z}}
+

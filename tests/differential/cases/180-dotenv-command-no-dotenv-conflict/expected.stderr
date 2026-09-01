@@ -1,0 +1,5 @@
+error: the argument '--dotenv-command <COMMAND>' cannot be used with '--no-dotenv'
+
+Usage: just --dotenv-command <COMMAND> --color <COLOR> [ARGUMENTS]...
+
+For more information, try '--help'.

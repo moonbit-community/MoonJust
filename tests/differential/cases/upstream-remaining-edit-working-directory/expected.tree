@@ -1,0 +1,7 @@
+dir	./home
+dir	./child
+file	./justfile	23
+#!/bin/sh
+cat "$0"
+pwd
+

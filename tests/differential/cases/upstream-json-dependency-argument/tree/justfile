@@ -1,0 +1,15 @@
+x := 'foo'
+foo *args:
+bar: (
+  foo
+  'baz'
+  ('baz')
+  ('a' + 'b')
+  `echo`
+  x
+  if 'a' == 'b' { 'c' } else { 'd' }
+  arch()
+  env_var('foo')
+  join('a', 'b')
+  replace('a', 'b', 'c')
+)

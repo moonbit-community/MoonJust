@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	79
+default a=`read A && echo $A` b=`read B && echo $B`:
+  echo {{a}}
+  echo {{b}}
+

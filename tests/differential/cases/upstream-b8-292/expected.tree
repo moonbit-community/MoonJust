@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	10
+foo 'bar'
+

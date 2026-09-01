@@ -1,0 +1,2 @@
+baz:
+ @echo FOO

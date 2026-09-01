@@ -1,0 +1,5 @@
+[1;31merror[0m: [1mbacktick failed with exit code 100[0m
+ [1;34m——▶[0m justfile:2:6
+  [1;34m│[0m
+[1;34m2 │[0m a := `exit 100`
+  [1;34m│[0m      [1;31m^^^^^^^^^^[0m

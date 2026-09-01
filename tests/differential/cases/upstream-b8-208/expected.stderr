@@ -1,0 +1,5 @@
+error: backtick failed with exit code 100
+ ——▶ justfile:2:6
+  │
+2 │ a := `exit 100`
+  │      ^^^^^^^^^^

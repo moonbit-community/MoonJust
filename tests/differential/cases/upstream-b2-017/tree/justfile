@@ -1,0 +1,5 @@
+[confirm(if is_dependency() == 'true' { 'dep?' } else { 'direct?' })]
+foo:
+    @echo ran
+
+bar: foo

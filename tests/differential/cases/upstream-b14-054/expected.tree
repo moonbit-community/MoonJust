@@ -1,0 +1,7 @@
+dir	./home
+dir	./child
+file	./child/justfile	13
+child-recipe:
+file	./justfile	13
+root-recipe:
+

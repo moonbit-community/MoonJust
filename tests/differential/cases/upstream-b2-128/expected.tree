@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	28
+foo:
+    bar
+alias f := foo
+

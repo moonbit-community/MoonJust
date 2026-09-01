@@ -1,0 +1,3 @@
+error: recipe `foo` got 1 positional argument but takes at least 2
+usage:
+    just foo A B [C]

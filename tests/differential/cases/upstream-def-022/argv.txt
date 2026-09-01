@@ -1,0 +1,4 @@
+--dotenv-path
+foo.env
+--dotenv-path
+bar.env

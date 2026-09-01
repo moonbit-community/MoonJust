@@ -1,0 +1,5 @@
+error: call to function `datetime` failed: failed to parse time format string `%!`: bad or unsupported format string
+ ——▶ justfile:1:6
+  │
+1 │ x := datetime('%!')
+  │      ^^^^^^^^

@@ -1,0 +1,2 @@
+exit 1
+error: recipe `bar` failed on line 5 with exit code 1

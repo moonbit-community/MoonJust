@@ -1,0 +1,3 @@
+--evaluate
+foo=baz
+foo

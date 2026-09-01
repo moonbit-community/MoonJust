@@ -1,0 +1,2 @@
+error: justfile does not contain submodule `fob`
+Did you mean `foo`?

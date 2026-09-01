@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	56
+set lists
+
+foo:
+  @echo {{ uppercase(['bar', 'baz']) }}
+

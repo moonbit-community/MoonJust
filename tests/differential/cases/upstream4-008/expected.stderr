@@ -1,0 +1,5 @@
+error: expected identifier, but found end of line
+ ——▶ justfile:1:14
+  │
+1 │ set export :=
+  │              ^

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	78
+suffix := 'world'
+
+[env('GREETING', 'hello ' + suffix)]
+foo:
+  echo $GREETING
+

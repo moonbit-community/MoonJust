@@ -1,0 +1,10 @@
+dir	./home
+dir	./subdir
+file	./subdir/.env	22
+JUST_TEST_VARIABLE=bar
+file	./justfile	67
+set dotenv-path := 'subdir/.env'
+
+foo:
+  @echo $JUST_TEST_VARIABLE
+

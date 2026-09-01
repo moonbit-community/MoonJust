@@ -1,0 +1,5 @@
+error: attribute `private` got 1 argument but takes 0 arguments
+ ——▶ justfile:1:2
+  │
+1 │ [private('foo')]
+  │  ^^^^^^^

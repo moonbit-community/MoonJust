@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	53
+foo:
+  echo {{ replace('barbarbar', 'bar', 'foo') }}
+

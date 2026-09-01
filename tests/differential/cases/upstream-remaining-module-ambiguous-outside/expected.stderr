@@ -1,0 +1,5 @@
+error: found multiple source files for module `foo`: `<CASE_ROOT>/external/.justfile` and `<CASE_ROOT>/external/justfile`
+ ——▶ justfile:1:5
+  │
+1 │ mod foo '<CASE_ROOT>/external'
+  │     ^^^

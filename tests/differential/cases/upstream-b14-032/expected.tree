@@ -1,0 +1,12 @@
+dir	./bar
+file	./bar/justfile	41
+set fallback := true
+
+baz:
+  echo subdir
+
+dir	./home
+file	./justfile	19
+foo:
+ echo {{bar}}
+

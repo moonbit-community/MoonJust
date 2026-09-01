@@ -1,0 +1,8 @@
+dir	./home
+file	./bar.just	15
+baz:
+ echo BAZ
+
+file	./justfile	8
+mod bar
+

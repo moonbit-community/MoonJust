@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	38
+backtick-fail:
+	echo {{	`exit		200`}}
+

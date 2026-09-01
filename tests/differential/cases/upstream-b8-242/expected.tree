@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	35
+infallible:
+  -exit 101
+  exit 202
+

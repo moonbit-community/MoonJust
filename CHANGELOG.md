@@ -29,6 +29,15 @@ published releases.
   platform, and benchmark runners.
 - Moved historical ADRs and delivery reports to docs/development/; current
   architecture and maintenance records now have separate locations.
+- Made `moon.mod` version 0.1.2 authoritative for the executable identity and
+  added a preflight check that rejects a mismatched `--version` response.
+- Expanded compatibility evidence to emit a per-identity report for all 2,417
+  pinned upstream test names. The strict report has 2,362 executed identities
+  (2,358 exact and four pinned known differences), 34 completion exclusions,
+  21 signal exclusions, and zero unclassified identities.
+- Reworked the benchmark runner around larger workloads, warmups, interleaved
+  batches, ratio intervals and JSON gate artifacts for Native and Wasm. Wasm
+  runner arguments now use the required `moonrun ... -- ...` form.
 
 ### Performance
 
@@ -56,12 +65,22 @@ published releases.
 
 ### Verification
 
-- The current corpus reports 176 exact matches, 6 pinned known differences,
-  and 0 failures against official just 1.57.0.
+- The maintained executable corpus contains 1,417 scenarios: 1,411 exact
+  matches, 6 pinned known differences, and 0 failures against official just
+  1.57.0. Unix runs show 1,410 exact matches because one Windows-only case is
+  skipped there and executed on the Windows job.
+- The strict upstream report covers all 2,417 identities: 2,358 exact, 4
+  pinned known differences, 34 completion exclusions, 21 runtime signal
+  exclusions, and zero unclassified identities.
 - Native/Wasm rewrite comparisons against the performance baseline have median
   1.00x; artifact growth remains below one percent on both targets.
-- PR #69 passed Ubuntu, macOS, Windows, Wasm, formatting/interface, and official
-  differential CI before merge.
+- PR #69 passed the logic-rewrite validation, and PR #70's latest CI run
+  (33468089255) passed Ubuntu, macOS, Windows, Wasm, formatting/interface, and
+  official differential jobs.
+- The current benchmark artifacts are observational: pull requests collect one
+  batch of 15 samples, Unix runtimes are often below 20 ms, and CI does not
+  invoke the optional performance `--enforce` flag. They should not be read as
+  proof that every performance threshold is met.
 
 ## 0.1.1 - 2026-08-25
 

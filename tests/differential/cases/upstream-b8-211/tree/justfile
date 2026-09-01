@@ -1,0 +1,3 @@
+foo:
+ echo hello
+ echo {{`exit 123`}}

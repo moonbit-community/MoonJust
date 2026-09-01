@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	67
+some_recipe:
+  # A recipe-internal comment
+  echo something-useful
+

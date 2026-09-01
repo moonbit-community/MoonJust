@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	36
+FOO := 'hello'
+a FOO:
+ echo {{FOO}}
+

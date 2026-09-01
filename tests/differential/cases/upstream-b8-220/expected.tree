@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	73
+export X := 'X'
+
+foo: (bar `echo $X`)
+
+bar arg:
+  echo {{arg}}
+  echo $X
+

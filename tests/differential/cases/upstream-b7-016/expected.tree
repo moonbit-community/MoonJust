@@ -1,0 +1,11 @@
+dir	./home
+file	./foo.just	20
+setup:
+ @echo SETUP
+
+file	./justfile	42
+mod? foo
+
+build: foo::setup
+  @echo BUILD
+

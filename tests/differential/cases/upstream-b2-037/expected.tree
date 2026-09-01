@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	57
+[arg('bar', short='b')]
+[arg('baz', short)]
+foo bar baz:
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	41
+import './import.justfile' 
+a:
+  @echo A
+
+file	./import.justfile	0
+

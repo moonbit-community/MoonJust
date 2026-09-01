@@ -1,0 +1,7 @@
+error: list value ["bar", "baz"] passed to `uppercase()`
+the behavior of lists with many built-in functions is undecided
+see https://github.com/casey/just#lists
+ ——▶ justfile:4:12
+  │
+4 │   @echo {{ uppercase(['bar', 'baz']) }}
+  │            ^^^^^^^^^

@@ -1,0 +1,4 @@
+default:
+ echo hello
+other: 
+ echo bar

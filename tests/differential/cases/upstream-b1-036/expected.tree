@@ -1,0 +1,8 @@
+file	./a	10
+import 'b'
+file	./b	10
+import 'a'
+dir	./home
+file	./justfile	11
+import 'a'
+

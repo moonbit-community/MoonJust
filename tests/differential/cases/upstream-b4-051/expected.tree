@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	99
+unexport JUST_TEST_VARIABLE
+
+recipe $JUST_TEST_VARIABLE:
+    @echo "variable: $JUST_TEST_VARIABLE"
+

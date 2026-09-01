@@ -1,0 +1,1 @@
+error: recipe `bar` depends on absent module `foo`

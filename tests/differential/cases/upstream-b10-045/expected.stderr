@@ -1,0 +1,5 @@
+error: operator `+` cannot be applied to lists of different lengths: ["a", "b"] + ["c", "d", "e"]
+ ——▶ justfile:3:17
+  │
+3 │ x := ['a', 'b'] + ['c', 'd', 'e']
+  │                 ^

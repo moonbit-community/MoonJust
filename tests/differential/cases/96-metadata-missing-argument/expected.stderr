@@ -1,0 +1,5 @@
+error: attribute `metadata` got 0 arguments but takes at least 1 argument
+ ——▶ justfile:1:2
+  │
+1 │ [metadata]
+  │  ^^^^^^^^

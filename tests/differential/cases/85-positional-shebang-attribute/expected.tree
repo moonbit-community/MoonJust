@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	60
+[positional-arguments]
+default value:
+  #!/bin/sh
+  echo $1
+

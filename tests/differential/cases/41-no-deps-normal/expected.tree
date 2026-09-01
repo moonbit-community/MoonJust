@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	28
+a:
+  @echo a
+b: a
+  @echo b
+

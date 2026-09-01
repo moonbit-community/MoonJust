@@ -1,0 +1,5 @@
+error: backtick failed with exit code 200
+ ——▶ justfile:2:7
+  │
+2 │  無{{`exit 200`}}
+  │      ^^^^^^^^^^

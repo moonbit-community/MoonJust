@@ -1,0 +1,2 @@
+echo "$(basename "$PWD")"
+error: recipe `print1` could not be run because just could not find the shell `sh`: No such file or directory (os error 2)

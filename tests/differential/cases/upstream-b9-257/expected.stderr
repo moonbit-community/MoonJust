@@ -1,0 +1,5 @@
+error: setting `quiet` has invalid attribute `doc`
+ ——▶ justfile:2:5
+  │
+2 │ set quiet
+  │     ^^^^^

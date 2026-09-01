@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	63
+set lists
+
+[working-directory(['foo', 'bar'])]
+baz:
+  @echo hi
+

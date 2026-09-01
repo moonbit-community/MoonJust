@@ -1,0 +1,5 @@
+error: expected unicode escape sequence delimiter `{` but found ` `
+ ——▶ justfile:1:6
+  │
+1 │ x := "\u {1f916}"
+  │      ^^^^^^^^^^^^

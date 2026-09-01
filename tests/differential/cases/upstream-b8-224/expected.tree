@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	84
+release: (build 'foo') (build 'bar')
+
+build target:
+  echo 'Building {{target}}...'
+

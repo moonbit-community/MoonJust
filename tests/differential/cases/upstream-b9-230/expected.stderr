@@ -1,0 +1,9 @@
+echo before
+error: regex parse error:
+    (
+    ^
+error: unclosed group
+ ——▶ justfile:3:17
+  │
+3 │   echo {{ if '' =~ '(' { 'a' } else { 'b' } }}
+  │                 ^^

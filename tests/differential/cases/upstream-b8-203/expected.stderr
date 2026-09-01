@@ -1,0 +1,5 @@
+error: unknown setting `if`
+ ——▶ justfile:1:5
+  │
+1 │ set if := 'foo'
+  │     ^^

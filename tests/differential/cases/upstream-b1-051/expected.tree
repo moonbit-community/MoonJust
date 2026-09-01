@@ -1,0 +1,16 @@
+file	./baz	3
+BAZ
+dir	./home
+dir	./subdir
+file	./subdir/a.justfile	36
+import 'b.justfile'
+@a: b
+  cat baz
+
+file	./subdir/b.justfile	14
+@b:
+  cat baz
+
+file	./justfile	1
+
+

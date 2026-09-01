@@ -1,0 +1,3 @@
+foo PARAM='foo':
+  echo {{PARAM}}
+alias f := foo

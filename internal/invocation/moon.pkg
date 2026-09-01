@@ -12,3 +12,8 @@ import {
 }
 
 supported_targets = "-all+native+wasm"
+
+import {
+  "ZSeanYves/MoonJust/internal/path",
+  "ZSeanYves/MoonJust/internal/parser",
+} for "test"

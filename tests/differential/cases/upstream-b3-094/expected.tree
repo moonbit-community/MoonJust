@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	46
+foo *args:
+  @printf '%s\n' {{ quote(args) }}
+

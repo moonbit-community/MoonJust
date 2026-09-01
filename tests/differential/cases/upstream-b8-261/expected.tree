@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	37
+foo = 'bar'
+
+default:
+  echo {{foo}}
+

@@ -1,0 +1,14 @@
+dir	./a
+file	./a/mod.just	22
+mod? b
+
+ay:
+ @echo AY
+
+dir	./home
+file	./justfile	28
+mod a
+
+x: a::b::c
+  @echo X
+

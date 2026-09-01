@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	60
+set dotenv-command := 'true'
+set dotenv-path := 'foo'
+
+foo:
+

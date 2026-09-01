@@ -1,0 +1,14 @@
+dir	./home
+file	./bar.just	280
+set lists
+[arg('a', short='a')]
+[arg('b', pattern='123|789', help='hello')]
+[arg('d', short='d', long='delightful')]
+[arg('e', short='e', pattern='abc|xyz')]
+[arg('f', long='f', pattern=['lucky', 'dog'])]
+[arg('g', short='g', value='foo')]
+foo a b c='abc' d e f='xyz' g='bar' *h:
+
+file	./justfile	8
+mod bar
+

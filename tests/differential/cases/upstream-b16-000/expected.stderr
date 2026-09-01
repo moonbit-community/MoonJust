@@ -1,0 +1,6 @@
+error: backtick could not be run because just could not find the shell:
+No such file or directory (os error 2)
+ ——▶ justfile:1:8
+  │
+1 │ bar := `echo bar`
+  │        ^^^^^^^^^^

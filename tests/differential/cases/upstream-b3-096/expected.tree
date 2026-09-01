@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	61
+file := quote("foo ' bar")
+
+@foo:
+  touch {{ file }}
+  ls -1
+
+file	./foo ' bar	0
+

@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	56
+set working-directory := assert('foo' == 'bar', 'fail')
+

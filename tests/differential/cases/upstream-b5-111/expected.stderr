@@ -1,0 +1,5 @@
+error: recipe `bar` has duplicate `[default]` attribute, which may only appear once per module
+ ——▶ justfile:5:1
+  │
+5 │ bar:
+  │ ^^^

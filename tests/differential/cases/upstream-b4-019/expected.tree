@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	31
+[private]
+alias f := foo
+
+foo:
+

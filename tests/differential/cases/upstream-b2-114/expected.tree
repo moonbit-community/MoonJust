@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	54
+foo:
+ echo hello
+ echo {{`exit 111`}}
+a := `exit 222`
+

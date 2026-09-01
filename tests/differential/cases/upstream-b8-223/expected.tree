@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	51
+foo: (bar 'A' 'B' 'C')
+
+bar +args:
+  echo {{args}}
+

@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	32
+@foo a b=c c='':
+  echo {{ b }}
+

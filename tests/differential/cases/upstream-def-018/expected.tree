@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	44
+set dotenv-filename := ['foo', 'bar']
+
+foo:
+

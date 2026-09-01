@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	41
+[private]
+[no-cd]
+alias t := test
+
+test:
+

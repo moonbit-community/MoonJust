@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	19
+[doc(x'foo')]
+bar:
+

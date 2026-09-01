@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	89
+target := 'production'
+
+[confirm('Deploy to ' + target + '?')]
+deploy:
+    echo deployed
+

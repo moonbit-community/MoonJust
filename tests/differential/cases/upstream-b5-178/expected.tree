@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	45
+foo:
+  echo {{ shoutykebabcase('foo bar') }}
+

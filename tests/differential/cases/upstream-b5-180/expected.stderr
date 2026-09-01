@@ -1,0 +1,5 @@
+error: the `show()` function requires `set lists`
+ ——▶ justfile:1:6
+  │
+1 │ x := show("foo")
+  │      ^^^^

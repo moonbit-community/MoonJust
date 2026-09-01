@@ -1,0 +1,3 @@
+[cache]
+foo:
+  echo bar

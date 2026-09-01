@@ -1,0 +1,5 @@
+error: list value ["FOO", "BAR"] used as `env` attribute name
+ ——▶ justfile:3:2
+  │
+3 │ [env(['FOO', 'BAR'], 'baz')]
+  │  ^^^

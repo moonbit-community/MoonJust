@@ -1,0 +1,8 @@
+set export := true
+
+A := 'hello'
+
+foo B C=`echo $A`:
+  echo $A
+  echo $B
+  echo $C

@@ -7,7 +7,7 @@ MoonJust is a pure MoonBit implementation of the user-visible behavior of
 and linear-memory Wasm targets, with compatibility pinned to official
 just 1.57.0.
 
-The repository is currently on the 0.1.2 development line. It has no library
+The current product version is 0.1.2. It has no library
 facade: the root package is the executable and everything below internal/ is an
 implementation detail.
 
@@ -63,6 +63,15 @@ moon build --release --target native .
 _build/native/release/build/MoonJust.exe --version
 ~~~
 
+When using MoonX, write MoonX's separator once before MoonJust's arguments:
+
+~~~bash
+moonx ZSeanYves/MoonJust@0.1.2 -- build
+moonx ZSeanYves/MoonJust@0.1.2 -- --version
+~~~
+
+The recipe name is passed directly; it does not need another `--`.
+
 The Wasm artifact is built with:
 
 ~~~bash
@@ -93,8 +102,9 @@ or container sandbox when isolation is required; see SECURITY.md.
 The oracle is official just 1.57.0 at upstream commit
 e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f.
 
-The maintained black-box corpus currently runs 182 scenarios. It reports 176
-byte-exact matches and six explicit known differences:
+The maintained black-box corpus contains 1,417 executable scenarios. Across
+the platform-complete corpus, 1,411 are byte-exact matches and six are
+explicit known differences:
 
 - --version and --help retain MoonJust product identity;
 - one unstable-function error has MoonJust diagnostic presentation;
@@ -106,6 +116,20 @@ SHA-256. A changed diagnostic therefore fails instead of being accepted by a
 broad substring rule. Shell completion is not part of the current compatibility
 claim, and raw signal behavior remains limited to the direct-child lifecycle
 described by the historical ADRs.
+
+The pinned upstream inventory contains 2,417 test identities. The strict
+report has 2,362 executed identities (2,358 exact and four pinned known
+differences), 34 completion exclusions, 21 runtime signal exclusions, and zero
+unclassified identities. CI invokes the same `--strict-coverage` check. A Unix
+run reports 1,410 exact black-box matches because the one Windows-only case is
+skipped there; the case is executed on the Windows job. This platform skip does
+not change the 2,417-row strict inventory.
+
+Recorded official snapshots are supplementary audit material. Two datetime
+fixtures contain date-sensitive output and must be regenerated or normalized
+when the calendar changes; the live official 1.57.0 process remains the
+authoritative comparison. The optional `--verify-snapshots` flag is therefore
+not a substitute for the live differential run.
 
 ## Architecture
 
@@ -167,7 +191,8 @@ moon build --release --target native .
 
 moon run --target native ./tests/compat -- \
   --candidate _build/native/release/build/MoonJust.exe \
-  --official just
+  --official just \
+  --coverage-report _build/coverage.json
 
 moon run --target native ./tests/platform -- \
   --candidate _build/native/release/build/MoonJust.exe \
@@ -176,13 +201,31 @@ moon run --target native ./tests/platform -- \
 moon run --target native ./tests/benchmark -- \
   --candidate _build/native/release/build/MoonJust.exe \
   --official just \
-  --rounds 15
+  --target native \
+  --batches 3 \
+  --rounds 15 \
+  --output _build/performance-gate-native.json
+
+moon run --target native ./tests/benchmark -- \
+  --candidate _build/wasm/release/build/MoonJust.wasm \
+  --candidate-runner moonrun \
+  --official just \
+  --target wasm \
+  --batches 3 \
+  --rounds 15 \
+  --output _build/performance-gate-wasm.json
 ~~~
 
 The compatibility runner compares only declared observable behavior: exit
 status, stdout, stderr, merged output, filesystem effects, and live-output
 observations. The benchmark first verifies behavior equivalence, then executes
-interleaved paired samples and reports median and p95 ratios.
+interleaved paired samples and reports median and p95 ratios. Non-startup
+workloads use larger generated justfiles and retain raw sample and batch
+metadata in JSON. Pull-request CI currently collects one batch of 15 samples;
+main-branch runs collect three batches. The generated reports are evidence for
+performance tracking, but CI does not currently pass `--enforce`, so a green
+CI result does not imply that every performance threshold is met. Short
+official runtimes on Unix hosts can also make millisecond ratios noisy.
 
 ## Documentation
 

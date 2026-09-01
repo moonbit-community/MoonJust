@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	47
+set lists
+
+a:
+  echo {{env(['ZADDY', 'XYZ'])}}
+

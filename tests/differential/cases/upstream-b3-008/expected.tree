@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	34
+foo := f'{{'foo'}}{{'bar'}}'
+bar:
+

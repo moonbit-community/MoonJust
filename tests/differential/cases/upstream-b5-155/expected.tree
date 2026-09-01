@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	44
+foo:
+  echo {{ lowercamelcase('foo bar') }}
+

@@ -1,0 +1,13 @@
+dir	./sub
+file	./sub/mod.just	47
+set lazy
+
+unused := `exit 1`
+
+bar:
+  @echo bar
+
+dir	./home
+file	./justfile	8
+mod sub
+

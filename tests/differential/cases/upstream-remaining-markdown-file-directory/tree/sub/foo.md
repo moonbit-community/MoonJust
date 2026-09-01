@@ -1,0 +1,4 @@
+```just
+@foo:
+ cat bar
+```

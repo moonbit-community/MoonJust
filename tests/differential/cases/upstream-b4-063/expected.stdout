@@ -1,0 +1,5 @@
+dir := 'foo'
+
+[working-directory(dir + '-bar')]
+baz:
+    echo bob

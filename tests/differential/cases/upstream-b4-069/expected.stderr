@@ -1,0 +1,5 @@
+error: `working-directory` set on line 1 is incompatible with `no-cd`
+ ——▶ justfile:2:5
+  │
+2 │ set no-cd := true
+  │     ^^^^^

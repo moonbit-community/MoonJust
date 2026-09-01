@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	52
+set shell := ['foo-bar-baz']
+
+default:
+  echo hello
+

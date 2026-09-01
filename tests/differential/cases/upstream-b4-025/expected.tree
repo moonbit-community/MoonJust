@@ -1,0 +1,12 @@
+dir	./home
+file	./a.just	5
+mod b
+file	./b.just	33
+x := 'y'
+
+foo:
+    @echo {{ x }}
+
+file	./justfile	6
+mod a
+

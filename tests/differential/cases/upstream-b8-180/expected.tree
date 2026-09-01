@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	32
+foo A B:
+  echo A:{{A}} B:{{B}}
+

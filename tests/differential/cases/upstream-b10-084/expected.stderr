@@ -1,0 +1,5 @@
+error: dependency `foo` got 2 arguments but takes at most 1 argument
+ ——▶ justfile:5:7
+  │
+5 │ bar: (foo 'baz' 'bob')
+  │       ^^^

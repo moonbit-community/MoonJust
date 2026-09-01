@@ -1,0 +1,5 @@
+error: call to function `recipe_name` failed: `recipe_name()` can only be used within a recipe
+ ——▶ justfile:1:6
+  │
+1 │ x := recipe_name()
+  │      ^^^^^^^^^^^

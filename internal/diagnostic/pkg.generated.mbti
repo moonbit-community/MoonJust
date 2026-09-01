@@ -7,7 +7,13 @@ import {
 }
 
 // Values
+pub fn join_list(ArrayView[String], String, ticked? : Bool) -> String
+
+pub fn render_colored_text(Diagnostic, @source.SourceMap) -> String raise DiagnosticError
+
 pub fn render_text(Diagnostic, @source.SourceMap) -> String raise DiagnosticError
+
+pub fn tick(String) -> String
 
 // Errors
 pub(all) suberror DiagnosticError {
@@ -23,6 +29,17 @@ pub fn DiagnosticError::not_equal(Self, Self) -> Bool
 pub fn DiagnosticError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct Count {
+  singular : String
+  plural : String
+  count : Int
+  numbered : Bool
+}
+pub fn Count::numbered(String, Int) -> Self
+pub fn Count::numbered_irregular(String, String, Int) -> Self
+pub fn Count::to_string(Self) -> String
+pub fn Count::unnumbered(String, Int) -> Self
+
 pub struct Diagnostic {
   code : String
   severity : Severity

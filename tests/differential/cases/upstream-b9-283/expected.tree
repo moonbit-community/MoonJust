@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	29
+set quiet
+recipe:
+  echo foo
+

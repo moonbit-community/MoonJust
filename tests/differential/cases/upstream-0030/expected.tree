@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	56
+baz:
+  exit 1
+
+[arg('bar', pattern='BAR')]
+foo bar: baz
+

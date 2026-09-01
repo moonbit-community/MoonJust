@@ -1,0 +1,8 @@
+dir	./sub
+file	./sub/blakefile	14
+just is great
+
+dir	./home
+file	./justfile	34
+x := blake3_file('sub/blakefile')
+

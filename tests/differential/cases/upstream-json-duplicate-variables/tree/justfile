@@ -1,0 +1,3 @@
+set allow-duplicate-variables
+x := 'foo'
+x := 'bar'

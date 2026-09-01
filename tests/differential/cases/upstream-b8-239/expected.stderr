@@ -1,0 +1,5 @@
+error: variable `b` depends on its own value: `b -> c -> b`
+ ——▶ justfile:2:1
+  │
+2 │ b := c
+  │ ^

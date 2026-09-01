@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	50
+foo: (bar env('x', 'y'))
+
+bar arg:
+  echo {{arg}}
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	49
+set default-script
+
+foo:
+  echo foo
+    echo bar
+

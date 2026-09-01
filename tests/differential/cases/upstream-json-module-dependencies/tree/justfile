@@ -1,0 +1,4 @@
+mod foo
+
+bar:
+baz: foo::bar

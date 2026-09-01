@@ -1,0 +1,4 @@
+error: the following required arguments were not provided:
+  --fmt
+(.|
+)+

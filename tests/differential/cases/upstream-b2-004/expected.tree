@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	40
+a:
+  echo A
+
+[group: 'foo']
+b:
+  echo B
+

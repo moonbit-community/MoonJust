@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	108
+set positional-arguments
+
+default *values:
+  if [ -n "${1+1}" ]; then echo defined; else echo undefined; fi
+

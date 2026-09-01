@@ -1,0 +1,5 @@
+error: variable JUST_TEST_VARIABLE is both exported and unexported
+ ——▶ justfile:6:8
+  │
+6 │ export JUST_TEST_VARIABLE := 'foo'
+  │        ^^^^^^^^^^^^^^^^^^

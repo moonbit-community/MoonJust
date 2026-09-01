@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	41
+mod a 'shared.just'
+
+mod b 'shared.just'
+
+file	./shared.just	32
+x := 'foo'
+show:
+ @echo x={{x}}
+

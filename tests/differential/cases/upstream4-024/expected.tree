@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	52
+[no-exit-message]
+[no-exit-message]
+foo:
+  echo bar
+

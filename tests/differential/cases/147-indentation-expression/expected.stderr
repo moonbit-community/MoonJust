@@ -1,0 +1,5 @@
+error: `indentation` setting must be a plain string literal
+ ——▶ justfile:1:5
+  │
+1 │ set indentation := ('  ' + '  ')
+  │     ^^^^^^^^^^^

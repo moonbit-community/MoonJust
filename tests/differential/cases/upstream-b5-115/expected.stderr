@@ -1,0 +1,5 @@
+error: call to function `runtime_directory` failed: runtime directory not found
+ ——▶ justfile:1:6
+  │
+1 │ x := runtime_directory()
+  │      ^^^^^^^^^^^^^^^^^

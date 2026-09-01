@@ -1,0 +1,16 @@
+dir	./home
+file	./foo.just	81
+# foos
+foo:
+ @echo FOO
+
+[private]
+barbarbar:
+ @echo BAR
+
+@_bazbazbaz:
+ @echo BAZ
+
+file	./justfile	8
+mod foo
+

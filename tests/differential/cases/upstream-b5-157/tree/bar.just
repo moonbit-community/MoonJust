@@ -1,0 +1,1 @@
+baz := module_path()

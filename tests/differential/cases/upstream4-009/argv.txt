@@ -1,0 +1,5 @@
+--set
+HEX
+bar
+--evaluate
+a

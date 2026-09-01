@@ -1,0 +1,5 @@
+error: backtick failed with exit code 200
+ ——▶ justfile:2:24
+  │
+2 │     echo             😬鎌鼬{{        `exit 200 #             abc`}}            😬鎌鼬
+  │                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

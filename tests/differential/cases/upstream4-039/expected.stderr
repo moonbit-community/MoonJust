@@ -1,0 +1,5 @@
+error: attribute `env` got 3 arguments but takes 2 arguments
+ ——▶ justfile:1:2
+  │
+1 │ [env('A', 'B', 'C')]
+  │  ^^^

@@ -1,0 +1,5 @@
+error: attribute key `pattern` requires value
+ ——▶ justfile:1:13
+  │
+1 │ [arg('bar', pattern)]
+  │             ^^^^^^^

@@ -1,0 +1,5 @@
+error: unterminated string
+ ——▶ justfile:1:6
+  │
+1 │ a b= ":
+  │      ^

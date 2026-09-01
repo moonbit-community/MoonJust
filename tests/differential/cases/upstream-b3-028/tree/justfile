@@ -1,0 +1,2 @@
+# Module foo
+mod foo

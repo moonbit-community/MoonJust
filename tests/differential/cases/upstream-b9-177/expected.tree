@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	58
+bar:
+hello baz arg="XYZ\t\"	":
+  echo '{{baz}}...{{arg}}'
+

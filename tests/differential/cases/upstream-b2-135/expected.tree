@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	31
+hello:
+
+alias foo := hello
+
+a:
+

@@ -1,0 +1,12 @@
+dir	./foo
+dir	./foo/bar
+file	./foo/bar/.keep	1
+
+
+file	./foo/bar/justfile	58
+# https://just.systems
+
+default:
+    echo 'Hello, world!'
+
+dir	./home

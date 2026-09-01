@@ -1,0 +1,1 @@
+set minimum-version := x'1.0.0'

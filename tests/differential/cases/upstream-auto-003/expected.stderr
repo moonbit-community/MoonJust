@@ -1,0 +1,5 @@
+error: the `bool()` function requires `set lists`
+ ——▶ justfile:1:6
+  │
+1 │ x := bool('true')
+  │      ^^^^

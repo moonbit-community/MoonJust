@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	72
+set script-interpreter := ["sh", "-eu"]
+
+[script]
+foo:
+  printf setting
+

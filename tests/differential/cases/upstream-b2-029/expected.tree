@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	30
+@foo *baz:
+  echo baz={{baz}}
+

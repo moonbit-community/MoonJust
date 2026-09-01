@@ -1,0 +1,8 @@
+file	./.env	23
+DOTENV_KEY=dotenv-value
+dir	./home
+file	./justfile	66
+X:=env_var_or_default('DOTENV_KEY', 'DEFAULT')
+echo:
+  echo {{X}}
+

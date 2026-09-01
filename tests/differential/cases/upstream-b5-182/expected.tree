@@ -1,0 +1,10 @@
+dir	./foo
+file	./foo/mod.just	44
+x := source_directory()
+bar:
+ @echo '{{x}}'
+
+dir	./home
+file	./justfile	8
+mod foo
+

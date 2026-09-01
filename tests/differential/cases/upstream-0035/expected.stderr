@@ -1,0 +1,1 @@
+error: argument `BAR` passed to recipe `foo` parameter `bar` does not match pattern `BAR BAR`

@@ -1,0 +1,14 @@
+file	./foo	1
+a
+dir	./home
+file	./link	1
+a
+file	./justfile	50
+[cache(inputs = 'link')]
+[script]
+bar:
+  echo bar
+
+dir	./.justcache
+file	./.justcache/<CACHE_KEY-bar>.json	16
+{"recipe":"bar"}

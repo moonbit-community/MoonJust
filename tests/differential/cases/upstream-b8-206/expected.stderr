@@ -1,0 +1,5 @@
+error: recipe `c` has circular dependency `b -> c -> b`
+ ——▶ justfile:3:4
+  │
+3 │ c: b
+  │    ^

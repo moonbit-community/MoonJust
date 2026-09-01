@@ -1,0 +1,12 @@
+dir	./foo
+file	./foo/bar.just	27
+x := 'a'
+baz:
+ @echo {{x}}
+
+file	./foo/mod.just	7
+mod bar
+dir	./home
+file	./justfile	8
+mod foo
+

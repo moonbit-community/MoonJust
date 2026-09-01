@@ -1,0 +1,1 @@
+error: chooser `/ -cu fzf --multi --preview 'just --unstable --color always --justfile "<CASE_ROOT>/justfile" --show {}'` invocation failed: Permission denied (os error 13)

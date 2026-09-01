@@ -1,0 +1,5 @@
+error: alias `foo` defined on line 3 is redefined as a recipe on line 4
+ ——▶ justfile:4:1
+  │
+4 │ foo:
+  │ ^^^

@@ -1,0 +1,4 @@
+--timestamp
+--timestamp-format
+%Q
+foo

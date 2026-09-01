@@ -1,0 +1,5 @@
+--justfile
+/
+--working-directory
+.
+--list

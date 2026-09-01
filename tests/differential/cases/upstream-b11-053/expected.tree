@@ -1,0 +1,10 @@
+file	./.env	7
+KEY=foo
+dir	./home
+file	./justfile	71
+set lists
+set dotenv-path := ['foo.env', 'bar.env']
+
+@foo:
+  echo $KEY
+

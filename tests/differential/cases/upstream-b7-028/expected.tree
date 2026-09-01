@@ -1,0 +1,11 @@
+dir	./home
+file	./foo.just	31
+export x := 'b'
+bar:
+ @echo $x
+
+file	./justfile	25
+mod foo
+
+export x := 'a'
+

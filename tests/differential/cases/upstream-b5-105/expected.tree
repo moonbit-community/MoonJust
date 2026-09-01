@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	93
+set export
+
+foo:
+  @'{{just_executable()}}' --request '{"environment-variable": "HEXUPPER"}'
+

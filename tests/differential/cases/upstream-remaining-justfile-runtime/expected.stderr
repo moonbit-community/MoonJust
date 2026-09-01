@@ -1,0 +1,22 @@
+error: recipe `a` failed on line 2 with exit code 150
+error: recipe `fail` failed on line 2 with exit code 100
+error: justfile does not contain recipe `zz`
+Did you mean `z`, an alias for `foo`?
+error: recipe `a` got 2 positional arguments but takes at least 3
+usage:
+    just a b c d...
+error: justfile does not contain recipe `x`
+Did you mean `a`?
+error: recipe `a` got 0 positional arguments but takes at least 1
+usage:
+    just a b [c] [d]
+error: recipe `a` got 0 positional arguments but takes 3
+usage:
+    just a b c d
+error: recipe `a` got 1 positional argument but takes at least 2
+usage:
+    just a b c [d]
+error: justfile does not contain recipe `xyz`
+error: recipe `a` got 2 positional arguments but takes 3
+usage:
+    just a b c d

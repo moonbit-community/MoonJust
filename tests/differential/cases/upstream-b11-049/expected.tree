@@ -1,0 +1,16 @@
+dir	./home
+file	./.env.bar	24
+BAR=bar
+SHARED=from-bar
+
+file	./.env.foo	24
+FOO=foo
+SHARED=from-foo
+
+file	./justfile	90
+set lists
+set dotenv-filename := ['.env.foo', '.env.bar']
+
+@foo:
+  echo $FOO $BAR $SHARED
+

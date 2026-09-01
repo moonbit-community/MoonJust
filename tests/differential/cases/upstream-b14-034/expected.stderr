@@ -1,0 +1,2 @@
+error: justfile does not contain recipe `baz`
+Did you mean `bar`?

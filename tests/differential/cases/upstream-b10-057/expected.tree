@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	61
+set lists
+set export
+
+FOO := []
+
+foo:
+  @echo "${FOO-unset}"
+

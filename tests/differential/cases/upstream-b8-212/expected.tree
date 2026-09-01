@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	28
+#
+A:='1'
+echo:
+  echo {{A}}
+

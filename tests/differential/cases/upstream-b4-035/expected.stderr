@@ -1,0 +1,5 @@
+error: recipe `foo` depends on itself
+ ——▶ justfile:1:9
+  │
+1 │ foo: && foo
+  │         ^^^

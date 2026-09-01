@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	61
+set lists
+
+export FOO := ['bar', 'baz']
+
+foo:
+  @echo "$FOO"
+

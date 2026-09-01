@@ -82,6 +82,8 @@ fn[T : @host.HostFs] load_file(
   Some(
     parse_dotenv(text, ambient~) catch {
       Parse(line~, column~) => raise ParseFile(path~, line~, column~)
+      ParseValue(line~, column~, value~, index~) =>
+        raise ParseFileValue(path~, line~, column~, value~, index~)
       error => raise error
     },
   )

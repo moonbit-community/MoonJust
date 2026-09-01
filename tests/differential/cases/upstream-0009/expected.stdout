@@ -1,0 +1,3 @@
+Available recipes:
+    bar
+    foo # comment [aliases: a, b]

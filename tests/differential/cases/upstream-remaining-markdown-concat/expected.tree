@@ -1,0 +1,13 @@
+dir	./home
+file	./foo.md	72
+# foo
+
+```just
+bar := 'baz'
+```
+prose
+```just
+@bob:
+ echo {{ bar }}
+```
+

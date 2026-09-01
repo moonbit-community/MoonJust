@@ -1,0 +1,8 @@
+dir	./home
+file	./foo.just	0
+
+file	./justfile	46
+# Suppressed comment
+[doc: 'Comment']
+mod foo
+

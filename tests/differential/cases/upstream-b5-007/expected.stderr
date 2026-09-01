@@ -1,0 +1,5 @@
+error: cannot access non-const variable `bar` in const context
+ ——▶ justfile:2:18
+  │
+2 │ [arg('bar', help=bar)]
+  │                  ^^^

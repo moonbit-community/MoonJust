@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	39
+[cache]
+[script('sh')]
+foo:
+  echo bar
+

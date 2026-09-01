@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	24
+[cache]
+foo:
+  echo bar
+

@@ -1,0 +1,9 @@
+dir	./home
+file	./foo.just	4
+bar:
+file	./justfile	24
+[private]
+mod foo
+
+baz:
+

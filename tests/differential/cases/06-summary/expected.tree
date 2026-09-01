@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	39
+alpha:
+  echo alpha
+
+beta:
+  echo beta
+

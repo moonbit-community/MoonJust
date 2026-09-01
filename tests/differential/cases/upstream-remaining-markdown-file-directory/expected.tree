@@ -1,0 +1,10 @@
+dir	./sub
+file	./sub/bar	3
+baz
+file	./sub/foo.md	27
+```just
+@foo:
+ cat bar
+```
+
+dir	./home

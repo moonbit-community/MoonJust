@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	24
+foo:
+    echo {{ ABC }}
+

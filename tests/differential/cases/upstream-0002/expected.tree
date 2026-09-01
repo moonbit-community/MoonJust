@@ -1,0 +1,10 @@
+dir	./home
+file	./foo.just	33
+alias b := bar
+
+bar:
+  @echo BAR
+
+file	./justfile	8
+mod foo
+

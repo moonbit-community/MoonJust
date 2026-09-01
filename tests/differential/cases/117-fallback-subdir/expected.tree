@@ -1,0 +1,12 @@
+dir	./sub
+file	./sub/justfile	35
+set fallback
+
+@default:
+  echo foo
+
+dir	./home
+file	./justfile	18
+root:
+  echo root
+

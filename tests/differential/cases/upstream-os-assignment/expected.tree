@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	62
+[unix]
+x := 'bar'
+
+[windows]
+x := 'baz'
+
+foo:
+  @echo {{ x }}
+

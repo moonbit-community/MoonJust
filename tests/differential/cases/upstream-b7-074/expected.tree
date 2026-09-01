@@ -1,0 +1,10 @@
+dir	./home
+file	./foo.just	16
+foo:
+ @echo FOO
+
+file	./justfile	34
+set default-list := true
+
+mod foo
+

@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	60
+# List some fruits
+fruits:
+  echo 'apple peach dragonfruit'
+

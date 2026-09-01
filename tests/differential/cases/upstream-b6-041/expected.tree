@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	36
+set minimum-version := ('1.' + '0')
+

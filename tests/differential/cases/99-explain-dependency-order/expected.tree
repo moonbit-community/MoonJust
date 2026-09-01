@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	114
+# Dependency documentation
+dependency:
+  echo dependency
+
+# Parent documentation
+parent: dependency
+  echo parent
+

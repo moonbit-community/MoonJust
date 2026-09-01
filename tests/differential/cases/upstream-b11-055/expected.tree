@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	99
+set lists
+set dotenv-required
+set dotenv-path := ['missing.env', 'present.env']
+
+@foo:
+  echo $KEY
+
+file	./present.env	7
+KEY=foo

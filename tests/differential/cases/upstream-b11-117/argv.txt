@@ -1,0 +1,4 @@
+--unstable
+--usage
+bar
+foo

@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	30
+foo:
+  @echo {{ num_jobs() }}
+

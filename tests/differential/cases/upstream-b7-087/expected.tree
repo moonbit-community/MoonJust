@@ -1,0 +1,12 @@
+dir	./foo
+file	./foo/bar	3
+BAR
+file	./foo/mod.just	25
+foo:
+ #!/bin/sh
+ cat bar
+
+dir	./home
+file	./justfile	8
+mod foo
+

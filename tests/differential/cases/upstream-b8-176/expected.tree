@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	49
+foo value='foo':
+  echo {{value}}
+alias f := foo
+

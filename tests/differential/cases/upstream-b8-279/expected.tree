@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	52
+b:
+  @echo b
+a:
+  @echo a
+d:
+  @echo d
+c:
+  @echo c
+

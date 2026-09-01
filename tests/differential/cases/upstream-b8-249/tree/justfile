@@ -1,0 +1,13 @@
+# this does a thing
+hello a b='B	' c='C':
+  echo {{a}} {{b}} {{c}}
+
+# this does another thing
+x a b='B	' c='C':
+  echo {{a}} {{b}} {{c}}
+
+# something else
+this-recipe-is-very-very-very-very-very-very-very-very-important Z="\t z":
+
+# this recipe will not appear
+_private-recipe:

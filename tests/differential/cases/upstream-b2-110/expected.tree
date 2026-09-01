@@ -1,0 +1,9 @@
+dir	./home
+file	./foo.just	32
+x := `exit 1`
+bar:
+ @echo {{x}}
+
+file	./justfile	8
+mod foo
+

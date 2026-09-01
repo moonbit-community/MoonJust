@@ -1,0 +1,5 @@
+error: expected ']', ':', ',', or '(', but found identifier
+ ——▶ justfile:1:16
+  │
+1 │ [macos,windows linux,openbsd,freebsd,dragonfly,netbsd,android]
+  │                ^^^^^

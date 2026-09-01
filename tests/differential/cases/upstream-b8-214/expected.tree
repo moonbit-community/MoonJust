@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	39
+default:
+ echo hello
+other: 
+ echo bar
+

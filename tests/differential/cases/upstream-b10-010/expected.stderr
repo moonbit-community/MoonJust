@@ -1,0 +1,5 @@
+error: attribute key `max` requires value
+ ——▶ justfile:3:13
+  │
+3 │ [arg('bar', max)]
+  │             ^^^

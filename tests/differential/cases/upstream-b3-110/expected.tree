@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	28
+x := x'$JUST_TEST_VARIABLE'
+

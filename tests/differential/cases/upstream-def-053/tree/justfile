@@ -1,0 +1,3 @@
+foo := _some_long_private_name
+_some_long_private_name := 'one'
+bar := 'two'

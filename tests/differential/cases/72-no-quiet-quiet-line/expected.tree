@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	45
+set quiet
+
+[no-quiet]
+default:
+  @echo hello
+

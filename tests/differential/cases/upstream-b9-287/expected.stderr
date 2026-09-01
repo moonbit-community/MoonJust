@@ -1,0 +1,5 @@
+error: variable `b` not defined
+ ——▶ justfile:1:8
+  │
+1 │ foo a=(b+''):
+  │        ^

@@ -1,0 +1,5 @@
+error: variable `BAZ` not defined
+ ——▶ justfile:1:31
+  │
+1 │ [arg('bar', long='bar', value=BAZ)]
+  │                               ^^^

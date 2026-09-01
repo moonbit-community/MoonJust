@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	49
+set no-cd := true
+set working-directory := 'bar'
+

@@ -1,0 +1,7 @@
+dir	./home
+dir	./child
+file	./child/justfile	4
+foo:
+file	./justfile	9
+foo bar:
+

@@ -1,0 +1,1 @@
+error: path-prefixed recipes may not be used with `--global-justfile`, `--working-directory`, or `--justfile`

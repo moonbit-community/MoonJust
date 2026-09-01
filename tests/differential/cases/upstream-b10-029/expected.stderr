@@ -1,0 +1,5 @@
+error: call to function `bool` failed: multi-element lists cannot be converted into booleans
+ ——▶ justfile:3:6
+  │
+3 │ x := bool(['foo', 'bar'])
+  │      ^^^^

@@ -375,7 +375,10 @@ async fn[
         recipe_cwd,
         recipe_environment,
         recipe_options,
-        display_name,
+        // Diagnostics name the recipe within its module, matching just's
+        // execution errors. The task and command echoes retain display_name
+        // separately so qualified invocations remain visible to users.
+        name,
         positional=command_positional,
         recipe.quiet(),
         recipe.lines()[end_index].source_end_line(),

@@ -1,0 +1,11 @@
+dir	./foo
+dir	./foo/bar
+file	./foo/bar/justfile	19
+default:
+	echo foo
+
+dir	./home
+file	./justfile	18
+default:
+	echo ok
+

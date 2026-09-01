@@ -1,0 +1,5 @@
+error: flag parameter `bar` may not have a default
+ ——▶ justfile:2:5
+  │
+2 │ foo bar='baz':
+  │     ^^^

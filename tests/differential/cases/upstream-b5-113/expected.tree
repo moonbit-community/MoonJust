@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	31
+[default]
+bar:
+
+[default]
+foo:
+

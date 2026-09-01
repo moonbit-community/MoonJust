@@ -1,0 +1,2 @@
+wrote justfile to `<CASE_ROOT>/justfile`
+error: justfile `<CASE_ROOT>/justfile` already exists

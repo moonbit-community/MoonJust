@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	114
+set unstable
+f() := recipe_name() + '/' + is_dependency()
+root: dep
+  @echo root={{f()}}
+dep:
+  @echo dep={{f()}}
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	46
+set lists
+set shell := [[]]
+
+foo:
+  @echo bar
+

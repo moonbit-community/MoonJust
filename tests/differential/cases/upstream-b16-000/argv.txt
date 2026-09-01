@@ -1,0 +1,2 @@
+--shell
+NOT_A_REAL_SHELL

@@ -1,0 +1,5 @@
+error: unterminated interpolation
+ ——▶ justfile:2:8
+  │
+2 │   echo {{
+  │        ^^

@@ -1,0 +1,1 @@
+mod foo '~/mod.just'

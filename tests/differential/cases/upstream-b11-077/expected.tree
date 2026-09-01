@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	106
+set lists
+
+foo *args: *(bar args *args)
+
+bar all arg:
+  @echo 'all: {{ show(all) }} arg: {{ show(arg )}}'
+

@@ -1,0 +1,25 @@
+dir	./home
+file	./bar.just	2
+e:
+file	./foo.just	2
+d:
+file	./justfile	121
+[group('alpha')]
+mod zee
+
+[group('alpha')]
+mod foo
+
+[group('alpha')]
+a:
+
+[group('beta')]
+b:
+
+[group('beta')]
+mod bar
+
+c:
+
+file	./zee.just	2
+f:

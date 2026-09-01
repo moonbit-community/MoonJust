@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	59
+foo: (bar 'BAR') (bar `echo BAR`)
+
+bar bar:
+  echo {{bar}}
+

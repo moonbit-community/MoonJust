@@ -1,0 +1,7 @@
+dir	./foo
+file	./foo/justfile	21
+import '../bar.just'
+
+dir	./home
+file	./bar.just	3
+baz

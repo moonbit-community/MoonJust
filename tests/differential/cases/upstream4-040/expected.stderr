@@ -1,0 +1,5 @@
+error: variable `target` not defined
+ ——▶ justfile:1:16
+  │
+1 │ [env('TARGET', target)]
+  │                ^^^^^^

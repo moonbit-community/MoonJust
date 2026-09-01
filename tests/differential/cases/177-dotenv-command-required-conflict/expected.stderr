@@ -1,0 +1,5 @@
+error: `dotenv-required` set on line 1 is incompatible with `dotenv-command`
+ ——▶ justfile:2:5
+  │
+2 │ set dotenv-command := 'true'
+  │     ^^^^^^^^^^^^^^

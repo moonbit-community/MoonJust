@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	32
+[env('MY_VAR')]
+foo:
+  echo bar
+

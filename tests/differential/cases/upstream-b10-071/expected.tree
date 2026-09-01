@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	56
+set lists
+
+[env(['FOO', 'BAR'], 'baz')]
+foo:
+  @echo hi
+

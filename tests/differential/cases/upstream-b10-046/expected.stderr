@@ -1,0 +1,5 @@
+error: operator `+` cannot be applied to empty lists
+ ——▶ justfile:3:12
+  │
+3 │ x := 'foo' + []
+  │            ^

@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	35
+foo := 'a'
+hello := 'b'
+bar := 'c'
+

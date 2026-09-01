@@ -1,0 +1,10 @@
+dir	./home
+file	./bar.just	16
+@baz:
+ echo BAZ
+
+file	./foo.just	7
+mod bar
+file	./justfile	8
+mod foo
+

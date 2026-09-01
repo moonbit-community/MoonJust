@@ -1,0 +1,1 @@
+error: import `<CASE_ROOT>/justfile` in `<CASE_ROOT>/subdir/b` is circular

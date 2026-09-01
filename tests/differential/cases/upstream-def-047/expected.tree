@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	52
+[private]
+foo := 'one'
+bar := 'two'
+_baz := 'three'
+

@@ -1,0 +1,5 @@
+error: variable `bar` not defined
+ ——▶ justfile:1:7
+  │
+1 │ foo x=bar:
+  │       ^^^

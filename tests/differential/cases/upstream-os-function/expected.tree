@@ -1,0 +1,13 @@
+dir	./home
+file	./justfile	87
+set unstable
+
+[unix]
+f() := 'unix'
+
+[windows]
+f() := 'windows'
+
+foo:
+  @echo {{ f() }}
+

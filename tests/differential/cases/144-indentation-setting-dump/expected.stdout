@@ -1,0 +1,4 @@
+set indentation := ' '
+
+foo:
+ echo bar

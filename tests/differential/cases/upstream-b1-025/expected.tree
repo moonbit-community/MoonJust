@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	68
+[group: 'Z']
+baz:
+
+[group: 'B']
+foo:
+
+[group: 'A', group: 'B']
+bar:
+

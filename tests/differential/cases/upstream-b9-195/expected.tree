@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	63
+# This is a doc comment
+[unknown-attribute]
+hello:
+  @exit 100
+

@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	48
+foo:
+  printf one; printf two >&2; printf three
+

@@ -1,0 +1,5 @@
+error: expected '@', '[', comment, end of file, end of line, or identifier, but found indent
+ ——▶ justfile:1:1
+  │
+1 │       default:\
+  │ ^^^^^^

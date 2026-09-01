@@ -1,0 +1,5 @@
+error: unterminated backtick
+ ——▶ justfile:1:8
+  │
+1 │ foo a=    ```echo blaaaaaah:
+  │           ^^^

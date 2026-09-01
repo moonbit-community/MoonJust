@@ -1,0 +1,7 @@
+dir	./sub
+file	./sub/foo.just	21
+mod bar '../justfile'
+dir	./home
+file	./justfile	23
+mod foo 'sub/foo.just'
+

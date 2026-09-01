@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	59
+set guards
+set ignore-comments
+
+foo:
+  # comment \
+  -?bar
+

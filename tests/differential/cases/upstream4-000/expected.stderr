@@ -1,0 +1,5 @@
+error: assert failed: error message
+ ——▶ justfile:2:6
+  │
+2 │   {{ assert('a' != 'a', 'error message') }}
+  │      ^^^^^^

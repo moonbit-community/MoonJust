@@ -1,0 +1,5 @@
+error: unknown key `foo` for `arg` attribute
+ ——▶ justfile:1:28
+  │
+1 │ [arg('bar', pattern='BAR', foo='foo')]
+  │                            ^^^

@@ -1,0 +1,1 @@
+error: import `<CASE_ROOT>/a` in `<CASE_ROOT>/b` is circular

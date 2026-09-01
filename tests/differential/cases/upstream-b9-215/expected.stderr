@@ -1,0 +1,5 @@
+error: expected '@', '[', comment, end of line, or identifier, but found end of file
+ ——▶ justfile:1:11
+  │
+1 │ [confirm]
+  │          ^

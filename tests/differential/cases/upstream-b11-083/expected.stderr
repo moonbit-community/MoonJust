@@ -1,0 +1,5 @@
+error: starred arguments may not be used outside mapped dependencies
+ ——▶ justfile:3:17
+  │
+3 │ foo *args: (bar *args)
+  │                 ^

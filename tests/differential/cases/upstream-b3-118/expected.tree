@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	58
+string := 'hello
+
+whatever' + bar
+
+a:
+  echo '{{string}}'
+

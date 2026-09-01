@@ -1,0 +1,5 @@
+error: variable `a` not defined
+ ——▶ justfile:1:26
+  │
+1 │ foo x=env_var_or_default(a, b):
+  │                          ^

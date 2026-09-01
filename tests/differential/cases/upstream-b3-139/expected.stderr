@@ -1,0 +1,5 @@
+error: unicode escape sequence starting with `\u{FFFFFFF` longer than six hex digits
+ ——▶ justfile:1:6
+  │
+1 │ x := "\u{FFFFFFFFFF}"
+  │      ^^^^^^^^^^^^^^^^

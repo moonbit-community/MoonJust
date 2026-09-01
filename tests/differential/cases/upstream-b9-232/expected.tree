@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	83
+foo := if 'abbbc' =~ 'ab+c' {
+  'yes'
+} else {
+  'no'
+}
+
+default:
+  echo {{ foo }}
+

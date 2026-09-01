@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	47
+foo: (bar recipe_name())
+
+bar x:
+  @echo {{x}}
+

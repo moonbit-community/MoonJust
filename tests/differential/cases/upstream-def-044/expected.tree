@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	26
+_bar := 'baz'
+foo := _bar
+

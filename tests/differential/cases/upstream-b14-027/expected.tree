@@ -1,0 +1,10 @@
+file	./.env	23
+DOTENV_KEY=dotenv-value
+dir	./home
+dir	./subdir
+file	./justfile	52
+set dotenv-path := '.env'
+
+foo:
+  @echo $DOTENV_KEY
+

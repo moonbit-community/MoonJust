@@ -1,0 +1,1 @@
+set minimum-version := 'foo'

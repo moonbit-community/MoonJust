@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  --fmt
+
+Usage: just --fmt --check --color <COLOR> [ARGUMENTS]...
+
+For more information, try '--help'.

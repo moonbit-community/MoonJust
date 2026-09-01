@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	69
+set lists
+
+[cache(inputs = ['foo', 'bar'])]
+[script]
+baz:
+  echo baz
+

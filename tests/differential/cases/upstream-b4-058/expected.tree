@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	50
+[working-directory('foo')]
+@qux:
+  echo baz > bar
+

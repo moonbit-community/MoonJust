@@ -1,0 +1,8 @@
+dir	./home
+dir	./home/Library
+dir	./home/Library/Application Support
+dir	./home/Library/Application Support/just
+file	./home/Library/Application Support/just/JUSTFILE	23
+@default:
+  echo upper
+

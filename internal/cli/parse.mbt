@@ -21,8 +21,14 @@ fn normalize_argparse_error(message : String) -> String {
   }
   let list = "error: the following required argument was not provided: 'list' (required by 'list-submodules')"
   if message.has_prefix(list) {
-    return "error: the following required arguments were not provided:\n  --list <list>" +
-      message.view(start_offset=list.length()).to_owned()
+    return (
+      #|error: the following required arguments were not provided:
+      #|  --list [<MODULE>...]
+      #|
+      #|Usage: just --list [<MODULE>...] --list-submodules --color <COLOR> [ARGUMENTS]...
+      #|
+      #|For more information, try '--help'.
+    )
   }
   message
 }

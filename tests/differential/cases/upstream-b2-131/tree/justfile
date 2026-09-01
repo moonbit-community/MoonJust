@@ -1,0 +1,4 @@
+hello := 'foo'
+bar := hello + hello
+recipe:
+ echo {{hello + 'bar' + bar}}

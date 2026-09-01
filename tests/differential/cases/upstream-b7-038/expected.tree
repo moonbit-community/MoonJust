@@ -1,0 +1,10 @@
+dir	./home
+file	./baz.just	16
+baz:
+ @echo BAZ
+
+file	./justfile	37
+mod? foo
+mod? foo
+mod foo 'baz.just'
+

@@ -1,0 +1,5 @@
+error: alias `t` has invalid attribute `no-cd`
+ ——▶ justfile:3:7
+  │
+3 │ alias t := test
+  │       ^

@@ -1,0 +1,6 @@
+dir	./a
+dir	./home
+file	./JuStFiLe	18
+default:
+	echo ok
+

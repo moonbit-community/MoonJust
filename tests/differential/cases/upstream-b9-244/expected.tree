@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	36
+[shell]
+foo:
+  #!/bin/sh
+  echo foo
+

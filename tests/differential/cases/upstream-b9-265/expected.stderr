@@ -1,0 +1,5 @@
+error: variable `bar` not defined
+ ——▶ justfile:1:22
+  │
+1 │ set shell := ['foo', bar]
+  │                      ^^^

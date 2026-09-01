@@ -1,0 +1,10 @@
+dir	./home
+file	./bar.just	4
+bar:
+file	./foo.just	4
+foo:
+file	./justfile	17
+mod foo
+
+mod bar
+

@@ -1,0 +1,10 @@
+dir	./home
+dir	./child
+file	./child/data.txt	6
+shell
+
+file	./justfile	32
+[no-cd]
+default:
+  cat data.txt
+

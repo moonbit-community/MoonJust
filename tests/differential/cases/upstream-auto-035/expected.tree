@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	51
+set shell := [
+  'sh',
+  '-cu',
+]
+
+foo:
+  echo foo
+

@@ -1,0 +1,5 @@
+error: `if` without `else` requires `set lists`
+ ——▶ justfile:1:9
+  │
+1 │ TEST := if path_exists('/bin/bash') == 'true' {'yes'}
+  │         ^^

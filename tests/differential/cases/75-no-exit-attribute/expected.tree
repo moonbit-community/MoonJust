@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	53
+[no-exit-message]
+default:
+  @echo hello
+  @exit 100
+

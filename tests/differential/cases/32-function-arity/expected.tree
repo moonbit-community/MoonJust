@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	49
+set unstable
+f(x) := x
+result := f('one', 'two')
+

@@ -1,0 +1,5 @@
+error: argument attribute for undefined argument `bar`
+ ——▶ justfile:1:6
+  │
+1 │ [arg('bar', pattern='BAR')]
+  │      ^^^^^

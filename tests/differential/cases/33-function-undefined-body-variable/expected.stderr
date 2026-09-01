@@ -1,0 +1,5 @@
+error: variable `missing` not defined
+ ——▶ justfile:2:8
+  │
+2 │ f() := missing
+  │        ^^^^^^^

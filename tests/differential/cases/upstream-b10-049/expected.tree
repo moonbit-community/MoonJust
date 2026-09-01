@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	72
+set lists
+
+foo *args: (bar args)
+
+bar *rest:
+  @echo '{{ show(rest) }}'
+

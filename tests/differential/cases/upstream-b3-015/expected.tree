@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	32
+a := 'A'
+x := f'{{ a x }}plain'
+

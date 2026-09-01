@@ -1,0 +1,5 @@
+error: unicode escape sequence value `BadBad` greater than maximum valid code point `10FFFF`
+ ——▶ justfile:1:6
+  │
+1 │ x := "\u{BadBad}"
+  │      ^^^^^^^^^^^^

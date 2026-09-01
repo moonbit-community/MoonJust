@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	29
+set lazy
+
+eager foo := 'bar'
+

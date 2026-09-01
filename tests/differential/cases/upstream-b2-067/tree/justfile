@@ -1,0 +1,5 @@
+[arg('bar', short='a', value='1')]
+[arg('baz', short='b', value='2')]
+[arg('qux', short='c', value='3')]
+@foo bar baz qux:
+  echo {{bar}} {{baz}} {{qux}}

@@ -1,0 +1,11 @@
+dir	./home
+file	./foo.just	27
+set lists
+bar:
+ echo hello
+
+file	./justfile	22
+set unstable
+
+mod foo
+

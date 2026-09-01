@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	57
+set lazy
+set export
+
+value := 'FOO'
+
+foo:
+  @echo $value
+

@@ -1,0 +1,8 @@
+dir	./home
+dir	./subdir
+file	./subdir/.env	22
+JUST_TEST_VARIABLE=bar
+file	./justfile	33
+foo:
+  @echo $JUST_TEST_VARIABLE
+

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	35
+[parallel]
+foo: bar
+
+bar:
+  exit 1
+

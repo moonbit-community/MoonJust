@@ -1,0 +1,8 @@
+set export
+
+A := 'hello'
+B := `if [ -n "${A+1}" ]; then echo defined; else echo undefined; fi`
+
+foo C='goodbye' D=`if [ -n "${C+1}" ]; then echo defined; else echo undefined; fi`:
+  echo $B
+  echo $D

@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	79
+foo: bar
+  @echo 'foo {{recipe_name()}}'
+
+bar:
+  @echo 'bar {{recipe_name()}}'
+

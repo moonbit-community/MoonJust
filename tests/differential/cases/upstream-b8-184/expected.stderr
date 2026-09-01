@@ -1,0 +1,5 @@
+error: backtick failed with exit code 222
+ ——▶ justfile:4:6
+  │
+4 │ a := `exit 222`
+  │      ^^^^^^^^^^

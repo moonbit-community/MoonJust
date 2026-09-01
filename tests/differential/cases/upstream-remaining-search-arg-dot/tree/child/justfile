@@ -1,0 +1,2 @@
+say ARG:
+    '{{just_executable()}}' ../say {{ ARG }}

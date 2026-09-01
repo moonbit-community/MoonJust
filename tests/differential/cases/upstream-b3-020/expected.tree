@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	56
+# Comment `` `with backticks` and trailing text
+recipe:
+

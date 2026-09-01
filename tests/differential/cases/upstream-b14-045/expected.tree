@@ -1,0 +1,7 @@
+dir	./bar
+file	./foo	0
+
+dir	./home
+file	./justfile	24
+x := path_exists('foo')
+

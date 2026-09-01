@@ -1,0 +1,3 @@
+error: recipe `a` got 0 positional arguments but takes 3
+usage:
+    just a b c d

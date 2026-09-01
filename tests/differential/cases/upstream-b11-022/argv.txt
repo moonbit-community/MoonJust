@@ -1,0 +1,7 @@
+--unstable
+value=a
+foo
+value=a
+foo
+value=b
+foo

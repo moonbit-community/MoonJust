@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	55
+a := if '' a '' { '' } else { b }
+
+foo:
+  echo {{ a }}
+

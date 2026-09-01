@@ -1,0 +1,8 @@
+dir	./home
+dir	./_darcs
+file	./justfile	58
+# https://just.systems
+
+default:
+    echo 'Hello, world!'
+

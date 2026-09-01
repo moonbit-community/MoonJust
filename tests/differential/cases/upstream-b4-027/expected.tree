@@ -1,0 +1,17 @@
+dir	./home
+file	./a.just	30
+X := 'A'
+import 'shared.just'
+
+file	./b.just	30
+X := 'B'
+import 'shared.just'
+
+file	./justfile	12
+mod a
+mod b
+
+file	./shared.just	20
+foo:
+ @echo {{ X }}
+

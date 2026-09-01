@@ -3,6 +3,7 @@
 pub(all) suberror LoaderError {
   InvalidLimit
   NoJustfileFound(start~ : @path.PathValue, filename~ : String)
+  MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
   ImportFileMissing(span~ : @source.Span)
@@ -28,6 +29,7 @@ pub fn LoaderError::code(self : LoaderError) -> String {
   match self {
     InvalidLimit => "MJ-LOAD-0000"
     NoJustfileFound(_) => "MJ-LOAD-0001"
+    MissingSearchDirectory(_) => "MJ-LOAD-0011"
     AmbiguousJustfile(_) => "MJ-LOAD-0009"
     ExplicitFileMissing(_) => "MJ-LOAD-0002"
     ImportFileMissing(_) => "MJ-LOAD-0010"
@@ -46,6 +48,7 @@ pub fn LoaderError::span(self : LoaderError) -> @source.Span? {
     InvalidLimit => None
     Parse(error) | ParseSource(error, ..) => Some(error.span())
     NoJustfileFound(_) => None
+    MissingSearchDirectory(_) => None
     AmbiguousJustfile(_) => None
     ExplicitFileMissing(_) => None
     ImportFileMissing(span~) => Some(span)
@@ -62,11 +65,15 @@ pub fn LoaderError::message(self : LoaderError) -> String {
   match self {
     InvalidLimit => "invalid loader limit"
     NoJustfileFound(_) => "no justfile found"
+    MissingSearchDirectory(path) =>
+      "I/O error at `" +
+      path.as_string() +
+      "`: No such file or directory (os error 2)"
     AmbiguousJustfile(directory~, found~) =>
       "multiple candidate justfiles found in `" +
       directory.as_string() +
       "`: " +
-      found.map(fn(name) { "`" + name + "`" }).join(" and ")
+      @diagnostic.join_list(found, "and", ticked=true)
     ExplicitFileMissing(path~) =>
       "explicit justfile is missing: " + path.as_string()
     ImportFileMissing(_) => "could not find source file for import"

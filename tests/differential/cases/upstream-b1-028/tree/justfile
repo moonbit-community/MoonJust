@@ -1,0 +1,10 @@
+[group('alpha')]
+a:
+[group('alpha')]
+[group('beta')]
+b:
+c:
+[group('beta')]
+d:
+[group('gamma')]
+e:

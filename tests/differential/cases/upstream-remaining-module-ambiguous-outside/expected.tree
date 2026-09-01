@@ -1,0 +1,12 @@
+dir	./home
+dir	./root
+file	./root/justfile	31
+mod foo '<CASE_ROOT>/external'
+
+dir	./external
+file	./external/justfile	1
+
+
+file	./external/.justfile	1
+
+

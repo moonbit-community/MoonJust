@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	28
+[arg('bar', flag)]
+foo bar:
+

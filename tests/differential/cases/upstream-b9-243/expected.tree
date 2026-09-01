@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	34
+[script('cat')]
+foo:
+  FOO
+
+  BAR
+

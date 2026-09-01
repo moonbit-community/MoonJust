@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	19
+# baz
+[no-cd]
+foo:
+

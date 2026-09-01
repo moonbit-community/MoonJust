@@ -1,0 +1,7 @@
+dir	./a
+file	./a/mod.just	6
+mod? b
+dir	./home
+file	./justfile	6
+mod a
+

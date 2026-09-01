@@ -1,0 +1,5 @@
+error: backticks may not start with `#!`
+ ——▶ justfile:1:6
+  │
+1 │ x := `#!/usr/bin/env sh`
+  │      ^^^^^^^^^^^^^^^^^^^

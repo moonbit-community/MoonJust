@@ -17,8 +17,12 @@ import {
   "moonbitlang/x/time",
 }
 
-supported_targets = "-all+native+wasm"
-
 import {
   "ZSeanYves/MoonJust/internal/parser",
 } for "test"
+
+import {
+  "ZSeanYves/MoonJust/internal/parser",
+} for "wbtest"
+
+supported_targets = "-all+native+wasm"

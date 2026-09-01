@@ -1,0 +1,5 @@
+error: expected '&&', '*', comment, end of file, end of line, identifier, indent, or '(', but found string
+ ——▶ justfile:1:6
+  │
+1 │ foo: 'bar'
+  │      ^^^^^

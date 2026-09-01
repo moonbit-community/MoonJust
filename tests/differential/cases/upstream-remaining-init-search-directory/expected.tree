@@ -1,0 +1,9 @@
+dir	./sub
+dir	./sub/.git
+file	./sub/justfile	58
+# https://just.systems
+
+default:
+    echo 'Hello, world!'
+
+dir	./home

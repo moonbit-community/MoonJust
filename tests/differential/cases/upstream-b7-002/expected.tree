@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	32
+mod? foo
+
+alias b := foo::build
+

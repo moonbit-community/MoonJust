@@ -1,0 +1,5 @@
+set allow-duplicate-recipes
+alias f := foo
+
+foo:
+foo bar:

@@ -1,0 +1,5 @@
+error: list value ["foo", "bar"] assigned to `tempdir` setting
+ ——▶ justfile:2:5
+  │
+2 │ set tempdir := ['foo', 'bar']
+  │     ^^^^^^^

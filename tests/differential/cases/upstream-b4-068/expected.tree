@@ -1,0 +1,14 @@
+dir	./foo
+dir	./foo/bar
+file	./foo/bar/file.txt	4
+FILE
+file	./foo/mod.just	53
+set working-directory := 'bar'
+
+@foo:
+  cat file.txt
+
+dir	./home
+file	./justfile	8
+mod foo
+

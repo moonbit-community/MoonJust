@@ -1,0 +1,1 @@
+error: recipe `build` depends on absent module `foo`

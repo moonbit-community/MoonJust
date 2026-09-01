@@ -1,0 +1,1 @@
+error: call to function `canonicalize` failed: I/O error canonicalizing `foo`: .*

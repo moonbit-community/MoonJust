@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	39
+foo:
+  echo {{ shell('exit 1', '"') }}
+

@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	42
+[arg('bar', pattern='BAR BAR')]
+foo *bar:
+

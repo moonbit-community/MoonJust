@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	37
+set dotenv-command := 'exit 1'
+
+foo:
+

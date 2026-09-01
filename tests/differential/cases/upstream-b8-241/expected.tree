@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	32
+bar:
+		echo hello
+	echo goodbye
+

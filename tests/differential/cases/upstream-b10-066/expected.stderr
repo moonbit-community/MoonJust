@@ -1,0 +1,5 @@
+error: call to function `env` failed: empty environment variable list with no default
+ ——▶ justfile:4:10
+  │
+4 │   echo {{env([])}}
+  │          ^^^

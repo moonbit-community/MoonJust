@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	71
+bar := 'BAR'
+foo := f'FOO{{
+  bar + 'XYZ'
+}}BAZ'
+
+@baz:
+  echo {{foo}}
+

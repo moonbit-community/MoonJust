@@ -42,6 +42,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(T
 pub(all) suberror LoaderError {
   InvalidLimit
   NoJustfileFound(start~ : @path.PathValue, filename~ : String)
+  MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
   ImportFileMissing(span~ : @source.Span)

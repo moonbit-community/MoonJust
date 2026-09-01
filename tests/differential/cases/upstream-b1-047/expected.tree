@@ -1,0 +1,12 @@
+dir	./home
+file	./a.just	29
+x := 'y'
+
+@bar:
+  echo hello
+
+file	./justfile	41
+import 'a.just'
+import 'a.just'
+foo: bar
+

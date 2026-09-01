@@ -1,0 +1,2 @@
+echo 'Building foo@1.0...'
+echo 'Building bar@1.0...'

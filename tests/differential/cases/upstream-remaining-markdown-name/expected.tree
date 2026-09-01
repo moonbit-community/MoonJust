@@ -1,0 +1,7 @@
+dir	./home
+file	./foo.md	28
+```just
+@foo:
+ echo bar
+```
+

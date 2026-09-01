@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	37
+bar:
+hello:
+foo: bar baaaaaaaz hello
+

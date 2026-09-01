@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	31
+# greeting
+hello:
+  echo hello
+

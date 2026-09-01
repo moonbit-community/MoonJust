@@ -1,0 +1,5 @@
+error: argument `bar` may not have both `flag` and `value` attributes
+ ——▶ justfile:1:19
+  │
+1 │ [arg('bar', long, flag, value='baz')]
+  │                   ^^^^

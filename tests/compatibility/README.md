@@ -15,3 +15,48 @@ test inventory.
 The files under `upstream/` are provenance and oracle metadata. They do not
 replace executable behavior tests and are never treated as a source of
 implementation code.
+
+Use `--coverage-report PATH` to emit one JSON row for every identity in the
+pinned upstream inventory. The runner uses only these statuses:
+`differential-exact`, `differential-known-difference`, `moonbit-spec-exact`,
+`excluded-completion`, `excluded-signal`, and `unclassified`. Supplying
+`--strict-coverage` fails when any identity is unclassified; it is never
+silently counted as a pass. Every executable upstream behavior must carry a
+real fixture, input, expected output, exit status, and source anchor. Internal
+parser, semantic, evaluator, and formatter behavior belongs in MoonBit
+whitebox tests with exact token, AST, diagnostic, value, or byte assertions.
+
+Completion generation and runtime signal identity/forwarding are excluded only
+for their documented shell-protocol and OS-process-group reasons. Static signal
+validation, option parsing, diagnostics, and all other platform-testable
+behavior remain in scope.
+
+Cases whose upstream test is conditionally compiled for one operating system
+may declare `platform = "windows"`, `"macos"`, or `"linux"` in the manifest.
+The runner reports such a case as skipped on other systems and executes it on
+the matching CI runner; this preserves the upstream test's own platform guard
+instead of inventing a cross-platform result.
+
+Pure lexical and semantic invariants are indexed in
+`upstream/just-1.57.0/spec-index.txt`. Each index row points to a concrete
+MoonBit assertion file or black-box fixture, together with the upstream source
+line that defines the case. The source snapshot preserves the original test
+body under explicit `input` and `expected` sections for provenance; it is not
+used as a substitute for executable evidence. The strict report currently has
+zero unclassified identities.
+
+Use `--record-expected` once a deterministic black-box fixture is ready to
+write the official status, stdout, stderr, and filesystem snapshot into the
+case directory. Normal runs execute the official 1.57.0 binary as the live
+oracle; `--verify-snapshots` additionally checks recorded official snapshots
+on the current platform. Snapshot files are not a clock-free oracle: cases that
+print the current date or time must either use a deliberately bounded pattern
+or be regenerated when the calendar/timezone changes. A stale snapshot is an
+audit-maintenance failure, not evidence of a candidate/oracle behavior
+difference. Regex-backed cases use their declared pattern for the corresponding
+stream and should keep that pattern as narrow as the upstream assertion allows.
+
+The current strict report is the source of compatibility totals. A platform
+run may skip a case guarded for another operating system (currently one
+Windows-only case on Unix); the runner still counts that identity in the
+2,417-row inventory and executes it on its matching CI platform.

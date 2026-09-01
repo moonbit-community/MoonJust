@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	71
+set lists
+
+[arg('bar', max='2')]
+foo +bar:
+
+baz: (foo ['a', 'b', 'c'])
+

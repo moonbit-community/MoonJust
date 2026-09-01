@@ -1,0 +1,5 @@
+error: attribute key `value` requires value
+ ——▶ justfile:1:19
+  │
+1 │ [arg('bar', long, value)]
+  │                   ^^^^^

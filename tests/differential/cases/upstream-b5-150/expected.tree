@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	60
+foo:
+  echo {{ replace_regex('barbarbar', 'foo\', 'foo') }}
+

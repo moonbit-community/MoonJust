@@ -1,0 +1,5 @@
+error: list literals require `set lists`
+ ——▶ justfile:1:24
+  │
+1 │ set dotenv-filename := ['foo', 'bar']
+  │                        ^

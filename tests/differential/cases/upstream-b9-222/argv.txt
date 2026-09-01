@@ -1,0 +1,4 @@
+--choose
+--quiet
+--chooser
+/usr/bin/env false

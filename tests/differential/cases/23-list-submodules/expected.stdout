@@ -1,0 +1,6 @@
+Available recipes:
+    root
+    tools:
+        tool value
+        nested:
+            deep

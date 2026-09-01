@@ -1,0 +1,10 @@
+file	./src	15
+foo:
+	echo bar
+
+dir	./sub
+file	./sub/justfile	15
+foo:
+	echo bar
+
+dir	./home

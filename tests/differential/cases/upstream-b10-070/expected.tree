@@ -1,0 +1,11 @@
+dir	./home
+file	./foo.just	47
+set lists
+baz *rest:
+ @echo '{{ show(rest) }}'
+
+file	./justfile	36
+mod foo
+
+bar *args: (foo::baz args)
+

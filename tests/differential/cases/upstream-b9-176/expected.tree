@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	57
+bar:
+hello baz arg='XYZ"	':
+  printf '{{baz}}...{{arg}}'
+

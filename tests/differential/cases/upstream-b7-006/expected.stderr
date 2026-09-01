@@ -1,0 +1,1 @@
+error: import `<CASE_ROOT>/foo.just` in `<CASE_ROOT>/bar.just` is circular

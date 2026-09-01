@@ -1,0 +1,2 @@
+Available recipes:
+    foo PARAM='foo' # [alias: f]

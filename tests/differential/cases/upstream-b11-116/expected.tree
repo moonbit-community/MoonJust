@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	62
+set lists
+
+[arg('bar', long, flag, help = 'a flag')]
+foo bar:
+

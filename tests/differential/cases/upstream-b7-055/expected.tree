@@ -1,0 +1,10 @@
+dir	./home
+dir	./commands
+dir	./commands/bar
+file	./commands/bar/mod.just	16
+foo:
+ @echo FOO
+
+file	./justfile	23
+mod foo 'commands/bar'
+

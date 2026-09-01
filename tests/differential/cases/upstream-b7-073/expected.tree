@@ -1,0 +1,11 @@
+dir	./home
+file	./foo.just	19
+bar:
+ @echo MODULE
+
+file	./justfile	27
+mod foo
+
+bar:
+  @echo ROOT
+

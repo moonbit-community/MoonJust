@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	43
+set dotenv-command := 'echo FOO=bar'
+
+foo:
+

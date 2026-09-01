@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	69
+prefix := 'MY_'
+
+[env(prefix + 'VAR', 'value')]
+foo:
+  @echo $MY_VAR
+

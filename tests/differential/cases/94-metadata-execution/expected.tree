@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	91
+[metadata('example')]
+[metadata('sample', 'argument')]
+[no-exit-message]
+default:
+  exit 1
+

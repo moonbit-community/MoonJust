@@ -29,6 +29,14 @@ import {
   "moonbitlang/async/stdio",
 }
 
+import {
+  "ZSeanYves/MoonJust/internal/parser",
+} for "test"
+
+import {
+  "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
+} for "wbtest"
+
 supported_targets = "-all+native+wasm"
 
 options(

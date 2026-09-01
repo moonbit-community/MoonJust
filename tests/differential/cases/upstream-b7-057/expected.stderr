@@ -1,0 +1,5 @@
+error: recipe `foo` first defined on line 1 is redefined on line 2
+ ——▶ foo.just:2:1
+  │
+2 │ foo:
+  │ ^^^

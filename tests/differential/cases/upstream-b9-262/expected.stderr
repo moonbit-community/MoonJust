@@ -1,0 +1,5 @@
+error: variable `foo` not defined
+ ——▶ justfile:1:24
+  │
+1 │ set dotenv-filename := foo
+  │                        ^^^

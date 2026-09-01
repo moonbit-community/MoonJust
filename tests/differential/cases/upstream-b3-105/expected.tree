@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	40
+import x'$JUST_TEST_VARIABLE'
+
+foo: bar
+
+file	./import.just	16
+@bar:
+ echo BAR
+

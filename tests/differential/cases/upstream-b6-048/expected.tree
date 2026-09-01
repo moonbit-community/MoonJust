@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	51
+foo:
+  @echo '{{ style('command') }}foo{{NORMAL}}'
+

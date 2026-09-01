@@ -26,11 +26,6 @@ const JUST_MAN_HEADER : String =
   #|[options] [recipe [arguments...]]
 
 ///|
-fn version_line() -> String {
-  "moonjust v0.1.1"
-}
-
-///|
 pub fn static_invocation_text(argv : ArrayView[String]) -> String? {
   if argv.length() != 1 {
     return None

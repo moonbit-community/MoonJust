@@ -1,0 +1,11 @@
+dir	./home
+file	./justfile	61
+x := if '' == '' {
+  'a'
+} else {
+  'b'
+}
+
+foo:
+  echo {{x}}
+

@@ -1,0 +1,4 @@
+import? './import.justfile'
+
+a:
+  @echo A

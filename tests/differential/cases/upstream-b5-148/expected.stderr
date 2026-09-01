@@ -1,0 +1,5 @@
+error: call to function `env_var` failed: environment variable `ZADDY` not present
+ ——▶ justfile:2:10
+  │
+2 │   echo {{env_var('ZADDY')}}
+  │          ^^^^^^^

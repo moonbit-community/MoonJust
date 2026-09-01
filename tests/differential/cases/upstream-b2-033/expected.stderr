@@ -1,0 +1,1 @@
+error: recipe `foo` option `-a` takes a value and so must be last when combined with other options

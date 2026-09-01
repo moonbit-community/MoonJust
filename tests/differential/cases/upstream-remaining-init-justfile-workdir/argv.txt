@@ -1,0 +1,5 @@
+--init
+--justfile
+<CASE_ROOT>/justfile
+--working-directory
+/

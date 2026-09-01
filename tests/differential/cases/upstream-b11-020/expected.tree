@@ -1,0 +1,14 @@
+dir	./home
+file	./justfile	63
+export value := 'default'
+
+[cache]
+[script]
+foo:
+  echo $value
+
+dir	./.justcache
+file	./.justcache/<CACHE_KEY-foo>.json	16
+{"recipe":"foo"}
+file	./.justcache/<CACHE_KEY-foo>.json	16
+{"recipe":"foo"}

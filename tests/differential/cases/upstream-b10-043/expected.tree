@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	56
+set lists
+
+x := show(absolute_path(['bar', 'baz bob']))
+

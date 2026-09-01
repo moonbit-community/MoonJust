@@ -1,0 +1,23 @@
+dir	./home
+file	./a.just	3
+a:
+
+file	./b.just	3
+b:
+
+file	./c.just	3
+c:
+
+file	./d.just	3
+d:
+
+file	./justfile	74
+import 'a.just'
+import 'b.just'
+import 'c.just'
+import 'd.just'
+
+x:
+y:
+z:
+

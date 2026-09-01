@@ -1,0 +1,5 @@
+dir	./home
+file	./justfile	49
+foo:
+  @echo '{{ style('error') }}foo{{NORMAL}}'
+

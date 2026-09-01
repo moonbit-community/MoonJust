@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	15
+f() := 'value'
+

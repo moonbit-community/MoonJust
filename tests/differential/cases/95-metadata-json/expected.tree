@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	95
+[metadata('single')]
+single:
+
+[metadata('example')]
+[metadata('sample', 'argument')]
+multiple:
+

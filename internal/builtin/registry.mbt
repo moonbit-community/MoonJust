@@ -91,14 +91,19 @@ pub fn BuiltinSpec::accepts_arity(self : BuiltinSpec, actual : Int) -> Bool {
 
 ///|
 pub fn BuiltinSpec::arity_description(self : BuiltinSpec) -> String {
-  match self.max_arguments {
+  argument_range_description(self.min_arguments, self.max_arguments)
+}
+
+///|
+fn argument_range_description(minimum : Int, maximum : Int?) -> String {
+  match maximum {
     Some(maximum) =>
-      if maximum == self.min_arguments {
+      if maximum == minimum {
         maximum.to_string()
       } else {
-        self.min_arguments.to_string() + " or " + maximum.to_string()
+        minimum.to_string() + " to " + maximum.to_string()
       }
-    None => self.min_arguments.to_string() + " or more"
+    None => minimum.to_string() + " or more"
   }
 }
 

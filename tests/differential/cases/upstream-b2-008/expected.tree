@@ -1,0 +1,10 @@
+dir	./home
+file	./justfile	49
+baz := 'A'
+
+foo:
+  echo foo
+
+bar:
+  echo {{baz}}
+

@@ -1,0 +1,19 @@
+[group('beta')]
+[group('alpha')]
+f:
+
+[group('alpha')]
+e:
+
+[group('multi word group')]
+d:
+
+c:
+
+# Doc comment
+[group('alpha')]
+[group('beta')]
+b:
+
+[group('alpha')]
+a:

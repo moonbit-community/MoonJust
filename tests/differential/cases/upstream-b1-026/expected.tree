@@ -1,0 +1,9 @@
+dir	./home
+file	./justfile	50
+[group('B')]
+foo:
+
+[group('A')]
+[group('B')]
+bar:
+

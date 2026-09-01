@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	39
+set unstable
+[confirm(missing())]
+run:
+

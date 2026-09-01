@@ -1,0 +1,10 @@
+dir	./dir
+file	./dir/.justfile	15
+foo:
+  echo ok
+
+dir	./home
+file	./justfile	16
+foo:
+  echo bad
+
