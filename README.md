@@ -102,8 +102,9 @@ or container sandbox when isolation is required; see SECURITY.md.
 The oracle is official just 1.57.0 at upstream commit
 e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f.
 
-The maintained black-box corpus currently runs 1,417 executable scenarios. It
-reports 1,411 byte-exact matches and six explicit known differences:
+The maintained black-box corpus contains 1,417 executable scenarios. Across
+the platform-complete corpus, 1,411 are byte-exact matches and six are
+explicit known differences:
 
 - --version and --help retain MoonJust product identity;
 - one unstable-function error has MoonJust diagnostic presentation;
@@ -119,7 +120,16 @@ described by the historical ADRs.
 The pinned upstream inventory contains 2,417 test identities. The strict
 report has 2,362 executed identities (2,358 exact and four pinned known
 differences), 34 completion exclusions, 21 runtime signal exclusions, and zero
-unclassified identities. CI invokes the same `--strict-coverage` check.
+unclassified identities. CI invokes the same `--strict-coverage` check. A Unix
+run reports 1,410 exact black-box matches because the one Windows-only case is
+skipped there; the case is executed on the Windows job. This platform skip does
+not change the 2,417-row strict inventory.
+
+Recorded official snapshots are supplementary audit material. Two datetime
+fixtures contain date-sensitive output and must be regenerated or normalized
+when the calendar changes; the live official 1.57.0 process remains the
+authoritative comparison. The optional `--verify-snapshots` flag is therefore
+not a substitute for the live differential run.
 
 ## Architecture
 
@@ -211,7 +221,11 @@ status, stdout, stderr, merged output, filesystem effects, and live-output
 observations. The benchmark first verifies behavior equivalence, then executes
 interleaved paired samples and reports median and p95 ratios. Non-startup
 workloads use larger generated justfiles and retain raw sample and batch
-metadata in JSON.
+metadata in JSON. Pull-request CI currently collects one batch of 15 samples;
+main-branch runs collect three batches. The generated reports are evidence for
+performance tracking, but CI does not currently pass `--enforce`, so a green
+CI result does not imply that every performance threshold is met. Short
+official runtimes on Unix hosts can also make millisecond ratios noisy.
 
 ## Documentation
 

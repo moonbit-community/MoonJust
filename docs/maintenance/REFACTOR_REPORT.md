@@ -9,8 +9,10 @@ branches opened after the 0.1.1 preparation:
 | --- | --- | --- | --- |
 | [#68](https://github.com/moonbit-community/MoonJust/pull/68) | codex/performance-root-cause | 8ae279fe..a9c5fd8 | Measure and recover Native/Wasm performance without changing just 1.57 behavior |
 | [#69](https://github.com/moonbit-community/MoonJust/pull/69) | codex/logic-rewrite | a9c5fd8..HEAD | Rebuild the repository around one execution chain and pure MoonBit verification |
+| [#70](https://github.com/moonbit-community/MoonJust/pull/70) | codex/version-contract-benchmarks | a99f6a7..03d8fca | Bind the upstream inventory to executable fixtures, enforce strict coverage, and extend cross-target benchmark evidence |
 
-PR #69 contains the complete PR #68 commit line. This document is a work
+PR #69 contains the complete PR #68 commit line, and PR #70 carries the
+post-rewrite compatibility and benchmark evidence. This document is a work
 record, not an architecture contract. The maintained package boundaries and
 execution invariants are documented in [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
 
@@ -31,6 +33,16 @@ exclusions, and zero unclassified identities. The executable corpus runs 1,417
 scenarios: 1,411 exact matches, 6 pinned known differences, and 0 failures.
 CI enables `--strict-coverage`, so missing fixtures or stale anchors fail the
 compatibility job.
+
+The September 1 audit reran the strict command after `moon clean`: Native and
+Wasm checks, tests, release builds, version output, and the platform
+differential all passed locally. The local strict summary was
+`matched=1410 known_differences=6 failures=0`; the one fewer match is the
+Windows-only fixture skipped on a Unix host and is executed on the Windows CI
+job. The optional `--verify-snapshots` audit currently reports two expected
+snapshot mismatches for the date-sensitive `datetime` fixtures because their
+recorded date is older than the run date. The live official binary remains the
+authoritative oracle; these snapshots require regeneration or normalization.
 
 The benchmark runner now generates larger check, format, summary, DAG, no-op,
 module, script, and Wasm-host workloads. It performs warmups and interleaved
@@ -261,8 +273,10 @@ The final workflow uses the latest MoonBit distribution and runs:
 Two portability defects in the new runners were fixed after remote execution:
 path-based candidate programs are resolved before entering case directories,
 and platform comparisons use one stable shared working directory. The final PR
-run before this report, [33303956394](https://github.com/moonbit-community/MoonJust/actions/runs/33303956394),
-passed all six jobs.
+run for this maintenance line, [33468089255](https://github.com/moonbit-community/MoonJust/actions/runs/33468089255),
+passed all six jobs on the `03d8fca` head. The compatibility job is intentionally
+Unix-only; the matrix jobs still run Native and Wasm checks, builds, platform
+differential, and paired benchmarks on Ubuntu, macOS, and Windows.
 
 ## Compatibility Result
 
@@ -271,6 +285,11 @@ The maintained differential corpus contains 1,417 executable scenarios:
 - 1,411 exact matches;
 - 6 explicit known differences;
 - 0 failures.
+
+The 1,411 figure is a corpus-wide total. A single Unix invocation reports
+1,410 exact matches because the manifest's one Windows-only case is skipped;
+this is an execution-platform distinction, not an additional compatibility
+difference.
 
 The six differences are two product-identity outputs (--version and --help),
 one unstable-function diagnostic presentation, and three dotenv option-conflict
@@ -298,6 +317,21 @@ The numbers are regression evidence for the rewrite, not universal performance
 claims. The remote CI smoke uses integer-millisecond samples and is intentionally
 too coarse to replace paired profiling. No baseline optimization was restored
 through a cross-layer flag or duplicate execution path.
+
+The current audit also ran the benchmark locally on macOS arm64. The observed
+geometric-mean ratios were 0.80x Native and 4.76x Wasm. The Wasm startup ratio
+was 2.67x; parsing, planning, and host-heavy workloads were generally 5-10x,
+while no-op process workloads were 1.22-1.38x. The latest remote PR artifacts
+(one batch of 15 samples per platform) give geometric means of 1.44x Native /
+14.08x Wasm on Linux, 0.70x / 5.12x on macOS, and 1.16x / 3.12x on Windows.
+These are current observations, not hard-gate results: most Unix official
+samples remain below 20 ms, and the workflow reports benchmark JSON without
+passing `--enforce`.
+
+One contract-quality follow-up remains: the corpus has 24 regex-backed stream
+expectations, including one intentionally broad `.*` stderr pattern. It does
+not create a product failure, but it is weaker than byte-exact comparison and
+should be narrowed when the underlying path variability is made deterministic.
 
 ## Removed Systems
 
@@ -329,4 +363,10 @@ moon publish --dry-run
 moon publish --dry-run received the successful registry dry-run response; the
 then-current CLI returned exit 255 after that success, which was treated as a
 Moon tool behavior rather than a MoonJust product result. The final merge is
-accepted only after the resulting main commit passes the maintained CI matrix.
+accepted only after the resulting main commit passes the maintained CI matrix;
+the run recorded above is the green PR validation for the audited feature head.
+
+The maintenance report deliberately keeps historical release-era claims in
+`docs/development/` unchanged. Those records describe the architecture and
+tooling that existed at their original revision; this file and
+`docs/ARCHITECTURE.md` are the current-state sources.

@@ -111,3 +111,19 @@ effects, and live-output observations against just 1.57.0. Existing known
 differences are restricted by field and pinned candidate SHA-256. `tests/platform`
 runs a cross-platform candidate/oracle differential, and `tests/benchmark`
 uses interleaved paired samples after verifying workload output equivalence.
+
+The current strict compatibility report covers 2,417 upstream identities:
+2,358 exact, four pinned known differences, 34 completion exclusions, 21
+runtime-signal exclusions, and zero unclassified identities. The executable
+black-box corpus has 1,417 scenarios (1,411 exact and six known differences
+across all supported platforms). A Unix run reports 1,410 exact scenarios when
+the one Windows-only case is skipped; that case is executed on the Windows
+matrix job.
+
+Benchmark reports include the runner, architecture, Moon/Moonc/Moonrun
+versions, workload size, raw sample counts, median/p95 ratios, and confidence
+intervals. They are currently observational artifacts: pull requests run one
+batch of 15 samples, main runs use three batches, and CI does not invoke the
+optional `--enforce` flag. Date-sensitive compatibility snapshots are
+supplementary to the live official oracle and must not be treated as immutable
+golden output.

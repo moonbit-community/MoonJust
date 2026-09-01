@@ -65,12 +65,22 @@ published releases.
 
 ### Verification
 
-- The current executable corpus reports 1,411 exact matches, 6 pinned known
-  differences, and 0 failures against official just 1.57.0.
+- The maintained executable corpus contains 1,417 scenarios: 1,411 exact
+  matches, 6 pinned known differences, and 0 failures against official just
+  1.57.0. Unix runs show 1,410 exact matches because one Windows-only case is
+  skipped there and executed on the Windows job.
+- The strict upstream report covers all 2,417 identities: 2,358 exact, 4
+  pinned known differences, 34 completion exclusions, 21 runtime signal
+  exclusions, and zero unclassified identities.
 - Native/Wasm rewrite comparisons against the performance baseline have median
   1.00x; artifact growth remains below one percent on both targets.
-- PR #69 passed Ubuntu, macOS, Windows, Wasm, formatting/interface, and official
-  differential CI before merge.
+- PR #69 passed the logic-rewrite validation, and PR #70's latest CI run
+  (33468089255) passed Ubuntu, macOS, Windows, Wasm, formatting/interface, and
+  official differential jobs.
+- The current benchmark artifacts are observational: pull requests collect one
+  batch of 15 samples, Unix runtimes are often below 20 ms, and CI does not
+  invoke the optional performance `--enforce` flag. They should not be read as
+  proof that every performance threshold is met.
 
 ## 0.1.1 - 2026-08-25
 

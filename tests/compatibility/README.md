@@ -49,5 +49,14 @@ Use `--record-expected` once a deterministic black-box fixture is ready to
 write the official status, stdout, stderr, and filesystem snapshot into the
 case directory. Normal runs execute the official 1.57.0 binary as the live
 oracle; `--verify-snapshots` additionally checks recorded official snapshots
-on the current platform. Regex-backed upstream cases use their declared
-pattern for the corresponding stream.
+on the current platform. Snapshot files are not a clock-free oracle: cases that
+print the current date or time must either use a deliberately bounded pattern
+or be regenerated when the calendar/timezone changes. A stale snapshot is an
+audit-maintenance failure, not evidence of a candidate/oracle behavior
+difference. Regex-backed cases use their declared pattern for the corresponding
+stream and should keep that pattern as narrow as the upstream assertion allows.
+
+The current strict report is the source of compatibility totals. A platform
+run may skip a case guarded for another operating system (currently one
+Windows-only case on Unix); the runner still counts that identity in the
+2,417-row inventory and executes it on its matching CI platform.
