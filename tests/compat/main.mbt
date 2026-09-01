@@ -248,7 +248,10 @@ async fn read_optional_bytes(path : String) -> Bytes {
 ///|
 async fn read_optional_text(path : String) -> String? {
   if @fs.exists(path) {
-    Some(@fs.read_file(path).text())
+    let text = @fs.read_file(path).text()
+    let text = text.strip_suffix("\n").unwrap_or(text[:])
+    let text = text.strip_suffix("\r").unwrap_or(text)
+    Some(text.to_owned())
   } else {
     None
   }

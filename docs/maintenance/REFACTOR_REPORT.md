@@ -39,18 +39,44 @@ Wasm checks, tests, release builds, version output, and the platform
 differential all passed locally. The local strict summary was
 `matched=1410 known_differences=6 failures=0`; the one fewer match is the
 Windows-only fixture skipped on a Unix host and is executed on the Windows CI
-job. The optional `--verify-snapshots` audit currently reports two expected
-snapshot mismatches for the date-sensitive `datetime` fixtures because their
-recorded date is older than the run date. The live official binary remains the
-authoritative oracle; these snapshots require regeneration or normalization.
+job. The two date-sensitive `datetime` fixtures retain their upstream format
+regular expressions, so their recorded date is audit context rather than a
+fixed expected value. The live official binary remains the authoritative
+comparison.
 
-The benchmark runner now generates larger check, format, summary, DAG, no-op,
-module, script, and Wasm-host workloads. It performs warmups and interleaved
-candidate/oracle samples across batches, reports median/p95 ratios and a
-sample-level ratio interval, and writes gate-compatible JSON. Wasm invocations
-use `moonrun <artifact> -- <program arguments>`; the separator is not passed
-to MoonJust. CI runs native and Wasm benchmark jobs on every OS matrix entry
-and uploads both reports.
+The benchmark runner now generates larger check, summary, DAG, no-op, module,
+script, stdin, and Wasm-host workloads. It performs a byte-level behavior
+precheck and interleaved candidate/oracle samples across batches, reports
+median/p95 ratios and a sample-level ratio interval, and writes gate-compatible
+JSON. Wasm invocations use `moonrun <artifact> -- <program arguments>`; the
+separator is not passed to MoonJust. The former duplicate format workload is
+now represented by the official `--fmt --check` command.
+
+The current benchmark maintenance pass removes runner-only noise without
+removing real CLI cost. Candidate, official, and `moonrun` paths are resolved
+once during setup; stdin fixtures are written once; every workload owns an
+isolated reusable fixture; and behavior is compared byte-for-byte before
+timing. Samples still start one independent candidate and official process per
+observation. Profiles are now `smoke` (one batch of five pairs) and `full` (three
+batches of fifteen pairs), with custom counts retained only for local
+investigation. Schema 2 reports retain raw samples and batch ratios and add
+profile, workload scale, calibration duration, fixture setup, behavior-check,
+and runner-preparation timings. `run-noops` fails calibration unless the
+official process lands between 32ms and 500ms.
+
+The duplicate Ubuntu benchmark was removed from the compatibility job. A
+short `performance-smoke` workflow covers product/benchmark changes across
+Linux, macOS, and Windows for both Native and Wasm; `performance-full` runs
+three-batch enforced gates manually and weekly. Both workflows build the
+benchmark executable once and invoke it directly, so `moon run` startup is not
+part of the runner overhead. MoonBit release executable paths retain their
+`.exe` suffix on every runner.
+
+`--man` now serves the vendored official just 1.57.0 page as one application
+constant. Native and Wasm static tests check its byte length and structure, and
+the differential case uses exact expected stdout rather than a permissive
+regular expression. The verified page is 8,211 bytes with SHA-256
+`7243ceeec8f8dd1a140676d6d1c6855a930bbd0d33e27a81cd1106e28953cc60`.
 
 Internal-spec coverage uses exact MoonBit assertions for parser, lexer,
 semantic, evaluator, formatter, host, and planner behavior. The remaining
@@ -296,7 +322,7 @@ one unstable-function diagnostic presentation, and three dotenv option-conflict
 diagnostics. No new difference was added to make the rewrite pass. Completion
 remains outside the claimed compatibility surface.
 
-The clean local verification ran 960 native tests and 960 Wasm tests, with no
+The clean local verification ran 961 native tests and 961 Wasm tests, with no
 failures. These counts are reported only as run results; they are not quality
 gates or compatibility claims.
 
@@ -356,7 +382,7 @@ moon build --release --target native .
 moon build --release --target wasm .
 moon run --target native ./tests/compat -- --candidate ... --official just
 moon run --target native ./tests/platform -- --candidate ... --official just
-moon run --target native ./tests/benchmark -- --candidate ... --official just --rounds 15
+_build/native/release/build/tests/benchmark/benchmark.exe --candidate ... --official just --profile smoke
 moon publish --dry-run
 ~~~
 

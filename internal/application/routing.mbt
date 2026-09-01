@@ -388,7 +388,7 @@ pub async fn[
   }
   if arguments.command() == ManCommand {
     return @cli.ApplicationResponse::success(
-      stdout=@utf8.encode(JUST_MAN_HEADER + "\n"),
+      stdout=@utf8.encode(JUST_MAN_PAGE + "\n"),
     )
   }
   let context = try @host.HostEnv::current_dir(environment_host) catch {

@@ -1,0 +1,78 @@
+name: Performance Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'main.mbt'
+      - 'runtime_*.mbt'
+      - 'moon.mod'
+      - 'moon.pkg'
+      - '**/moon.pkg'
+      - 'internal/**'
+      - 'tests/benchmark/**'
+      - 'tests/testkit/**'
+      - '.github/workflows/performance-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'main.mbt'
+      - 'runtime_*.mbt'
+      - 'moon.mod'
+      - 'moon.pkg'
+      - '**/moon.pkg'
+      - 'internal/**'
+      - 'tests/benchmark/**'
+      - 'tests/testkit/**'
+      - '.github/workflows/performance-smoke.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Smoke (${{ matrix.os }}, ${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        target: [native, wasm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
+        with:
+          version: latest
+      - run: moon version --all
+      - run: moon update
+      - run: cargo install just --version 1.57.0 --locked
+      - run: moon check --target ${{ matrix.target }}
+      - run: moon test --target ${{ matrix.target }}
+      - run: moon build --release --target ${{ matrix.target }} .
+      - run: moon build --release --target native ./tests/benchmark
+      - name: Run benchmark smoke
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          suffix=".exe"
+          benchmark="_build/native/release/build/tests/benchmark/benchmark${suffix}"
+          if [ "$TARGET" = "native" ]; then
+            candidate="_build/native/release/build/MoonJust${suffix}"
+            "$benchmark" --candidate "$candidate" --official just \
+              --target native --profile smoke \
+              --output "_build/performance-gate-${TARGET}.json"
+          else
+            candidate="_build/wasm/release/build/MoonJust.wasm"
+            "$benchmark" --candidate "$candidate" --candidate-runner moonrun \
+              --official just --target wasm --profile smoke \
+              --output "_build/performance-gate-${TARGET}.json"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: performance-smoke-${{ matrix.os }}-${{ matrix.target }}
+          path: _build/performance-gate-*.json
+          if-no-files-found: error
