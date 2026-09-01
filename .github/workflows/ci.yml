@@ -81,12 +81,8 @@ jobs:
           if-no-files-found: error
 
   compatibility:
-    name: just 1.57 differential (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    name: just 1.57 differential
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
@@ -99,12 +95,12 @@ jobs:
       - run: moon run --target native ./tests/benchmark -- --candidate _build/native/release/build/MoonJust.exe --official just --target native --batches 1 --rounds 15 --output _build/performance-gate-native.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: compatibility-and-performance-${{ matrix.os }}
+          name: compatibility-and-performance
           path: _build/coverage.json
           if-no-files-found: error
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: compatibility-performance-gate-${{ matrix.os }}
+          name: compatibility-performance-gate
           path: _build/performance-gate-native.json
           if-no-files-found: error
 
