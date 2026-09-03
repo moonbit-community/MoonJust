@@ -120,7 +120,7 @@ pub fn[
             "call to function `canonicalize` failed: I/O error canonicalizing `" +
             raw +
             "`: " +
-            Repr(error).to_string(),
+            host_error_detail(error),
             span,
           )
       }
@@ -135,7 +135,7 @@ pub fn[
             "call to function `read` failed: I/O error reading `" +
             raw +
             "`: " +
-            Repr(error).to_string(),
+            host_error_detail(error),
             span,
           )
       }

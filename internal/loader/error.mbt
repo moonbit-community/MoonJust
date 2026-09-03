@@ -99,12 +99,30 @@ pub fn LoaderError::message(self : LoaderError) -> String {
         .unwrap_or("/")
       for path in found {
         let filename = path.file_name().unwrap_or(path.as_string())
+        let parent_is_module = match path.parent() {
+          Some(parent) => parent.file_name() == Some(module_name)
+          None => false
+        }
         if filename == module_name + ".just" {
           direct_candidates.push(filename)
-        } else {
+        } else if parent_is_module {
           directory_candidates.push(module_name + separator + filename)
+        } else {
+          directory_candidates.push(path.as_string())
         }
       }
+      directory_candidates.sort_by(fn(left, right) {
+        let left_hidden = left.has_suffix(separator + ".justfile")
+        let right_hidden = right.has_suffix(separator + ".justfile")
+        if left_hidden && !right_hidden {
+          -1
+        } else if !left_hidden && right_hidden {
+          1
+        } else {
+          left.compare(right)
+        }
+      })
+      direct_candidates.sort()
       directory_candidates.append(direct_candidates)
       "found multiple source files for module `" +
       module_name +

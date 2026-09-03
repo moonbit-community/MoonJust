@@ -130,10 +130,23 @@ fn ApplicationError::message(self : ApplicationError) -> String {
 ///|
 fn stable_application_error_message(error : ApplicationError) -> String {
   match error {
+    Evaluation(Builtin(Failure(message~), ..)) if message.contains(
+        "currently unstable",
+      ) => "error: " + message
     Evaluation(evaluation) =>
       "error[" + evaluation.code() + "]: " + evaluation.message()
     Planner(Evaluation(evaluation)) =>
       "error[" + evaluation.code() + "]: " + evaluation.message()
+    Planner(InvalidAttributeValue(message~, ..)) => "error: " + message
+    Semantic(UserFunctionsUnstable(_) as semantic) =>
+      "error: " + semantic.message()
+    Semantic(ListsUnstable(_) as semantic) => "error: " + semantic.message()
+    ContextualSemantic(error~, ..) =>
+      match error {
+        UserFunctionsUnstable(_) | ListsUnstable(_) =>
+          "error: " + error.message()
+        _ => error.message()
+      }
     _ => error.message()
   }
 }
@@ -221,6 +234,12 @@ async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_asy
   error : ApplicationError,
 ) -> String {
   let color = arguments.value("color") == Some("always")
+  let stable_message = stable_application_error_message(error)
+  if stable_message.contains("user-defined functions are currently unstable") ||
+    stable_message.contains("`lists` setting is currently unstable") ||
+    stable_message.contains("cached recipes are currently unstable") {
+    return stable_message
+  }
   fn render_diagnostic(
     diagnostic : @diagnostic.Diagnostic,
     sources : @source.SourceMap,
@@ -241,6 +260,12 @@ async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_asy
       return "error: " + evaluation.message()
     Evaluation(FunctionRecursionLimit(..) as evaluation) =>
       return "error: " + evaluation.message()
+    ContextualSemantic(error~, ..) =>
+      match error {
+        UserFunctionsUnstable(_) | ListsUnstable(_) =>
+          return "error: " + error.message()
+        _ => ()
+      }
     _ => ()
   }
   let diagnostic = match error {

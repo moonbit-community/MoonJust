@@ -8,7 +8,6 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/x/path",
   "moonbitlang/x/crypto",
-  "moonbitlang/regexp",
   "moonbitlang/x/sys",
 }
 

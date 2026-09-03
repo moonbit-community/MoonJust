@@ -1,1 +1,0 @@
-error: failed to load environment file from `.*\.env`: Error parsing line: 'bar baz', error at line index: 4
