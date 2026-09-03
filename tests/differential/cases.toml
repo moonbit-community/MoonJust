@@ -1985,6 +1985,7 @@ reason = "Path-prefixed invocations are rejected before global justfile executio
 [[case]]
 id = "MJ-COMPAT-0116"
 directory = "116-global-priority"
+platform = "macos"
 owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
@@ -4484,6 +4485,7 @@ directory = "upstream-def-076"
 owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
+normalizations = ["temp-path", "canonical-path"]
 upstream_tests = ["functions::canonicalize_argument_is_relative_to_submodule_working_directory"]
 upstream_anchors = ["tests/functions.rs:1507"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
@@ -4551,6 +4553,7 @@ reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differen
 [[case]]
 id = "MJ-UPSTREAM-B1-009"
 directory = "upstream-b1-009"
+platform = "unix"
 owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]

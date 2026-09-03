@@ -169,6 +169,27 @@ fn host_error_detail(error : @host.HostError) -> String {
 }
 
 ///|
+fn canonicalize_host_error_detail(
+  error : @host.HostError,
+  path : @path.PathValue,
+) -> String {
+  if path.flavor() == Windows {
+    match error {
+      @host.HostError::NotFound(_) =>
+        "The system cannot find the file specified. (os error 2)"
+      @host.HostError::InvalidInput(detail) if detail.contains(
+          "No such file or directory",
+        ) ||
+        detail.contains("The system cannot find the file specified") =>
+        "The system cannot find the file specified. (os error 2)"
+      _ => host_error_detail(error)
+    }
+  } else {
+    host_error_detail(error)
+  }
+}
+
+///|
 fn normalize_host_io_detail(detail : String) -> String {
   if detail.contains("No such file or directory") {
     "No such file or directory (os error 2)"

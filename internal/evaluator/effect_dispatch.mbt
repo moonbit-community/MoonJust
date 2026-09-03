@@ -120,7 +120,7 @@ pub fn[
             "call to function `canonicalize` failed: I/O error canonicalizing `" +
             raw +
             "`: " +
-            host_error_detail(error),
+            canonicalize_host_error_detail(error, path),
             span,
           )
       }

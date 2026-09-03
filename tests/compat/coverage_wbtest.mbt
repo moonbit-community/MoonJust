@@ -54,6 +54,25 @@ test "coverage normalizers reject malformed dynamic values" {
 }
 
 ///|
+test "Windows symlink targets resolve from the link parent" {
+  assert_eq(
+    symlink_target("C:/fixture", "sub/justfile", "../src", "windows").replace_all(
+      old="\\",
+      new="/",
+    ),
+    "C:/fixture/src",
+  )
+}
+
+///|
+test "canonical path normalization only folds declared path syntax" {
+  assert_eq(
+    normalize_canonical_path("\\\\?\\<CASE_ROOT>\\foo\\baz\n"),
+    "<CASE_ROOT>/foo/baz\n",
+  )
+}
+
+///|
 test "compatibility platform matching distinguishes Unix from Windows" {
   assert_true(platform_matches(Some("unix"), "linux"))
   assert_true(platform_matches(Some("unix"), "macos"))

@@ -2,3 +2,6 @@
 # platform-specific Git checkout settings.
 tests/differential/cases/** text eol=lf
 tests/compatibility/upstream/** text eol=lf
+# Raw line literals preserve source line endings, so this vendored document
+# must remain byte-identical on every checkout.
+internal/application/man_page.mbt text eol=lf

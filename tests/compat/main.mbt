@@ -102,6 +102,23 @@ fn join(left : String, right : String) -> String {
 }
 
 ///|
+fn symlink_target(
+  root : String,
+  link : String,
+  target : String,
+  platform : String,
+) -> String {
+  guard platform == "windows" && !@path.Path(target).is_absolute() else {
+    return target
+  }
+  let parent = match link.rev_find("/") {
+    Some(index) => link[:index].to_owned()
+    None => ""
+  }
+  join(join(root, parent), target)
+}
+
+///|
 /// Keep runner-only symlink metadata outside the isolated project tree.
 fn link_metadata_path(root : String) -> String {
   root + ".moonjust-tree-links"
@@ -282,7 +299,7 @@ fn target_environment(
     // native just obtains from the Windows process environment/API.
     environment["MOONJUST_OS"] = "windows"
     environment["PROCESSOR_ARCHITECTURE"] = match architecture {
-      "X64" | "x64" | "amd64" | "AMD64" => "AMD64"
+      "X64" | "x64" | "x86_64" | "amd64" | "AMD64" => "AMD64"
       "ARM64" | "arm64" => "ARM64"
       "x86" | "X86" => "x86"
       "ARM" | "arm" => "ARM"
@@ -531,12 +548,12 @@ async fn apply_symlinks(directory : String, root : String) -> Unit {
       continue
     }
     let raw_target = fields[1].to_owned()
-    let target = if runner_platform() == "windows" &&
-      !@path.Path(raw_target).is_absolute() {
-      join(root, raw_target)
-    } else {
-      raw_target
-    }
+    let target = symlink_target(
+      root,
+      fields[0].to_owned(),
+      raw_target,
+      runner_platform(),
+    )
     @fs.symlink(
       join(root, fields[0].to_owned()).view(),
       target=target.view(),
@@ -586,7 +603,10 @@ async fn apply_directories(directory : String, root : String) -> Unit {
   for raw in read_text(descriptor).split("\n") {
     let relative = raw.trim().to_owned()
     if !relative.is_empty() {
-      @fs.mkdir(join(root, relative), recursive=true)
+      let path = join(root, relative)
+      if !@fs.exists(path) {
+        @fs.mkdir(path, recursive=true)
+      }
     }
   }
 }
@@ -832,6 +852,12 @@ fn normalize(bytes : Bytes, root : String) -> Bytes {
     private_root,
     b"<CASE_ROOT>"[:],
   )
+  let escaped_root = @utf8.encode(root.replace_all(old="\\", new="\\\\"))[:]
+  let normalized = @testkit.replace_bytes(
+    normalized,
+    escaped_root,
+    b"<CASE_ROOT>"[:],
+  )
   let normalized = @testkit.replace_bytes(
     normalized,
     @utf8.encode(root)[:],
@@ -886,6 +912,7 @@ fn normalize_output(
       "parallel-order" => normalize_parallel_order(result)
       "program-path" => normalize_program_path(result)
       "temp-path" => normalize_temp_path(result)
+      "canonical-path" => normalize_canonical_path(result)
       "module-path" =>
         result.replace_all(old="<CASE_ROOT>/foo.just", new="foo.just")
       _ => result
@@ -1026,12 +1053,18 @@ fn normalize_program_path(text : String) -> String {
 
 ///|
 fn normalize_temp_path(text : String) -> String {
-  let text = replace_windows_temp_root(
-    text, "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-official.",
-  )
-  let text = replace_windows_temp_root(
-    text, "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-candidate.",
-  )
+  let markers = [
+    "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-official.", "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-candidate.",
+    "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\moonjust-compat-official.", "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\moonjust-compat-candidate.",
+    "C:\\\\Users\\\\RUNNER~1\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-official.",
+    "C:\\\\Users\\\\RUNNER~1\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-candidate.",
+    "C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-official.",
+    "C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-candidate.",
+  ]
+  let mut text = text
+  for marker in markers {
+    text = replace_windows_temp_root(text, marker)
+  }
   let suffix = if text.has_suffix("\n") { "\n" } else { "" }
   if text.is_empty() || (text.contains("\n") && !text.has_suffix("\n")) {
     text
@@ -1050,6 +1083,14 @@ fn normalize_temp_path(text : String) -> String {
     }
     "<TEMP_PATH>/" + file.to_owned() + suffix
   }
+}
+
+///|
+fn normalize_canonical_path(text : String) -> String {
+  text
+  .replace_all(old="\\\\?\\<CASE_ROOT>", new="<CASE_ROOT>")
+  .replace_all(old="\\?\\<CASE_ROOT>", new="<CASE_ROOT>")
+  .replace_all(old="\\", new="/")
 }
 
 ///|
@@ -1627,7 +1668,7 @@ async fn main {
     for rule in details.normalizations {
       if ![
           "datetime", "duration", "timestamp", "choose", "uuid", "parallel-order",
-          "program-path", "temp-path", "module-path",
+          "program-path", "temp-path", "canonical-path", "module-path",
         ].contains(rule) {
         failures.push(name + ": unknown output normalization " + rule)
       }
