@@ -63,6 +63,7 @@ pub(all) suberror ExecutionError {
   Invocation(@invocation.InvocationError)
   Host(@host.HostError)
   ShellNotFound(recipe~ : String, shell~ : String, detail~ : String)
+  ShellLaunchIo(recipe~ : String, shell~ : String, detail~ : String)
   InvalidShebang(recipe~ : String, shebang~ : String)
   UnknownRecipe(recipe~ : String)
   DependencyCycle(stack~ : Array[String])

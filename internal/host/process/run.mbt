@@ -167,11 +167,19 @@ async fn run_process_with_output_limit(
       raise PermissionDenied(capability, detail~)
     error => {
       let detail = error.to_string()
+      let windows = @env.get_env_var("MOONJUST_OS") == Some("windows") ||
+        @env.get_env_var("OS") == Some("Windows_NT")
       if detail.contains("Permission denied") {
         raise PermissionDenied(
           Process,
           detail="Permission denied (os error 13)",
         )
+      }
+      if windows && detail.contains("system cannot find the file specified") {
+        raise InvalidInput("program not found")
+      }
+      if windows && detail.contains("directory name is invalid") {
+        raise InvalidInput("The directory name is invalid. (os error 267)")
       }
       if detail.contains("No such file or directory") {
         raise InvalidInput("No such file or directory (os error 2)")

@@ -5,6 +5,7 @@ pub(all) suberror ExecutionError {
   Invocation(@invocation.InvocationError)
   Host(@host.HostError)
   ShellNotFound(recipe~ : String, shell~ : String, detail~ : String)
+  ShellLaunchIo(recipe~ : String, shell~ : String, detail~ : String)
   InvalidShebang(recipe~ : String, shebang~ : String)
   UnknownRecipe(recipe~ : String)
   DependencyCycle(stack~ : Array[String])
@@ -53,6 +54,7 @@ pub fn ExecutionError::exit_code(self : ExecutionError) -> Int {
     | Invocation(_)
     | Host(_)
     | ShellNotFound(_)
+    | ShellLaunchIo(_)
     | InvalidShebang(..)
     | UnknownRecipe(_)
     | DependencyCycle(_)
@@ -71,6 +73,13 @@ pub fn ExecutionError::message(self : ExecutionError) -> String {
       "error: recipe `" +
       recipe +
       "` could not be run because just could not find the shell `" +
+      shell +
+      "`: " +
+      detail
+    ShellLaunchIo(recipe~, shell~, detail~) =>
+      "error: recipe `" +
+      recipe +
+      "` could not be run because of an IO error while launching the shell `" +
       shell +
       "`: " +
       detail

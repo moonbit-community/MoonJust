@@ -223,8 +223,12 @@ async fn main {
             )
           }
         } else if !observations.any(fn(item) {
-            item.0 == first.required_platform &&
-            item.1.execution_state == "executed"
+            let platform_matches = if first.required_platform == "unix" {
+              item.0 == "linux" || item.0 == "macos"
+            } else {
+              item.0 == first.required_platform
+            }
+            platform_matches && item.1.execution_state == "executed"
           }) {
           errors.push(upstream_id + ": platform differential was not executed")
         }

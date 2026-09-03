@@ -1,0 +1,4 @@
+# Contract fixtures are byte-oriented inputs and must not be rewritten by
+# platform-specific Git checkout settings.
+tests/differential/cases/** text eol=lf
+tests/compatibility/upstream/** text eol=lf

@@ -41,6 +41,25 @@ test "coverage normalizers reject malformed dynamic values" {
     normalize_temp_path("/var/tmp/just-abcd/baz.txt\n"),
     "<TEMP_PATH>/baz.txt\n",
   )
+  assert_eq(
+    normalize_temp_path(
+      "{\"source\":\"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-candidate.42.abcd1234\\justfile\"}\n",
+    ),
+    "{\"source\":\"<CASE_ROOT>\\justfile\"}\n",
+  )
+  assert_eq(
+    normalize_temp_path("unrelated C:\\Users\\winter\\file.txt value\n"),
+    "unrelated C:\\Users\\winter\\file.txt value\n",
+  )
+}
+
+///|
+test "compatibility platform matching distinguishes Unix from Windows" {
+  assert_true(platform_matches(Some("unix"), "linux"))
+  assert_true(platform_matches(Some("unix"), "macos"))
+  assert_false(platform_matches(Some("unix"), "windows"))
+  assert_true(platform_matches(Some("windows"), "windows"))
+  assert_false(platform_matches(Some("windows"), "linux"))
 }
 
 ///|

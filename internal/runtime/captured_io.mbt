@@ -35,10 +35,10 @@ async fn[
         ) catch {
           error =>
             raise runtime_failure(
-              ShellNotFound(
-                recipe=command.recipe(),
-                shell=command.spec().program(),
-                detail=Repr(error).to_string(),
+              shell_launch_error(
+                command.recipe(),
+                command.spec().program(),
+                error,
               ),
               stdout,
               stderr,
@@ -123,7 +123,11 @@ async fn[
         ) catch {
           error =>
             raise runtime_failure(
-              @planner.ExecutionError::host(error),
+              shell_launch_error(
+                command.recipe(),
+                command.spec().program(),
+                error,
+              ),
               stdout,
               stderr,
               commands,

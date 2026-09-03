@@ -347,6 +347,18 @@ async fn[
   }
   let shell_arguments = shell.arguments().to_owned()
   shell_arguments.push(chooser)
+  if cwd.flavor() == Windows {
+    let shell_path = @path.PathValue::new(shell.program(), Windows) catch {
+      error => raise Path(error)
+    }
+    if shell_path.file_name() is None {
+      raise InteractiveInvocation(
+        kind="chooser",
+        command=shell.program() + " " + shell_arguments.join(" "),
+        detail="program path has no file name",
+      )
+    }
+  }
   let spec = @host.CommandSpec::new(shell.program(), shell_arguments) catch {
     error => raise Host(error)
   }

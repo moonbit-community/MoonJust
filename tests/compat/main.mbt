@@ -260,7 +260,10 @@ fn runner_platform() -> String {
 fn platform_matches(platform : String?, current : String) -> Bool {
   match platform {
     None => true
-    Some(expected) => expected.to_lower() == current
+    Some(expected) => {
+      let expected = expected.to_lower()
+      expected == current || (expected == "unix" && current != "windows")
+    }
   }
 }
 
@@ -272,23 +275,35 @@ fn target_environment(
   cpu_count : String,
   wasm_reentry : String,
 ) -> Map[String, String] {
-  if !program.is_wrapped() {
-    return base
-  }
   let environment = base.copy()
-  environment["MOONJUST_OS"] = runner_platform()
-  environment["MOONJUST_ARCH"] = match architecture {
-    "X64" | "x64" => "x86_64"
-    "ARM64" | "arm64" => "aarch64"
-    value => value
+  let platform = runner_platform()
+  if platform == "windows" {
+    // The isolated fixture environment must retain the platform facts that
+    // native just obtains from the Windows process environment/API.
+    environment["MOONJUST_OS"] = "windows"
+    environment["PROCESSOR_ARCHITECTURE"] = match architecture {
+      "X64" | "x64" | "amd64" | "AMD64" => "AMD64"
+      "ARM64" | "arm64" => "ARM64"
+      "x86" | "X86" => "x86"
+      "ARM" | "arm" => "ARM"
+      value => value
+    }
   }
-  environment["MOONJUST_NUM_CPUS"] = cpu_count
-  if !wasm_reentry.is_empty() {
-    environment["MOONJUST_EXECUTABLE"] = wasm_reentry
-    environment["MOONJUST_WASM_CANDIDATE"] = program.subject()
-    environment["MOONJUST_MOONRUN"] = @env.get_env_var("MOONJUST_MOONRUN").unwrap_or(
-      "moonrun",
-    )
+  if program.is_wrapped() {
+    environment["MOONJUST_OS"] = platform
+    environment["MOONJUST_ARCH"] = match architecture {
+      "X64" | "x64" => "x86_64"
+      "ARM64" | "arm64" => "aarch64"
+      value => value
+    }
+    environment["MOONJUST_NUM_CPUS"] = cpu_count
+    if !wasm_reentry.is_empty() {
+      environment["MOONJUST_EXECUTABLE"] = wasm_reentry
+      environment["MOONJUST_WASM_CANDIDATE"] = program.subject()
+      environment["MOONJUST_MOONRUN"] = @env.get_env_var("MOONJUST_MOONRUN").unwrap_or(
+        "moonrun",
+      )
+    }
   }
   environment
 }
@@ -515,9 +530,16 @@ async fn apply_symlinks(directory : String, root : String) -> Unit {
     if fields.length() < 2 {
       continue
     }
+    let raw_target = fields[1].to_owned()
+    let target = if runner_platform() == "windows" &&
+      !@path.Path(raw_target).is_absolute() {
+      join(root, raw_target)
+    } else {
+      raw_target
+    }
     @fs.symlink(
       join(root, fields[0].to_owned()).view(),
-      target=fields[1].view(),
+      target=target.view(),
       force_symlink=true,
     )
     // A fixture may mark a host executable symlink as a tree link. Recording
@@ -1004,6 +1026,12 @@ fn normalize_program_path(text : String) -> String {
 
 ///|
 fn normalize_temp_path(text : String) -> String {
+  let text = replace_windows_temp_root(
+    text, "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-official.",
+  )
+  let text = replace_windows_temp_root(
+    text, "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-candidate.",
+  )
   let suffix = if text.has_suffix("\n") { "\n" } else { "" }
   if text.is_empty() || (text.contains("\n") && !text.has_suffix("\n")) {
     text
@@ -1022,6 +1050,42 @@ fn normalize_temp_path(text : String) -> String {
     }
     "<TEMP_PATH>/" + file.to_owned() + suffix
   }
+}
+
+///|
+/// Replace only the generated compatibility root component in Windows paths.
+/// The token is intentionally finite and marker-based; no arbitrary wildcard
+/// or regular-expression matching is used.
+fn replace_windows_temp_root(text : String, marker : String) -> String {
+  let output = StringBuilder()
+  let mut cursor = 0
+  while cursor < text.length() {
+    let remaining = text.view(start_offset=cursor)
+    guard remaining.find(marker) is Some(offset) else {
+      output.write_string(remaining.to_owned())
+      break
+    }
+    let start = cursor + offset
+    output.write_string(
+      text.view(start_offset=cursor, end_offset=start).to_owned(),
+    )
+    let token_start = start + marker.length()
+    let mut token_end = token_start
+    for character in text.view(start_offset=token_start) {
+      if character == '\\' ||
+        character == '/' ||
+        character == '"' ||
+        character == '\'' ||
+        character == ' ' ||
+        character == ']' {
+        break
+      }
+      token_end += 1
+    }
+    output.write_string("<CASE_ROOT>")
+    cursor = token_end
+  }
+  output.to_string()
 }
 
 ///|
