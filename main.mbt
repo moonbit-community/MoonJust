@@ -13,6 +13,12 @@ fn init {
 }
 
 ///|
+#cfg(all(target="native", platform="windows"))
+fn init {
+  configure_binary_standard_streams()
+}
+
+///|
 fn command_may_spawn_process(command : @cli.CommandKind) -> Bool {
   match command {
     RunCommand

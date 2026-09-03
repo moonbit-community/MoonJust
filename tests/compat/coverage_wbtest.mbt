@@ -48,6 +48,18 @@ test "coverage normalizers reject malformed dynamic values" {
     "{\"source\":\"<CASE_ROOT>\\justfile\"}\n",
   )
   assert_eq(
+    normalize_temp_path(
+      "/c/Users/RUNNER~1/AppData/Local/Temp/moonjust-compat-official.42.abcd1234\n",
+    ),
+    "<CASE_ROOT>\n",
+  )
+  assert_eq(
+    normalize_temp_path(
+      "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\moonjust-compat-candidate.42.abcd1234\\bar.just:1:4\n",
+    ),
+    "<CASE_ROOT>\\bar.just:1:4\n",
+  )
+  assert_eq(
     normalize_temp_path("unrelated C:\\Users\\winter\\file.txt value\n"),
     "unrelated C:\\Users\\winter\\file.txt value\n",
   )

@@ -1,4 +1,15 @@
 ///|
+#cfg(platform="windows")
+extern "C" fn native_set_file_mode(fd : Int, mode : Int) -> Int = "_setmode"
+
+///|
+#cfg(platform="windows")
+fn init {
+  ignore(native_set_file_mode(1, 0x8000))
+  ignore(native_set_file_mode(2, 0x8000))
+}
+
+///|
 async fn main {
   let args = @env.args()[1:]
   let wasm = @env.get_env_var("MOONJUST_WASM_CANDIDATE").unwrap_or("")

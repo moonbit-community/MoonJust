@@ -1060,6 +1060,8 @@ fn normalize_temp_path(text : String) -> String {
     "C:\\\\Users\\\\RUNNER~1\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-candidate.",
     "C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-official.",
     "C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-candidate.",
+    "/c/Users/RUNNER~1/AppData/Local/Temp/moonjust-compat-official.", "/c/Users/RUNNER~1/AppData/Local/Temp/moonjust-compat-candidate.",
+    "/c/Users/runneradmin/AppData/Local/Temp/moonjust-compat-official.", "/c/Users/runneradmin/AppData/Local/Temp/moonjust-compat-candidate.",
   ]
   let mut text = text
   for marker in markers {
@@ -1118,6 +1120,8 @@ fn replace_windows_temp_root(text : String, marker : String) -> String {
         character == '"' ||
         character == '\'' ||
         character == ' ' ||
+        character == '\n' ||
+        character == '\r' ||
         character == ']' {
         break
       }
