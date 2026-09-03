@@ -102,34 +102,33 @@ or container sandbox when isolation is required; see SECURITY.md.
 The oracle is official just 1.57.0 at upstream commit
 e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f.
 
-The maintained black-box corpus contains 1,417 executable scenarios. Across
-the platform-complete corpus, 1,411 are byte-exact matches and six are
-explicit known differences:
+The maintained black-box corpus contains 1,417 executable scenarios. Native
+compatibility currently compares 1,445 applicable upstream identities exactly
+on a Unix runner; the single Windows-only identity is explicitly deferred until
+the Windows job. Two product-identity cases (`--version` and `--help`) are
+checked separately. There are no functional known differences.
 
-- --version and --help retain MoonJust product identity;
-- one unstable-function error has MoonJust diagnostic presentation;
-- three invalid dotenv option combinations are rejected at the same semantic
-  boundary with different diagnostic presentation.
+The pinned upstream inventory contains 2,417 identities. Schema 3 reports one
+row per identity: 1,446 differential, 916 MoonBit spec, 34 completion
+exclusions, and 21 signal exclusions. Every executable row has a real fixture,
+exact stdout/stderr/status/tree comparison, and a source file plus line anchor.
+The runner executes the MoonBit spec suite before counting it and rejects stale
+anchors, missing inputs, duplicate mappings, regex expectations, and unexecuted
+rows. Linux, macOS, and Windows reports are merged by upstream identity; a
+platform-local report may contain an explicit deferred row, but the aggregate
+gate requires every required-platform row to execute.
 
-Known differences name the affected output field and pin candidate bytes by
-SHA-256. A changed diagnostic therefore fails instead of being accepted by a
-broad substring rule. Shell completion is not part of the current compatibility
-claim, and raw signal behavior remains limited to the direct-child lifecycle
-described by the historical ADRs.
+Wasm uses the same fixture runner through `moonrun <artifact> -- <args>`.
+Host-dependent OS facts are passed explicitly to the portable adapter. Cases
+that recursively invoke `just_executable()` use the native MoonBit re-entry
+launcher in the strict runner, so they are exercised rather than silently
+skipped. A direct `moonrun` invocation without that launcher cannot provide
+native child-process semantics for such recipes.
 
-The pinned upstream inventory contains 2,417 test identities. The strict
-report has 2,362 executed identities (2,358 exact and four pinned known
-differences), 34 completion exclusions, 21 runtime signal exclusions, and zero
-unclassified identities. CI invokes the same `--strict-coverage` check. A Unix
-run reports 1,410 exact black-box matches because the one Windows-only case is
-skipped there; the case is executed on the Windows job. This platform skip does
-not change the 2,417-row strict inventory.
-
-Recorded official snapshots are supplementary audit material. Two datetime
-fixtures contain date-sensitive output and must be regenerated or normalized
-when the calendar changes; the live official 1.57.0 process remains the
-authoritative comparison. The optional `--verify-snapshots` flag is therefore
-not a substitute for the live differential run.
+Recorded official snapshots are supplementary audit material. The live official
+1.57.0 process remains authoritative, and `--verify-snapshots` compares the
+live result with recorded bytes after only fixture-declared finite
+normalization.
 
 ## Architecture
 

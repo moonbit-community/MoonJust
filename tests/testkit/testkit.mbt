@@ -62,6 +62,18 @@ pub fn PreparedProgram::arguments(
 }
 
 ///|
+/// The product path whose diagnostics are compared, excluding an optional
+/// runner such as `moonrun`.
+pub fn PreparedProgram::subject(self : PreparedProgram) -> String {
+  self.prefix.get(0).unwrap_or(self.executable)
+}
+
+///|
+pub fn PreparedProgram::is_wrapped(self : PreparedProgram) -> Bool {
+  !self.prefix.is_empty()
+}
+
+///|
 async fn collect(
   program : String,
   args : Array[String],
@@ -135,6 +147,35 @@ pub async fn run_prepared(
 }
 
 ///|
+pub async fn run_prepared_bytes(
+  program : PreparedProgram,
+  args : Array[String],
+  stdin? : Bytes,
+  cwd? : String,
+  extra_env? : Map[String, String] = Map([]),
+  inherit_env? : Bool = true,
+) -> RunResult {
+  let input_dir = match stdin {
+    Some(_) => Some(@fs.tmpdir(prefix="moonjust-input"))
+    None => None
+  }
+  defer (if input_dir is Some(path) {
+    @fs.rmdir(path, recursive=true) catch {
+      _ => ()
+    }
+  })
+  let input = match (input_dir, stdin) {
+    (Some(dir), Some(data)) => {
+      let path = @path.Path(dir).join(Path("stdin.bin")).to_string()
+      @fs.write_file(path, data)
+      Some(path)
+    }
+    _ => None
+  }
+  run_prepared(program, args, stdin_path?=input, cwd?, extra_env~, inherit_env~)
+}
+
+///|
 pub async fn run(
   program : String,
   args : Array[String],
@@ -199,6 +240,32 @@ pub async fn run_merged(
 }
 
 ///|
+pub async fn run_merged_prepared(
+  program : PreparedProgram,
+  args : Array[String],
+  stdin : Bytes,
+  cwd : String,
+  extra_env : Map[String, String],
+  inherit_env? : Bool = false,
+) -> (Int, Bytes) {
+  let input_dir = @fs.tmpdir(prefix="moonjust-input")
+  defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
+  let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
+  @fs.write_file(input_path, stdin)
+  let input = @process.redirect_from_file(input_path)
+  let output = @process.collect_output_merged(
+    program.executable,
+    program.arguments(args),
+    extra_env~,
+    inherit_env~,
+    stdin=input,
+    cwd~,
+    no_console_window=true,
+  )
+  (output.0, output.1.binary())
+}
+
+///|
 fn array_contains_bytes(haystack : Array[Byte], needle : BytesView) -> Bool {
   if needle.is_empty() {
     return true
@@ -246,6 +313,68 @@ pub async fn run_live_stdout(
       group,
       program,
       args,
+      extra_env~,
+      inherit_env~,
+      stdin=input,
+      stdout=stdout_writer,
+      stderr=stderr_writer,
+      cwd~,
+      no_console_window=true,
+    )
+    let stdout_task = group.spawn(() => {
+      defer stdout_reader.close()
+      let output : Array[Byte] = []
+      let mut observed = false
+      while stdout_reader.read_some(max_len=64 * 1024) is Some(chunk) {
+        for byte in chunk {
+          output.push(byte)
+        }
+        if !observed &&
+          @async.now() - started <= timeout_ms.to_int64() &&
+          array_contains_bytes(output, prefix[:]) {
+          observed = true
+        }
+      }
+      (Bytes::from_array(output), observed)
+    })
+    let stderr_task = group.spawn(() => {
+      defer stderr_reader.close()
+      stderr_reader.read_all().binary()
+    })
+    let stdout_result = stdout_task.wait()
+    {
+      status: child.wait(),
+      stdout: stdout_result.0,
+      stderr: stderr_task.wait(),
+      observed: stdout_result.1,
+    }
+  }
+}
+
+///|
+pub async fn run_live_stdout_prepared(
+  program : PreparedProgram,
+  args : Array[String],
+  stdin : Bytes,
+  cwd : String,
+  extra_env : Map[String, String],
+  prefix : Bytes,
+  timeout_ms : Int,
+  inherit_env? : Bool = false,
+) -> LiveRunResult {
+  let input_dir = @fs.tmpdir(prefix="moonjust-input")
+  defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
+  let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
+  @fs.write_file(input_path, stdin)
+  let input = @process.redirect_from_file(input_path)
+  let (stdout_reader, stdout_writer) = @process.read_from_process()
+  let (stderr_reader, stderr_writer) = @process.read_from_process()
+  @async.with_task_group() <| group => {
+    let started = @async.now()
+    let child = @process.spawn(
+      group,
+      program.executable,
+      program.arguments(args),
       extra_env~,
       inherit_env~,
       stdin=input,

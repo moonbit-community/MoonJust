@@ -42,7 +42,7 @@ async fn[
           "call to function `canonicalize` failed: I/O error canonicalizing `" +
           raw +
           "`: " +
-          Repr(error).to_string(),
+          canonicalize_host_error_detail(error, path),
           span,
         )
     },
@@ -63,7 +63,7 @@ async fn[
         "call to function `canonicalize` failed: I/O error canonicalizing `" +
         raw +
         "`: " +
-        Repr(error).to_string(),
+        canonicalize_host_error_detail(error, path),
         span,
       )
   }

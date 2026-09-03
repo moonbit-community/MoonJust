@@ -10,8 +10,9 @@ The compatibility oracle and fixture source is:
 - Release date: 2026-07-19
 
 `just-1.57.0/test-list.txt` is a mechanically generated list of test
-registrations emitted by `cargo test -- --list`. It contains names only and no
-test implementation.
+registrations emitted by `cargo test -- --list`. The adjacent `source/` tree
+vendors the exact upstream `src/` and `tests/` files solely for offline source
+anchor validation; MoonJust never compiles or executes this Rust code.
 
 The recorded differential oracles are platform-specific because the pinned
 Rust test suite has conditional registrations. `harness-results.jsonl` is the
@@ -41,4 +42,5 @@ Future copied or adapted fixtures must append a row:
 | `src/builtin/builtin_test.mbt`, `src/evaluator/evaluator_test.mbt` | `src/evaluator.rs`, `src/value.rs`, `src/function.rs`, `src/function/semver.rs`, `src/function/sha256.rs` | Adapted value, scope, builtin registry, SemVer/regexp, hash, effect, and budget cases without copying Rust implementation | `MJ-EVAL-BUILTIN-ORACLE-1.57.0` |
 | `tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt` | `tests/*.rs`, `src/*/tests` | Source-backed audit blocks preserving each migrated upstream test's input and expected assertion text; no runtime implementation copied | `MJ-UPSTREAM-SNAPSHOT-1.57.0` |
 
-No upstream implementation source was copied into MoonJust during initial development.
+The vendored source is provenance material under CC0-1.0, not MoonJust
+implementation code or a runtime dependency.

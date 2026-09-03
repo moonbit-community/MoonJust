@@ -23,6 +23,36 @@ pub(all) suberror LiveRuntimeError {
 } derive(Debug)
 
 ///|
+fn process_error_detail(error : @host.HostError) -> String {
+  match error {
+    InvalidInput(detail) => detail
+    PermissionDenied(_, detail~) => detail
+    NotFound(path) => "No such file or directory: " + path.as_string()
+    AlreadyExists(path) => "already exists: " + path.as_string()
+    CapabilityDenied(capability) =>
+      "capability denied: " + Repr(capability).to_string()
+    CapabilityUnavailable(capability) =>
+      "capability unavailable: " + Repr(capability).to_string()
+    UnexpectedProcess(_) | ProcessMismatch(_) => "unexpected process invocation"
+    RandomExhausted(_) => "host randomness unavailable"
+  }
+}
+
+///|
+fn shell_launch_error(
+  recipe : String,
+  shell : String,
+  error : @host.HostError,
+) -> @planner.ExecutionError {
+  let detail = process_error_detail(error)
+  if detail.to_lower().contains("directory name is invalid") {
+    @planner.ShellLaunchIo(recipe~, shell~, detail~)
+  } else {
+    @planner.ShellNotFound(recipe~, shell~, detail~)
+  }
+}
+
+///|
 pub struct ExecutionSummary {
   commands : Int
 } derive(Eq, Debug)

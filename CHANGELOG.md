@@ -31,10 +31,19 @@ published releases.
   architecture and maintenance records now have separate locations.
 - Made `moon.mod` version 0.1.2 authoritative for the executable identity and
   added a preflight check that rejects a mismatched `--version` response.
-- Expanded compatibility evidence to emit a per-identity report for all 2,417
-  pinned upstream test names. The strict report has 2,362 executed identities
-  (2,358 exact and four pinned known differences), 34 completion exclusions,
-  21 signal exclusions, and zero unclassified identities.
+- Expanded compatibility evidence to schema 3: one auditable row for each of
+  the 2,417 pinned upstream identities, with real fixture, local test, exact
+  upstream source anchor, execution state, target platform, and candidate
+  digest. The inventory is 1,446 differential, 916 MoonBit spec, 34 completion
+  exclusions, and 21 signal exclusions. Functional known differences are zero;
+  `--version` and `--help` are reported separately as product identity.
+- Vendored the official just 1.57.0 source and test trees as immutable anchor
+  material. Strict validation rejects missing files, stale line anchors,
+  duplicate mappings, source-only evidence, and any `stdout.regex` or
+  `stderr.regex` file.
+- Added a pure MoonBit three-platform coverage merger. Native and Wasm reports
+  from Linux, macOS, and Windows are checked by upstream identity rather than
+  by aggregate test counts.
 - Reworked the benchmark runner around larger workloads, warmups, interleaved
   batches, ratio intervals and JSON gate artifacts for Native and Wasm. Wasm
   runner arguments now use the required `moonrun ... -- ...` form.
@@ -65,13 +74,16 @@ published releases.
 
 ### Verification
 
-- The maintained executable corpus contains 1,417 scenarios: 1,411 exact
-  matches, 6 pinned known differences, and 0 failures against official just
-  1.57.0. Unix runs show 1,410 exact matches because one Windows-only case is
-  skipped there and executed on the Windows job.
-- The strict upstream report covers all 2,417 identities: 2,358 exact, 4
-  pinned known differences, 34 completion exclusions, 21 runtime signal
-  exclusions, and zero unclassified identities.
+- The maintained executable corpus contains 1,417 scenarios. The current
+  Native Unix run has 1,445 applicable exact identities and one explicit
+  Windows defer; the aggregate gate requires all 1,446 differential identities
+  to execute on their declared platform. Functional known differences are 0.
+- The strict upstream report covers all 2,417 identities with 916/916 MoonBit
+  specs actually executed and verified against `moon test --outline`.
+- Wasm compatibility uses the same fixtures through `moonrun`; OS, architecture,
+  and CPU facts are passed to the portable host. Recursive `just_executable()`
+  fixtures are exercised through the pure-MoonBit native re-entry launcher,
+  while direct `moonrun` use remains limited by the host's child-process model.
 - Native/Wasm rewrite comparisons against the performance baseline have median
   1.00x; artifact growth remains below one percent on both targets.
 - PR #69 passed the logic-rewrite validation, and PR #70's latest CI run

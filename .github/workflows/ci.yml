@@ -57,8 +57,13 @@ jobs:
           if-no-files-found: error
 
   compatibility:
-    name: just 1.57 differential
-    runs-on: ubuntu-latest
+    name: just 1.57 differential (${{ matrix.os }}, ${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        target: [native, wasm]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
@@ -66,12 +71,41 @@ jobs:
           version: latest
       - run: moon update
       - run: cargo install just --version 1.57.0 --locked
-      - run: moon build --release --target native .
-      - run: moon run --target native ./tests/compat -- --candidate _build/native/release/build/MoonJust.exe --official just --strict-coverage --coverage-report _build/coverage.json
+      - run: moon build --release --target ${{ matrix.target }} .
+      - if: matrix.target == 'wasm'
+        run: moon build --release --target native ./tests/wasm_reentry
+      - if: matrix.target == 'native'
+        run: moon run --target native ./tests/compat -- --candidate _build/native/release/build/MoonJust.exe --official just --strict-coverage --allow-deferred-platform --execution-target native --coverage-report _build/coverage.json
+      - if: matrix.target == 'wasm'
+        run: moon run --target native ./tests/compat -- --candidate _build/wasm/release/build/MoonJust.wasm --candidate-runner moonrun --wasm-reentry _build/native/release/build/tests/wasm_reentry/wasm_reentry.exe --official just --strict-coverage --allow-deferred-platform --execution-target wasm --coverage-report _build/coverage.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: compatibility-report
+          name: compatibility-${{ matrix.os }}-${{ matrix.target }}
           path: _build/coverage.json
+          if-no-files-found: error
+
+  compatibility-merge:
+    # Keep the protected-branch context stable while the implementation below
+    # aggregates all six platform/target differential reports.
+    name: just 1.57 differential
+    needs: compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
+        with:
+          version: latest
+      - run: moon update
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: compatibility-*
+          path: _coverage
+      - run: moon run --target native ./tests/coverage_merge -- --target native --output _build/coverage-native.json _coverage/compatibility-ubuntu-latest-native/coverage.json _coverage/compatibility-macos-latest-native/coverage.json _coverage/compatibility-windows-latest-native/coverage.json
+      - run: moon run --target native ./tests/coverage_merge -- --target wasm --output _build/coverage-wasm.json _coverage/compatibility-ubuntu-latest-wasm/coverage.json _coverage/compatibility-macos-latest-wasm/coverage.json _coverage/compatibility-windows-latest-wasm/coverage.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: compatibility-aggregate
+          path: _build/coverage-*.json
           if-no-files-found: error
 
   quality:

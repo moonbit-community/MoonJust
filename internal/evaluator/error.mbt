@@ -155,6 +155,50 @@ pub fn EvaluationError::message(self : EvaluationError) -> String {
 }
 
 ///|
+/// Normalize host failures at the user-facing evaluator boundary. Internal
+/// enum representations are implementation details and are not part of the
+/// just-compatible diagnostic contract.
+fn host_error_detail(error : @host.HostError) -> String {
+  match error {
+    @host.HostError::InvalidInput(detail) => normalize_host_io_detail(detail)
+    @host.HostError::PermissionDenied(_, detail~) => detail
+    @host.HostError::NotFound(_) => "No such file or directory (os error 2)"
+    @host.HostError::AlreadyExists(_) => "File exists (os error 17)"
+    _ => Repr(error).to_string()
+  }
+}
+
+///|
+fn canonicalize_host_error_detail(
+  error : @host.HostError,
+  path : @path.PathValue,
+) -> String {
+  if path.flavor() == Windows {
+    match error {
+      @host.HostError::NotFound(_) =>
+        "The system cannot find the file specified. (os error 2)"
+      @host.HostError::InvalidInput(detail) if detail.contains(
+          "No such file or directory",
+        ) ||
+        detail.contains("The system cannot find the file specified") =>
+        "The system cannot find the file specified. (os error 2)"
+      _ => host_error_detail(error)
+    }
+  } else {
+    host_error_detail(error)
+  }
+}
+
+///|
+fn normalize_host_io_detail(detail : String) -> String {
+  if detail.contains("No such file or directory") {
+    "No such file or directory (os error 2)"
+  } else {
+    detail
+  }
+}
+
+///|
 pub fn EvaluationError::to_diagnostic(
   self : EvaluationError,
 ) -> @diagnostic.Diagnostic raise @diagnostic.DiagnosticError {

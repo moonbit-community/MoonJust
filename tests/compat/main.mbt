@@ -6,12 +6,14 @@ priv struct CaseMetadata {
   merged : Bool
   live_prefix : String?
   live_timeout_ms : Int
+  normalizations : Array[String]
   status : String
   compare : Array[String]
   allowed_difference : String?
   candidate_stdout_sha256 : String?
   candidate_stderr_sha256 : String?
   upstream_tests : Array[String]
+  upstream_anchors : Array[String]
 }
 
 ///|
@@ -42,8 +44,10 @@ priv struct StepResult {
 ///|
 fn usage() -> String {
   "Usage: moonjust-compat --candidate PATH --official PATH " +
+  "[--candidate-runner PATH] " +
   "[--cases PATH] [--manifest PATH] [--upstream-list PATH] " +
-  "[--record-expected] [--verify-snapshots] [--strict-coverage]"
+  "[--record-expected] [--verify-snapshots] [--strict-coverage] " +
+  "[--allow-deferred-platform] [--wasm-reentry PATH]"
 }
 
 ///|
@@ -67,8 +71,51 @@ fn has_flag(args : ArrayView[String], name : String) -> Bool {
 }
 
 ///|
+async fn fixture_structure_errors(
+  name : String,
+  case_dir : String,
+) -> Array[String] {
+  let errors : Array[String] = []
+  for
+    required in [
+      "compat-id", "expectation", "expected.status", "expected.stdout", "expected.stderr",
+      "expected.tree",
+    ] {
+    if !@fs.exists(join(case_dir, required)) {
+      errors.push(name + ": fixture is missing required file " + required)
+    }
+  }
+  if !@fs.exists(join(case_dir, "argv.txt")) &&
+    !@fs.exists(join(case_dir, "steps")) {
+    errors.push(name + ": fixture has no explicit argv or step input")
+  }
+  if @fs.exists(join(case_dir, "stdout.regex")) ||
+    @fs.exists(join(case_dir, "stderr.regex")) {
+    errors.push(name + ": regex expectations are forbidden")
+  }
+  errors
+}
+
+///|
 fn join(left : String, right : String) -> String {
   @path.Path(left).join(Path(right)).to_string()
+}
+
+///|
+fn symlink_target(
+  root : String,
+  link : String,
+  target : String,
+  platform : String,
+) -> String {
+  guard platform == "windows" && !@path.Path(target).is_absolute() else {
+    return target
+  }
+  let parent = match link.rev_find("/") {
+    Some(index) => link[:index].to_owned()
+    None => ""
+  }
+  join(join(root, parent), target)
 }
 
 ///|
@@ -110,12 +157,14 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
   let mut merged = false
   let mut live_prefix : String? = None
   let mut live_timeout_ms = 1000
+  let mut normalizations : Array[String] = []
   let mut status = "match"
   let mut compare : Array[String] = ["status", "stdout", "stderr", "tree"]
   let mut allowed_difference : String? = None
   let mut candidate_stdout_sha256 : String? = None
   let mut candidate_stderr_sha256 : String? = None
   let mut upstream_tests : Array[String] = []
+  let mut upstream_anchors : Array[String] = []
   fn flush() -> Unit {
     match directory {
       Some(name) =>
@@ -126,12 +175,14 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
           merged,
           live_prefix,
           live_timeout_ms,
+          normalizations,
           status,
           compare,
           allowed_difference,
           candidate_stdout_sha256,
           candidate_stderr_sha256,
           upstream_tests,
+          upstream_anchors,
         }
       None => ()
     }
@@ -147,12 +198,14 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
       merged = false
       live_prefix = None
       live_timeout_ms = 1000
+      normalizations = []
       status = "match"
       compare = ["status", "stdout", "stderr", "tree"]
       allowed_difference = None
       candidate_stdout_sha256 = None
       candidate_stderr_sha256 = None
       upstream_tests = []
+      upstream_anchors = []
     } else if line.has_prefix("schema_version =") {
       let text = line.strip_prefix("schema_version =").unwrap_or("").trim()
       schema_version = @string.parse_int(text) catch { _ => 0 }
@@ -174,6 +227,8 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
     } else if line.has_prefix("live_timeout_ms =") {
       let text = line.strip_prefix("live_timeout_ms =").unwrap_or("").trim()
       live_timeout_ms = @string.parse_int(text) catch { _ => 1000 }
+    } else if line.has_prefix("normalizations =") {
+      normalizations = quoted_values(line)
     } else if line.has_prefix("status =") {
       status = quoted_value(line).unwrap_or("match")
     } else if line.has_prefix("allowed_difference =") {
@@ -184,6 +239,8 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
       candidate_stderr_sha256 = quoted_value(line)
     } else if line.has_prefix("upstream_tests =") {
       upstream_tests = quoted_values(line)
+    } else if line.has_prefix("upstream_anchors =") {
+      upstream_anchors = quoted_values(line)
     }
   }
   flush()
@@ -220,8 +277,78 @@ fn runner_platform() -> String {
 fn platform_matches(platform : String?, current : String) -> Bool {
   match platform {
     None => true
-    Some(expected) => expected.to_lower() == current
+    Some(expected) => {
+      let expected = expected.to_lower()
+      expected == current || (expected == "unix" && current != "windows")
+    }
   }
+}
+
+///|
+fn target_environment(
+  base : Map[String, String],
+  program : @testkit.PreparedProgram,
+  architecture : String,
+  cpu_count : String,
+  wasm_reentry : String,
+) -> Map[String, String] {
+  let environment = base.copy()
+  let platform = runner_platform()
+  if platform == "windows" {
+    // The isolated fixture environment must retain the platform facts that
+    // native just obtains from the Windows process environment/API.
+    environment["MOONJUST_OS"] = "windows"
+    environment["PROCESSOR_ARCHITECTURE"] = match architecture {
+      "X64" | "x64" | "x86_64" | "amd64" | "AMD64" => "AMD64"
+      "ARM64" | "arm64" => "ARM64"
+      "x86" | "X86" => "x86"
+      "ARM" | "arm" => "ARM"
+      value => value
+    }
+  }
+  if program.is_wrapped() {
+    environment["MOONJUST_OS"] = platform
+    environment["MOONJUST_ARCH"] = match architecture {
+      "X64" | "x64" => "x86_64"
+      "ARM64" | "arm64" => "aarch64"
+      value => value
+    }
+    environment["MOONJUST_NUM_CPUS"] = cpu_count
+    if !wasm_reentry.is_empty() {
+      environment["MOONJUST_EXECUTABLE"] = wasm_reentry
+      environment["MOONJUST_WASM_CANDIDATE"] = program.subject()
+      environment["MOONJUST_MOONRUN"] = @env.get_env_var("MOONJUST_MOONRUN").unwrap_or(
+        "moonrun",
+      )
+    }
+  }
+  environment
+}
+
+///|
+async fn host_architecture() -> String {
+  let process = @testkit.run("uname", ["-m"])
+  if process.status == 0 {
+    let value = @utf8.decode(process.stdout) catch { _ => "" }
+    if !value.trim().is_empty() {
+      return value.trim().to_owned()
+    }
+  }
+  @env.get_env_var("RUNNER_ARCH").unwrap_or(
+    @env.get_env_var("PROCESSOR_ARCHITECTURE").unwrap_or("x86_64"),
+  )
+}
+
+///|
+async fn host_cpu_count() -> String {
+  let process = @testkit.run("getconf", ["_NPROCESSORS_ONLN"])
+  if process.status == 0 {
+    let value = @utf8.decode(process.stdout) catch { _ => "" }
+    if !value.trim().is_empty() {
+      return value.trim().to_owned()
+    }
+  }
+  @env.get_env_var("NUMBER_OF_PROCESSORS").unwrap_or("1")
 }
 
 ///|
@@ -242,18 +369,6 @@ async fn read_optional_bytes(path : String) -> Bytes {
     @fs.read_file(path).binary()
   } else {
     b""
-  }
-}
-
-///|
-async fn read_optional_text(path : String) -> String? {
-  if @fs.exists(path) {
-    let text = @fs.read_file(path).text()
-    let text = text.strip_suffix("\n").unwrap_or(text[:])
-    let text = text.strip_suffix("\r").unwrap_or(text)
-    Some(text.to_owned())
-  } else {
-    None
   }
 }
 
@@ -432,9 +547,16 @@ async fn apply_symlinks(directory : String, root : String) -> Unit {
     if fields.length() < 2 {
       continue
     }
+    let raw_target = fields[1].to_owned()
+    let target = symlink_target(
+      root,
+      fields[0].to_owned(),
+      raw_target,
+      runner_platform(),
+    )
     @fs.symlink(
       join(root, fields[0].to_owned()).view(),
-      target=fields[1].view(),
+      target=target.view(),
       force_symlink=true,
     )
     // A fixture may mark a host executable symlink as a tree link. Recording
@@ -481,7 +603,10 @@ async fn apply_directories(directory : String, root : String) -> Unit {
   for raw in read_text(descriptor).split("\n") {
     let relative = raw.trim().to_owned()
     if !relative.is_empty() {
-      @fs.mkdir(join(root, relative), recursive=true)
+      let path = join(root, relative)
+      if !@fs.exists(path) {
+        @fs.mkdir(path, recursive=true)
+      }
     }
   }
 }
@@ -544,10 +669,14 @@ async fn apply_step_changes(step_dir : String, root : String) -> Unit {
 
 ///|
 async fn run_steps(
-  program : String,
+  program : @testkit.PreparedProgram,
   case_dir : String,
   root : String,
   cwd : String,
+  rules : ArrayView[String],
+  architecture : String,
+  cpu_count : String,
+  wasm_reentry : String,
 ) -> Array[StepResult] {
   let result : Array[StepResult] = []
   let steps_root = join(case_dir, "steps")
@@ -557,8 +686,14 @@ async fn run_steps(
     apply_step_changes(step_dir, root)
     let args = arguments(step_dir, root)
     let stdin = read_optional_bytes(join(step_dir, "stdin"))
-    let env = environment(step_dir, root)
-    let execution = @testkit.run(
+    let env = target_environment(
+      environment(step_dir, root),
+      program,
+      architecture,
+      cpu_count,
+      wasm_reentry,
+    )
+    let execution = @testkit.run_prepared_bytes(
       program,
       args,
       stdin~,
@@ -568,8 +703,8 @@ async fn run_steps(
     )
     result.push({
       status: execution.status,
-      stdout: normalize(execution.stdout, root),
-      stderr: normalize(execution.stderr, root),
+      stdout: normalize_output(execution.stdout, root, program.subject(), rules),
+      stderr: normalize_output(execution.stderr, root, program.subject(), rules),
     })
   }
   result
@@ -708,10 +843,19 @@ async fn tree_snapshot(root : String) -> Bytes {
 
 ///|
 fn normalize(bytes : Bytes, root : String) -> Bytes {
+  if root.is_empty() {
+    return bytes
+  }
   let private_root = @utf8.encode("/private" + root)[:]
   let normalized = @testkit.replace_bytes(
     bytes,
     private_root,
+    b"<CASE_ROOT>"[:],
+  )
+  let escaped_root = @utf8.encode(root.replace_all(old="\\", new="\\\\"))[:]
+  let normalized = @testkit.replace_bytes(
+    normalized,
+    escaped_root,
     b"<CASE_ROOT>"[:],
   )
   let normalized = @testkit.replace_bytes(
@@ -723,11 +867,283 @@ fn normalize(bytes : Bytes, root : String) -> Bytes {
 }
 
 ///|
-async fn run_side(
+fn normalize_snapshot(
+  result : CaseResult,
   program : String,
+  rules : ArrayView[String],
+) -> CaseResult {
+  {
+    ..result,
+    stdout: normalize_output(result.stdout, "", program, rules),
+    stderr: normalize_output(result.stderr, "", program, rules),
+    merged: result.merged.map(fn(value) {
+      normalize_output(value, "", program, rules)
+    }),
+    steps: result.steps.map(fn(step) {
+      {
+        status: step.status,
+        stdout: normalize_output(step.stdout, "", program, rules),
+        stderr: normalize_output(step.stderr, "", program, rules),
+      }
+    }),
+  }
+}
+
+///|
+/// Apply only fixture-declared, structural normalizations. These rules are
+/// intentionally finite and deterministic; all fields not named by a rule
+/// remain byte-for-byte comparable.
+fn normalize_output(
+  bytes : Bytes,
+  root : String,
+  program : String,
+  rules : ArrayView[String],
+) -> Bytes {
+  let base = normalize(bytes, root)
+  let text = @utf8.decode(base) catch { _ => return base }
+  let mut result = text
+  for rule in rules {
+    result = match rule {
+      "datetime" => normalize_datetime(result)
+      "duration" => normalize_duration(result)
+      "timestamp" => normalize_timestamp(result)
+      "choose" => normalize_choice(result)
+      "uuid" => normalize_uuid(result)
+      "parallel-order" => normalize_parallel_order(result)
+      "program-path" => normalize_program_path(result)
+      "temp-path" => normalize_temp_path(result)
+      "canonical-path" => normalize_canonical_path(result)
+      "module-path" =>
+        result.replace_all(old="<CASE_ROOT>/foo.just", new="foo.just")
+      _ => result
+    }
+  }
+  // The program path is an execution detail only when explicitly declared by
+  // the fixture; this keeps ordinary diagnostics exact.
+  if rules.contains("program-path") && !program.is_empty() {
+    result = result.replace_all(old=program, new="<JUST>")
+  }
+  @utf8.encode(result)
+}
+
+///|
+fn decimal_digit(character : Char) -> Bool {
+  character >= '0' && character <= '9'
+}
+
+///|
+fn decimal_range(text : String, start : Int, length : Int) -> Bool {
+  let view = text.view(start_offset=start, end_offset=start + length)
+  for character in view {
+    if !decimal_digit(character) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn normalize_datetime(text : String) -> String {
+  guard text.length() >= 10 else { return text }
+  guard text[4] == '-' && text[7] == '-' else { return text }
+  guard decimal_range(text, 0, 4) &&
+    decimal_range(text, 5, 2) &&
+    decimal_range(text, 8, 2) else {
+    return text
+  }
+  "<DATE>" + text.view(start_offset=10).to_owned()
+}
+
+///|
+fn normalize_duration(text : String) -> String {
+  guard text.find(" completed in ") is Some(start) else { return text }
+  let after = start + " completed in ".length()
+  guard text.view(start_offset=after).find("s") is Some(end) else {
+    return text
+  }
+  let end = after + end
+  let value = text.view(start_offset=after, end_offset=end)
+  guard !value.is_empty() && value.all(fn(c) { decimal_digit(c) || c == '.' }) else {
+    return text
+  }
+  text[:after].to_owned() +
+  "<DURATION>" +
+  text.view(start_offset=end).to_owned()
+}
+
+///|
+fn normalize_timestamp(text : String) -> String {
+  guard text.has_prefix("[") &&
+    text.length() >= 10 &&
+    text[3] == ':' &&
+    text[6] == ':' &&
+    text[9] == ']' &&
+    decimal_range(text, 1, 2) &&
+    decimal_range(text, 4, 2) &&
+    decimal_range(text, 7, 2) else {
+    return text
+  }
+  let end = 9
+  "[<TIME>]" + text.view(start_offset=end + 1).to_owned()
+}
+
+///|
+fn normalize_choice(text : String) -> String {
+  let suffix = if text.has_suffix("\n") { "\n" } else { "" }
+  let value = if suffix.is_empty() {
+    text
+  } else {
+    text[:text.length() - 1].to_owned()
+  }
+  if value.length() != 10 ||
+    value.contains("\n") ||
+    !value.all(fn(c) {
+      c == 'x' || c == 'X' || c == 'y' || c == 'Y' || c == 'z' || c == 'Z'
+    }) {
+    text
+  } else {
+    "<CHOICE>" + suffix
+  }
+}
+
+///|
+fn normalize_uuid(text : String) -> String {
+  let suffix = if text.has_suffix("\n") { "\n" } else { "" }
+  let value = if suffix.is_empty() {
+    text
+  } else {
+    text[:text.length() - 1].to_owned()
+  }
+  guard value.length() == 36 else { return text }
+  guard value[8] == '-' &&
+    value[13] == '-' &&
+    value[18] == '-' &&
+    value[23] == '-' else {
+    return text
+  }
+  "<UUID>" + suffix
+}
+
+///|
+fn normalize_parallel_order(text : String) -> String {
+  let ending = text.has_suffix("\n")
+  let lines = text.split("\n").collect()
+  let values : Array[String] = []
+  for index, line in lines {
+    if ending && index == lines.length() - 1 {
+      continue
+    }
+    values.push(line.to_owned())
+  }
+  values.sort()
+  values.join("\n") + (if ending { "\n" } else { "" })
+}
+
+///|
+fn normalize_program_path(text : String) -> String {
+  guard text.has_prefix("'") && text.find("'") is Some(first) else {
+    return text
+  }
+  guard text.view(start_offset=first + 1).find("'") is Some(offset) else {
+    return text
+  }
+  let second = first + 1 + offset
+  "'<JUST>" + text.view(start_offset=second).to_owned()
+}
+
+///|
+fn normalize_temp_path(text : String) -> String {
+  let markers = [
+    "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-official.", "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\moonjust-compat-candidate.",
+    "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\moonjust-compat-official.", "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\moonjust-compat-candidate.",
+    "C:\\\\Users\\\\RUNNER~1\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-official.",
+    "C:\\\\Users\\\\RUNNER~1\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-candidate.",
+    "C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-official.",
+    "C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\moonjust-compat-candidate.",
+    "/c/Users/RUNNER~1/AppData/Local/Temp/moonjust-compat-official.", "/c/Users/RUNNER~1/AppData/Local/Temp/moonjust-compat-candidate.",
+    "/c/Users/runneradmin/AppData/Local/Temp/moonjust-compat-official.", "/c/Users/runneradmin/AppData/Local/Temp/moonjust-compat-candidate.",
+    "C:/Users/RUNNER~1/AppData/Local/Temp/moonjust-compat-official.", "C:/Users/RUNNER~1/AppData/Local/Temp/moonjust-compat-candidate.",
+    "C:/Users/runneradmin/AppData/Local/Temp/moonjust-compat-official.", "C:/Users/runneradmin/AppData/Local/Temp/moonjust-compat-candidate.",
+  ]
+  let mut text = text
+  for marker in markers {
+    text = replace_windows_temp_root(text, marker)
+  }
+  let suffix = if text.has_suffix("\n") { "\n" } else { "" }
+  if text.is_empty() || (text.contains("\n") && !text.has_suffix("\n")) {
+    text
+  } else {
+    let value = if suffix.is_empty() {
+      text
+    } else {
+      text[:text.length() - 1].to_owned()
+    }
+    let parts = value.replace_all(old="\\", new="/").split("/").collect()
+    guard parts.length() >= 2 &&
+      parts.last() is Some(file) &&
+      !file.is_empty() &&
+      file.has_suffix(".txt") else {
+      return text
+    }
+    "<TEMP_PATH>/" + file.to_owned() + suffix
+  }
+}
+
+///|
+fn normalize_canonical_path(text : String) -> String {
+  text
+  .replace_all(old="\\\\?\\<CASE_ROOT>", new="<CASE_ROOT>")
+  .replace_all(old="\\?\\<CASE_ROOT>", new="<CASE_ROOT>")
+  .replace_all(old="\\", new="/")
+}
+
+///|
+/// Replace only the generated compatibility root component in Windows paths.
+/// The token is intentionally finite and marker-based; no arbitrary wildcard
+/// or regular-expression matching is used.
+fn replace_windows_temp_root(text : String, marker : String) -> String {
+  let output = StringBuilder()
+  let mut cursor = 0
+  while cursor < text.length() {
+    let remaining = text.view(start_offset=cursor)
+    guard remaining.find(marker) is Some(offset) else {
+      output.write_string(remaining.to_owned())
+      break
+    }
+    let start = cursor + offset
+    output.write_string(
+      text.view(start_offset=cursor, end_offset=start).to_owned(),
+    )
+    let token_start = start + marker.length()
+    let mut token_end = token_start
+    for character in text.view(start_offset=token_start) {
+      if character == '\\' ||
+        character == '/' ||
+        character == '"' ||
+        character == '\'' ||
+        character == ' ' ||
+        character == '\n' ||
+        character == '\r' ||
+        character == ']' {
+        break
+      }
+      token_end += 1
+    }
+    output.write_string("<CASE_ROOT>")
+    cursor = token_end
+  }
+  output.to_string()
+}
+
+///|
+async fn run_side(
+  program : @testkit.PreparedProgram,
   case_dir : String,
   metadata : CaseMetadata,
   side : String,
+  architecture : String,
+  cpu_count : String,
+  wasm_reentry : String,
 ) -> CaseResult {
   let root = @fs.tmpdir(prefix="moonjust-compat-" + side)
   defer (@fs.rmdir(root, recursive=true) catch { _ => () })
@@ -740,12 +1156,31 @@ async fn run_side(
   }
   let steps_root = join(case_dir, "steps")
   if @fs.exists(steps_root) {
-    let steps = run_steps(program, case_dir, root, cwd)
+    let steps = run_steps(
+      program,
+      case_dir,
+      root,
+      cwd,
+      metadata.normalizations,
+      architecture,
+      cpu_count,
+      wasm_reentry,
+    )
     let last = steps[steps.length() - 1]
     return {
       status: last.status,
-      stdout: concatenate_step_stream(steps, true),
-      stderr: concatenate_step_stream(steps, false),
+      stdout: normalize_output(
+        concatenate_step_stream(steps, true),
+        root,
+        program.subject(),
+        metadata.normalizations,
+      ),
+      stderr: normalize_output(
+        concatenate_step_stream(steps, false),
+        root,
+        program.subject(),
+        metadata.normalizations,
+      ),
       merged: None,
       tree: normalize(tree_snapshot(root), root),
       live: true,
@@ -754,10 +1189,16 @@ async fn run_side(
   }
   let args = arguments(case_dir, root)
   let stdin = read_optional_bytes(join(case_dir, "stdin"))
-  let env = environment(case_dir, root)
+  let env = target_environment(
+    environment(case_dir, root),
+    program,
+    architecture,
+    cpu_count,
+    wasm_reentry,
+  )
   let (status, stdout, stderr, live) = match metadata.live_prefix {
     Some(prefix) => {
-      let result = @testkit.run_live_stdout(
+      let result = @testkit.run_live_stdout_prepared(
         program,
         args,
         stdin,
@@ -769,7 +1210,7 @@ async fn run_side(
       (result.status, result.stdout, result.stderr, result.observed)
     }
     None => {
-      let result = @testkit.run(
+      let result = @testkit.run_prepared_bytes(
         program,
         args,
         stdin~,
@@ -790,8 +1231,14 @@ async fn run_side(
       join(merged_root, metadata.cwd)
     }
     let merged_args = arguments(case_dir, merged_root)
-    let merged_env = environment(case_dir, merged_root)
-    let result = @testkit.run_merged(
+    let merged_env = target_environment(
+      environment(case_dir, merged_root),
+      program,
+      architecture,
+      cpu_count,
+      wasm_reentry,
+    )
+    let result = @testkit.run_merged_prepared(
       program, merged_args, stdin, merged_cwd, merged_env,
     )
     Some(normalize(result.1, merged_root))
@@ -800,16 +1247,36 @@ async fn run_side(
   }
   {
     status,
-    stdout: normalize(stdout, root),
-    stderr: normalize(stderr, root),
+    stdout: normalize_output(
+      stdout,
+      root,
+      program.subject(),
+      metadata.normalizations,
+    ),
+    stderr: normalize_output(
+      stderr,
+      root,
+      program.subject(),
+      metadata.normalizations,
+    ),
     merged,
     tree: normalize(tree_snapshot(root), root),
     live,
     steps: [
       {
         status,
-        stdout: normalize(stdout, root),
-        stderr: normalize(stderr, root),
+        stdout: normalize_output(
+          stdout,
+          root,
+          program.subject(),
+          metadata.normalizations,
+        ),
+        stderr: normalize_output(
+          stderr,
+          root,
+          program.subject(),
+          metadata.normalizations,
+        ),
       },
     ],
   }
@@ -825,8 +1292,6 @@ fn difference_fields(
   expected : CaseResult,
   actual : CaseResult,
   metadata : CaseMetadata,
-  stdout_regex : String?,
-  stderr_regex : String?,
 ) -> Array[String] {
   let fields : Array[String] = []
   if expected.steps.length() != actual.steps.length() {
@@ -843,13 +1308,11 @@ fn difference_fields(
       fields.push("status")
     }
     if compares(metadata, "stdout") &&
-      stdout_regex is None &&
       !@testkit.bytes_equal(expected_step.stdout, actual_step.stdout) &&
       !fields.contains("stdout") {
       fields.push("stdout")
     }
     if compares(metadata, "stderr") &&
-      stderr_regex is None &&
       !@testkit.bytes_equal(expected_step.stderr, actual_step.stderr) &&
       !fields.contains("stderr") {
       fields.push("stderr")
@@ -860,19 +1323,13 @@ fn difference_fields(
       fields.push("status")
     }
   }
-  let stdout_differs = match stdout_regex {
-    Some(pattern) => !regex_matches(pattern, actual.stdout)
-    None => !@testkit.bytes_equal(expected.stdout, actual.stdout)
-  }
+  let stdout_differs = !@testkit.bytes_equal(expected.stdout, actual.stdout)
   if compares(metadata, "stdout") && stdout_differs {
     if !fields.contains("stdout") {
       fields.push("stdout")
     }
   }
-  let stderr_differs = match stderr_regex {
-    Some(pattern) => !regex_matches(pattern, actual.stderr)
-    None => !@testkit.bytes_equal(expected.stderr, actual.stderr)
-  }
+  let stderr_differs = !@testkit.bytes_equal(expected.stderr, actual.stderr)
   if compares(metadata, "stderr") && stderr_differs {
     if !fields.contains("stderr") {
       fields.push("stderr")
@@ -898,12 +1355,6 @@ fn difference_fields(
 }
 
 ///|
-fn regex_matches(pattern : String, bytes : Bytes) -> Bool {
-  let normalized = pattern.replace_all(old="(?s)", new="")
-  let regexp = @regexp.compile(normalized[:]) catch { _ => return false }
-  let text = @utf8.decode(bytes) catch { _ => return false }
-  regexp.execute(text[:]).matched()
-}
 
 ///|
 async fn write_difference_bytes(
@@ -985,8 +1436,6 @@ fn expected_difference_allowed(
   let expected_digest = match reason {
     Some("product-identity") if fields.length() == 1 && fields[0] == "stdout" =>
       metadata.candidate_stdout_sha256.map(digest => (digest, actual.stdout))
-    Some("diagnostic-style") if fields.length() == 1 && fields[0] == "stderr" =>
-      metadata.candidate_stderr_sha256.map(digest => (digest, actual.stderr))
     _ => None
   }
   match expected_digest {
@@ -997,8 +1446,8 @@ fn expected_difference_allowed(
 }
 
 ///|
-async fn official_is_pinned(program : String) -> Bool {
-  let result = @testkit.run(program, ["--version"])
+async fn official_is_pinned(program : @testkit.PreparedProgram) -> Bool {
+  let result = @testkit.run_prepared_bytes(program, ["--version"])
   result.status == 0 &&
   @testkit.bytes_equal(result.stdout, b"just 1.57.0\n") &&
   result.stderr.is_empty()
@@ -1016,8 +1465,11 @@ fn module_version(text : String) -> String? {
 }
 
 ///|
-async fn candidate_version_matches(program : String, version : String) -> Bool {
-  let result = @testkit.run(program, ["--version"])
+async fn candidate_version_matches(
+  program : @testkit.PreparedProgram,
+  version : String,
+) -> Bool {
+  let result = @testkit.run_prepared_bytes(program, ["--version"])
   result.status == 0 &&
   @testkit.bytes_equal(
     result.stdout,
@@ -1039,12 +1491,67 @@ fn upstream_test_names(text : String) -> Set[String] {
 }
 
 ///|
-async fn resolve_program(value : String) -> String {
-  if value.contains("/") || value.contains("\\") {
-    @fs.realpath(value)
-  } else {
-    value
+fn outline_contains_spec(outline : String, spec : SpecCase) -> Bool {
+  guard spec.local_test is Some(name) else { return false }
+  guard location_parts(spec.fixture) is Some((path, line_number)) else {
+    return false
   }
+  let segments = path.split("/").collect()
+  guard segments.last() is Some(file) else { return false }
+  let package_path = segments[:segments.length() - 1].join("/")
+  let location = "/" +
+    package_path +
+    " " +
+    file.to_owned() +
+    ":" +
+    line_number.to_string() +
+    " "
+  let declaration = " name=\"" + name + "\""
+  for line in outline.split("\n") {
+    if line.contains(location) && line.has_suffix(declaration) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+async fn execute_moonbit_specs(
+  specs : Map[String, SpecCase],
+  failures : Array[String],
+) -> Set[String] {
+  let executed : Set[String] = Set([])
+  let test_result = @testkit.run("moon", [
+    "test", "--target", "native", "--no-parallelize",
+  ])
+  if test_result.status != 0 {
+    failures.push("MoonBit spec test execution failed")
+    return executed
+  }
+  let outline = @testkit.run("moon", ["test", "--target", "native", "--outline"])
+  if outline.status != 0 {
+    failures.push("MoonBit spec test outline failed")
+    return executed
+  }
+  let outline_text = @utf8.decode(outline.stdout) catch {
+    _ => {
+      failures.push("MoonBit spec test outline is not UTF-8")
+      return executed
+    }
+  }
+  for upstream_test, spec in specs {
+    let fixture_path = spec.fixture
+      .split(":")
+      .collect()
+      .get(0)
+      .unwrap_or("")
+      .to_owned()
+    if !fixture_path.has_suffix("upstream-fixtures.txt") &&
+      outline_contains_spec(outline_text, spec) {
+      executed.add(upstream_test)
+    }
+  }
+  executed
 }
 
 ///|
@@ -1067,6 +1574,7 @@ async fn main {
     "tests/compatibility/upstream/just-1.57.0/test-list.txt",
   )
   let coverage_report = option(args, "--coverage-report")
+  let execution_target = option(args, "--execution-target").unwrap_or("native")
   let spec_index = parse_spec_index(
     read_text(
       option(args, "--spec-index").unwrap_or(
@@ -1074,21 +1582,44 @@ async fn main {
       ),
     ),
   )
-  let candidate = resolve_program(candidate_value)
-  let official = resolve_program(official_value)
+  let candidate = @testkit.prepare_program(
+    candidate_value,
+    runner=option(args, "--candidate-runner").unwrap_or(""),
+  )
+  let official = @testkit.prepare_program(official_value)
   let parsed_manifest = parse_manifest(read_text(manifest))
   let metadata = parsed_manifest.cases
   let upstream_names = upstream_test_names(read_text(upstream_list))
   let mut matched = 0
   let mut known = 0
-  let mut executed_total = 0
-  let mut exact_total = 0
-  let mut known_difference_total = 0
-  let mut excluded_completion_total = 0
-  let mut excluded_signal_total = 0
+  let mut product_identity = 0
   let mut selected_found = false
   let fixture_cache : Map[String, String] = Map([])
   let failures : Array[String] = []
+  let executed : Set[String] = Set([])
+  let exact : Set[String] = Set([])
+  let known_upstream : Set[String] = Set([])
+  let failed_upstream : Set[String] = Set([])
+  let deferred : Set[String] = Set([])
+  // MoonBit specs run under `moon test`; this set is populated only by an
+  // explicit external execution report, never inferred from the index.
+  let spec_executed : Set[String] = if has_flag(args, "--strict-coverage") {
+    execute_moonbit_specs(spec_index, failures)
+  } else {
+    Set([])
+  }
+  let architecture = host_architecture()
+  let cpu_count = host_cpu_count()
+  let wasm_reentry = match option(args, "--wasm-reentry") {
+    Some(path) if !path.is_empty() => @fs.realpath(path)
+    _ => ""
+  }
+  if execution_target != "native" && execution_target != "wasm" {
+    failures.push("execution target must be `native` or `wasm`")
+  }
+  if execution_target == "wasm" && option(args, "--candidate-runner") is None {
+    failures.push("Wasm compatibility requires --candidate-runner")
+  }
   let expected_version = module_version(read_text("moon.mod"))
   match expected_version {
     Some(version) if candidate_version_matches(candidate, version) => ()
@@ -1109,7 +1640,22 @@ async fn main {
   if parsed_manifest.upstream != "just 1.57.0" {
     failures.push("compatibility manifest upstream must be `just 1.57.0`")
   }
+  let manifest_upstream : Set[String] = Set([])
+  for
+    error in spec_index_shape_errors(
+      read_text(
+        option(args, "--spec-index").unwrap_or(
+          "tests/compatibility/upstream/just-1.57.0/spec-index.txt",
+        ),
+      ),
+    ) {
+    failures.push(error)
+  }
   for name, details in metadata {
+    let case_dir = join(cases_root, name)
+    for error in fixture_structure_errors(name, case_dir) {
+      failures.push(error)
+    }
     if details.status != "match" && details.status != "expected-difference" {
       failures.push(name + ": invalid manifest status " + details.status)
     }
@@ -1125,9 +1671,21 @@ async fn main {
         failures.push(name + ": compare contains unknown field " + field)
       }
     }
+    for rule in details.normalizations {
+      if ![
+          "datetime", "duration", "timestamp", "choose", "uuid", "parallel-order",
+          "program-path", "temp-path", "canonical-path", "module-path",
+        ].contains(rule) {
+        failures.push(name + ": unknown output normalization " + rule)
+      }
+    }
     if details.status == "expected-difference" &&
       details.allowed_difference is None {
       failures.push(name + ": expected difference has no named reason")
+    }
+    if details.status == "expected-difference" &&
+      details.allowed_difference != Some("product-identity") {
+      failures.push(name + ": functional expected differences are forbidden")
     }
     if details.status == "expected-difference" &&
       details.candidate_stdout_sha256 is None &&
@@ -1135,12 +1693,33 @@ async fn main {
       failures.push(name + ": expected difference has no candidate digest")
     }
     for upstream_test in details.upstream_tests {
+      if manifest_upstream.contains(upstream_test) {
+        failures.push(
+          "duplicate differential upstream identity: " + upstream_test,
+        )
+      } else {
+        manifest_upstream.add(upstream_test)
+      }
       if !upstream_names.contains(upstream_test) {
         failures.push(
           name +
           ": upstream anchor is absent from pinned just test list: " +
           upstream_test,
         )
+      }
+    }
+    if details.upstream_tests.length() != details.upstream_anchors.length() {
+      failures.push(name + ": upstream test and anchor counts differ")
+    } else {
+      for index, upstream_test in details.upstream_tests {
+        match
+          validate_upstream_anchor(
+            upstream_test,
+            details.upstream_anchors[index],
+          ) {
+          Some(error) => failures.push(error)
+          None => ()
+        }
       }
     }
   }
@@ -1175,37 +1754,14 @@ async fn main {
         upstream_test + ": spec is missing an upstream source anchor",
       )
     }
-  }
-  // Count coverage by upstream row, rather than by local fixture count. A
-  // future full corpus can provide explicit exclusion files; until then every
-  // unbound upstream row remains visible as unclassified.
-  for upstream_test in upstream_names {
-    let (status, _, _, _) = coverage_status(upstream_test, metadata, spec_index)
-    match status {
-      "differential-exact" => {
-        executed_total += 1
-        exact_total += 1
-      }
-      "differential-known-difference" => {
-        executed_total += 1
-        known_difference_total += 1
-      }
-      "moonbit-spec-exact" => {
-        executed_total += 1
-        exact_total += 1
-      }
-      "excluded-completion" => excluded_completion_total += 1
-      "excluded-signal" => excluded_signal_total += 1
-      _ => ()
+    match validate_upstream_anchor(upstream_test, spec.anchor) {
+      Some(error) => failures.push(error)
+      None => ()
     }
-  }
-  match coverage_report {
-    Some(path) =>
-      @fs.write_file(
-        path,
-        @utf8.encode(coverage_json(upstream_names, metadata, spec_index)),
-      )
-    None => ()
+    match validate_spec_anchor(upstream_test, spec) {
+      Some(error) => failures.push(error)
+      None => ()
+    }
   }
   for name in @fs.readdir(cases_root, include_hidden=false, sort=true) {
     if selected_case is Some(selected) && name != selected {
@@ -1231,6 +1787,8 @@ async fn main {
         candidate_stdout_sha256: None,
         candidate_stderr_sha256: None,
         upstream_tests: [],
+        upstream_anchors: [],
+        normalizations: [],
       })
     if details.id.is_empty() {
       failures.push(name + ": missing manifest identity")
@@ -1248,32 +1806,43 @@ async fn main {
       continue
     }
     if !platform_matches(details.platform, runner_platform()) {
+      for upstream_test in details.upstream_tests {
+        deferred.add(upstream_test)
+      }
       @stdio.stdout.write(
         "SKIP  " + name + " (platform=" + details.platform.unwrap_or("") + ")\n",
       )
       continue
     }
-    let stdout_regex = read_optional_text(join(case_dir, "stdout.regex"))
-    let stderr_regex = read_optional_text(join(case_dir, "stderr.regex"))
-    let official_result = run_side(official, case_dir, details, "official")
-    match stdout_regex {
-      Some(pattern) if !regex_matches(pattern, official_result.stdout) =>
-        failures.push(name + ": official stdout does not match stdout.regex")
-      _ => ()
+    let stdout_regex = @fs.exists(join(case_dir, "stdout.regex"))
+    let stderr_regex = @fs.exists(join(case_dir, "stderr.regex"))
+    if stdout_regex || stderr_regex {
+      failures.push(
+        name + ": regex expectations are forbidden; use exact bytes",
+      )
+      for upstream_test in details.upstream_tests {
+        failed_upstream.add(upstream_test)
+      }
+      continue
     }
-    match stderr_regex {
-      Some(pattern) if !regex_matches(pattern, official_result.stderr) =>
-        failures.push(name + ": official stderr does not match stderr.regex")
-      _ => ()
+    let official_result = run_side(
+      official, case_dir, details, "official", architecture, cpu_count, "",
+    )
+    for upstream_test in details.upstream_tests {
+      executed.add(upstream_test)
     }
     if record_expected {
       write_expected(case_dir, official_result)
     }
-    let expected_snapshot_result = expected_snapshot(case_dir)
+    let expected_snapshot_result = expected_snapshot(case_dir).map(fn(
+      snapshot,
+    ) {
+      normalize_snapshot(snapshot, official.subject(), details.normalizations)
+    })
     match expected_snapshot_result {
       Some(snapshot) if verify_snapshots && !record_expected => {
         let snapshot_differences = difference_fields(
-          snapshot, official_result, details, stdout_regex, stderr_regex,
+          snapshot, official_result, details,
         )
         if !snapshot_differences.is_empty() {
           failures.push(
@@ -1291,10 +1860,10 @@ async fn main {
     // snapshots document the fixture and are optionally audited on the same
     // platform with --verify-snapshots.
     let expected = official_result
-    let actual = run_side(candidate, case_dir, details, "candidate")
-    let differences = difference_fields(
-      expected, actual, details, stdout_regex, stderr_regex,
+    let actual = run_side(
+      candidate, case_dir, details, "candidate", architecture, cpu_count, wasm_reentry,
     )
+    let differences = difference_fields(expected, actual, details)
     let expectation = read_text(join(case_dir, "expectation")).trim().to_owned()
     let expected_status = if details.status == "expected-difference" {
       "difference"
@@ -1311,6 +1880,9 @@ async fn main {
       )
     } else if expectation == "match" && differences.is_empty() {
       matched += 1
+      for upstream_test in details.upstream_tests {
+        exact.add(upstream_test)
+      }
       @stdio.stdout.write("PASS  " + name + "\n")
     } else if expectation == "difference" &&
       expected_difference_allowed(
@@ -1319,12 +1891,22 @@ async fn main {
         actual,
         details,
       ) {
-      known += 1
+      if details.allowed_difference == Some("product-identity") {
+        product_identity += 1
+      } else {
+        known += 1
+        for upstream_test in details.upstream_tests {
+          known_upstream.add(upstream_test)
+        }
+      }
       @stdio.stdout.write(
         "XDIFF " + name + " [" + differences.join(", ") + "]\n",
       )
     } else {
       write_difference_details(name, differences, expected, actual)
+      for upstream_test in details.upstream_tests {
+        failed_upstream.add(upstream_test)
+      }
       failures.push(
         name +
         ": expected " +
@@ -1343,6 +1925,74 @@ async fn main {
   if selected_case is Some(selected) && !selected_found {
     failures.push("requested case does not exist: " + selected)
   }
+  let mut differential_declared = 0
+  let mut differential_executed = 0
+  let mut differential_exact = 0
+  let mut differential_known = 0
+  let mut spec_declared = 0
+  let mut spec_done = 0
+  let mut completion = 0
+  let mut signal = 0
+  let mut unclassified = 0
+  let mut deferred_count = 0
+  for upstream_test in upstream_names {
+    let (status, _, _, _) = coverage_status(upstream_test, metadata, spec_index)
+    match status {
+      "differential-exact" | "differential-known-difference" => {
+        differential_declared += 1
+        if executed.contains(upstream_test) {
+          differential_executed += 1
+        }
+        if exact.contains(upstream_test) {
+          differential_exact += 1
+        }
+        if known_upstream.contains(upstream_test) {
+          differential_known += 1
+        }
+      }
+      "moonbit-spec-exact" => {
+        spec_declared += 1
+        if spec_executed.contains(upstream_test) {
+          spec_done += 1
+        }
+      }
+      "excluded-completion" => completion += 1
+      "excluded-signal" => signal += 1
+      _ => unclassified += 1
+    }
+    if deferred.contains(upstream_test) {
+      deferred_count += 1
+    }
+  }
+  let coverage_incomplete = upstream_names.length() !=
+    differential_executed + spec_done + completion + signal + deferred_count ||
+    differential_known != 0 ||
+    (deferred_count != 0 && !has_flag(args, "--allow-deferred-platform")) ||
+    unclassified != 0 ||
+    spec_done != spec_declared
+  match coverage_report {
+    Some(path) =>
+      @fs.write_file(
+        path,
+        @utf8.encode(
+          coverage_json(
+            upstream_names,
+            metadata,
+            spec_index,
+            executed,
+            exact,
+            known_upstream,
+            failed_upstream,
+            deferred,
+            spec_executed,
+            failures.length() + (if coverage_incomplete { 1 } else { 0 }),
+            runner_platform(),
+            execution_target,
+          ),
+        ),
+      )
+    None => ()
+  }
   for failure in failures {
     @stdio.stderr.write("FAIL  " + failure + "\n")
   }
@@ -1351,32 +2001,37 @@ async fn main {
     matched.to_string() +
     " known_differences=" +
     known.to_string() +
+    " product_identity_difference=" +
+    product_identity.to_string() +
     " failures=" +
     failures.length().to_string() +
     " version=" +
     (if failures.is_empty() { "pass" } else { "fail" }) +
     " upstream_total=" +
     upstream_names.length().to_string() +
-    " executed_total=" +
-    executed_total.to_string() +
-    " exact_total=" +
-    exact_total.to_string() +
-    " known_difference_total=" +
-    known_difference_total.to_string() +
-    " excluded_completion_total=" +
-    excluded_completion_total.to_string() +
-    " excluded_signal_total=" +
-    excluded_signal_total.to_string() +
-    " unclassified_total=" +
-    (upstream_names.length() -
-    executed_total -
-    excluded_completion_total -
-    excluded_signal_total).to_string() +
+    " differential_declared=" +
+    differential_declared.to_string() +
+    " differential_executed=" +
+    differential_executed.to_string() +
+    " differential_exact=" +
+    differential_exact.to_string() +
+    " differential_known_difference=" +
+    differential_known.to_string() +
+    " moonbit_spec_declared=" +
+    spec_declared.to_string() +
+    " moonbit_spec_executed=" +
+    spec_done.to_string() +
+    " excluded_completion=" +
+    completion.to_string() +
+    " excluded_signal=" +
+    signal.to_string() +
+    " deferred_platform=" +
+    deferred_count.to_string() +
+    " unclassified=" +
+    unclassified.to_string() +
     "\n",
   )
-  if has_flag(args, "--strict-coverage") &&
-    upstream_names.length() !=
-    executed_total + excluded_completion_total + excluded_signal_total {
+  if has_flag(args, "--strict-coverage") && coverage_incomplete {
     @stdio.stderr.write("FAIL  upstream coverage is incomplete\n")
     @sys.exit(1)
   }

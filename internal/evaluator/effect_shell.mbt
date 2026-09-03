@@ -226,8 +226,8 @@ pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
         raise Host(error, span~)
       } else {
         raise effect_failure(
-          "backtick could not be run because just could not find the shell: " +
-          Repr(error).to_string(),
+          "backtick could not be run because just could not find the shell:\n" +
+          host_error_detail(error),
           span,
         )
       }

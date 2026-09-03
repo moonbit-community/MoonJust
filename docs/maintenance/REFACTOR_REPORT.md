@@ -24,25 +24,24 @@ Native and Wasm both report `moonjust v0.1.2`, with the version digest updated
 to the new bytes.
 
 The compatibility runner reads all 2,417 identities from the pinned just
-1.57.0 inventory and writes one JSON row per identity. Every source-only row
-retains its upstream anchor and original input/expected assertion text, while
-only real executable fixtures contribute to executed coverage. The current
-local strict report contains 2,362 executed identities (2,358 exact and 4
-pinned known differences), 34 completion exclusions, 21 runtime-signal
-exclusions, and zero unclassified identities. The executable corpus runs 1,417
-scenarios: 1,411 exact matches, 6 pinned known differences, and 0 failures.
-CI enables `--strict-coverage`, so missing fixtures or stale anchors fail the
-compatibility job.
+1.57.0 inventory and writes one schema 3 JSON row per identity. The current
+Native Unix run executes 1,445 applicable differential identities exactly, with
+one Windows-only row deferred, plus 916/916 MoonBit spec identities. Category
+totals are 1,446 differential, 916 spec, 34 completion exclusions, and 21
+signal exclusions; functional known differences are zero and product identity
+is reported separately as two cases. Every executable row has a real fixture
+and exact upstream source anchor. CI rejects missing inputs, stale anchors,
+duplicate IDs, regex expectations, and inferred execution counts.
 
-The September 1 audit reran the strict command after `moon clean`: Native and
-Wasm checks, tests, release builds, version output, and the platform
-differential all passed locally. The local strict summary was
-`matched=1410 known_differences=6 failures=0`; the one fewer match is the
-Windows-only fixture skipped on a Unix host and is executed on the Windows CI
-job. The two date-sensitive `datetime` fixtures retain their upstream format
-regular expressions, so their recorded date is audit context rather than a
-fixed expected value. The live official binary remains the authoritative
-comparison.
+The strict command was rerun after a clean build: Native checks, tests, release
+build, version output, and all applicable differential cases passed. The Wasm
+runner executes the same corpus through `moonrun` and injects the actual runner
+OS, architecture, and CPU facts into its portable host. Recursive
+`just_executable()` fixtures are run through the pure-MoonBit native re-entry
+launcher, which starts the Wasm artifact through `moonrun` when a recipe needs
+to invoke MoonJust recursively. No regex or expected-difference exception
+masks these cases; a direct `moonrun` invocation without the launcher still
+cannot provide native child-process semantics.
 
 The benchmark runner now generates larger check, summary, DAG, no-op, module,
 script, stdin, and Wasm-host workloads. It performs a byte-level behavior
@@ -79,13 +78,11 @@ regular expression. The verified page is 8,211 bytes with SHA-256
 `7243ceeec8f8dd1a140676d6d1c6855a930bbd0d33e27a81cd1106e28953cc60`.
 
 Internal-spec coverage uses exact MoonBit assertions for parser, lexer,
-semantic, evaluator, formatter, host, and planner behavior. The remaining
-observable behavior is exercised by black-box fixtures under
-`tests/differential/cases`; every one of the 2,417 pinned identities is now
-classified as executed, a named known difference, or an explicitly excluded
-completion/signal case. The pinned source snapshot remains provenance: it
-retains each upstream body, source location, input, and expected assertion text
-without acting as a substitute for executable evidence.
+semantic, evaluator, formatter, host, and planner behavior. The compatibility
+runner executes the 916 indexed specs with `moon test` and verifies each
+`file:line + test name` against `moon test --outline`; source snapshots alone
+remain unclassified. The pinned upstream Rust source is vendored only as
+provenance and anchor material and is never compiled by MoonJust.
 
 ## Starting Point
 
@@ -277,9 +274,9 @@ new wrappers. The replacement is a smaller functional verification surface:
 
 The compatibility runner compares declared status, stdout, stderr, merged
 output, filesystem effects, and live-output observations byte-for-byte. Every
-case must have a unique ID and an upstream anchor. The six retained differences
-are restricted to the declared field and pin the candidate bytes with MoonBit
-SHA-256, so a new diagnostic cannot pass under an old reason.
+case has a unique ID and an upstream source anchor. Functional known differences
+are zero; only two product-identity checks are reported outside the upstream
+differential count. A new diagnostic cannot pass under an old reason.
 
 Historical ADRs and delivery reports were restored under docs/development/.
 They remain useful engineering records but no longer act as current package,
@@ -293,34 +290,26 @@ The final workflow uses the latest MoonBit distribution and runs:
 - Native check, tests, release build, and platform differential on Ubuntu,
   macOS, and Windows;
 - Wasm check, tests, release build, and artifact upload;
-- the just 1.57 differential and paired benchmark on Ubuntu;
+- the just 1.57 differential on Ubuntu, macOS, and Windows for Native and
+  through `moonrun` for Wasm, followed by a pure MoonBit coverage merge;
 - moon info and moon fmt --check.
 
 Two portability defects in the new runners were fixed after remote execution:
 path-based candidate programs are resolved before entering case directories,
 and platform comparisons use one stable shared working directory. The final PR
 run for this maintenance line, [33468089255](https://github.com/moonbit-community/MoonJust/actions/runs/33468089255),
-passed all six jobs on the `03d8fca` head. The compatibility job is intentionally
-Unix-only; the matrix jobs still run Native and Wasm checks, builds, platform
-differential, and paired benchmarks on Ubuntu, macOS, and Windows.
+passed all six jobs on the `03d8fca` head. The coverage merge now requires all
+three platform reports and fails on missing rows, stale anchors, deferred
+common cases, or evidence disagreement.
 
 ## Compatibility Result
 
-The maintained differential corpus contains 1,417 executable scenarios:
-
-- 1,411 exact matches;
-- 6 explicit known differences;
-- 0 failures.
-
-The 1,411 figure is a corpus-wide total. A single Unix invocation reports
-1,410 exact matches because the manifest's one Windows-only case is skipped;
-this is an execution-platform distinction, not an additional compatibility
-difference.
-
-The six differences are two product-identity outputs (--version and --help),
-one unstable-function diagnostic presentation, and three dotenv option-conflict
-diagnostics. No new difference was added to make the rewrite pass. Completion
-remains outside the claimed compatibility surface.
+The maintained differential corpus contains 1,417 executable scenarios. The
+current Native Unix run reports 1,445 applicable exact upstream identities and
+one explicit Windows defer; the complete three-platform aggregate is required
+to reach 1,446 exact identities. There are no functional known differences.
+`--version` and `--help` are two separate product-identity checks. Completion
+and runtime signal identity remain the only excluded upstream categories.
 
 The clean local verification ran 961 native tests and 961 Wasm tests, with no
 failures. These counts are reported only as run results; they are not quality
@@ -354,10 +343,9 @@ These are current observations, not hard-gate results: most Unix official
 samples remain below 20 ms, and the workflow reports benchmark JSON without
 passing `--enforce`.
 
-One contract-quality follow-up remains: the corpus has 24 regex-backed stream
-expectations, including one intentionally broad `.*` stderr pattern. It does
-not create a product failure, but it is weaker than byte-exact comparison and
-should be narrowed when the underlying path variability is made deterministic.
+The contract-quality follow-up removed all regex-backed stream expectations.
+Dynamic values use only finite, fixture-declared normalizers, and any regex file
+reappearing in a fixture is a strict validation failure.
 
 ## Removed Systems
 

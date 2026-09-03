@@ -12,22 +12,6 @@ fn live_spec(spec : @host.CommandSpec) -> @host.CommandSpec {
 }
 
 ///|
-fn process_error_detail(error : @host.HostError) -> String {
-  match error {
-    InvalidInput(detail) => detail
-    PermissionDenied(_, detail~) => detail
-    NotFound(path) => "No such file or directory: " + path.as_string()
-    AlreadyExists(path) => "already exists: " + path.as_string()
-    CapabilityDenied(capability) =>
-      "capability denied: " + Repr(capability).to_string()
-    CapabilityUnavailable(capability) =>
-      "capability unavailable: " + Repr(capability).to_string()
-    UnexpectedProcess(_) | ProcessMismatch(_) => "unexpected process invocation"
-    RandomExhausted(_) => "host randomness unavailable"
-  }
-}
-
-///|
 async fn[O : @host.HostAsyncOutput] emit_live(
   output : O,
   stream : @host.OutputStream,
@@ -102,10 +86,10 @@ async fn[
         ) catch {
           error =>
             raise live_failure(
-              ShellNotFound(
-                recipe=command.recipe(),
-                shell=command.spec().program(),
-                detail=process_error_detail(error),
+              shell_launch_error(
+                command.recipe(),
+                command.spec().program(),
+                error,
               ),
               commands,
             )
@@ -180,10 +164,10 @@ async fn[
         ) catch {
           error =>
             raise live_failure(
-              ShellNotFound(
-                recipe=command.recipe(),
-                shell=command.spec().program(),
-                detail=process_error_detail(error),
+              shell_launch_error(
+                command.recipe(),
+                command.spec().program(),
+                error,
               ),
               commands,
             )

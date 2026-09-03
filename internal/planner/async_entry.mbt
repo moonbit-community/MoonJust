@@ -236,7 +236,7 @@ async fn[
     .unwrap_or(false)
   if has_cache && !options.unstable() {
     raise InvalidAttributeValue(
-      message="cached recipes are currently unstable; pass `--unstable`",
+      message="cached recipes are currently unstable, invoke `just` with `--unstable`, set the `JUST_UNSTABLE` environment variable, or add `set unstable` to your `justfile` to enable unstable features",
       span=recipe.span(),
     )
   }

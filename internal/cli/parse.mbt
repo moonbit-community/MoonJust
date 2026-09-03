@@ -16,8 +16,14 @@ fn command_accepts_overrides(command : CommandKind) -> Bool {
 fn normalize_argparse_error(message : String) -> String {
   let fmt = "error: the following required argument was not provided: 'fmt' (required by 'check')"
   if message.has_prefix(fmt) {
-    return "error: the following required arguments were not provided:\n  --fmt" +
-      message.view(start_offset=fmt.length()).to_owned()
+    return (
+      #|error: the following required arguments were not provided:
+      #|  --fmt
+      #|
+      #|Usage: just --fmt --check --color <COLOR> [ARGUMENTS]...
+      #|
+      #|For more information, try '--help'.
+    )
   }
   let list = "error: the following required argument was not provided: 'list' (required by 'list-submodules')"
   if message.has_prefix(list) {
@@ -30,7 +36,39 @@ fn normalize_argparse_error(message : String) -> String {
       #|For more information, try '--help'.
     )
   }
-  message
+  if message.has_prefix(
+      "error: conflicting arguments: dotenv-command and dotenv-filename",
+    ) {
+    (
+      #|error: the argument '--dotenv-command <COMMAND>' cannot be used with '--dotenv-filename <DOTENV_FILENAME>'
+      #|
+      #|Usage: just --dotenv-command <COMMAND> --color <COLOR> [ARGUMENTS]...
+      #|
+      #|For more information, try '--help'.
+    )
+  } else if message.has_prefix(
+      "error: conflicting arguments: dotenv-command and dotenv-path",
+    ) {
+    (
+      #|error: the argument '--dotenv-command <COMMAND>' cannot be used with '--dotenv-path <DOTENV_PATH>'
+      #|
+      #|Usage: just --dotenv-command <COMMAND> --color <COLOR> [ARGUMENTS]...
+      #|
+      #|For more information, try '--help'.
+    )
+  } else if message.has_prefix(
+      "error: conflicting arguments: dotenv-command and no-dotenv",
+    ) {
+    (
+      #|error: the argument '--dotenv-command <COMMAND>' cannot be used with '--no-dotenv'
+      #|
+      #|Usage: just --dotenv-command <COMMAND> --color <COLOR> [ARGUMENTS]...
+      #|
+      #|For more information, try '--help'.
+    )
+  } else {
+    message
+  }
 }
 
 ///|
