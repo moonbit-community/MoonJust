@@ -85,7 +85,9 @@ jobs:
           if-no-files-found: error
 
   compatibility-merge:
-    name: Compatibility coverage gate
+    # Keep the protected-branch context stable while the implementation below
+    # aggregates all six platform/target differential reports.
+    name: just 1.57 differential
     needs: compatibility
     runs-on: ubuntu-latest
     steps:
