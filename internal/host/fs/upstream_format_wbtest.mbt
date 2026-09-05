@@ -11,8 +11,7 @@ test "upstream format::write_error" {
   host.put_file(path, b"x    :=    'hello'   ")
   host.fail_next_persist()
   try write_file_atomic(host, path, b"x := 'hello'\n") catch {
-    @host.InvalidInput(detail) =>
-      assert_eq(detail, "injected atomic persist failure")
+    InvalidInput(detail) => assert_eq(detail, "injected atomic persist failure")
     error => fail("unexpected host error: \{Repr(error)}")
   } noraise {
     _ => fail("expected atomic write failure")

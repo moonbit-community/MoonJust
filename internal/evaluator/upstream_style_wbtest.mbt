@@ -14,14 +14,12 @@ fn upstream_style(
 ) -> String raise EvaluationError {
   let arguments : Array[@value.Value] = []
   if styles.length() == 1 {
-    arguments.push(@value.Value::String(styles[0]))
+    arguments.push(String(styles[0]))
   } else {
-    arguments.push(
-      @value.Value::List(styles.map(fn(style) { @value.Value::String(style) })),
-    )
+    arguments.push(List(styles.map(fn(style) { String(style) })))
   }
   match text {
-    Some(value) => arguments.push(@value.Value::String(value))
+    Some(value) => arguments.push(String(value))
     None => ()
   }
   style_value(

@@ -1,15 +1,15 @@
 ///|
 fn backtick_failure_code(command : String, code : Int) -> Int? {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
   )
   let expected = try! @host.CommandSpec::new("sh", ["-cu", command])
   expected.set_cwd(cwd)
   expected.set_inherit_stdin(true)
-  expected.set_stdout(@host.Capture)
-  expected.set_stderr(@host.Inherit)
+  expected.set_stdout(Capture)
+  expected.set_stderr(Inherit)
   host.expect_process(expected, @host.ProcessResult::new(code, b"", b""))
   try
     ignore(

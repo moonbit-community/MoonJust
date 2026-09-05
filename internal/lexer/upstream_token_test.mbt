@@ -15,45 +15,45 @@ fn assert_tokens(
     assert_eq(token.kind(), pair.0)
     assert_eq(token.lexeme(source), pair.1)
   }
-  assert_eq(stream.tokens()[expected.length()].kind(), @lexer.TokenKind::Eof)
+  assert_eq(stream.tokens()[expected.length()].kind(), Eof)
 }
 
 ///|
 test "lexer name_new" {
-  assert_tokens("foo", [(TokenKind::Identifier, "foo")])
+  assert_tokens("foo", [(Identifier, "foo")])
 }
 
 ///|
 test "lexer comment" {
-  assert_tokens("# hello", [(TokenKind::Comment, "# hello")])
+  assert_tokens("# hello", [(Comment, "# hello")])
 }
 
 ///|
 test "lexer plus_plus" {
-  assert_tokens("++", [(TokenKind::PlusPlus, "++")])
+  assert_tokens("++", [(PlusPlus, "++")])
 }
 
 ///|
 test "lexer equals" {
-  assert_tokens("=", [(TokenKind::Equals, "=")])
+  assert_tokens("=", [(Equals, "=")])
 }
 
 ///|
 test "lexer equals_equals" {
-  assert_tokens("==", [(TokenKind::EqualsEquals, "==")])
+  assert_tokens("==", [(EqualsEquals, "==")])
 }
 
 ///|
 test "lexer multiple_recipes" {
   assert_tokens("a:\n  foo\nb:", [
-    (TokenKind::Identifier, "a"),
-    (TokenKind::Colon, ":"),
-    (TokenKind::Eol, "\n"),
-    (TokenKind::Indent, "  "),
-    (TokenKind::Text, "foo"),
-    (TokenKind::Eol, "\n"),
-    (TokenKind::Dedent, ""),
-    (TokenKind::Identifier, "b"),
-    (TokenKind::Colon, ":"),
+    (Identifier, "a"),
+    (Colon, ":"),
+    (Eol, "\n"),
+    (Indent, "  "),
+    (Text, "foo"),
+    (Eol, "\n"),
+    (Dedent, ""),
+    (Identifier, "b"),
+    (Colon, ":"),
   ])
 }

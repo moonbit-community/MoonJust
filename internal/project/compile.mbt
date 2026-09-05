@@ -244,7 +244,7 @@ fn validate_names(
       match definitions.get(key) {
         Some((previous, first)) if previous != kind || kind == "module" =>
           raise Semantic(
-            @semantic.SymbolRedefinition(
+            SymbolRedefinition(
               name~,
               first_kind=previous,
               second_kind=kind,
@@ -380,7 +380,7 @@ pub fn compile_loaded_graph(
           "windows",
         ].contains(attribute.name()) {
         raise Semantic(
-          @semantic.InvalidItemAttribute(
+          InvalidItemAttribute(
             item_kind="module",
             item_name=loaded.module_path().as_string(),
             attribute=attribute.name(),

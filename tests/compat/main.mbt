@@ -256,14 +256,8 @@ fn expand(value : String, root : String) -> String {
 }
 
 ///|
-fn runner_platform() -> String {
-  let value = @env.get_env_var("RUNNER_OS")
-    .unwrap_or(
-      @env.get_env_var("OS").unwrap_or(
-        @env.get_env_var("OSTYPE").unwrap_or("unix"),
-      ),
-    )
-    .to_lower()
+fn normalize_runner_platform(value : String) -> String {
+  let value = value.to_lower()
   if value.contains("windows") || value == "windows_nt" {
     "windows"
   } else if value.contains("mac") || value.contains("darwin") {
@@ -271,6 +265,24 @@ fn runner_platform() -> String {
   } else {
     "linux"
   }
+}
+
+///|
+async fn runner_platform() -> String {
+  let configured = @env.get_env_var("RUNNER_OS").unwrap_or(
+    @env.get_env_var("OS").unwrap_or(@env.get_env_var("OSTYPE").unwrap_or("")),
+  )
+  if !configured.is_empty() {
+    return normalize_runner_platform(configured)
+  }
+  let process = @testkit.run("uname", ["-s"])
+  if process.status == 0 {
+    let value = @utf8.decode(process.stdout) catch { _ => "" }
+    if !value.trim().is_empty() {
+      return normalize_runner_platform(value.trim().to_owned())
+    }
+  }
+  "linux"
 }
 
 ///|
@@ -291,9 +303,9 @@ fn target_environment(
   architecture : String,
   cpu_count : String,
   wasm_reentry : String,
+  platform : String,
 ) -> Map[String, String] {
   let environment = base.copy()
-  let platform = runner_platform()
   if platform == "windows" {
     // The isolated fixture environment must retain the platform facts that
     // native just obtains from the Windows process environment/API.
@@ -536,7 +548,11 @@ async fn copy_tree(source : String, destination : String) -> Unit {
 }
 
 ///|
-async fn apply_symlinks(directory : String, root : String) -> Unit {
+async fn apply_symlinks(
+  directory : String,
+  root : String,
+  platform : String,
+) -> Unit {
   let descriptor = join(directory, "symlinks.list")
   if !@fs.exists(descriptor) {
     return
@@ -552,7 +568,7 @@ async fn apply_symlinks(directory : String, root : String) -> Unit {
       root,
       fields[0].to_owned(),
       raw_target,
-      runner_platform(),
+      platform,
     )
     @fs.symlink(
       join(root, fields[0].to_owned()).view(),
@@ -631,7 +647,12 @@ async fn apply_trimmed_files(directory : String, root : String) -> Unit {
 }
 
 ///|
-async fn prepare_root(case_dir : String, root : String, cwd : String) -> Unit {
+async fn prepare_root(
+  case_dir : String,
+  root : String,
+  cwd : String,
+  platform : String,
+) -> Unit {
   if !@fs.exists(join(root, "home")) {
     @fs.mkdir(join(root, "home"), recursive=true)
   }
@@ -642,16 +663,20 @@ async fn prepare_root(case_dir : String, root : String, cwd : String) -> Unit {
     @fs.mkdir(join(root, cwd), recursive=true)
   }
   apply_expanded_files(case_dir, root)
-  apply_symlinks(case_dir, root)
+  apply_symlinks(case_dir, root, platform)
 }
 
 ///|
-async fn apply_step_changes(step_dir : String, root : String) -> Unit {
+async fn apply_step_changes(
+  step_dir : String,
+  root : String,
+  platform : String,
+) -> Unit {
   copy_tree(join(step_dir, "write"), root)
   apply_directories(step_dir, root)
   apply_trimmed_files(step_dir, root)
   apply_expanded_files(step_dir, root)
-  apply_symlinks(step_dir, root)
+  apply_symlinks(step_dir, root, platform)
   let remove = join(step_dir, "remove.list")
   if @fs.exists(remove) {
     for raw in read_text(remove).split("\n") {
@@ -677,13 +702,14 @@ async fn run_steps(
   architecture : String,
   cpu_count : String,
   wasm_reentry : String,
+  platform : String,
 ) -> Array[StepResult] {
   let result : Array[StepResult] = []
   let steps_root = join(case_dir, "steps")
   for name in @fs.readdir(steps_root, include_hidden=false, sort=true) {
     let step_dir = join(steps_root, name)
     guard @fs.kind(step_dir) == Directory else { continue }
-    apply_step_changes(step_dir, root)
+    apply_step_changes(step_dir, root, platform)
     let args = arguments(step_dir, root)
     let stdin = read_optional_bytes(join(step_dir, "stdin"))
     let env = target_environment(
@@ -692,6 +718,7 @@ async fn run_steps(
       architecture,
       cpu_count,
       wasm_reentry,
+      platform,
     )
     let execution = @testkit.run_prepared_bytes(
       program,
@@ -1144,11 +1171,12 @@ async fn run_side(
   architecture : String,
   cpu_count : String,
   wasm_reentry : String,
+  platform : String,
 ) -> CaseResult {
   let root = @fs.tmpdir(prefix="moonjust-compat-" + side)
   defer (@fs.rmdir(root, recursive=true) catch { _ => () })
   defer (@fs.remove(link_metadata_path(root).view()) catch { _ => () })
-  prepare_root(case_dir, root, metadata.cwd)
+  prepare_root(case_dir, root, metadata.cwd, platform)
   let cwd = if metadata.cwd.is_empty() {
     root
   } else {
@@ -1165,6 +1193,7 @@ async fn run_side(
       architecture,
       cpu_count,
       wasm_reentry,
+      platform,
     )
     let last = steps[steps.length() - 1]
     return {
@@ -1195,6 +1224,7 @@ async fn run_side(
     architecture,
     cpu_count,
     wasm_reentry,
+    platform,
   )
   let (status, stdout, stderr, live) = match metadata.live_prefix {
     Some(prefix) => {
@@ -1224,7 +1254,7 @@ async fn run_side(
   let merged = if metadata.merged {
     let merged_root = @fs.tmpdir(prefix="moonjust-compat-" + side + "-merged")
     defer (@fs.rmdir(merged_root, recursive=true) catch { _ => () })
-    prepare_root(case_dir, merged_root, metadata.cwd)
+    prepare_root(case_dir, merged_root, metadata.cwd, platform)
     let merged_cwd = if metadata.cwd.is_empty() {
       merged_root
     } else {
@@ -1237,6 +1267,7 @@ async fn run_side(
       architecture,
       cpu_count,
       wasm_reentry,
+      platform,
     )
     let result = @testkit.run_merged_prepared(
       program, merged_args, stdin, merged_cwd, merged_env,
@@ -1610,6 +1641,7 @@ async fn main {
   }
   let architecture = host_architecture()
   let cpu_count = host_cpu_count()
+  let platform = runner_platform()
   let wasm_reentry = match option(args, "--wasm-reentry") {
     Some(path) if !path.is_empty() => @fs.realpath(path)
     _ => ""
@@ -1805,7 +1837,7 @@ async fn main {
       )
       continue
     }
-    if !platform_matches(details.platform, runner_platform()) {
+    if !platform_matches(details.platform, platform) {
       for upstream_test in details.upstream_tests {
         deferred.add(upstream_test)
       }
@@ -1826,7 +1858,7 @@ async fn main {
       continue
     }
     let official_result = run_side(
-      official, case_dir, details, "official", architecture, cpu_count, "",
+      official, case_dir, details, "official", architecture, cpu_count, "", platform,
     )
     for upstream_test in details.upstream_tests {
       executed.add(upstream_test)
@@ -1862,6 +1894,7 @@ async fn main {
     let expected = official_result
     let actual = run_side(
       candidate, case_dir, details, "candidate", architecture, cpu_count, wasm_reentry,
+      platform,
     )
     let differences = difference_fields(expected, actual, details)
     let expectation = read_text(join(case_dir, "expectation")).trim().to_owned()
@@ -1986,7 +2019,7 @@ async fn main {
             deferred,
             spec_executed,
             failures.length() + (if coverage_incomplete { 1 } else { 0 }),
-            runner_platform(),
+            platform,
             execution_target,
           ),
         ),

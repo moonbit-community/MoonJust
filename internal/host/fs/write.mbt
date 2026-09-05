@@ -11,9 +11,7 @@ pub fn[T : @host.HostFs + @host.HostTemp] write_file_atomic(
   let directory = match path.parent() {
     Some(value) => value
     None =>
-      raise @host.InvalidInput(
-        "atomic write target must have a parent directory",
-      )
+      raise InvalidInput("atomic write target must have a parent directory")
   }
   let temporary = @host.HostTemp::create_temp_file(
     host, directory, ".moonjust.tmp.", contents,

@@ -1,16 +1,14 @@
 ///|
 test "upstream global::not_macos" {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
-  let config = try! @path.PathValue::new("/config", @path.Unix)
-  let global_dir = try! config.join(
-    try! @path.PathValue::new("just", @path.Unix),
-  )
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let config = try! @path.PathValue::new("/config", Unix)
+  let global_dir = try! config.join(try! @path.PathValue::new("just", Unix))
   let justfile = try! global_dir.join(
-    try! @path.PathValue::new("justfile", @path.Unix),
+    try! @path.PathValue::new("justfile", Unix),
   )
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(@host.Linux, "test", @path.Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
   )
   host.put_directory(config)
   host.put_directory(global_dir)

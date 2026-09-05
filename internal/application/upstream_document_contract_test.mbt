@@ -47,7 +47,7 @@ test "upstream readme::readme" {
 ///|
 test "upstream constants::tests::readme_table" {
   let environment = @evaluator.Environment::new()
-  @evaluator.install_constants(environment, @path.Unix)
+  @evaluator.install_constants(environment, Unix)
   assert_eq(
     try! @evaluator.evaluate_source(
       @source.Source::from_text(@source.SourceId::new(971), "expr", "HEX"),

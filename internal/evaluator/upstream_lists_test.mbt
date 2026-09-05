@@ -19,7 +19,7 @@ fn eval_upstream_list_context(text : String) -> String raise EvaluationError {
     error => raise Parse(error)
   }
   let context = EvaluationContext::new(
-    cwd=try! @path.PathValue::new("/tmp", @path.Unix),
+    cwd=try! @path.PathValue::new("/tmp", Unix),
     lists=true,
     environment=[],
   )

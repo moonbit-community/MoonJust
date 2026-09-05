@@ -10,7 +10,7 @@ test "upstream recursion_limit::bugfix" {
     source_text,
   )
   try ignore(@parser.parse(source)) catch {
-    @parser.RecursionLimitExceeded(limit~, ..) => assert_true(limit > 0)
+    RecursionLimitExceeded(limit~, ..) => assert_true(limit > 0)
     error => fail("unexpected parser error: \{Repr(error)}")
   } noraise {
     _ => fail("expected parsing recursion depth exceeded")
