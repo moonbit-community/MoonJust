@@ -18,6 +18,7 @@ pub(all) struct LiveRunResult {
 pub(all) struct PreparedProgram {
   executable : String
   prefix : Array[String]
+  subject_path : String
 }
 
 ///|
@@ -41,12 +42,35 @@ pub async fn prepare_program(
     resolve_program(runner)
   }
   if runner.is_empty() {
-    { executable, prefix: [], }
+    { executable, prefix: [], subject_path: path, }
   } else if runner.contains("moonrun") {
-    { executable, prefix: [path, "--"], }
+    { executable, prefix: [path, "--"], subject_path: path, }
   } else {
-    { executable, prefix: [path], }
+    { executable, prefix: [path], subject_path: path, }
   }
+}
+
+///|
+/// Prepare a command whose executable and argument prefix are supplied
+/// explicitly. This is used for wrappers such as `moonx`, where the subject is
+/// a registry coordinate rather than a local filesystem path.
+pub async fn prepare_command(
+  executable : String,
+  prefix : Array[String],
+  subject_path? : String = "",
+) -> PreparedProgram {
+  let resolved_executable = if executable.contains("/") ||
+    executable.contains("\\") {
+    resolve_program(executable)
+  } else {
+    executable
+  }
+  let subject = if subject_path.is_empty() {
+    prefix.last().unwrap_or(resolved_executable)
+  } else {
+    subject_path
+  }
+  { executable: resolved_executable, prefix, subject_path: subject, }
 }
 
 ///|
@@ -65,7 +89,7 @@ pub fn PreparedProgram::arguments(
 /// The product path whose diagnostics are compared, excluding an optional
 /// runner such as `moonrun`.
 pub fn PreparedProgram::subject(self : PreparedProgram) -> String {
-  self.prefix.get(0).unwrap_or(self.executable)
+  self.subject_path
 }
 
 ///|

@@ -1,0 +1,36 @@
+name: MoonCake publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact branch, tag, or commit to publish
+        required: true
+        type: string
+      channel:
+        description: Publish channel
+        required: true
+        default: rc
+        type: choice
+        options:
+          - rc
+          - stable
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish MoonCake module
+    runs-on: ubuntu-latest
+    environment: mooncake-publish
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
+        with:
+          version: latest
+      - run: moon version --all
+      - run: moon run --target native ./tests/moonx -- --suite validate-publish --channel ${{ inputs.channel }}
+      - run: moon publish --frozen

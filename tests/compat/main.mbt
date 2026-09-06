@@ -44,8 +44,9 @@ priv struct StepResult {
 ///|
 fn usage() -> String {
   "Usage: moonjust-compat --candidate PATH --official PATH " +
-  "[--candidate-runner PATH] " +
+  "[--candidate-runner PATH|moonx] " +
   "[--cases PATH] [--manifest PATH] [--upstream-list PATH] " +
+  "[--shard-count N --shard-index N] " +
   "[--record-expected] [--verify-snapshots] [--strict-coverage] " +
   "[--allow-deferred-platform] [--wasm-reentry PATH]"
 }
@@ -68,6 +69,30 @@ fn has_flag(args : ArrayView[String], name : String) -> Bool {
     }
   }
   false
+}
+
+///|
+fn parsed_int(args : ArrayView[String], name : String, fallback : Int) -> Int {
+  @string.parse_int(option(args, name).unwrap_or(fallback.to_string())[:]) catch {
+    _ => 0
+  }
+}
+
+///|
+async fn prepare_candidate(
+  candidate : String,
+  runner : String,
+  target : String,
+) -> @testkit.PreparedProgram {
+  if runner == "moonx" {
+    @testkit.prepare_command(
+      "moonx",
+      ["--target", target, candidate],
+      subject_path=candidate,
+    )
+  } else {
+    @testkit.prepare_program(candidate, runner~)
+  }
 }
 
 ///|
@@ -332,6 +357,18 @@ fn target_environment(
       environment["MOONJUST_MOONRUN"] = @env.get_env_var("MOONJUST_MOONRUN").unwrap_or(
         "moonrun",
       )
+      match @env.get_env_var("MOONJUST_MOONX") {
+        Some(path) => environment["MOONJUST_MOONX"] = path
+        None => ()
+      }
+      match @env.get_env_var("MOONJUST_MOONX_TARGET") {
+        Some(target) => environment["MOONJUST_MOONX_TARGET"] = target
+        None => ()
+      }
+    }
+    match @env.get_env_var("MOONJUST_MOON_HOME") {
+      Some(path) => environment["MOON_HOME"] = path
+      None => ()
     }
   }
   environment
@@ -1596,6 +1633,8 @@ async fn main {
   }
   let cases_root = option(args, "--cases").unwrap_or("tests/differential/cases")
   let selected_case = option(args, "--case")
+  let shard_count = parsed_int(args, "--shard-count", 1)
+  let shard_index = parsed_int(args, "--shard-index", 0)
   let record_expected = has_flag(args, "--record-expected")
   let verify_snapshots = has_flag(args, "--verify-snapshots")
   let manifest = option(args, "--manifest").unwrap_or(
@@ -1613,9 +1652,9 @@ async fn main {
       ),
     ),
   )
-  let candidate = @testkit.prepare_program(
-    candidate_value,
-    runner=option(args, "--candidate-runner").unwrap_or(""),
+  let candidate_runner = option(args, "--candidate-runner").unwrap_or("")
+  let candidate = prepare_candidate(
+    candidate_value, candidate_runner, execution_target,
   )
   let official = @testkit.prepare_program(official_value)
   let parsed_manifest = parse_manifest(read_text(manifest))
@@ -1651,6 +1690,9 @@ async fn main {
   }
   if execution_target == "wasm" && option(args, "--candidate-runner") is None {
     failures.push("Wasm compatibility requires --candidate-runner")
+  }
+  if shard_count < 1 || shard_index < 0 || shard_index >= shard_count {
+    failures.push("shard index must satisfy 0 <= index < count and count > 0")
   }
   let expected_version = module_version(read_text("moon.mod"))
   match expected_version {
@@ -1795,8 +1837,11 @@ async fn main {
       None => ()
     }
   }
-  for name in @fs.readdir(cases_root, include_hidden=false, sort=true) {
+  for index, name in @fs.readdir(cases_root, include_hidden=false, sort=true) {
     if selected_case is Some(selected) && name != selected {
+      continue
+    }
+    if shard_count > 1 && index % shard_count != shard_index {
       continue
     }
     selected_found = true
@@ -1997,12 +2042,19 @@ async fn main {
       deferred_count += 1
     }
   }
-  let coverage_incomplete = upstream_names.length() !=
+  let coverage_incomplete = if shard_count > 1 {
+    differential_known != 0 ||
+    (deferred_count != 0 && !has_flag(args, "--allow-deferred-platform")) ||
+    unclassified != 0 ||
+    spec_done != spec_declared
+  } else {
+    upstream_names.length() !=
     differential_executed + spec_done + completion + signal + deferred_count ||
     differential_known != 0 ||
     (deferred_count != 0 && !has_flag(args, "--allow-deferred-platform")) ||
     unclassified != 0 ||
     spec_done != spec_declared
+  }
   match coverage_report {
     Some(path) =>
       @fs.write_file(
