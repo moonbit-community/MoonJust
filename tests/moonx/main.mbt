@@ -117,6 +117,35 @@ async fn prepare_candidate(options : Options) -> @testkit.PreparedProgram {
 }
 
 ///|
+#cfg(platform="windows")
+fn moonx_host_os() -> String {
+  "windows"
+}
+
+///|
+#cfg(not(platform="windows"))
+fn moonx_host_os() -> String {
+  match @env.get_env_var("OSTYPE") {
+    Some(value) => {
+      let lower = value.to_lower()
+      if lower.contains("darwin") {
+        "macos"
+      } else if lower.contains("linux") {
+        "linux"
+      } else {
+        "linux"
+      }
+    }
+    None => "linux"
+  }
+}
+
+///|
+fn moonx_host_environment() -> Map[String, String] {
+  { "MOONJUST_OS": moonx_host_os() }
+}
+
+///|
 fn join(left : String, right : String) -> String {
   @path.Path(left).join(Path(right)).to_string()
 }
@@ -192,8 +221,9 @@ async fn run_once(
   program : @testkit.PreparedProgram,
   args : Array[String],
   root : String,
+  extra_env? : Map[String, String] = Map([]),
 ) -> @testkit.RunResult {
-  @testkit.run_prepared(program, args, cwd=root, inherit_env=true)
+  @testkit.run_prepared(program, args, cwd=root, extra_env~, inherit_env=true)
 }
 
 ///|
@@ -209,7 +239,12 @@ async fn compare_case(
   write_case(candidate_root, case)
   write_case(official_root, case)
   let expected = run_once(official, case.args, official_root)
-  let actual = run_once(candidate, case.args, candidate_root)
+  let actual = run_once(
+    candidate,
+    case.args,
+    candidate_root,
+    extra_env=moonx_host_environment(),
+  )
   let expected_stdout = normalize_bytes(official_root, expected.stdout)
   let actual_stdout = normalize_bytes(candidate_root, actual.stdout)
   let expected_stderr = normalize_bytes(official_root, expected.stderr)
@@ -264,7 +299,12 @@ async fn identity_case(
   let root = @fs.tmpdir(prefix="moonjust-moonx-identity")
   defer (@fs.rmdir(root, recursive=true) catch { _ => () })
   write_case(root, case)
-  let result = run_once(candidate, case.args, root)
+  let result = run_once(
+    candidate,
+    case.args,
+    root,
+    extra_env=moonx_host_environment(),
+  )
   let expected_result : @testkit.RunResult = if case.name == "version" {
     {
       status: 0,
@@ -400,14 +440,25 @@ async fn run_cache_case(
   }
   write_case(candidate_root, case)
   write_case(official_root, case)
-  let candidate_first = run_once(candidate, case.args, candidate_root)
+  let candidate_first = run_once(
+    candidate,
+    case.args,
+    candidate_root,
+    extra_env=moonx_host_environment(),
+  )
   let official_first = run_once(official, case.args, official_root)
-  let candidate_hit = run_once(candidate, case.args, candidate_root)
+  let candidate_hit = run_once(
+    candidate,
+    case.args,
+    candidate_root,
+    extra_env=moonx_host_environment(),
+  )
   let official_hit = run_once(official, case.args, official_root)
   let candidate_no_cache = run_once(
     candidate,
     ["--unstable", "--no-cache", "cached"],
     candidate_root,
+    extra_env=moonx_host_environment(),
   )
   let official_no_cache = run_once(
     official,
@@ -418,6 +469,7 @@ async fn run_cache_case(
     candidate,
     ["--unstable", "--clean"],
     candidate_root,
+    extra_env=moonx_host_environment(),
   )
   let official_clean = run_once(
     official,
@@ -457,15 +509,17 @@ async fn preflight(
   let expected = @utf8.encode("moonjust v" + expected_version + "\n")
   let delays = [5000, 10000, 20000, 30000]
   let mut last = "MoonX asset is not ready"
+  let preflight_environment = moonx_host_environment()
+  match moon_home {
+    Some(path) => preflight_environment["MOON_HOME"] = path
+    None => ()
+  }
   for attempt in 0..<=delays.length() {
     let result = @testkit.run_prepared(
       candidate,
       ["--version"],
       cwd=@env.current_dir().unwrap_or("."),
-      extra_env=match moon_home {
-        Some(path) => { "MOON_HOME": path }
-        None => Map([])
-      },
+      extra_env=preflight_environment,
       inherit_env=true,
     )
     if result.status == 0 &&

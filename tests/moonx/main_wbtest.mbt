@@ -6,7 +6,10 @@ async test "MoonX candidate uses a direct argv prefix" {
     suite: "smoke",
     official: "just",
   })
-  assert_eq(candidate.executable, "moonx")
+  assert_true(
+    candidate.executable == "moonx" ||
+    candidate.executable.to_lower().has_suffix(".exe"),
+  )
   assert_eq(candidate.arguments(["--version"]), [
     "--target", "wasm", "ZSeanYves/MoonJust@0.1.2", "--version",
   ])
