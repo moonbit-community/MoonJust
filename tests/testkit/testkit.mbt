@@ -88,8 +88,20 @@ async fn resolve_windows_program_with_context(
 }
 
 ///|
+#cfg(platform="windows")
+fn is_windows_platform() -> Bool {
+  true
+}
+
+///|
+#cfg(not(platform="windows"))
+fn is_windows_platform() -> Bool {
+  false
+}
+
+///|
 async fn resolve_program(program : String) -> String {
-  if @env.get_env_var("OS") == Some("Windows_NT") {
+  if is_windows_platform() {
     resolve_windows_program_with_context(
       program,
       @env.get_env_var("PATH").unwrap_or(""),
