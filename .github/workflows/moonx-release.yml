@@ -22,13 +22,10 @@ jobs:
         include:
           - os: ubuntu-latest
             suite: full
-            target: wasm
           - os: macos-latest
             suite: smoke
-            target: wasm
           - os: windows-latest
             suite: smoke
-            target: native
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -52,7 +49,7 @@ jobs:
         if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'release/') || contains(github.event.pull_request.labels.*.name, 'release-candidate')
         run: >-
           moon run --target native ./tests/moonx --
-          --target ${{ matrix.target }}
+          --target wasm
           --suite ${{ matrix.suite }}
           --report _build/moonx-report.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

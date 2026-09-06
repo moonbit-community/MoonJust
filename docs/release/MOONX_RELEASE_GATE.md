@@ -103,19 +103,6 @@ into eight stable MoonBit shards and the results are joined only after every
 shard completes. It does not duplicate the expected files under
 `tests/differential/cases`.
 
-The required cross-platform matrix uses the published artifact target that is
-appropriate for each runner:
-
-| Runner | Suite | MoonX target |
-| --- | --- | --- |
-| Ubuntu | full strict differential | `wasm` |
-| macOS | launcher smoke | `wasm` |
-| Windows | launcher smoke | `native` |
-
-Ubuntu is the authoritative full Wasm gate. Windows remains a real MoonX
-published-artifact gate, while using the Windows Native asset avoids the
-upstream MoonX Wasm launcher handle failure on Windows before MoonJust starts.
-
 ## Expected results for common commands
 
 | Command | Expected result |
