@@ -89,6 +89,7 @@ async fn prepare_candidate(
       "moonx",
       ["--target", target, candidate],
       subject_path=candidate,
+      no_console_window=false,
     )
   } else {
     @testkit.prepare_program(candidate, runner~)

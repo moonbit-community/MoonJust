@@ -30,7 +30,7 @@ async fn main {
           ..args,
         ],
         inherit_env=true,
-        no_console_window=true,
+        no_console_window=false,
       )
     _ =>
       @process.collect_output(

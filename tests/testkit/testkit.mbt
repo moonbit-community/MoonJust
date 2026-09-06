@@ -19,6 +19,7 @@ pub(all) struct PreparedProgram {
   executable : String
   prefix : Array[String]
   subject_path : String
+  no_console_window : Bool
 }
 
 ///|
@@ -42,11 +43,16 @@ pub async fn prepare_program(
     resolve_program(runner)
   }
   if runner.is_empty() {
-    { executable, prefix: [], subject_path: path, }
+    { executable, prefix: [], subject_path: path, no_console_window: true, }
   } else if runner.contains("moonrun") {
-    { executable, prefix: [path, "--"], subject_path: path, }
+    {
+      executable,
+      prefix: [path, "--"],
+      subject_path: path,
+      no_console_window: true,
+    }
   } else {
-    { executable, prefix: [path], subject_path: path, }
+    { executable, prefix: [path], subject_path: path, no_console_window: true, }
   }
 }
 
@@ -58,6 +64,7 @@ pub async fn prepare_command(
   executable : String,
   prefix : Array[String],
   subject_path? : String = "",
+  no_console_window? : Bool = true,
 ) -> PreparedProgram {
   let resolved_executable = if executable.contains("/") ||
     executable.contains("\\") {
@@ -70,7 +77,12 @@ pub async fn prepare_command(
   } else {
     subject_path
   }
-  { executable: resolved_executable, prefix, subject_path: subject, }
+  {
+    executable: resolved_executable,
+    prefix,
+    subject_path: subject,
+    no_console_window,
+  }
 }
 
 ///|
@@ -105,6 +117,7 @@ async fn collect(
   cwd : String?,
   extra_env : Map[String, String],
   inherit_env : Bool,
+  no_console_window : Bool,
 ) -> RunResult {
   let input = match stdin_path {
     Some(path) => Some(@process.redirect_from_file(path))
@@ -119,7 +132,7 @@ async fn collect(
         inherit_env~,
         stdin=source,
         cwd=directory,
-        no_console_window=true,
+        no_console_window~,
       )
     (Some(source), None) =>
       @process.collect_output(
@@ -128,7 +141,7 @@ async fn collect(
         extra_env~,
         inherit_env~,
         stdin=source,
-        no_console_window=true,
+        no_console_window~,
       )
     (None, Some(directory)) =>
       @process.collect_output(
@@ -137,7 +150,7 @@ async fn collect(
         extra_env~,
         inherit_env~,
         cwd=directory,
-        no_console_window=true,
+        no_console_window~,
       )
     (None, None) =>
       @process.collect_output(
@@ -145,7 +158,7 @@ async fn collect(
         args,
         extra_env~,
         inherit_env~,
-        no_console_window=true,
+        no_console_window~,
       )
   }
   { status: output.0, stdout: output.1.binary(), stderr: output.2.binary(), }
@@ -167,6 +180,7 @@ pub async fn run_prepared(
     cwd,
     extra_env,
     inherit_env,
+    program.no_console_window,
   )
 }
 
@@ -233,6 +247,7 @@ pub async fn run(
     cwd,
     extra_env,
     inherit_env,
+    true,
   )
 }
 

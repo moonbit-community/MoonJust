@@ -112,6 +112,7 @@ async fn prepare_candidate(options : Options) -> @testkit.PreparedProgram {
     "moonx",
     ["--target", options.target, options.candidate],
     subject_path=options.candidate,
+    no_console_window=false,
   )
 }
 
