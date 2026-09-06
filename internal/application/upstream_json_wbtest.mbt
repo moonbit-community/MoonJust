@@ -193,5 +193,5 @@ test "upstream json::priors" {
 
 ///|
 test "upstream version::tests::current_version_is_valid" {
-  assert_eq(version_line(), "moonjust v0.1.2")
+  assert_eq(version_line(), "moonjust v0.1.3-rc.1")
 }

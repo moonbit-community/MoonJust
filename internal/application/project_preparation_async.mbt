@@ -92,11 +92,11 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_direct
 ) -> (@loader.LoadedGraph, @workdir.WorkingDirectoryModel) raise ApplicationError {
   let request = project_load_request(arguments, context, platform, environment)
   let sources = @project.load_sources_async(host, request) catch {
-    @project.Load(error) => raise Load(error)
-    @project.Path(error) => raise Path(error)
-    @project.WorkingDirectory(error) => raise WorkingDirectory(error)
-    @project.Semantic(error) => raise Semantic(error)
-    @project.Compilation(error) => raise Project(error)
+    Load(error) => raise Load(error)
+    Path(error) => raise Path(error)
+    WorkingDirectory(error) => raise WorkingDirectory(error)
+    Semantic(error) => raise Semantic(error)
+    Compilation(error) => raise Project(error)
   }
   (sources.graph(), sources.directories())
 }
@@ -119,11 +119,11 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_project_snapshot_async(
     request,
     allow_unstable=arguments.flag("unstable"),
   ) catch {
-    @project.Load(error) => raise Load(error)
-    @project.Path(error) => raise Path(error)
-    @project.WorkingDirectory(error) => raise WorkingDirectory(error)
-    @project.Semantic(error) => raise Semantic(error)
-    @project.Compilation(error) => raise Project(error)
+    Load(error) => raise Load(error)
+    Path(error) => raise Path(error)
+    WorkingDirectory(error) => raise WorkingDirectory(error)
+    Semantic(error) => raise Semantic(error)
+    Compilation(error) => raise Project(error)
   }
 }
 

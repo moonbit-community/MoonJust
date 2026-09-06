@@ -113,10 +113,10 @@ fn FakeHost::require(
   capability : @host.HostCapability,
 ) -> Unit raise @host.HostError {
   if self.denied.contains(capability) {
-    raise @host.CapabilityDenied(capability)
+    raise CapabilityDenied(capability)
   }
   if self.unavailable.contains(capability) {
-    raise @host.CapabilityUnavailable(capability)
+    raise CapabilityUnavailable(capability)
   }
 }
 
@@ -287,10 +287,10 @@ pub impl @host.HostFs for FakeHost with fn read_file(
   self : FakeHost,
   path : @path.PathValue,
 ) -> Bytes raise @host.HostError {
-  self.require(@host.FsRead)
+  self.require(FsRead)
   match self.files.get(path) {
     Some(contents) => contents
-    None => raise @host.NotFound(path)
+    None => raise NotFound(path)
   }
 }
 
@@ -301,13 +301,13 @@ pub impl @host.HostFs for FakeHost with fn read_file_range(
   offset : Int64,
   length : Int,
 ) -> Bytes raise @host.HostError {
-  self.require(@host.FsRead)
+  self.require(FsRead)
   if offset < 0L || length < 0 {
-    raise @host.InvalidInput("file range must not be negative")
+    raise InvalidInput("file range must not be negative")
   }
   let contents = match self.files.get(path) {
     Some(value) => value
-    None => raise @host.NotFound(path)
+    None => raise NotFound(path)
   }
   if offset >= contents.length().to_int64() || length == 0 {
     return b""
@@ -324,10 +324,10 @@ pub impl @host.HostSourceReader for FakeHost with fn read_source(
   max_bytes : Int,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 {
-    raise @host.InvalidInput("source byte limit must not be negative")
+    raise InvalidInput("source byte limit must not be negative")
   }
   if max_bytes == 0x7fffffff {
-    raise @host.InvalidInput("source byte limit is too large")
+    raise InvalidInput("source byte limit is too large")
   }
   let contents = @host.HostFs::read_file(self, path)
   contents[:Int::min(contents.length(), max_bytes + 1)].to_owned()
@@ -339,7 +339,7 @@ pub impl @host.HostFs for FakeHost with fn write_file(
   path : @path.PathValue,
   contents : Bytes,
 ) -> Unit raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   self.files[path] = contents
 }
 
@@ -348,7 +348,7 @@ pub impl @host.HostFs for FakeHost with fn file_exists(
   self : FakeHost,
   path : @path.PathValue,
 ) -> Bool raise @host.HostError {
-  self.require(@host.FsRead)
+  self.require(FsRead)
   self.files.contains(path) || self.directories.contains(path)
 }
 
@@ -357,7 +357,7 @@ pub impl @host.HostFs for FakeHost with fn read_dir(
   self : FakeHost,
   path : @path.PathValue,
 ) -> Array[String] raise @host.HostError {
-  self.require(@host.FsRead)
+  self.require(FsRead)
   let prefix = if path.as_string() == "." {
     "."
   } else {
@@ -394,7 +394,7 @@ pub impl @host.HostFs for FakeHost with fn metadata(
   self : FakeHost,
   path : @path.PathValue,
 ) -> @host.FileMetadata raise @host.HostError {
-  self.require(@host.FsRead)
+  self.require(FsRead)
   match self.files.get(path) {
     Some(contents) =>
       @host.FileMetadata::new_with_executable(
@@ -405,7 +405,7 @@ pub impl @host.HostFs for FakeHost with fn metadata(
       )
     None if self.directories.contains(path) =>
       @host.FileMetadata::new(false, true, 0L)
-    None => raise @host.NotFound(path)
+    None => raise NotFound(path)
   }
 }
 
@@ -414,7 +414,7 @@ pub impl @host.HostFs for FakeHost with fn canonicalize(
   self : FakeHost,
   path : @path.PathValue,
 ) -> @path.PathValue raise @host.HostError {
-  self.require(@host.FsRead)
+  self.require(FsRead)
   self.canonical_paths.get(path).unwrap_or(path)
 }
 
@@ -425,13 +425,13 @@ pub impl @host.HostFs for FakeHost with fn persist_temp_file(
   destination : @path.PathValue,
   overwrite : Bool,
 ) -> Unit raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   if self.fail_next_persist {
     self.fail_next_persist = false
-    raise @host.InvalidInput("injected atomic persist failure")
+    raise InvalidInput("injected atomic persist failure")
   }
   guard self.files.get(temporary) is Some(contents) else {
-    raise @host.NotFound(temporary)
+    raise NotFound(temporary)
   }
   if !overwrite && self.files.contains(destination) {
     raise AlreadyExists(destination)
@@ -447,27 +447,27 @@ pub impl @host.HostTemp for FakeHost with fn create_temp_file(
   prefix : String,
   contents : Bytes,
 ) -> @path.PathValue raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   if prefix == "" || prefix.contains("/") || prefix.contains("\\") {
-    raise @host.InvalidInput("temporary file prefix must be a file name prefix")
+    raise InvalidInput("temporary file prefix must be a file name prefix")
   }
   for _ in 0..<1024 {
     let name = @path.PathValue::new(
       prefix + self.temp_serial.to_string(),
       directory.flavor(),
     ) catch {
-      _ => raise @host.InvalidInput("invalid temporary file name")
+      _ => raise InvalidInput("invalid temporary file name")
     }
     self.temp_serial += 1
     let candidate = directory.join(name) catch {
-      _ => raise @host.InvalidInput("temporary file path flavor mismatch")
+      _ => raise InvalidInput("temporary file path flavor mismatch")
     }
     if !self.files.contains(candidate) {
       self.files[candidate] = contents
       return candidate
     }
   }
-  raise @host.InvalidInput("temporary file namespace exhausted")
+  raise InvalidInput("temporary file namespace exhausted")
 }
 
 ///|
@@ -475,9 +475,9 @@ pub impl @host.HostTemp for FakeHost with fn remove_temp_file(
   self : FakeHost,
   path : @path.PathValue,
 ) -> Unit raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   if !self.files.contains(path) {
-    raise @host.NotFound(path)
+    raise NotFound(path)
   }
   self.files.remove(path)
 }
@@ -490,24 +490,24 @@ pub impl @host.HostScriptTemp for FakeHost with fn create_script_temp(
   extension : String,
   contents : Bytes,
 ) -> @path.PathValue raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   if stem == "" ||
     stem.contains("/") ||
     stem.contains("\\") ||
     extension.contains("/") ||
     extension.contains("\\") {
-    raise @host.InvalidInput("invalid temporary script name")
+    raise InvalidInput("invalid temporary script name")
   }
   for _ in 0..<1024 {
     let name = @path.PathValue::new(
       stem + "." + self.temp_serial.to_string() + extension,
       directory.flavor(),
     ) catch {
-      _ => raise @host.InvalidInput("invalid temporary script name")
+      _ => raise InvalidInput("invalid temporary script name")
     }
     self.temp_serial += 1
     let candidate = directory.join(name) catch {
-      _ => raise @host.InvalidInput("temporary script path flavor mismatch")
+      _ => raise InvalidInput("temporary script path flavor mismatch")
     }
     if !self.files.contains(candidate) {
       self.files[candidate] = contents
@@ -515,7 +515,7 @@ pub impl @host.HostScriptTemp for FakeHost with fn create_script_temp(
       return candidate
     }
   }
-  raise @host.InvalidInput("temporary script namespace exhausted")
+  raise InvalidInput("temporary script namespace exhausted")
 }
 
 ///|
@@ -531,9 +531,9 @@ pub impl @host.HostExecutable for FakeHost with fn set_executable(
   self : FakeHost,
   path : @path.PathValue,
 ) -> Unit raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   if !self.files.contains(path) {
-    raise @host.NotFound(path)
+    raise NotFound(path)
   }
   self.executable_calls.push(path)
 }
@@ -594,14 +594,14 @@ pub impl @host.HostCacheStore for FakeHost with fn acquire_cache_lease(
   directory : @path.PathValue,
   digest : String,
 ) -> @host.CacheLease raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   if !valid_cache_digest(digest) {
-    raise @host.InvalidInput("invalid cache digest")
+    raise InvalidInput("invalid cache digest")
   }
   let key = cache_storage_key(directory, digest)
   for _, held in self.cache_leases {
     if held == key {
-      raise @host.InvalidInput("cache digest is already locked")
+      raise InvalidInput("cache digest is already locked")
     }
   }
   let token = self.cache_token
@@ -617,7 +617,7 @@ pub impl @host.HostCacheStore for FakeHost with fn read_cache_manifest(
 ) -> Bytes? raise @host.HostError {
   let key = cache_storage_key(lease.directory(), lease.digest())
   if self.cache_leases.get(lease.token()) != Some(key) {
-    raise @host.InvalidInput("cache lease is not held")
+    raise InvalidInput("cache lease is not held")
   }
   match self.cache_entries.get(key) {
     Some(contents) if contents.length() > @cache.MAX_MANIFEST_BYTES + 1 =>
@@ -634,10 +634,10 @@ pub impl @host.HostCacheStore for FakeHost with fn write_cache_manifest(
 ) -> Unit raise @host.HostError {
   let key = cache_storage_key(lease.directory(), lease.digest())
   if self.cache_leases.get(lease.token()) != Some(key) {
-    raise @host.InvalidInput("cache lease is not held")
+    raise InvalidInput("cache lease is not held")
   }
   if contents.length() > @cache.MAX_MANIFEST_BYTES {
-    raise @host.InvalidInput("cache manifest exceeds size limit")
+    raise InvalidInput("cache manifest exceeds size limit")
   }
   self.cache_entries[key] = contents
 }
@@ -649,7 +649,7 @@ pub impl @host.HostCacheStore for FakeHost with fn release_cache_lease(
 ) -> Unit raise @host.HostError {
   let key = cache_storage_key(lease.directory(), lease.digest())
   if self.cache_leases.get(lease.token()) != Some(key) {
-    raise @host.InvalidInput("cache lease is not held")
+    raise InvalidInput("cache lease is not held")
   }
   self.cache_leases.remove(lease.token())
 }
@@ -660,7 +660,7 @@ pub impl @host.HostCacheStore for FakeHost with fn clean_cache(
   directory : @path.PathValue,
   recipe_prefix : String?,
 ) -> Int raise @host.HostError {
-  self.require(@host.FsWrite)
+  self.require(FsWrite)
   let prefix = directory.as_string() + "|"
   let removable : Array[String] = []
   for key, _ in self.cache_entries {
@@ -674,10 +674,10 @@ pub impl @host.HostCacheStore for FakeHost with fn clean_cache(
             true
           } else {
             let text = @utf8.decode(bytes) catch {
-              _ => raise @host.InvalidInput("failed to decode cache manifest")
+              _ => raise InvalidInput("failed to decode cache manifest")
             }
             let manifest = @cache.decode_manifest(text) catch {
-              _ => raise @host.InvalidInput("failed to parse cache manifest")
+              _ => raise InvalidInput("failed to parse cache manifest")
             }
             manifest.recipe() == prefix ||
             manifest.recipe().has_prefix(prefix + "::")
@@ -700,7 +700,7 @@ pub impl @host.HostEnv for FakeHost with fn env_get(
   self : FakeHost,
   key : String,
 ) -> String? raise @host.HostError {
-  self.require(@host.Environment)
+  self.require(Environment)
   self.environment.get(key)
 }
 
@@ -708,7 +708,7 @@ pub impl @host.HostEnv for FakeHost with fn env_get(
 pub impl @host.HostEnv for FakeHost with fn env_entries(self : FakeHost) -> Array[
   (String, String),
 ] raise @host.HostError {
-  self.require(@host.Environment)
+  self.require(Environment)
   let keys = self.environment.keys().collect()
   keys.sort_by(fn(left, right) {
     let length = Int::min(left.length(), right.length())
@@ -725,7 +725,7 @@ pub impl @host.HostEnv for FakeHost with fn env_entries(self : FakeHost) -> Arra
 
 ///|
 pub impl @host.HostEnv for FakeHost with fn current_dir(self : FakeHost) -> @path.PathValue raise @host.HostError {
-  self.require(@host.Environment)
+  self.require(Environment)
   self.cwd
 }
 
@@ -734,7 +734,7 @@ pub impl @host.HostProcess for FakeHost with fn run_process(
   self : FakeHost,
   command : @host.CommandSpec,
 ) -> @host.ProcessResult raise @host.HostError {
-  self.require(@host.Process)
+  self.require(Process)
   self.process_calls.push(command)
   if self.expected_commands.is_empty() {
     raise UnexpectedProcess(command)
@@ -752,10 +752,10 @@ pub impl @host.HostAsyncProcess for FakeHost with fn run_process_async(
   self : FakeHost,
   command : @host.CommandSpec,
 ) -> @host.ProcessResult raise @host.HostError {
-  self.require(@host.Process)
+  self.require(Process)
   if command.program() == "/bin/test" && command.arguments().length() == 2 {
     let path = @path.PathValue::new(command.arguments()[1], self.cwd.flavor()) catch {
-      _ => raise @host.InvalidInput("invalid fake test path")
+      _ => raise InvalidInput("invalid fake test path")
     }
     let exists = self.files.contains(path)
     let success = match command.arguments()[0] {
@@ -767,7 +767,7 @@ pub impl @host.HostAsyncProcess for FakeHost with fn run_process_async(
   }
   if command.program() == "/bin/cat" && command.arguments().length() == 1 {
     let path = @path.PathValue::new(command.arguments()[0], self.cwd.flavor()) catch {
-      _ => raise @host.InvalidInput("invalid fake cat path")
+      _ => raise InvalidInput("invalid fake cat path")
     }
     return match self.files.get(path) {
       Some(contents) => @host.ProcessResult::new(0, contents, b"")
@@ -790,7 +790,7 @@ pub impl @host.HostAsyncOutput for FakeHost with fn write_output(
 
 ///|
 pub impl @host.HostClock for FakeHost with fn now_millis(self : FakeHost) -> Int64 raise @host.HostError {
-  self.require(@host.Clock)
+  self.require(Clock)
   self.clock_millis
 }
 
@@ -799,9 +799,9 @@ pub impl @host.HostRandom for FakeHost with fn random_bytes(
   self : FakeHost,
   count : Int,
 ) -> Bytes raise @host.HostError {
-  self.require(@host.Random)
+  self.require(Random)
   if count < 0 {
-    raise @host.InvalidInput("random byte count must not be negative")
+    raise InvalidInput("random byte count must not be negative")
   }
   let remaining = self.random_stream.length() - self.random_offset
   if count > remaining {
@@ -815,13 +815,13 @@ pub impl @host.HostRandom for FakeHost with fn random_bytes(
 
 ///|
 pub impl @host.HostTerminal for FakeHost with fn terminal_info(self : FakeHost) -> @host.TerminalInfo raise @host.HostError {
-  self.require(@host.Terminal)
+  self.require(Terminal)
   self.terminal
 }
 
 ///|
 pub impl @host.HostSignal for FakeHost with fn pending_signal(self : FakeHost) -> @host.SignalKind? raise @host.HostError {
-  self.require(@host.Signal)
+  self.require(Signal)
   if self.signals.is_empty() {
     None
   } else {
@@ -831,6 +831,6 @@ pub impl @host.HostSignal for FakeHost with fn pending_signal(self : FakeHost) -
 
 ///|
 pub impl @host.HostPlatform for FakeHost with fn platform_info(self : FakeHost) -> @host.PlatformInfo raise @host.HostError {
-  self.require(@host.Platform)
+  self.require(Platform)
   self.platform
 }

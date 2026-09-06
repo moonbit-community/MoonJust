@@ -79,20 +79,20 @@ test "upstream shebang::tests::interpreter_filename_with_backslash" {
 
 ///|
 test "upstream shebang::tests::dont_include_shebang_line_cmd" {
-  let platform = @host.PlatformInfo::new(Linux, "test", @path.Unix)
+  let platform = @host.PlatformInfo::new(Linux, "test", Unix)
   assert_false(include_shebang_line("cmd", platform))
 }
 
 ///|
 test "upstream shebang::tests::dont_include_shebang_line_cmd_exe" {
-  let platform = @host.PlatformInfo::new(Linux, "test", @path.Unix)
+  let platform = @host.PlatformInfo::new(Linux, "test", Unix)
   assert_false(include_shebang_line("cmd.exe", platform))
 }
 
 ///|
 test "upstream shebang::tests::include_shebang_line_other" {
-  let unix = @host.PlatformInfo::new(Linux, "test", @path.Unix)
-  let windows = @host.PlatformInfo::new(Windows, "test", @path.Windows)
+  let unix = @host.PlatformInfo::new(Linux, "test", Unix)
+  let windows = @host.PlatformInfo::new(Windows, "test", Windows)
   assert_true(include_shebang_line("foo", unix))
   assert_false(include_shebang_line("foo", windows))
 }
@@ -144,7 +144,7 @@ test "upstream misc::windows_interpreter_path_no_base" {
   assert_false(
     include_shebang_line(
       "powershell",
-      @host.PlatformInfo::new(Windows, "test", @path.Windows),
+      @host.PlatformInfo::new(Windows, "test", Windows),
     ),
   )
 }

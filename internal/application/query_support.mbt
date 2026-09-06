@@ -10,11 +10,11 @@ fn compile_loaded_graph(
   ),
 ) -> @semantic.ProjectCompilation raise ApplicationError {
   @project.compile_loaded_graph(graph, allow_unstable~, platform~) catch {
-    @project.Load(error) => raise Load(error)
-    @project.Path(error) => raise Path(error)
-    @project.WorkingDirectory(error) => raise WorkingDirectory(error)
-    @project.Semantic(error) => raise Semantic(error)
-    @project.Compilation(error) => raise Project(error)
+    Load(error) => raise Load(error)
+    Path(error) => raise Path(error)
+    WorkingDirectory(error) => raise WorkingDirectory(error)
+    Semantic(error) => raise Semantic(error)
+    Compilation(error) => raise Project(error)
   }
 }
 

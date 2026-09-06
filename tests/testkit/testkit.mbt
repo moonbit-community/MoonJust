@@ -18,11 +18,96 @@ pub(all) struct LiveRunResult {
 pub(all) struct PreparedProgram {
   executable : String
   prefix : Array[String]
+  subject_path : String
+  no_console_window : Bool
+}
+
+///|
+fn windows_program_candidates(
+  program : String,
+  path : String,
+  pathext : String,
+) -> Array[String] {
+  let has_separator = program.contains("/") || program.contains("\\")
+  let bases : Array[String] = [program]
+  if !has_separator {
+    for raw_directory in path.split(";") {
+      let directory = raw_directory.trim(chars="\"").to_owned()
+      bases.push(
+        if directory.is_empty() {
+          program
+        } else if directory.has_suffix("/") || directory.has_suffix("\\") {
+          directory + program
+        } else {
+          directory + "\\" + program
+        },
+      )
+    }
+  }
+  let basename = program
+    .replace_all(old="\\", new="/")
+    .split("/")
+    .last()
+    .unwrap_or(program[:])
+  if basename.contains(".") {
+    return bases
+  }
+  let candidates : Array[String] = []
+  for base in bases {
+    for raw_extension in pathext.split(";") {
+      let extension = raw_extension.trim()
+      if !extension.is_empty() && extension.has_prefix(".") {
+        candidates.push(base + extension.to_owned())
+      }
+    }
+  }
+  candidates
+}
+
+///|
+async fn resolve_windows_program_with_context(
+  program : String,
+  path : String,
+  pathext : String,
+) -> String {
+  if program.contains("/") || program.contains("\\") {
+    return @fs.realpath(program)
+  }
+  for candidate in windows_program_candidates(program, path, pathext) {
+    let regular = try @fs.kind(candidate) catch {
+      _ => false
+    } noraise {
+      Regular => true
+      _ => false
+    }
+    if regular {
+      return @fs.realpath(candidate)
+    }
+  }
+  program
+}
+
+///|
+#cfg(platform="windows")
+fn is_windows_platform() -> Bool {
+  true
+}
+
+///|
+#cfg(not(platform="windows"))
+fn is_windows_platform() -> Bool {
+  false
 }
 
 ///|
 async fn resolve_program(program : String) -> String {
-  if program.contains("/") || program.contains("\\") {
+  if is_windows_platform() {
+    resolve_windows_program_with_context(
+      program,
+      @env.get_env_var("PATH").unwrap_or(""),
+      @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD"),
+    )
+  } else if program.contains("/") || program.contains("\\") {
     @fs.realpath(program)
   } else {
     program
@@ -41,11 +126,40 @@ pub async fn prepare_program(
     resolve_program(runner)
   }
   if runner.is_empty() {
-    { executable, prefix: [], }
+    { executable, prefix: [], subject_path: path, no_console_window: true, }
   } else if runner.contains("moonrun") {
-    { executable, prefix: [path, "--"], }
+    {
+      executable,
+      prefix: [path, "--"],
+      subject_path: path,
+      no_console_window: true,
+    }
   } else {
-    { executable, prefix: [path], }
+    { executable, prefix: [path], subject_path: path, no_console_window: true, }
+  }
+}
+
+///|
+/// Prepare a command whose executable and argument prefix are supplied
+/// explicitly. This is used for wrappers such as `moonx`, where the subject is
+/// a registry coordinate rather than a local filesystem path.
+pub async fn prepare_command(
+  executable : String,
+  prefix : Array[String],
+  subject_path? : String = "",
+  no_console_window? : Bool = true,
+) -> PreparedProgram {
+  let resolved_executable = resolve_program(executable)
+  let subject = if subject_path.is_empty() {
+    prefix.last().unwrap_or(resolved_executable)
+  } else {
+    subject_path
+  }
+  {
+    executable: resolved_executable,
+    prefix,
+    subject_path: subject,
+    no_console_window,
   }
 }
 
@@ -65,7 +179,7 @@ pub fn PreparedProgram::arguments(
 /// The product path whose diagnostics are compared, excluding an optional
 /// runner such as `moonrun`.
 pub fn PreparedProgram::subject(self : PreparedProgram) -> String {
-  self.prefix.get(0).unwrap_or(self.executable)
+  self.subject_path
 }
 
 ///|
@@ -81,6 +195,7 @@ async fn collect(
   cwd : String?,
   extra_env : Map[String, String],
   inherit_env : Bool,
+  no_console_window : Bool,
 ) -> RunResult {
   let input = match stdin_path {
     Some(path) => Some(@process.redirect_from_file(path))
@@ -95,7 +210,7 @@ async fn collect(
         inherit_env~,
         stdin=source,
         cwd=directory,
-        no_console_window=true,
+        no_console_window~,
       )
     (Some(source), None) =>
       @process.collect_output(
@@ -104,7 +219,7 @@ async fn collect(
         extra_env~,
         inherit_env~,
         stdin=source,
-        no_console_window=true,
+        no_console_window~,
       )
     (None, Some(directory)) =>
       @process.collect_output(
@@ -113,7 +228,7 @@ async fn collect(
         extra_env~,
         inherit_env~,
         cwd=directory,
-        no_console_window=true,
+        no_console_window~,
       )
     (None, None) =>
       @process.collect_output(
@@ -121,7 +236,7 @@ async fn collect(
         args,
         extra_env~,
         inherit_env~,
-        no_console_window=true,
+        no_console_window~,
       )
   }
   { status: output.0, stdout: output.1.binary(), stderr: output.2.binary(), }
@@ -143,6 +258,7 @@ pub async fn run_prepared(
     cwd,
     extra_env,
     inherit_env,
+    program.no_console_window,
   )
 }
 
@@ -209,6 +325,7 @@ pub async fn run(
     cwd,
     extra_env,
     inherit_env,
+    true,
   )
 }
 

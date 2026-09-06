@@ -46,9 +46,9 @@ fn shell_launch_error(
 ) -> @planner.ExecutionError {
   let detail = process_error_detail(error)
   if detail.to_lower().contains("directory name is invalid") {
-    @planner.ShellLaunchIo(recipe~, shell~, detail~)
+    ShellLaunchIo(recipe~, shell~, detail~)
   } else {
-    @planner.ShellNotFound(recipe~, shell~, detail~)
+    ShellNotFound(recipe~, shell~, detail~)
   }
 }
 

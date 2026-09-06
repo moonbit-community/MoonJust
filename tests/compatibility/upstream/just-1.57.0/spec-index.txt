@@ -769,20 +769,20 @@ functions::dry_run_shell_function_output_is_escaped	tests/compatibility/upstream
 functions::encode_uri_component	internal/evaluator/upstream_functions_basic_test.mbt:252	upstream functions::encode_uri_component	tests/functions.rs:1137
 functions::env_var_failure	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:25349		tests/functions.rs:369
 functions::env_var_functions_unix	internal/evaluator/upstream_path_exists_test.mbt:301	upstream functions::env_var_functions_unix	tests/functions.rs:73
-functions::env_var_functions_windows	internal/evaluator/upstream_path_exists_test.mbt:309	upstream functions::env_var_functions_windows	tests/functions.rs:342
+functions::env_var_functions_windows	internal/evaluator/upstream_path_exists_test.mbt:306	upstream functions::env_var_functions_windows	tests/functions.rs:342
 functions::error_errors_with_message	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:25507		tests/functions.rs:844
 functions::invalid_replace_regex	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:25543		tests/functions.rs:619
 functions::invocation_dir_native_abbreviation_is_accepted	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:25593		tests/functions.rs:1458
-functions::is_dependency	internal/evaluator/upstream_functions_basic_test.mbt:490	upstream functions::is_dependency	tests/functions.rs:1325
+functions::is_dependency	internal/evaluator/upstream_functions_basic_test.mbt:472	upstream functions::is_dependency	tests/functions.rs:1325
 functions::join_argument_count_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:25673		tests/functions.rs:812
 functions::join_unix	internal/evaluator/upstream_functions_basic_test.mbt:374	upstream functions::join_unix	tests/functions.rs:790
 functions::join_windows	internal/evaluator/upstream_functions_basic_test.mbt:394	upstream functions::join_windows	tests/functions.rs:801
 functions::just_pid	internal/evaluator/upstream_path_exists_test.mbt:114	upstream functions::just_pid	tests/functions.rs:1031
-functions::just_version	internal/evaluator/upstream_functions_basic_test.mbt:463	upstream functions::just_version	tests/functions.rs:1042
+functions::just_version	internal/evaluator/upstream_functions_basic_test.mbt:445	upstream functions::just_version	tests/functions.rs:1042
 functions::kebabcase	internal/evaluator/upstream_functions_test.mbt:17	upstream functions::kebabcase	tests/functions.rs:521
 functions::lowercamelcase	internal/evaluator/upstream_functions_test.mbt:22	upstream functions::lowercamelcase	tests/functions.rs:493
 functions::lowercase	internal/evaluator/upstream_functions_test.mbt:30	upstream functions::lowercase	tests/functions.rs:465
-functions::module_path	internal/evaluator/upstream_functions_basic_test.mbt:478	upstream functions::module_path	tests/functions.rs:1599
+functions::module_path	internal/evaluator/upstream_functions_basic_test.mbt:460	upstream functions::module_path	tests/functions.rs:1599
 functions::module_path_in_submodule	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:25895		tests/functions.rs:1604
 functions::module_paths	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:25919		tests/functions.rs:1204
 functions::num_jobs_falls_back_to_empty_list	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:26163		tests/functions.rs:1632
@@ -814,7 +814,7 @@ functions::shell_error	tests/compatibility/upstream/just-1.57.0/upstream-fixture
 functions::shell_first_arg	internal/evaluator/upstream_functions_basic_test.mbt:116	upstream functions::shell_first_arg	tests/functions.rs:1074
 functions::shell_minimal	internal/evaluator/upstream_functions_basic_test.mbt:106	upstream functions::shell_minimal	tests/functions.rs:1064
 functions::shell_no_argument	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:27009		tests/functions.rs:1047
-functions::shell_with_powershell	internal/evaluator/upstream_functions_basic_test.mbt:433	upstream functions::shell_with_powershell	tests/functions.rs:1577
+functions::shell_with_powershell	internal/evaluator/upstream_functions_basic_test.mbt:419	upstream functions::shell_with_powershell	tests/functions.rs:1577
 functions::shoutykebabcase	internal/evaluator/upstream_functions_test.mbt:40	upstream functions::shoutykebabcase	tests/functions.rs:563
 functions::shoutysnakecase	internal/evaluator/upstream_functions_test.mbt:48	upstream functions::shoutysnakecase	tests/functions.rs:535
 functions::show_empty_list	internal/evaluator/upstream_functions_basic_test.mbt:369	upstream functions::show_empty_list	tests/functions.rs:785
@@ -1010,35 +1010,35 @@ lexer::tests::ampersand_unexpected	internal/lexer/upstream_lexer_errors.mbt:20	u
 lexer::tests::backtick	internal/lexer/upstream_lexer_corpus_00.mbt:7	upstream lexer::tests::backtick	src/lexer.rs:1112
 lexer::tests::backtick_multi_line	internal/lexer/upstream_lexer_corpus_00.mbt:12	upstream lexer::tests::backtick_multi_line	src/lexer.rs:1118
 lexer::tests::bad_dedent	internal/lexer/upstream_lexer_errors.mbt:38	upstream lexer::tests::bad_dedent	src/lexer.rs:2430
-lexer::tests::bang	internal/lexer/upstream_lexer_corpus_00.mbt:19	upstream lexer::tests::bang	src/lexer.rs:1178
-lexer::tests::bang_equals	internal/lexer/upstream_lexer_corpus_00.mbt:24	upstream lexer::tests::bang_equals	src/lexer.rs:1184
-lexer::tests::brace_escape	internal/lexer/upstream_lexer_remaining.mbt:451	upstream lexer::tests::brace_escape	src/lexer.rs:1428
-lexer::tests::brace_l	internal/lexer/upstream_lexer_corpus_00.mbt:29	upstream lexer::tests::brace_l	src/lexer.rs:1190
-lexer::tests::brace_lll	internal/lexer/upstream_lexer_corpus_00.mbt:34	upstream lexer::tests::brace_lll	src/lexer.rs:1202
-lexer::tests::brace_r	internal/lexer/upstream_lexer_corpus_00.mbt:43	upstream lexer::tests::brace_r	src/lexer.rs:1196
-lexer::tests::brace_rrr	internal/lexer/upstream_lexer_corpus_00.mbt:51	upstream lexer::tests::brace_rrr	src/lexer.rs:1208
-lexer::tests::brackets	internal/lexer/upstream_lexer_corpus_00.mbt:63	upstream lexer::tests::brackets	src/lexer.rs:2156
-lexer::tests::cooked_multiline_string	internal/lexer/upstream_lexer_corpus_00.mbt:73	upstream lexer::tests::cooked_multiline_string	src/lexer.rs:1148
-lexer::tests::cooked_string	internal/lexer/upstream_lexer_corpus_00.mbt:80	upstream lexer::tests::cooked_string	src/lexer.rs:1136
-lexer::tests::cooked_string_multi_line	internal/lexer/upstream_lexer_corpus_00.mbt:87	upstream lexer::tests::cooked_string_multi_line	src/lexer.rs:1142
-lexer::tests::crlf_newline	internal/lexer/upstream_lexer_corpus_00.mbt:94	upstream lexer::tests::crlf_newline	src/lexer.rs:2129
-lexer::tests::dollar	internal/lexer/upstream_lexer_corpus_00.mbt:104	upstream lexer::tests::dollar	src/lexer.rs:1214
-lexer::tests::eol_carriage_return_linefeed	internal/lexer/upstream_lexer_corpus_00.mbt:109	upstream lexer::tests::eol_carriage_return_linefeed	src/lexer.rs:1269
-lexer::tests::eol_linefeed	internal/lexer/upstream_lexer_corpus_00.mbt:114	upstream lexer::tests::eol_linefeed	src/lexer.rs:1262
-lexer::tests::export_complex	internal/lexer/upstream_lexer_corpus_00.mbt:119	upstream lexer::tests::export_complex	src/lexer.rs:1238
-lexer::tests::export_concatenation	internal/lexer/upstream_lexer_corpus_00.mbt:142	upstream lexer::tests::export_concatenation	src/lexer.rs:1220
-lexer::tests::format_string_continue	internal/lexer/upstream_lexer_corpus_00.mbt:159	upstream lexer::tests::format_string_continue	src/lexer.rs:2192
-lexer::tests::format_string_empty	internal/lexer/upstream_lexer_corpus_00.mbt:171	upstream lexer::tests::format_string_empty	src/lexer.rs:2172
-lexer::tests::format_string_followed_by_recipe	internal/lexer/upstream_lexer_corpus_00.mbt:179	upstream lexer::tests::format_string_followed_by_recipe	src/lexer.rs:2224
-lexer::tests::format_string_identifier	internal/lexer/upstream_lexer_corpus_00.mbt:198	upstream lexer::tests::format_string_identifier	src/lexer.rs:2181
-lexer::tests::format_string_whitespace	internal/lexer/upstream_lexer_corpus_00.mbt:208	upstream lexer::tests::format_string_whitespace	src/lexer.rs:2205
+lexer::tests::bang	internal/lexer/upstream_lexer_corpus_00.mbt:17	upstream lexer::tests::bang	src/lexer.rs:1178
+lexer::tests::bang_equals	internal/lexer/upstream_lexer_corpus_00.mbt:22	upstream lexer::tests::bang_equals	src/lexer.rs:1184
+lexer::tests::brace_escape	internal/lexer/upstream_lexer_remaining.mbt:449	upstream lexer::tests::brace_escape	src/lexer.rs:1428
+lexer::tests::brace_l	internal/lexer/upstream_lexer_corpus_00.mbt:27	upstream lexer::tests::brace_l	src/lexer.rs:1190
+lexer::tests::brace_lll	internal/lexer/upstream_lexer_corpus_00.mbt:32	upstream lexer::tests::brace_lll	src/lexer.rs:1202
+lexer::tests::brace_r	internal/lexer/upstream_lexer_corpus_00.mbt:37	upstream lexer::tests::brace_r	src/lexer.rs:1196
+lexer::tests::brace_rrr	internal/lexer/upstream_lexer_corpus_00.mbt:42	upstream lexer::tests::brace_rrr	src/lexer.rs:1208
+lexer::tests::brackets	internal/lexer/upstream_lexer_corpus_00.mbt:54	upstream lexer::tests::brackets	src/lexer.rs:2156
+lexer::tests::cooked_multiline_string	internal/lexer/upstream_lexer_corpus_00.mbt:64	upstream lexer::tests::cooked_multiline_string	src/lexer.rs:1148
+lexer::tests::cooked_string	internal/lexer/upstream_lexer_corpus_00.mbt:71	upstream lexer::tests::cooked_string	src/lexer.rs:1136
+lexer::tests::cooked_string_multi_line	internal/lexer/upstream_lexer_corpus_00.mbt:76	upstream lexer::tests::cooked_string_multi_line	src/lexer.rs:1142
+lexer::tests::crlf_newline	internal/lexer/upstream_lexer_corpus_00.mbt:83	upstream lexer::tests::crlf_newline	src/lexer.rs:2129
+lexer::tests::dollar	internal/lexer/upstream_lexer_corpus_00.mbt:93	upstream lexer::tests::dollar	src/lexer.rs:1214
+lexer::tests::eol_carriage_return_linefeed	internal/lexer/upstream_lexer_corpus_00.mbt:98	upstream lexer::tests::eol_carriage_return_linefeed	src/lexer.rs:1269
+lexer::tests::eol_linefeed	internal/lexer/upstream_lexer_corpus_00.mbt:103	upstream lexer::tests::eol_linefeed	src/lexer.rs:1262
+lexer::tests::export_complex	internal/lexer/upstream_lexer_corpus_00.mbt:108	upstream lexer::tests::export_complex	src/lexer.rs:1238
+lexer::tests::export_concatenation	internal/lexer/upstream_lexer_corpus_00.mbt:131	upstream lexer::tests::export_concatenation	src/lexer.rs:1220
+lexer::tests::format_string_continue	internal/lexer/upstream_lexer_corpus_00.mbt:148	upstream lexer::tests::format_string_continue	src/lexer.rs:2192
+lexer::tests::format_string_empty	internal/lexer/upstream_lexer_corpus_00.mbt:160	upstream lexer::tests::format_string_empty	src/lexer.rs:2172
+lexer::tests::format_string_followed_by_recipe	internal/lexer/upstream_lexer_corpus_00.mbt:168	upstream lexer::tests::format_string_followed_by_recipe	src/lexer.rs:2224
+lexer::tests::format_string_identifier	internal/lexer/upstream_lexer_corpus_00.mbt:187	upstream lexer::tests::format_string_identifier	src/lexer.rs:2181
+lexer::tests::format_string_whitespace	internal/lexer/upstream_lexer_corpus_00.mbt:197	upstream lexer::tests::format_string_whitespace	src/lexer.rs:2205
 lexer::tests::format_string_wrong_identifier	internal/lexer/upstream_lexer_corpus_01.mbt:2	upstream lexer::tests::format_string_wrong_identifier	src/lexer.rs:2215
-lexer::tests::indent_indent_dedent_indent	internal/lexer/upstream_lexer_remaining.mbt:327	upstream lexer::tests::indent_indent_dedent_indent	src/lexer.rs:1342
+lexer::tests::indent_indent_dedent_indent	internal/lexer/upstream_lexer_remaining.mbt:325	upstream lexer::tests::indent_indent_dedent_indent	src/lexer.rs:1342
 lexer::tests::indent_recipe_dedent_indent	internal/lexer/upstream_lexer_remaining.mbt:22	upstream lexer::tests::indent_recipe_dedent_indent	src/lexer.rs:1372
-lexer::tests::indented_block	internal/lexer/upstream_lexer_remaining.mbt:432	upstream lexer::tests::indented_block	src/lexer.rs:1403
-lexer::tests::indented_block_followed_by_blank	internal/lexer/upstream_lexer_remaining.mbt:350	upstream lexer::tests::indented_block_followed_by_blank	src/lexer.rs:1466
-lexer::tests::indented_block_followed_by_item	internal/lexer/upstream_lexer_remaining.mbt:367	upstream lexer::tests::indented_block_followed_by_item	src/lexer.rs:1445
-lexer::tests::indented_blocks	internal/lexer/upstream_lexer_remaining.mbt:383	upstream lexer::tests::indented_blocks	src/lexer.rs:1504
+lexer::tests::indented_block	internal/lexer/upstream_lexer_remaining.mbt:430	upstream lexer::tests::indented_block	src/lexer.rs:1403
+lexer::tests::indented_block_followed_by_blank	internal/lexer/upstream_lexer_remaining.mbt:348	upstream lexer::tests::indented_block_followed_by_blank	src/lexer.rs:1466
+lexer::tests::indented_block_followed_by_item	internal/lexer/upstream_lexer_remaining.mbt:365	upstream lexer::tests::indented_block_followed_by_item	src/lexer.rs:1445
+lexer::tests::indented_blocks	internal/lexer/upstream_lexer_remaining.mbt:381	upstream lexer::tests::indented_blocks	src/lexer.rs:1504
 lexer::tests::indented_format_string_followed_by_recipe	internal/lexer/upstream_lexer_corpus_01.mbt:10	upstream lexer::tests::indented_format_string_followed_by_recipe	src/lexer.rs:2244
 lexer::tests::indented_line	internal/lexer/upstream_lexer_corpus_01.mbt:29	upstream lexer::tests::indented_line	src/lexer.rs:1276
 lexer::tests::indented_line_containing_unpaired_carriage_return	internal/lexer/upstream_lexer_corpus_01.mbt:41	upstream lexer::tests::indented_line_containing_unpaired_carriage_return	src/lexer.rs:1489
@@ -1048,8 +1048,8 @@ lexer::tests::indented_normal_nonempty_blank	internal/lexer/upstream_lexer_corpu
 lexer::tests::interpolation_empty	internal/lexer/upstream_lexer_corpus_01.mbt:71	upstream lexer::tests::interpolation_empty	src/lexer.rs:1564
 lexer::tests::interpolation_expression	internal/lexer/upstream_lexer_corpus_01.mbt:85	upstream lexer::tests::interpolation_expression	src/lexer.rs:1579
 lexer::tests::interpolation_raw_multiline_string	internal/lexer/upstream_lexer_corpus_01.mbt:104	upstream lexer::tests::interpolation_raw_multiline_string	src/lexer.rs:1599
-lexer::tests::invalid_name_start_dash	internal/lexer/upstream_lexer_remaining.mbt:280	upstream lexer::tests::invalid_name_start_dash	src/lexer.rs:2370
-lexer::tests::invalid_name_start_digit	internal/lexer/upstream_lexer_remaining.mbt:285	upstream lexer::tests::invalid_name_start_digit	src/lexer.rs:2380
+lexer::tests::invalid_name_start_dash	internal/lexer/upstream_lexer_remaining.mbt:278	upstream lexer::tests::invalid_name_start_dash	src/lexer.rs:2370
+lexer::tests::invalid_name_start_digit	internal/lexer/upstream_lexer_remaining.mbt:283	upstream lexer::tests::invalid_name_start_digit	src/lexer.rs:2380
 lexer::tests::mismatched_closing_brace	internal/lexer/upstream_lexer_errors.mbt:56	upstream lexer::tests::mismatched_closing_brace	src/lexer.rs:2460
 lexer::tests::mixed_leading_whitespace_indent	internal/lexer/upstream_lexer_errors.mbt:74	upstream lexer::tests::mixed_leading_whitespace_indent	src/lexer.rs:2420
 lexer::tests::mixed_leading_whitespace_normal	internal/lexer/upstream_lexer_errors.mbt:92	upstream lexer::tests::mixed_leading_whitespace_normal	src/lexer.rs:2410
@@ -1068,23 +1068,23 @@ lexer::tests::tokenize_empty_lines	internal/lexer/upstream_lexer_remaining.mbt:1
 lexer::tests::tokenize_indented_block	internal/lexer/upstream_lexer_remaining.mbt:197	upstream lexer::tests::tokenize_indented_block	src/lexer.rs:1648
 lexer::tests::tokenize_indented_line	internal/lexer/upstream_lexer_corpus_01.mbt:193	upstream lexer::tests::tokenize_indented_line	src/lexer.rs:1635
 lexer::tests::tokenize_interpolation_backticks	internal/lexer/upstream_lexer_corpus_01.mbt:205	upstream lexer::tests::tokenize_interpolation_backticks	src/lexer.rs:1928
-lexer::tests::tokenize_junk	internal/lexer/upstream_lexer_remaining.mbt:300	upstream lexer::tests::tokenize_junk	src/lexer.rs:1797
+lexer::tests::tokenize_junk	internal/lexer/upstream_lexer_remaining.mbt:298	upstream lexer::tests::tokenize_junk	src/lexer.rs:1797
 lexer::tests::tokenize_multiple	internal/lexer/upstream_lexer_remaining.mbt:46	upstream lexer::tests::tokenize_multiple	src/lexer.rs:1979
 lexer::tests::tokenize_names	internal/lexer/upstream_lexer_remaining.mbt:108	upstream lexer::tests::tokenize_names	src/lexer.rs:1615
-lexer::tests::tokenize_order	internal/lexer/upstream_lexer_remaining.mbt:481	upstream lexer::tests::tokenize_order	src/lexer.rs:2050
+lexer::tests::tokenize_order	internal/lexer/upstream_lexer_remaining.mbt:479	upstream lexer::tests::tokenize_order	src/lexer.rs:2050
 lexer::tests::tokenize_parens	internal/lexer/upstream_lexer_corpus_01.mbt:224	upstream lexer::tests::tokenize_parens	src/lexer.rs:2110
 lexer::tests::tokenize_recipe_after_body	internal/lexer/upstream_lexer_corpus_01.mbt:242	upstream lexer::tests::tokenize_recipe_after_body	src/lexer.rs:2264
 lexer::tests::tokenize_recipe_complex_interpolation_expression	internal/lexer/upstream_lexer_corpus_01.mbt:258	upstream lexer::tests::tokenize_recipe_complex_interpolation_expression	src/lexer.rs:1742
 lexer::tests::tokenize_recipe_interpolation_eof	internal/lexer/upstream_lexer_corpus_01.mbt:286	upstream lexer::tests::tokenize_recipe_interpolation_eof	src/lexer.rs:1719
-lexer::tests::tokenize_recipe_interpolation_eol	internal/lexer/upstream_lexer_remaining.mbt:464	upstream lexer::tests::tokenize_recipe_interpolation_eol	src/lexer.rs:1698
+lexer::tests::tokenize_recipe_interpolation_eol	internal/lexer/upstream_lexer_remaining.mbt:462	upstream lexer::tests::tokenize_recipe_interpolation_eol	src/lexer.rs:1698
 lexer::tests::tokenize_recipe_multiple_interpolations	internal/lexer/upstream_lexer_corpus_01.mbt:308	upstream lexer::tests::tokenize_recipe_multiple_interpolations	src/lexer.rs:1771
 lexer::tests::tokenize_space_then_tab	internal/lexer/upstream_lexer_errors.mbt:128	upstream lexer::tests::tokenize_space_then_tab	src/lexer.rs:2281
 lexer::tests::tokenize_strings	internal/lexer/upstream_lexer_corpus_01.mbt:332	upstream lexer::tests::tokenize_strings	src/lexer.rs:1673
 lexer::tests::tokenize_tabs_then_tab_space	internal/lexer/upstream_lexer_errors.mbt:146	upstream lexer::tests::tokenize_tabs_then_tab_space	src/lexer.rs:2295
-lexer::tests::tokenize_unknown	internal/lexer/upstream_lexer_remaining.mbt:290	upstream lexer::tests::tokenize_unknown	src/lexer.rs:2309
+lexer::tests::tokenize_unknown	internal/lexer/upstream_lexer_remaining.mbt:288	upstream lexer::tests::tokenize_unknown	src/lexer.rs:2309
 lexer::tests::unclosed_interpolation_delimiter	internal/lexer/upstream_lexer_errors.mbt:164	upstream lexer::tests::unclosed_interpolation_delimiter	src/lexer.rs:2440
 lexer::tests::unclosed_parenthesis_in_interpolation	internal/lexer/upstream_lexer_errors.mbt:182	upstream lexer::tests::unclosed_parenthesis_in_interpolation	src/lexer.rs:2498
-lexer::tests::unexpected_character_after_at	internal/lexer/upstream_lexer_remaining.mbt:295	upstream lexer::tests::unexpected_character_after_at	src/lexer.rs:2450
+lexer::tests::unexpected_character_after_at	internal/lexer/upstream_lexer_remaining.mbt:293	upstream lexer::tests::unexpected_character_after_at	src/lexer.rs:2450
 lexer::tests::unpaired_carriage_return	internal/lexer/upstream_lexer_errors.mbt:200	upstream lexer::tests::unpaired_carriage_return	src/lexer.rs:2360
 lexer::tests::unterminated_backtick	internal/lexer/upstream_lexer_errors.mbt:218	upstream lexer::tests::unterminated_backtick	src/lexer.rs:2350
 lexer::tests::unterminated_interpolation	internal/lexer/upstream_lexer_errors.mbt:236	upstream lexer::tests::unterminated_interpolation	src/lexer.rs:2339
@@ -1832,8 +1832,8 @@ quiet::no_quiet_setting	tests/compatibility/upstream/just-1.57.0/upstream-fixtur
 quiet::quiet_shebang	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64547		tests/quiet.rs:155
 quiet::show_missing	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64575		tests/quiet.rs:145
 quote::quoted_strings_can_be_used_as_arguments	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64597		tests/quote.rs:14
-quote::quotes_are_escaped	internal/evaluator/upstream_functions_basic_test.mbt:512	upstream quote::quotes_are_escaped	tests/quote.rs:9
-quote::single_quotes_are_prepended_and_appended	internal/evaluator/upstream_functions_basic_test.mbt:507	upstream quote::single_quotes_are_prepended_and_appended	tests/quote.rs:4
+quote::quotes_are_escaped	internal/evaluator/upstream_functions_basic_test.mbt:494	upstream quote::quotes_are_escaped	tests/quote.rs:9
+quote::single_quotes_are_prepended_and_appended	internal/evaluator/upstream_functions_basic_test.mbt:489	upstream quote::single_quotes_are_prepended_and_appended	tests/quote.rs:4
 range_ext::tests::display	internal/builtin/upstream_range_wbtest.mbt:2	upstream range_ext::tests::display	src/range_ext.rs:31
 readme::h1_and_h2_headings_are_setext	internal/application/upstream_document_contract_test.mbt:22	upstream readme::h1_and_h2_headings_are_setext	tests/readme.rs:40
 readme::heading_levels_are_not_skipped	internal/application/upstream_document_contract_test.mbt:28	upstream readme::heading_levels_are_not_skipped	tests/readme.rs:7
@@ -1881,7 +1881,7 @@ script::script_and_shell_attribute_forbidden	tests/compatibility/upstream/just-1
 script::script_line_numbers	internal/planner/upstream_script_lines_wbtest.mbt:85	upstream script::script_line_numbers	tests/script.rs:73
 script::script_line_numbers_with_multi_line_recipe_signature	internal/planner/upstream_script_lines_wbtest.mbt:49	upstream script::script_line_numbers_with_multi_line_recipe_signature	tests/script.rs:97
 script::shebang_line_numbers	internal/planner/upstream_script_lines_wbtest.mbt:13	upstream script::shebang_line_numbers	tests/script.rs:135
-script::shebang_line_numbers_windows	internal/planner/upstream_script_lines_wbtest.mbt:130	upstream script::shebang_line_numbers_windows	tests/script.rs:250
+script::shebang_line_numbers_windows	internal/planner/upstream_script_lines_wbtest.mbt:127	upstream script::shebang_line_numbers_windows	tests/script.rs:250
 script::shebang_line_numbers_with_multiline_constructs	internal/planner/upstream_script_lines_wbtest.mbt:67	upstream script::shebang_line_numbers_with_multiline_constructs	tests/script.rs:170
 script::shell_attribute_overrides_shebang	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:66945		tests/script.rs:465
 script::use_final_path_component_of_script_interpreter_to_determine_shell_kind	internal/planner/upstream_script_lines_wbtest.mbt:94	upstream script::use_final_path_component_of_script_interpreter_to_determine_shell_kind	tests/script.rs:503
@@ -1944,15 +1944,15 @@ settings::variable_with_override	tests/compatibility/upstream/just-1.57.0/upstre
 shadowing_parameters::exporting_shadowing_parameters_does_change_environment	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69201		tests/shadowing_parameters.rs:26
 shadowing_parameters::parameter_may_shadow_variable	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69225		tests/shadowing_parameters.rs:4
 shadowing_parameters::shadowing_parameters_do_not_change_environment	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69249		tests/shadowing_parameters.rs:15
-shebang::cmd	internal/planner/upstream_script_lines_wbtest.mbt:137	upstream shebang::cmd	tests/shebang.rs:55
-shebang::cmd_exe	internal/planner/upstream_script_lines_wbtest.mbt:143	upstream shebang::cmd_exe	tests/shebang.rs:72
+shebang::cmd	internal/planner/upstream_script_lines_wbtest.mbt:134	upstream shebang::cmd	tests/shebang.rs:55
+shebang::cmd_exe	internal/planner/upstream_script_lines_wbtest.mbt:140	upstream shebang::cmd_exe	tests/shebang.rs:72
 shebang::echo	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69345		tests/shebang.rs:121
 shebang::echo_with_command_color	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69377		tests/shebang.rs:136
 shebang::invalid_shebang_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69423		tests/shebang.rs:174
-shebang::multi_line_cmd_shebangs_are_removed	internal/planner/upstream_script_lines_wbtest.mbt:149	upstream shebang::multi_line_cmd_shebangs_are_removed	tests/shebang.rs:89
-shebang::powershell	internal/planner/upstream_script_lines_wbtest.mbt:158	upstream shebang::powershell	tests/shebang.rs:4
-shebang::powershell_exe	internal/planner/upstream_script_lines_wbtest.mbt:164	upstream shebang::powershell_exe	tests/shebang.rs:21
-shebang::powershell_utf8	internal/planner/upstream_script_lines_wbtest.mbt:170	upstream shebang::powershell_utf8	tests/shebang.rs:38
+shebang::multi_line_cmd_shebangs_are_removed	internal/planner/upstream_script_lines_wbtest.mbt:146	upstream shebang::multi_line_cmd_shebangs_are_removed	tests/shebang.rs:89
+shebang::powershell	internal/planner/upstream_script_lines_wbtest.mbt:155	upstream shebang::powershell	tests/shebang.rs:4
+shebang::powershell_exe	internal/planner/upstream_script_lines_wbtest.mbt:161	upstream shebang::powershell_exe	tests/shebang.rs:21
+shebang::powershell_utf8	internal/planner/upstream_script_lines_wbtest.mbt:167	upstream shebang::powershell_utf8	tests/shebang.rs:38
 shebang::run_shebang	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69599		tests/shebang.rs:157
 shebang::simple	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69635		tests/shebang.rs:107
 shebang::tests::dont_include_shebang_line_cmd	internal/planner/upstream_shebang_wbtest.mbt:81	upstream shebang::tests::dont_include_shebang_line_cmd	src/shebang.rs:126
@@ -2050,16 +2050,16 @@ string::valid_unicode_escape	internal/evaluator/upstream_string_test.mbt:32	upst
 style::style_command_default	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73211		tests/style.rs:4
 style::style_command_non_default	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73239		tests/style.rs:17
 style::style_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73269		tests/style.rs:31
-style::style_fixed	internal/evaluator/upstream_style_wbtest.mbt:68	upstream style::style_fixed	tests/style.rs:159
+style::style_fixed	internal/evaluator/upstream_style_wbtest.mbt:66	upstream style::style_fixed	tests/style.rs:159
 style::style_last_wins	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73331		tests/style.rs:142
 style::style_list	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73367		tests/style.rs:125
-style::style_prefix_without_text	internal/evaluator/upstream_style_wbtest.mbt:114	upstream style::style_prefix_without_text	tests/style.rs:224
-style::style_rgb	internal/evaluator/upstream_style_wbtest.mbt:84	upstream style::style_rgb	tests/style.rs:175
-style::style_single	internal/evaluator/upstream_style_wbtest.mbt:36	upstream style::style_single	tests/style.rs:78
-style::style_stream	internal/evaluator/upstream_style_wbtest.mbt:102	upstream style::style_stream	tests/style.rs:193
+style::style_prefix_without_text	internal/evaluator/upstream_style_wbtest.mbt:112	upstream style::style_prefix_without_text	tests/style.rs:224
+style::style_rgb	internal/evaluator/upstream_style_wbtest.mbt:82	upstream style::style_rgb	tests/style.rs:175
+style::style_single	internal/evaluator/upstream_style_wbtest.mbt:34	upstream style::style_single	tests/style.rs:78
+style::style_stream	internal/evaluator/upstream_style_wbtest.mbt:100	upstream style::style_stream	tests/style.rs:193
 style::style_unknown	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73613		tests/style.rs:57
 style::style_warning	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73657		tests/style.rs:44
-style::style_with_text	internal/evaluator/upstream_style_wbtest.mbt:119	upstream style::style_with_text	tests/style.rs:229
+style::style_with_text	internal/evaluator/upstream_style_wbtest.mbt:117	upstream style::style_with_text	tests/style.rs:229
 subcommand::tests::init_justfile	internal/application/upstream_init_wbtest.mbt:2	upstream subcommand::tests::init_justfile	src/subcommand.rs:1125
 subsequents::argument	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73711		tests/subsequents.rs:121
 subsequents::circular_dependency	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:73761		tests/subsequents.rs:59
@@ -2118,7 +2118,7 @@ value::tests::color_display	internal/value/upstream_value_additional_test.mbt:2	
 value::tests::display	internal/value/upstream_value_test.mbt:2	upstream value::tests::display	src/value.rs:186
 value::tests::from_str	internal/value/upstream_value_test.mbt:17	upstream value::tests::from_str	src/value.rs:226
 value::tests::is_truthy	internal/value/upstream_value_test.mbt:24	upstream value::tests::is_truthy	src/value.rs:211
-value::tests::join	internal/value/upstream_value_test.mbt:35	upstream value::tests::join	src/value.rs:170
+value::tests::join	internal/value/upstream_value_test.mbt:33	upstream value::tests::join	src/value.rs:170
 variable_resolver::tests::circular_function_variable_dependency	internal/evaluator/upstream_variable_cycles_test.mbt:27	upstream variable_resolver::tests::circular_function_variable_dependency	src/variable_resolver.rs:312
 variable_resolver::tests::circular_transitive_function_variable_dependency	internal/evaluator/upstream_variable_cycles_test.mbt:32	upstream variable_resolver::tests::circular_transitive_function_variable_dependency	src/variable_resolver.rs:322
 variable_resolver::tests::circular_variable_dependency	internal/evaluator/upstream_variable_cycles_test.mbt:43	upstream variable_resolver::tests::circular_variable_dependency	src/variable_resolver.rs:292
@@ -2133,23 +2133,23 @@ variable_resolver::tests::unknown_expression_variable	internal/semantic/upstream
 version::tests::compare	internal/semantic/upstream_version_wbtest.mbt:12	upstream version::tests::compare	src/version.rs:61
 version::tests::current_version_is_valid	internal/application/upstream_json_wbtest.mbt:195	upstream version::tests::current_version_is_valid	src/version.rs:41
 version::tests::parse	internal/semantic/upstream_version_wbtest.mbt:2	upstream version::tests::parse	src/version.rs:46
-which_function::finds_executable	internal/evaluator/upstream_which_test.mbt:57	upstream which_function::finds_executable	tests/which_function.rs:8
-which_function::finds_executable_via_pathext	internal/evaluator/upstream_which_test.mbt:69	upstream which_function::finds_executable_via_pathext	tests/which_function.rs:296
-which_function::handles_absolute_path	internal/evaluator/upstream_which_test.mbt:207	upstream which_function::handles_absolute_path	tests/which_function.rs:177
-which_function::handles_dir_slash	internal/evaluator/upstream_which_test.mbt:219	upstream which_function::handles_dir_slash	tests/which_function.rs:228
-which_function::handles_dotslash	internal/evaluator/upstream_which_test.mbt:231	upstream which_function::handles_dotslash	tests/which_function.rs:200
-which_function::ignores_nonexecutable_candidates	internal/evaluator/upstream_which_test.mbt:159	upstream which_function::ignores_nonexecutable_candidates	tests/which_function.rs:143
-which_function::pathext_custom_extension	internal/evaluator/upstream_which_test.mbt:263	upstream which_function::pathext_custom_extension	tests/which_function.rs:345
-which_function::pathext_entry_missing_dot_is_error	internal/evaluator/upstream_which_test.mbt:275	upstream which_function::pathext_entry_missing_dot_is_error	tests/which_function.rs:370
-which_function::pathext_ignored_on_non_windows	internal/evaluator/upstream_which_test.mbt:135	upstream which_function::pathext_ignored_on_non_windows	tests/which_function.rs:395
-which_function::pathext_not_applied_when_candidate_has_extension	internal/evaluator/upstream_which_test.mbt:147	upstream which_function::pathext_not_applied_when_candidate_has_extension	tests/which_function.rs:321
+which_function::finds_executable	internal/evaluator/upstream_which_test.mbt:51	upstream which_function::finds_executable	tests/which_function.rs:8
+which_function::finds_executable_via_pathext	internal/evaluator/upstream_which_test.mbt:59	upstream which_function::finds_executable_via_pathext	tests/which_function.rs:296
+which_function::handles_absolute_path	internal/evaluator/upstream_which_test.mbt:175	upstream which_function::handles_absolute_path	tests/which_function.rs:177
+which_function::handles_dir_slash	internal/evaluator/upstream_which_test.mbt:187	upstream which_function::handles_dir_slash	tests/which_function.rs:228
+which_function::handles_dotslash	internal/evaluator/upstream_which_test.mbt:199	upstream which_function::handles_dotslash	tests/which_function.rs:200
+which_function::ignores_nonexecutable_candidates	internal/evaluator/upstream_which_test.mbt:127	upstream which_function::ignores_nonexecutable_candidates	tests/which_function.rs:143
+which_function::pathext_custom_extension	internal/evaluator/upstream_which_test.mbt:227	upstream which_function::pathext_custom_extension	tests/which_function.rs:345
+which_function::pathext_entry_missing_dot_is_error	internal/evaluator/upstream_which_test.mbt:235	upstream which_function::pathext_entry_missing_dot_is_error	tests/which_function.rs:370
+which_function::pathext_ignored_on_non_windows	internal/evaluator/upstream_which_test.mbt:111	upstream which_function::pathext_ignored_on_non_windows	tests/which_function.rs:395
+which_function::pathext_not_applied_when_candidate_has_extension	internal/evaluator/upstream_which_test.mbt:119	upstream which_function::pathext_not_applied_when_candidate_has_extension	tests/which_function.rs:321
 which_function::require_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:77495		tests/which_function.rs:279
-which_function::require_success	internal/evaluator/upstream_which_test.mbt:130	upstream which_function::require_success	tests/which_function.rs:419
-which_function::requires_lists_setting	internal/evaluator/upstream_which_test.mbt:105	upstream which_function::requires_lists_setting	tests/which_function.rs:256
-which_function::returns_empty_list_for_missing_executable	internal/evaluator/upstream_which_test.mbt:93	upstream which_function::returns_empty_list_for_missing_executable	tests/which_function.rs:28
-which_function::skips_non_executable_files	internal/evaluator/upstream_which_test.mbt:185	upstream which_function::skips_non_executable_files	tests/which_function.rs:48
-which_function::supports_multiple_paths	internal/evaluator/upstream_which_test.mbt:81	upstream which_function::supports_multiple_paths	tests/which_function.rs:68
-which_function::supports_shadowed_executables	internal/evaluator/upstream_which_test.mbt:243	upstream which_function::supports_shadowed_executables	tests/which_function.rs:98
+which_function::require_success	internal/evaluator/upstream_which_test.mbt:106	upstream which_function::require_success	tests/which_function.rs:419
+which_function::requires_lists_setting	internal/evaluator/upstream_which_test.mbt:81	upstream which_function::requires_lists_setting	tests/which_function.rs:256
+which_function::returns_empty_list_for_missing_executable	internal/evaluator/upstream_which_test.mbt:75	upstream which_function::returns_empty_list_for_missing_executable	tests/which_function.rs:28
+which_function::skips_non_executable_files	internal/evaluator/upstream_which_test.mbt:153	upstream which_function::skips_non_executable_files	tests/which_function.rs:48
+which_function::supports_multiple_paths	internal/evaluator/upstream_which_test.mbt:67	upstream which_function::supports_multiple_paths	tests/which_function.rs:68
+which_function::supports_shadowed_executables	internal/evaluator/upstream_which_test.mbt:207	upstream which_function::supports_shadowed_executables	tests/which_function.rs:98
 working_directory::attribute	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:77847		tests/working_directory.rs:363
 working_directory::attribute_duplicate	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:77879		tests/working_directory.rs:342
 working_directory::attribute_undefined_variable	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:77923		tests/working_directory.rs:490

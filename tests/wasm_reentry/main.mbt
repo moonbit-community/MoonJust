@@ -19,12 +19,27 @@ async fn main {
     return
   }
   let runner = @env.get_env_var("MOONJUST_MOONRUN").unwrap_or("moonrun")
-  let child = @process.collect_output(
-    runner,
-    [wasm, "--", ..args],
-    inherit_env=true,
-    no_console_window=true,
-  )
+  let child = match @env.get_env_var("MOONJUST_MOONX") {
+    Some(moonx) if !moonx.is_empty() =>
+      @process.collect_output(
+        moonx,
+        [
+          "--target",
+          @env.get_env_var("MOONJUST_MOONX_TARGET").unwrap_or("wasm"),
+          wasm,
+          ..args,
+        ],
+        inherit_env=true,
+        no_console_window=false,
+      )
+    _ =>
+      @process.collect_output(
+        runner,
+        [wasm, "--", ..args],
+        inherit_env=true,
+        no_console_window=true,
+      )
+  }
   @stdio.stdout.write(child.1)
   @stdio.stderr.write(child.2)
   @sys.exit(child.0)

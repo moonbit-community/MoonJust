@@ -12,7 +12,7 @@ fn UpstreamDirectoryHost::new(
 
 ///|
 impl @host.HostFs for UpstreamDirectoryHost with fn read_file(_self, path) -> Bytes raise @host.HostError {
-  raise @host.NotFound(path)
+  raise NotFound(path)
 }
 
 ///|
@@ -22,7 +22,7 @@ impl @host.HostFs for UpstreamDirectoryHost with fn read_file_range(
   _offset,
   _length,
 ) -> Bytes raise @host.HostError {
-  raise @host.NotFound(path)
+  raise NotFound(path)
 }
 
 ///|
@@ -31,7 +31,7 @@ impl @host.HostFs for UpstreamDirectoryHost with fn write_file(
   _path,
   _contents,
 ) -> Unit raise @host.HostError {
-  raise @host.InvalidInput("read-only upstream search host")
+  raise InvalidInput("read-only upstream search host")
 }
 
 ///|
@@ -51,7 +51,7 @@ impl @host.HostFs for UpstreamDirectoryHost with fn metadata(self, path) -> @hos
   if self.directories.contains(path) {
     @host.FileMetadata::new(false, true, 0L)
   } else {
-    raise @host.NotFound(path)
+    raise NotFound(path)
   }
 }
 
@@ -67,7 +67,7 @@ impl @host.HostFs for UpstreamDirectoryHost with fn persist_temp_file(
   _destination,
   _overwrite,
 ) -> Unit raise @host.HostError {
-  raise @host.InvalidInput("read-only upstream search host")
+  raise InvalidInput("read-only upstream search host")
 }
 
 ///|
@@ -219,7 +219,7 @@ test "upstream positional::tests::override_after_argument" {
 ///|
 test "upstream config::tests::search_config_default" {
   let arguments = try! upstream_application_arguments([])
-  assert_eq(try! input_selection(arguments, Unix), @cli.InputSelection::Search)
+  assert_eq(try! input_selection(arguments, Unix), Search)
 }
 
 ///|
@@ -229,7 +229,7 @@ test "upstream config::tests::search_config_from_working_directory_and_justfile"
   ])
   assert_eq(
     try! input_selection(arguments, Unix),
-    @cli.InputSelection::File(try! @path.PathValue::new("bar", Unix)),
+    File(try! @path.PathValue::new("bar", Unix)),
   )
   assert_eq(
     (try! working_directory_argument(arguments, Unix)).map(fn(path) {
@@ -242,14 +242,14 @@ test "upstream config::tests::search_config_from_working_directory_and_justfile"
 ///|
 test "upstream config::tests::search_config_justfile_stdin_long" {
   let arguments = try! upstream_application_arguments(["--justfile", "-"])
-  assert_eq(try! input_selection(arguments, Unix), @cli.InputSelection::Stdin)
+  assert_eq(try! input_selection(arguments, Unix), Stdin)
   assert_true((try! working_directory_argument(arguments, Unix)) is None)
 }
 
 ///|
 test "upstream config::tests::search_config_justfile_stdin_short" {
   let arguments = try! upstream_application_arguments(["-f", "-"])
-  assert_eq(try! input_selection(arguments, Unix), @cli.InputSelection::Stdin)
+  assert_eq(try! input_selection(arguments, Unix), Stdin)
   assert_true((try! working_directory_argument(arguments, Unix)) is None)
 }
 
@@ -258,7 +258,7 @@ test "upstream config::tests::search_config_justfile_stdin_with_working_director
   let arguments = try! upstream_application_arguments([
     "--justfile", "-", "--working-directory", "foo",
   ])
-  assert_eq(try! input_selection(arguments, Unix), @cli.InputSelection::Stdin)
+  assert_eq(try! input_selection(arguments, Unix), Stdin)
   assert_eq(
     (try! working_directory_argument(arguments, Unix)).map(fn(path) {
       path.as_string()

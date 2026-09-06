@@ -18,5 +18,5 @@ fn assert_upstream_tokens(
       None => ()
     }
   }
-  assert_eq(stream.tokens()[expected.length()].kind(), TokenKind::Eof)
+  assert_eq(stream.tokens()[expected.length()].kind(), Eof)
 }

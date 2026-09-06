@@ -63,14 +63,17 @@ moon build --release --target native .
 _build/native/release/build/MoonJust.exe --version
 ~~~
 
-When using MoonX, write MoonX's separator once before MoonJust's arguments:
+When using MoonX, pass MoonJust's arguments directly after the exact package
+coordinate:
 
 ~~~bash
-moonx ZSeanYves/MoonJust@0.1.2 -- build
-moonx ZSeanYves/MoonJust@0.1.2 -- --version
+moonx --target wasm ZSeanYves/MoonJust@0.1.2 build
+moonx --target wasm ZSeanYves/MoonJust@0.1.2 --version
 ~~~
 
-The recipe name is passed directly; it does not need another `--`.
+Do not add a standalone `--` between the package coordinate and MoonJust's
+arguments. The full published-artifact release gate is documented in
+[`docs/release/MOONX_RELEASE_GATE.md`](docs/release/MOONX_RELEASE_GATE.md).
 
 The Wasm artifact is built with:
 

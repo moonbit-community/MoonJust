@@ -1,7 +1,7 @@
 ///|
 test "upstream constants::constants_are_defined" {
   let environment = Environment::new()
-  install_constants(environment, @path.Unix)
+  install_constants(environment, Unix)
   let source = @source.Source::from_text(
     @source.SourceId::new(709),
     "expr",
@@ -16,9 +16,9 @@ test "upstream constants::constants_are_defined" {
 ///|
 test "upstream constants::constants_can_have_different_values_on_windows" {
   let unix = Environment::new()
-  install_constants(unix, @path.Unix)
+  install_constants(unix, Unix)
   let windows = Environment::new()
-  install_constants(windows, @path.Windows)
+  install_constants(windows, Windows)
   let unix_sep = @source.Source::from_text(
     @source.SourceId::new(710),
     "expr",

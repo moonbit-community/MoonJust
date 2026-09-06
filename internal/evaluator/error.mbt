@@ -160,10 +160,10 @@ pub fn EvaluationError::message(self : EvaluationError) -> String {
 /// just-compatible diagnostic contract.
 fn host_error_detail(error : @host.HostError) -> String {
   match error {
-    @host.HostError::InvalidInput(detail) => normalize_host_io_detail(detail)
-    @host.HostError::PermissionDenied(_, detail~) => detail
-    @host.HostError::NotFound(_) => "No such file or directory (os error 2)"
-    @host.HostError::AlreadyExists(_) => "File exists (os error 17)"
+    InvalidInput(detail) => normalize_host_io_detail(detail)
+    PermissionDenied(_, detail~) => detail
+    NotFound(_) => "No such file or directory (os error 2)"
+    AlreadyExists(_) => "File exists (os error 17)"
     _ => Repr(error).to_string()
   }
 }
@@ -175,11 +175,8 @@ fn canonicalize_host_error_detail(
 ) -> String {
   if path.flavor() == Windows {
     match error {
-      @host.HostError::NotFound(_) =>
-        "The system cannot find the file specified. (os error 2)"
-      @host.HostError::InvalidInput(detail) if detail.contains(
-          "No such file or directory",
-        ) ||
+      NotFound(_) => "The system cannot find the file specified. (os error 2)"
+      InvalidInput(detail) if detail.contains("No such file or directory") ||
         detail.contains("The system cannot find the file specified") =>
         "The system cannot find the file specified. (os error 2)"
       _ => host_error_detail(error)

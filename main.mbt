@@ -50,8 +50,8 @@ async fn async_main() -> Unit {
     Some(response) => emit_response(response)
     None =>
       match @application.classify_request(environment_host, argv) {
-        @application.Respond(response) => emit_response(response)
-        @application.Ready(arguments, environment) => {
+        Respond(response) => emit_response(response)
+        Ready(arguments, environment) => {
           let stdin = if arguments.value("justfile") == Some("-") {
             @application.read_stdin_source_bounded(
               @lexer.LexerLimits::default().max_source_bytes(),

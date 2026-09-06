@@ -14,7 +14,7 @@ fn assert_upstream_function_error(
   expected : String,
 ) -> Unit raise {
   try eval_upstream_function_text(text) catch {
-    Builtin(@builtin.Failure(message~), ..) => assert_eq(message, expected)
+    Builtin(Failure(message~), ..) => assert_eq(message, expected)
     _ => fail("unexpected evaluation error")
   } noraise {
     _ => fail("expected evaluation error")
@@ -28,22 +28,22 @@ fn assert_shell_invocation(
   expected_arguments : Array[String],
   expected_output : String,
 ) -> Unit raise {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
   )
   let expected = try! @host.CommandSpec::new("sh", expected_arguments)
   expected.set_cwd(cwd)
   expected.set_inherit_stdin(true)
-  expected.set_stderr(@host.Inherit)
+  expected.set_stderr(Inherit)
   host.expect_process(
     expected,
     @host.ProcessResult::new(0, @utf8.encode(expected_output), b""),
   )
-  let values : Array[@value.Value] = [@value.Value::String(command)]
+  let values : Array[@value.Value] = [String(command)]
   for argument in arguments {
-    values.push(@value.Value::String(argument))
+    values.push(String(argument))
   }
   let value = try! call_shell_effect(
     host,
@@ -392,24 +392,15 @@ test "upstream functions::join_unix" {
 
 ///|
 test "upstream functions::join_windows" {
-  let cwd = try! @path.PathValue::new("C:\\workspace", @path.Windows)
+  let cwd = try! @path.PathValue::new("C:\\workspace", Windows)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(
-      @host.OperatingSystem::Windows,
-      "test",
-      @path.Windows,
-    ),
+    @host.PlatformInfo::new(Windows, "test", Windows),
   )
   let value = try! call_non_process_effect_with_context(
     host,
     "join",
-    [
-      @value.Value::String("a"),
-      @value.Value::String("b"),
-      @value.Value::String("c"),
-      @value.Value::String("d"),
-    ],
+    [String("a"), String("b"), String("c"), String("d")],
     EvaluationContext::new(cwd~),
     @source.Span::origin(@source.SourceId::new(715)),
   )
@@ -417,12 +408,7 @@ test "upstream functions::join_windows" {
   let rooted = try! call_non_process_effect_with_context(
     host,
     "join",
-    [
-      @value.Value::String("a"),
-      @value.Value::String("\\b"),
-      @value.Value::String("\\c"),
-      @value.Value::String("d"),
-    ],
+    [String("a"), String("\\b"), String("\\c"), String("d")],
     EvaluationContext::new(cwd~),
     @source.Span::origin(@source.SourceId::new(716)),
   )
@@ -431,26 +417,22 @@ test "upstream functions::join_windows" {
 
 ///|
 test "upstream functions::shell_with_powershell" {
-  let cwd = try! @path.PathValue::new("C:\\workspace", @path.Windows)
+  let cwd = try! @path.PathValue::new("C:\\workspace", Windows)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(
-      @host.OperatingSystem::Windows,
-      "test",
-      @path.Windows,
-    ),
+    @host.PlatformInfo::new(Windows, "test", Windows),
   )
   let expected = try! @host.CommandSpec::new("pwsh.exe", [
     "-NoLogo", "-Command", "Write-Output bar",
   ])
   expected.set_cwd(cwd)
   expected.set_inherit_stdin(true)
-  expected.set_stdout(@host.Capture)
-  expected.set_stderr(@host.Inherit)
+  expected.set_stdout(Capture)
+  expected.set_stderr(Inherit)
   host.expect_process(expected, @host.ProcessResult::new(0, b"bar\r\n", b""))
   let value = try! call_shell_effect(
     host,
-    [@value.Value::String("Write-Output bar")],
+    [String("Write-Output bar")],
     EvaluationContext::new(cwd~),
     EffectShell::new("pwsh.exe", ["-NoLogo", "-Command"]),
     @source.Span::origin(@source.SourceId::new(717)),

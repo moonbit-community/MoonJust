@@ -301,11 +301,11 @@ fn[T : @host.HostFs] load_graph_input_with_directories(
 ) -> (@loader.LoadedGraph, @workdir.WorkingDirectoryModel) raise ApplicationError {
   let request = project_load_request(arguments, context, platform, environment)
   let sources = @project.load_sources(host, request) catch {
-    @project.Load(error) => raise Load(error)
-    @project.Path(error) => raise Path(error)
-    @project.WorkingDirectory(error) => raise WorkingDirectory(error)
-    @project.Semantic(error) => raise Semantic(error)
-    @project.Compilation(error) => raise Project(error)
+    Load(error) => raise Load(error)
+    Path(error) => raise Path(error)
+    WorkingDirectory(error) => raise WorkingDirectory(error)
+    Semantic(error) => raise Semantic(error)
+    Compilation(error) => raise Project(error)
   }
   (sources.graph(), sources.directories())
 }
@@ -321,8 +321,8 @@ fn project_load_request(
 ) -> @project.ProjectLoadRequest raise ApplicationError {
   let selection = match input_selection(arguments, context.cwd().flavor()) {
     Search => @project.SourceSelection::Search
-    Stdin => @project.SourceSelection::Stdin
-    File(path) => @project.SourceSelection::File(path)
+    Stdin => Stdin
+    File(path) => File(path)
   }
   let working_directory = working_directory_argument(
     arguments,
@@ -355,10 +355,10 @@ fn[T : @host.HostFs] load_project_snapshot(
     request,
     allow_unstable=arguments.flag("unstable"),
   ) catch {
-    @project.Load(error) => raise Load(error)
-    @project.Path(error) => raise Path(error)
-    @project.WorkingDirectory(error) => raise WorkingDirectory(error)
-    @project.Semantic(error) => raise Semantic(error)
-    @project.Compilation(error) => raise Project(error)
+    Load(error) => raise Load(error)
+    Path(error) => raise Path(error)
+    WorkingDirectory(error) => raise WorkingDirectory(error)
+    Semantic(error) => raise Semantic(error)
+    Compilation(error) => raise Project(error)
   }
 }

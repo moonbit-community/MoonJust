@@ -1,0 +1,85 @@
+name: MoonX published artifact
+
+on:
+  pull_request:
+  workflow_dispatch:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: moonx-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  moonx-platform:
+    name: MoonX (${{ matrix.os }}, ${{ matrix.suite }})
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            suite: full
+          - os: macos-latest
+            suite: smoke
+          - os: windows-latest
+            suite: smoke
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
+        with:
+          version: latest
+      - run: moon version --all
+      - run: moon update
+      - name: Verify MoonX runner
+        if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'release/') || contains(github.event.pull_request.labels.*.name, 'release-candidate')
+        run: moonx --version
+      - if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'release/') || contains(github.event.pull_request.labels.*.name, 'release-candidate')
+        run: cargo install just --version 1.57.0 --locked
+      - name: Report not applicable
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/') && !contains(github.event.pull_request.labels.*.name, 'release-candidate')
+        run: >-
+          moon run --target native ./tests/moonx --
+          --suite not-applicable
+          --report _build/moonx-report.json
+      - name: Run published artifact suite
+        if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'release/') || contains(github.event.pull_request.labels.*.name, 'release-candidate')
+        run: >-
+          moon run --target native ./tests/moonx --
+          --target wasm
+          --suite ${{ matrix.suite }}
+          --report _build/moonx-report.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: moonx-report-${{ matrix.os }}
+          path: _build/moonx-report.json
+          if-no-files-found: error
+        if: always()
+
+  moonx-published-artifact:
+    name: MoonX published artifact
+    if: always()
+    needs: moonx-platform
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
+        with:
+          version: latest
+      - run: moon update
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: moonx-report-*
+          path: _reports
+      - run: >-
+          moon run --target native ./tests/moonx --
+          --suite aggregate
+          --reports
+          _reports/moonx-report-ubuntu-latest/moonx-report.json
+          _reports/moonx-report-macos-latest/moonx-report.json
+          _reports/moonx-report-windows-latest/moonx-report.json
+          --report _build/moonx-aggregate.json

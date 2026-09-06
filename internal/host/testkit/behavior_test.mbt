@@ -25,7 +25,7 @@ test "fake host exposes typed capability denial" {
   host.deny(FsRead)
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   try @host.HostFs::read_file(host, file) catch {
-    @host.CapabilityDenied(FsRead) => ()
+    CapabilityDenied(FsRead) => ()
     error => fail("unexpected host error: \{Repr(error)}")
   } noraise {
     _ => fail("expected capability denial")

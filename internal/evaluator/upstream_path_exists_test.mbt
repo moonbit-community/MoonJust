@@ -4,12 +4,12 @@ fn path_exists_case(
   lists : Bool,
   existing : Bool,
 ) -> String raise EvaluationError {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
   )
-  let justfile = try! cwd.join(@path.PathValue::new("justfile", @path.Unix))
+  let justfile = try! cwd.join(@path.PathValue::new("justfile", Unix))
   if existing {
     host.put_file(justfile, b"")
   }
@@ -17,7 +17,7 @@ fn path_exists_case(
   let value = call_non_process_effect_with_context(
     host,
     "path_exists",
-    [@value.Value::String(argument)],
+    [String(argument)],
     context,
     @source.Span::origin(@source.SourceId::new(919)),
   )
@@ -29,10 +29,10 @@ fn env_function_value(
   key : String,
   platform : @host.OperatingSystem,
 ) -> String raise EvaluationError {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(platform, "test", @path.Unix),
+    @host.PlatformInfo::new(platform, "test", Unix),
   )
   host.set_env(key, "present")
   let context = EvaluationContext::new(cwd~)
@@ -40,14 +40,14 @@ fn env_function_value(
   let present = call_non_process_effect_with_context(
     host,
     "env_var",
-    [@value.Value::String(key)],
+    [String(key)],
     context,
     span,
   )
   let fallback = call_non_process_effect_with_context(
     host,
     "env_var_or_default",
-    [@value.Value::String("missing"), @value.Value::String("fallback")],
+    [String("missing"), String("fallback")],
     context,
     span,
   )
@@ -59,10 +59,10 @@ fn context_effect_value(
   requested : String,
   context : EvaluationContext,
 ) -> String raise EvaluationError {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
   )
   call_non_process_effect_with_context(
     host,
@@ -79,21 +79,21 @@ fn context_effect_failure(
   argument : String,
   context : EvaluationContext,
 ) -> String {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
   )
   try
     call_non_process_effect_with_context(
       host,
       requested,
-      [@value.Value::String(argument)],
+      [String(argument)],
       context,
       @source.Span::origin(@source.SourceId::new(933)),
     )
   catch {
-    Builtin(@builtin.Failure(message~), ..) => message
+    Builtin(Failure(message~), ..) => message
     _ => ""
   } noraise {
     _ => ""
@@ -118,7 +118,7 @@ test "upstream functions::just_pid" {
 
 ///|
 test "upstream functions::test_just_executable_function" {
-  let executable = try! @path.PathValue::new("/usr/bin/just", @path.Unix)
+  let executable = try! @path.PathValue::new("/usr/bin/just", Unix)
   let context = EvaluationContext::new(executable~)
   assert_eq(
     try! context_effect_value("just_executable", context),
@@ -128,7 +128,7 @@ test "upstream functions::test_just_executable_function" {
 
 ///|
 test "upstream functions::source_file" {
-  let source_file = try! @path.PathValue::new("/workspace/justfile", @path.Unix)
+  let source_file = try! @path.PathValue::new("/workspace/justfile", Unix)
   assert_eq(
     try! context_effect_value(
       "source_file",
@@ -140,7 +140,7 @@ test "upstream functions::source_file" {
 
 ///|
 test "upstream invocation_directory::invocation_directory_native" {
-  let directory = try! @path.PathValue::new("/workspace", @path.Unix)
+  let directory = try! @path.PathValue::new("/workspace", Unix)
   assert_eq(
     try! context_effect_value(
       "invocation_directory_native",
@@ -152,7 +152,7 @@ test "upstream invocation_directory::invocation_directory_native" {
 
 ///|
 test "upstream invocation_directory::test_invocation_directory" {
-  let directory = try! @path.PathValue::new("/workspace", @path.Unix)
+  let directory = try! @path.PathValue::new("/workspace", Unix)
   assert_eq(
     try! context_effect_value(
       "invocation_directory",
@@ -164,7 +164,7 @@ test "upstream invocation_directory::test_invocation_directory" {
 
 ///|
 test "upstream functions::read_file_not_found" {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
   let message = context_effect_failure(
     "read",
     "bar",
@@ -179,19 +179,19 @@ test "upstream functions::read_file_not_found" {
 
 ///|
 test "upstream functions::canonicalize" {
-  let cwd = try! @path.PathValue::new("/workspace", @path.Unix)
-  let source = try! cwd.join(@path.PathValue::new("foo", @path.Unix))
-  let canonical = try! @path.PathValue::new("/workspace/justfile", @path.Unix)
+  let cwd = try! @path.PathValue::new("/workspace", Unix)
+  let source = try! cwd.join(@path.PathValue::new("foo", Unix))
+  let canonical = try! @path.PathValue::new("/workspace/justfile", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(@host.OperatingSystem::Linux, "test", @path.Unix),
+    @host.PlatformInfo::new(Linux, "test", Unix),
   )
   host.set_canonical(source, canonical)
   let context = EvaluationContext::new(cwd~)
   let value = try! call_non_process_effect_with_context(
     host,
     "canonicalize",
-    [@value.Value::String("foo")],
+    [String("foo")],
     context,
     @source.Span::origin(@source.SourceId::new(934)),
   )
@@ -200,7 +200,7 @@ test "upstream functions::canonicalize" {
 
 ///|
 test "upstream directories::cache_directory" {
-  let value = try! @path.PathValue::new("/cache", @path.Unix)
+  let value = try! @path.PathValue::new("/cache", Unix)
   assert_eq(
     try! context_effect_value(
       "cache_directory",
@@ -212,7 +212,7 @@ test "upstream directories::cache_directory" {
 
 ///|
 test "upstream directories::config_directory" {
-  let value = try! @path.PathValue::new("/config", @path.Unix)
+  let value = try! @path.PathValue::new("/config", Unix)
   assert_eq(
     try! context_effect_value(
       "config_directory",
@@ -224,7 +224,7 @@ test "upstream directories::config_directory" {
 
 ///|
 test "upstream directories::config_local_directory" {
-  let value = try! @path.PathValue::new("/config-local", @path.Unix)
+  let value = try! @path.PathValue::new("/config-local", Unix)
   assert_eq(
     try! context_effect_value(
       "config_local_directory",
@@ -236,7 +236,7 @@ test "upstream directories::config_local_directory" {
 
 ///|
 test "upstream directories::data_directory" {
-  let value = try! @path.PathValue::new("/data", @path.Unix)
+  let value = try! @path.PathValue::new("/data", Unix)
   assert_eq(
     try! context_effect_value(
       "data_directory",
@@ -248,7 +248,7 @@ test "upstream directories::data_directory" {
 
 ///|
 test "upstream directories::data_local_directory" {
-  let value = try! @path.PathValue::new("/data-local", @path.Unix)
+  let value = try! @path.PathValue::new("/data-local", Unix)
   assert_eq(
     try! context_effect_value(
       "data_local_directory",
@@ -260,7 +260,7 @@ test "upstream directories::data_local_directory" {
 
 ///|
 test "upstream directories::home_directory" {
-  let value = try! @path.PathValue::new("/home/test", @path.Unix)
+  let value = try! @path.PathValue::new("/home/test", Unix)
   assert_eq(
     try! context_effect_value(
       "home_directory",
@@ -272,7 +272,7 @@ test "upstream directories::home_directory" {
 
 ///|
 test "upstream directories::runtime_directory" {
-  let value = try! @path.PathValue::new("/run/user", @path.Unix)
+  let value = try! @path.PathValue::new("/run/user", Unix)
   assert_eq(
     try! context_effect_value(
       "runtime_directory",
@@ -299,16 +299,13 @@ test "upstream booleans::path_exists_without_lists_returns_string" {
 
 ///|
 test "upstream functions::env_var_functions_unix" {
-  assert_eq(
-    try! env_function_value("USER", @host.OperatingSystem::Linux),
-    "\"present\"|\"fallback\"",
-  )
+  assert_eq(try! env_function_value("USER", Linux), "\"present\"|\"fallback\"")
 }
 
 ///|
 test "upstream functions::env_var_functions_windows" {
   assert_eq(
-    try! env_function_value("USERNAME", @host.OperatingSystem::Windows),
+    try! env_function_value("USERNAME", Windows),
     "\"present\"|\"fallback\"",
   )
 }
