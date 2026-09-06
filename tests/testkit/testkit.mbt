@@ -23,8 +23,79 @@ pub(all) struct PreparedProgram {
 }
 
 ///|
-async fn resolve_program(program : String) -> String {
+fn windows_program_candidates(
+  program : String,
+  path : String,
+  pathext : String,
+) -> Array[String] {
+  let has_separator = program.contains("/") || program.contains("\\")
+  let bases : Array[String] = [program]
+  if !has_separator {
+    for raw_directory in path.split(";") {
+      let directory = raw_directory.trim(chars="\"").to_owned()
+      bases.push(
+        if directory.is_empty() {
+          program
+        } else if directory.has_suffix("/") || directory.has_suffix("\\") {
+          directory + program
+        } else {
+          directory + "\\" + program
+        },
+      )
+    }
+  }
+  let basename = program
+    .replace_all(old="\\", new="/")
+    .split("/")
+    .last()
+    .unwrap_or(program[:])
+  if basename.contains(".") {
+    return bases
+  }
+  let candidates : Array[String] = []
+  for base in bases {
+    for raw_extension in pathext.split(";") {
+      let extension = raw_extension.trim()
+      if !extension.is_empty() && extension.has_prefix(".") {
+        candidates.push(base + extension.to_owned())
+      }
+    }
+  }
+  candidates
+}
+
+///|
+async fn resolve_windows_program_with_context(
+  program : String,
+  path : String,
+  pathext : String,
+) -> String {
   if program.contains("/") || program.contains("\\") {
+    return @fs.realpath(program)
+  }
+  for candidate in windows_program_candidates(program, path, pathext) {
+    let regular = try @fs.kind(candidate) catch {
+      _ => false
+    } noraise {
+      Regular => true
+      _ => false
+    }
+    if regular {
+      return @fs.realpath(candidate)
+    }
+  }
+  program
+}
+
+///|
+async fn resolve_program(program : String) -> String {
+  if @env.get_env_var("OS") == Some("Windows_NT") {
+    resolve_windows_program_with_context(
+      program,
+      @env.get_env_var("PATH").unwrap_or(""),
+      @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD"),
+    )
+  } else if program.contains("/") || program.contains("\\") {
     @fs.realpath(program)
   } else {
     program
