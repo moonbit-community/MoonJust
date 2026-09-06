@@ -69,6 +69,7 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
         with:
           version: latest
+      - run: moon update
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           pattern: moonx-report-*
