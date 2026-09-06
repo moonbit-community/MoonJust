@@ -30,7 +30,7 @@ async test "bare Windows programs resolve from PATH without application-director
   let resolved = resolve_windows_program_with_context(
     "moonx",
     bin + "/",
-    ".COM;.EXE;.BAT;.CMD",
+    ".com;.exe;.bat;.cmd",
   )
   assert_eq(resolved, @fs.realpath(executable))
 }
