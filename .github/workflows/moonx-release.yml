@@ -57,6 +57,7 @@ jobs:
           name: moonx-report-${{ matrix.os }}
           path: _build/moonx-report.json
           if-no-files-found: error
+        if: always()
 
   moonx-published-artifact:
     name: MoonX published artifact

@@ -149,12 +149,7 @@ pub async fn prepare_command(
   subject_path? : String = "",
   no_console_window? : Bool = true,
 ) -> PreparedProgram {
-  let resolved_executable = if executable.contains("/") ||
-    executable.contains("\\") {
-    resolve_program(executable)
-  } else {
-    executable
-  }
+  let resolved_executable = resolve_program(executable)
   let subject = if subject_path.is_empty() {
     prefix.last().unwrap_or(resolved_executable)
   } else {

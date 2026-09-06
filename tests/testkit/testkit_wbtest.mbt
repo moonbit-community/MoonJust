@@ -6,8 +6,11 @@ async test "prepared command preserves executable prefix and subject" {
     subject_path="ZSeanYves/MoonJust@0.1.2",
   )
   assert_true(
-    command.executable == "moonx" ||
-    command.executable.to_lower().has_suffix(".exe"),
+    if is_windows_platform() {
+      command.executable.to_lower().has_suffix(".exe")
+    } else {
+      command.executable == "moonx"
+    },
   )
   assert_eq(command.arguments(["--version"]), [
     "--target", "wasm", "ZSeanYves/MoonJust@0.1.2", "--version",
