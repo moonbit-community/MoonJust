@@ -51,7 +51,7 @@ fn short_usage(spec : RecipeSpec, display_name? : String) -> String {
 }
 
 ///|
-fn positional_bounds(spec : RecipeSpec) -> (Int, Int?) {
+fn positional_bounds(spec : RecipeSpec) -> (Int32, Int32?) {
   let mut minimum = 0
   let mut maximum = 0
   let mut unbounded = false
@@ -81,7 +81,7 @@ fn split_option(argument : String) -> (String, String?) {
 }
 
 ///|
-fn find_long(parameters : Array[ParameterSpec], name : String) -> Int? {
+fn find_long(parameters : Array[ParameterSpec], name : String) -> Int32? {
   for index, parameter in parameters {
     if parameter.long == Some(name) {
       return Some(index)
@@ -91,7 +91,7 @@ fn find_long(parameters : Array[ParameterSpec], name : String) -> Int? {
 }
 
 ///|
-fn find_short(parameters : Array[ParameterSpec], name : Char) -> Int? {
+fn find_short(parameters : Array[ParameterSpec], name : Char) -> Int32? {
   for index, parameter in parameters {
     if parameter.short == Some(name) {
       return Some(index)
@@ -104,12 +104,12 @@ fn find_short(parameters : Array[ParameterSpec], name : Char) -> Int? {
 fn apply_option(
   spec : RecipeSpec,
   groups : Array[Array[String]],
-  parameter_index : Int,
+  parameter_index : Int32,
   option : String,
   supplied : String?,
   is_final : Bool,
   rest : ArrayView[String],
-  cursor : Ref[Int],
+  cursor : Ref[Int32],
 ) -> Unit raise InvocationError {
   let parameter = spec.parameters[parameter_index]
   let value = if parameter.flag || parameter.value is Some(_) {
@@ -252,7 +252,7 @@ fn resolve_values_and_patterns(
   spec : RecipeSpec,
   groups : Array[Array[String]],
   global : @evaluator.Environment,
-  resolve_defaults? : Bool = true,
+  resolve_defaults~ : Bool = true,
 ) -> Unit raise InvocationError {
   let scope = @evaluator.Environment::child(global)
   for index, parameter in spec.parameters {

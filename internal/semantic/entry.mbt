@@ -61,9 +61,9 @@ fn compile_plain_empty_recipes(
 /// Compile an AST into an immutable, ordered semantic model.
 pub fn compile(
   ast : @syntax.Ast,
-  platform? : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
-  allow_unstable? : Bool = false,
-  defer_recipe_linking? : Bool = false,
+  platform~ : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
+  allow_unstable~ : Bool = false,
+  defer_recipe_linking~ : Bool = false,
 ) -> Compilation raise SemanticError {
   match compile_plain_empty_recipes(ast) {
     Some(compilation) => return compilation
@@ -76,7 +76,7 @@ pub fn compile(
 /// Parse and compile source in one target-independent operation.
 pub fn compile_source(
   source : @source.Source,
-  allow_unstable? : Bool = false,
+  allow_unstable~ : Bool = false,
 ) -> Compilation raise SemanticError {
   let ast = @parser.parse(source) catch { error => raise Parse(error) }
   compile(ast, allow_unstable~)

@@ -10,7 +10,7 @@ test "upstream version::tests::parse" {
 
 ///|
 test "upstream version::tests::compare" {
-  fn compare(left : String, right : String) -> Int {
+  fn compare(left : String, right : String) -> Int32 {
     let a = version_parts(left).unwrap()
     let b = version_parts(right).unwrap()
     if a == b {

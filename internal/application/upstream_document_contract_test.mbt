@@ -1,6 +1,6 @@
 ///|
-fn heading_levels(text : String) -> Array[Int] {
-  let levels : Array[Int] = []
+fn heading_levels(text : String) -> Array[Int32] {
+  let levels : Array[Int32] = []
   for line in text.split("\n") {
     let trimmed = line.trim()
     if trimmed.has_prefix("#") {

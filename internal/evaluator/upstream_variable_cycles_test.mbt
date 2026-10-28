@@ -3,8 +3,8 @@ fn assert_upstream_variable_cycle(
   text : String,
   expected_name : String,
   expected_stack : Array[String],
-  expected_offset : Int,
-  expected_width : Int,
+  expected_offset : Int32,
+  expected_width : Int32,
 ) -> Unit raise {
   let compilation = try! @semantic.compile_source(
     @source.Source::from_text(@source.SourceId::new(960), "justfile", text),

@@ -10,8 +10,8 @@ pub(all) suberror ProjectError {
 ///|
 fn append_sources(
   files : ArrayView[@loader.LoadedSource],
-  index : Int,
-  visited : Array[Int],
+  index : Int32,
+  visited : Array[Int32],
   items : Array[@syntax.Item],
 ) -> Unit {
   if visited.contains(index) {
@@ -28,7 +28,7 @@ fn append_sources(
   for item in loaded.ast().items() {
     match item {
       Import(value) => {
-        let mut child : Int? = None
+        let mut child : Int32? = None
         for candidate_index, candidate in files {
           if candidate.relation() == ImportedSource &&
             candidate.parent() == Some(loaded.path()) &&
@@ -54,7 +54,7 @@ fn import_depth(
   files : ArrayView[@loader.LoadedSource],
   owner : @loader.LoadedSource,
   source_id : @source.SourceId,
-) -> Int {
+) -> Int32 {
   let mut current : @loader.LoadedSource? = None
   for loaded in files {
     if loaded.ast().source_id() == source_id &&
@@ -314,8 +314,8 @@ fn compile_root(
 ///|
 pub fn compile_loaded_graph(
   graph : @loader.LoadedGraph,
-  allow_unstable? : Bool = false,
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  allow_unstable~ : Bool = false,
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),

@@ -6,7 +6,7 @@ pub fn[T : @host.HostFs + @host.HostTemp] write_file_atomic(
   host : T,
   path : @path.PathValue,
   contents : Bytes,
-  overwrite? : Bool = true,
+  overwrite~ : Bool = true,
 ) -> Unit raise @host.HostError {
   let directory = match path.parent() {
     Some(value) => value

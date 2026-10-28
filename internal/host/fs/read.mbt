@@ -5,7 +5,7 @@ pub fn[T : @host.HostFs] stream_file(
   host : T,
   path : @path.PathValue,
   consume : (Bytes) -> Unit,
-  chunk_size? : Int = 64 * 1024,
+  chunk_size~ : Int32 = 64 * 1024,
 ) -> Unit raise @host.HostError {
   if chunk_size <= 0 {
     raise InvalidInput("chunk size must be positive")
@@ -39,7 +39,7 @@ pub fn[T : @host.HostFs] stream_file(
 pub fn[T : @host.HostFs] read_file_chunks(
   host : T,
   path : @path.PathValue,
-  chunk_size? : Int = 64 * 1024,
+  chunk_size~ : Int32 = 64 * 1024,
 ) -> Array[Bytes] raise @host.HostError {
   if chunk_size <= 0 {
     raise InvalidInput("chunk size must be positive")

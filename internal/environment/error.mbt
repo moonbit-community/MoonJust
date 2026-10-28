@@ -3,15 +3,15 @@
 /// rendered and structural diagnostics safe for secret-bearing input.
 pub(all) suberror DotenvError {
   InvalidUtf8(path~ : @path.PathValue)
-  Parse(line~ : Int, column~ : Int)
-  ParseValue(line~ : Int, column~ : Int, value~ : String, index~ : Int)
-  ParseFile(path~ : @path.PathValue, line~ : Int, column~ : Int)
+  Parse(line~ : Int32, column~ : Int32)
+  ParseValue(line~ : Int32, column~ : Int32, value~ : String, index~ : Int32)
+  ParseFile(path~ : @path.PathValue, line~ : Int32, column~ : Int32)
   ParseFileValue(
     path~ : @path.PathValue,
-    line~ : Int,
-    column~ : Int,
+    line~ : Int32,
+    column~ : Int32,
     value~ : String,
-    index~ : Int
+    index~ : Int32
   )
   HostDenied(@host.HostCapability)
   HostUnavailable(@host.HostCapability)
@@ -19,8 +19,8 @@ pub(all) suberror DotenvError {
   InvalidPath
   Required
   ArgumentsRequireLists
-  CommandUnavailable(index~ : Int)
-  CommandFailed(index~ : Int, exit_code~ : Int)
+  CommandUnavailable(index~ : Int32)
+  CommandFailed(index~ : Int32, exit_code~ : Int32)
 } derive(Eq, Debug)
 
 ///|
@@ -68,7 +68,7 @@ fn redacted_host_error(error : @host.HostError) -> DotenvError {
 }
 
 ///|
-pub fn DotenvError::exit_code(self : DotenvError) -> Int {
+pub fn DotenvError::exit_code(self : DotenvError) -> Int32 {
   match self {
     CommandFailed(exit_code~, ..) => exit_code
     _ => 1

@@ -8,11 +8,11 @@ pub async fn[
   compilation : @semantic.Compilation,
   context : EvaluationContext,
   shell : EffectShell,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
-  overrides? : ArrayView[(String, String)] = [],
-  quiet? : Bool = false,
-  dry_run? : Bool = false,
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
+  overrides~ : ArrayView[(String, String)] = [],
+  quiet~ : Bool = false,
+  dry_run~ : Bool = false,
 ) -> Environment raise EvaluationError {
   evaluate_compilation_with_async_effects_selected(
     process,
@@ -43,11 +43,11 @@ pub async fn[
   context : EvaluationContext,
   shell : EffectShell,
   selected : ArrayView[String],
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
-  overrides? : ArrayView[(String, String)] = [],
-  quiet? : Bool = false,
-  dry_run? : Bool = false,
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
+  overrides~ : ArrayView[(String, String)] = [],
+  quiet~ : Bool = false,
+  dry_run~ : Bool = false,
 ) -> Environment raise EvaluationError {
   environment.set_functions(FunctionEnvironment::from_compilation(compilation))
   let states : Map[String, LazyState] = Map([])
@@ -102,9 +102,9 @@ pub async fn[
   parent : Environment,
   context : EvaluationContext,
   shell : EffectShell,
-  quiet? : Bool = false,
-  limits? : EvaluationLimits = EvaluationLimits::default(),
-  allow_empty? : Set[String] = Set([]),
+  quiet~ : Bool = false,
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
+  allow_empty~ : Set[String] = Set([]),
 ) -> Environment raise EvaluationError {
   let parameters = recipe.parameters()
   let mut minimum = 0

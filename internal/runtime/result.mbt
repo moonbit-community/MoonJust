@@ -6,7 +6,7 @@ pub(all) suberror RuntimeError {
     error~ : @planner.ExecutionError,
     stdout~ : Bytes,
     stderr~ : Bytes,
-    commands~ : Int
+    commands~ : Int32
   )
 } derive(Debug)
 
@@ -17,7 +17,7 @@ pub(all) suberror RuntimeError {
 pub(all) suberror LiveRuntimeError {
   LiveExecution(
     error~ : @planner.ExecutionError,
-    commands~ : Int,
+    commands~ : Int32,
     show_message~ : Bool
   )
 } derive(Debug)
@@ -54,19 +54,19 @@ fn shell_launch_error(
 
 ///|
 pub struct ExecutionSummary {
-  commands : Int
+  commands : Int32
 } derive(Eq, Debug)
 
 ///|
-pub fn ExecutionSummary::commands(self : ExecutionSummary) -> Int {
+pub fn ExecutionSummary::commands(self : ExecutionSummary) -> Int32 {
   self.commands
 }
 
 ///|
 fn live_failure(
   error : @planner.ExecutionError,
-  commands : Int,
-  show_message? : Bool = true,
+  commands : Int32,
+  show_message~ : Bool = true,
 ) -> LiveRuntimeError {
   LiveExecution(error~, commands~, show_message~)
 }
@@ -81,7 +81,7 @@ pub fn LiveRuntimeError::error(
 }
 
 ///|
-pub fn LiveRuntimeError::commands(self : LiveRuntimeError) -> Int {
+pub fn LiveRuntimeError::commands(self : LiveRuntimeError) -> Int32 {
   match self {
     LiveExecution(commands~, ..) => commands
   }
@@ -112,7 +112,7 @@ pub fn LiveRuntimeError::message(self : LiveRuntimeError) -> String {
 }
 
 ///|
-pub fn LiveRuntimeError::exit_code(self : LiveRuntimeError) -> Int {
+pub fn LiveRuntimeError::exit_code(self : LiveRuntimeError) -> Int32 {
   self.error().exit_code()
 }
 
@@ -121,7 +121,7 @@ fn runtime_failure(
   error : @planner.ExecutionError,
   stdout : Array[Byte],
   stderr : Array[Byte],
-  commands : Int,
+  commands : Int32,
 ) -> RuntimeError {
   Execution(
     error~,
@@ -153,7 +153,7 @@ pub fn RuntimeError::stderr(self : RuntimeError) -> BytesView {
 }
 
 ///|
-pub fn RuntimeError::commands(self : RuntimeError) -> Int {
+pub fn RuntimeError::commands(self : RuntimeError) -> Int32 {
   match self {
     Execution(commands~, ..) => commands
   }
@@ -165,7 +165,7 @@ pub fn RuntimeError::message(self : RuntimeError) -> String {
 }
 
 ///|
-pub fn RuntimeError::exit_code(self : RuntimeError) -> Int {
+pub fn RuntimeError::exit_code(self : RuntimeError) -> Int32 {
   self.error().exit_code()
 }
 

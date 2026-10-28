@@ -17,8 +17,8 @@ fn known_attribute(name : String) -> Bool {
 ///|
 fn attribute_arity_valid(
   name : String,
-  positional : Int,
-  keywords : Int,
+  positional : Int32,
+  keywords : Int32,
 ) -> Bool {
   match name {
     "confirm" | "doc" => keywords == 0 && positional <= 1

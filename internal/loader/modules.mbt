@@ -22,7 +22,7 @@ fn[T : @host.HostFs] push_existing_module_candidate(
   host : T,
   candidates : Array[@path.PathValue],
   path : @path.PathValue,
-  metadata_cache? : Map[String, @host.FileMetadata] = Map([]),
+  metadata_cache~ : Map[String, @host.FileMetadata] = Map([]),
 ) -> Unit raise LoaderError {
   let exists = @host.HostFs::file_exists(host, path) catch {
     error => raise Host(error)
@@ -66,7 +66,7 @@ fn[T : @host.HostFs] push_module_directory_candidates(
   host : T,
   candidates : Array[@path.PathValue],
   directory : @path.PathValue,
-  metadata_cache? : Map[String, @host.FileMetadata] = Map([]),
+  metadata_cache~ : Map[String, @host.FileMetadata] = Map([]),
 ) -> Unit raise LoaderError {
   let exists = @host.HostFs::file_exists(host, directory) catch {
     error => raise Host(error)
@@ -114,8 +114,8 @@ fn[T : @host.HostFs] resolve_module_file(
   host : T,
   source_path : @path.PathValue,
   definition : @syntax.Module,
-  environment? : ArrayView[(String, String)] = [],
-  metadata_cache? : Map[String, @host.FileMetadata] = Map([]),
+  environment~ : ArrayView[(String, String)] = [],
+  metadata_cache~ : Map[String, @host.FileMetadata] = Map([]),
 ) -> @path.PathValue? raise LoaderError {
   let directory = source_path.parent().unwrap_or(source_path)
   let candidates : Array[@path.PathValue] = []

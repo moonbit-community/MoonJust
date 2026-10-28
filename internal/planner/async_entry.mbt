@@ -17,17 +17,17 @@ async fn[
   process_environment : ArrayView[(String, String)],
   options : ExecutionOptions,
   configuration : ScriptConfiguration,
-  ran : Map[String, Int],
+  ran : Map[String, Int32],
   stack : Array[String],
-  entry_dependencies : Array[Int],
+  entry_dependencies : Array[Int32],
   tasks : Array[ExecutionTask],
   stderr : Array[Byte],
   confirmations : Array[ConfirmationRequest],
   is_dependency : Bool,
   project? : @semantic.ProjectCompilation,
-  module_path? : @modulepath.ModulePath = @modulepath.ModulePath::root(),
-  project_runtimes? : ArrayView[ProjectModuleRuntime] = [],
-) -> Int raise ExecutionError {
+  module_path~ : @modulepath.ModulePath = @modulepath.ModulePath::root(),
+  project_runtimes~ : ArrayView[ProjectModuleRuntime] = [],
+) -> Int32 raise ExecutionError {
   let key = module_path.as_string() +
     "\u{0000}" +
     execution_key(name, arguments)
@@ -87,7 +87,7 @@ async fn[
       return 0
     }
     stack.push(key)
-    let task_dependencies : Array[Int] = []
+    let task_dependencies : Array[Int32] = []
     for dependency in entry_dependencies {
       if !task_dependencies.contains(dependency) {
         task_dependencies.push(dependency)
@@ -397,7 +397,7 @@ async fn[
       index = end_index + 1
     }
   }
-  let task_dependencies : Array[Int] = []
+  let task_dependencies : Array[Int32] = []
   if retain_tasks {
     let selected_dependencies = if dependency_terminals.is_empty() {
       entry_dependencies
@@ -455,7 +455,7 @@ async fn[
       },
     )
   }
-  let subsequent_ran : Map[String, Int] = Map([])
+  let subsequent_ran : Map[String, Int32] = Map([])
   let subsequent_dependencies : Array[@syntax.Dependency] = if options.no_dependencies() {
     []
   } else {
@@ -526,8 +526,8 @@ pub async fn[
   shell : @environment.ShellConfiguration,
   cwd : @path.PathValue,
   configuration : ScriptConfiguration,
-  process_environment? : ArrayView[(String, String)] = [],
-  options? : ExecutionOptions = ExecutionOptions::new(),
+  process_environment~ : ArrayView[(String, String)] = [],
+  options~ : ExecutionOptions = ExecutionOptions::new(),
   cache_directory? : @path.PathValue,
 ) -> ExecutionPlan raise ExecutionError {
   let options = options.with_guards(compilation.settings().bool("guards"))
@@ -536,8 +536,8 @@ pub async fn[
   let stderr : Array[Byte] = []
   let tasks : Array[ExecutionTask] = []
   let confirmations : Array[ConfirmationRequest] = []
-  let ran : Map[String, Int] = Map([])
-  let mut root_fence : Array[Int] = []
+  let ran : Map[String, Int32] = Map([])
+  let mut root_fence : Array[Int32] = []
   let evaluation_directory = context.cwd().unwrap_or(cwd)
   let invocation_directory = context
     .invocation_directory_native()
@@ -607,7 +607,7 @@ pub async fn[
   project : @semantic.ProjectCompilation,
   requests : ArrayView[ProjectRecipeRequest],
   runtimes : ArrayView[ProjectModuleRuntime],
-  options? : ExecutionOptions = ExecutionOptions::new(),
+  options~ : ExecutionOptions = ExecutionOptions::new(),
   cache_directory? : @path.PathValue,
 ) -> ExecutionPlan raise ExecutionError {
   let steps : Array[PlannedStep] = []
@@ -615,8 +615,8 @@ pub async fn[
   let stderr : Array[Byte] = []
   let tasks : Array[ExecutionTask] = []
   let confirmations : Array[ConfirmationRequest] = []
-  let ran : Map[String, Int] = Map([])
-  let mut root_fence : Array[Int] = []
+  let ran : Map[String, Int32] = Map([])
+  let mut root_fence : Array[Int32] = []
   for request in requests {
     guard project.module_compilation(request.module_path()) is Some(compilation) else {
       raise UnknownRecipe(recipe=request.recipe())

@@ -29,7 +29,11 @@ fn has_option(args : ArrayView[String], name : String) -> Bool {
 }
 
 ///|
-fn parsed_int(args : ArrayView[String], name : String, fallback : Int) -> Int {
+fn parsed_int(
+  args : ArrayView[String],
+  name : String,
+  fallback : Int32,
+) -> Int32 {
   @string.parse_int(option(args, name, fallback.to_string())[:]) catch {
     _ => 0
   }

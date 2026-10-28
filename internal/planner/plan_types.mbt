@@ -201,11 +201,11 @@ pub fn confirmation_answer_is_yes(answer : String) -> Bool {
 /// A recipe-level unit in the explicit execution DAG. Dependencies reference
 /// task ids in the same plan and are always lower than the task id.
 pub struct ExecutionTask {
-  id : Int
-  order : Int
+  id : Int32
+  order : Int32
   recipe : String
   steps : Array[PlannedStep]
-  dependencies : Array[Int]
+  dependencies : Array[Int32]
   cache : CacheDirective?
   print_exit_message : Bool
   preamble : Bytes
@@ -227,14 +227,14 @@ pub impl Debug for ExecutionTask with fn to_repr(self) {
 
 ///|
 fn ExecutionTask::new(
-  id : Int,
-  order : Int,
+  id : Int32,
+  order : Int32,
   recipe : String,
   steps : Array[PlannedStep],
-  dependencies : ArrayView[Int],
+  dependencies : ArrayView[Int32],
   cache? : CacheDirective,
-  print_exit_message? : Bool = true,
-  preamble? : Bytes = b"",
+  print_exit_message~ : Bool = true,
+  preamble~ : Bytes = b"",
 ) -> ExecutionTask {
   {
     id,
@@ -249,12 +249,12 @@ fn ExecutionTask::new(
 }
 
 ///|
-pub fn ExecutionTask::id(self : ExecutionTask) -> Int {
+pub fn ExecutionTask::id(self : ExecutionTask) -> Int32 {
   self.id
 }
 
 ///|
-pub fn ExecutionTask::order(self : ExecutionTask) -> Int {
+pub fn ExecutionTask::order(self : ExecutionTask) -> Int32 {
   self.order
 }
 
@@ -269,7 +269,7 @@ pub fn ExecutionTask::steps(self : ExecutionTask) -> ArrayView[PlannedStep] {
 }
 
 ///|
-pub fn ExecutionTask::dependencies(self : ExecutionTask) -> ArrayView[Int] {
+pub fn ExecutionTask::dependencies(self : ExecutionTask) -> ArrayView[Int32] {
   self.dependencies[:]
 }
 
@@ -294,9 +294,9 @@ fn ExecutionPlan::new(
   commands : Array[PlannedCommand],
   stderr : Bytes,
   options : ExecutionOptions,
-  tasks? : Array[ExecutionTask] = [],
+  tasks~ : Array[ExecutionTask] = [],
   cache_directory? : @path.PathValue,
-  confirmations? : Array[ConfirmationRequest] = [],
+  confirmations~ : Array[ConfirmationRequest] = [],
 ) -> ExecutionPlan {
   { steps, commands, stderr, options, tasks, cache_directory, confirmations, }
 }
@@ -380,7 +380,7 @@ pub fn combine_execution_plans(
   let tasks : Array[ExecutionTask] = []
   let confirmations : Array[ConfirmationRequest] = []
   let mut cache_directory : @path.PathValue? = None
-  let mut previous_terminal : Int? = None
+  let mut previous_terminal : Int32? = None
   for plan in plans {
     for step in plan.steps() {
       steps.push(step)
@@ -457,7 +457,7 @@ pub fn ExecutionReport::stderr(self : ExecutionReport) -> BytesView {
 }
 
 ///|
-pub fn ExecutionReport::commands(self : ExecutionReport) -> Int {
+pub fn ExecutionReport::commands(self : ExecutionReport) -> Int32 {
   self.commands
 }
 

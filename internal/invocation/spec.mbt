@@ -57,7 +57,7 @@ fn count_literal(
   recipe : String,
   property : String,
   span? : @source.Span,
-) -> Int raise InvocationError {
+) -> Int32 raise InvocationError {
   let value = string_literal(expression, recipe, property, span?)
   let value_span = match expression {
     Some(value) => Some(value.span())
@@ -87,7 +87,7 @@ fn count_literal(
 }
 
 ///|
-fn find_parameter(parameters : Array[ParameterSpec], name : String) -> Int? {
+fn find_parameter(parameters : Array[ParameterSpec], name : String) -> Int32? {
   for index, parameter in parameters {
     if parameter.name == name {
       return Some(index)

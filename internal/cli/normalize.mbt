@@ -69,7 +69,7 @@ fn normalize_argv(argv : ArrayView[String]) -> Array[String] {
       _ => token
     }
   })
-  let mut last_highlight : Int? = None
+  let mut last_highlight : Int32? = None
   for index, token in mapped {
     if token == "--highlight" || token == "--no-highlight" {
       last_highlight = Some(index)

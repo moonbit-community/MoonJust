@@ -2,7 +2,7 @@
 #cfg(target="wasm")
 async fn read_bounded_source_wasm(
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 {
     raise InvalidInput("source byte limit must not be negative")
@@ -28,12 +28,12 @@ async fn read_bounded_source_wasm(
   let size_hint = if probed_size > 0L && probed_size < read_limit.to_int64() {
     probed_size.to_int()
   } else {
-    Int::min(read_limit, 64 * 1024)
+    Int32::min(read_limit, 64 * 1024)
   }
   let result = Buffer(size_hint~)
   while result.length() < read_limit {
     let remaining = read_limit - result.length()
-    let chunk = file.read_some(max_len=Int::min(remaining, 64 * 1024)) catch {
+    let chunk = file.read_some(max_len=Int32::min(remaining, 64 * 1024)) catch {
       error => raise InvalidInput("source read failed: " + error.to_string())
     }
     guard chunk is Some(chunk) else { break }
@@ -50,7 +50,7 @@ async fn read_bounded_source_wasm(
 pub impl @host.HostSourceReader for NativeFs with fn read_source(
   _self : NativeFs,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   read_bounded_source_wasm(path, max_bytes)
 }
@@ -60,7 +60,7 @@ pub impl @host.HostSourceReader for NativeFs with fn read_source(
 pub impl @host.HostSourceReader for NativeFs with fn read_source(
   _self : NativeFs,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 {
     raise InvalidInput("source byte limit must not be negative")
@@ -71,7 +71,7 @@ pub impl @host.HostSourceReader for NativeFs with fn read_source(
   let contents = @fs.read_file_to_bytes(path.as_string()) catch {
     _ => raise InvalidInput("source read failed")
   }
-  contents[:Int::min(contents.length(), max_bytes + 1)].to_owned()
+  contents[:Int32::min(contents.length(), max_bytes + 1)].to_owned()
 }
 
 ///|
@@ -79,7 +79,7 @@ pub impl @host.HostSourceReader for NativeFs with fn read_source(
 pub impl @host.HostSourceReader for NativeFs with fn read_source(
   _self : NativeFs,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 {
     raise InvalidInput("source byte limit must not be negative")
@@ -90,5 +90,5 @@ pub impl @host.HostSourceReader for NativeFs with fn read_source(
   let contents = @fs.read_file_to_bytes(path.as_string()) catch {
     _ => raise InvalidInput("source read failed")
   }
-  contents[:Int::min(contents.length(), max_bytes + 1)].to_owned()
+  contents[:Int32::min(contents.length(), max_bytes + 1)].to_owned()
 }

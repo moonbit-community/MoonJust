@@ -12,14 +12,14 @@ pub struct DotenvOptions {
 
 ///|
 pub fn DotenvOptions::new(
-  load? : Bool = false,
-  override_environment? : Bool = false,
-  required? : Bool = false,
-  lists? : Bool = false,
-  dry_run? : Bool = false,
-  filenames? : Array[String] = [],
-  paths? : Array[String] = [],
-  commands? : Array[@host.CommandSpec] = [],
+  load~ : Bool = false,
+  override_environment~ : Bool = false,
+  required~ : Bool = false,
+  lists~ : Bool = false,
+  dry_run~ : Bool = false,
+  filenames~ : Array[String] = [],
+  paths~ : Array[String] = [],
+  commands~ : Array[@host.CommandSpec] = [],
 ) -> DotenvOptions {
   {
     load,

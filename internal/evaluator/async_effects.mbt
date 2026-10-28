@@ -8,10 +8,10 @@ pub async fn[
   expression : @syntax.Expression,
   context : EvaluationContext,
   shell : EffectShell,
-  quiet? : Bool = false,
-  dry_run? : Bool = false,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
+  quiet~ : Bool = false,
+  dry_run~ : Bool = false,
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
   functions? : FunctionEnvironment,
 ) -> Value raise EvaluationError {
   let functions = functions.unwrap_or(environment.functions())

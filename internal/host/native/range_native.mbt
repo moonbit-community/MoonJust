@@ -24,7 +24,7 @@ priv type NativeFileHandle
 
 ///|
 #borrow(file)
-extern "C" fn native_file_is_null(file : NativeFileHandle) -> Int = "moonbitlang_x_fs_is_null"
+extern "C" fn native_file_is_null(file : NativeFileHandle) -> Int32 = "moonbitlang_x_fs_is_null"
 
 ///|
 #cfg(platform="windows")
@@ -41,7 +41,7 @@ extern "C" fn native_open_file(path : Bytes, mode : Bytes) -> NativeFileHandle =
 
 ///|
 #borrow(file)
-extern "C" fn native_close_file(file : NativeFileHandle) -> Int = "fclose"
+extern "C" fn native_close_file(file : NativeFileHandle) -> Int32 = "fclose"
 
 ///|
 #cfg(platform="windows")
@@ -49,8 +49,8 @@ extern "C" fn native_close_file(file : NativeFileHandle) -> Int = "fclose"
 extern "C" fn native_seek_file(
   file : NativeFileHandle,
   offset : Int64,
-  whence : Int,
-) -> Int = "_fseeki64"
+  whence : Int32,
+) -> Int32 = "_fseeki64"
 
 ///|
 #cfg(not(platform="windows"))
@@ -58,8 +58,8 @@ extern "C" fn native_seek_file(
 extern "C" fn native_seek_file(
   file : NativeFileHandle,
   offset : Int64,
-  whence : Int,
-) -> Int = "fseeko"
+  whence : Int32,
+) -> Int32 = "fseeko"
 
 ///|
 #cfg(platform="windows")
@@ -75,20 +75,20 @@ extern "C" fn native_tell_file(file : NativeFileHandle) -> Int64 = "ftello"
 #borrow(buffer, file)
 extern "C" fn native_read_file(
   buffer : Bytes,
-  size : Int,
-  count : Int,
+  size : Int32,
+  count : Int32,
   file : NativeFileHandle,
-) -> Int = "fread"
+) -> Int32 = "fread"
 
 ///|
 #cfg(platform="windows")
 #borrow(path)
-extern "C" fn native_access(path : String, mode : Int) -> Int = "_waccess"
+extern "C" fn native_access(path : String, mode : Int32) -> Int32 = "_waccess"
 
 ///|
 #cfg(not(platform="windows"))
 #borrow(path)
-extern "C" fn native_access(path : Bytes, mode : Int) -> Int = "access"
+extern "C" fn native_access(path : Bytes, mode : Int32) -> Int32 = "access"
 
 ///|
 #cfg(platform="windows")
@@ -132,7 +132,7 @@ fn file_executable_value(value : String) -> Bool {
 fn read_file_range_value(
   value : String,
   offset : Int64,
-  length : Int,
+  length : Int32,
 ) -> Bytes? {
   guard offset >= 0L && length >= 0 else { return None }
   let path = RangeNativePath::new(value)
@@ -145,7 +145,7 @@ fn read_file_range_value(
   if count < 0 {
     None
   } else {
-    Some(buffer[:Int::min(count, length)].to_owned())
+    Some(buffer[:Int32::min(count, length)].to_owned())
   }
 }
 

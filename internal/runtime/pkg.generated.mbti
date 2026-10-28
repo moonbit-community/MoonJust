@@ -14,22 +14,22 @@ pub async fn[P : @host.HostAsyncProcess, O : @host.HostAsyncOutput, S : @host.Ho
 
 // Errors
 pub(all) suberror LiveRuntimeError {
-  LiveExecution(error~ : @planner.ExecutionError, commands~ : Int, show_message~ : Bool)
+  LiveExecution(error~ : @planner.ExecutionError, commands~ : Int32, show_message~ : Bool)
 } derive(@debug.Debug)
-pub fn LiveRuntimeError::commands(Self) -> Int
+pub fn LiveRuntimeError::commands(Self) -> Int32
 pub fn LiveRuntimeError::error(Self) -> @planner.ExecutionError
-pub fn LiveRuntimeError::exit_code(Self) -> Int
+pub fn LiveRuntimeError::exit_code(Self) -> Int32
 pub fn LiveRuntimeError::message(Self) -> String
 pub fn LiveRuntimeError::show_message(Self) -> Bool
 #deprecated
 pub fn LiveRuntimeError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror RuntimeError {
-  Execution(error~ : @planner.ExecutionError, stdout~ : Bytes, stderr~ : Bytes, commands~ : Int)
+  Execution(error~ : @planner.ExecutionError, stdout~ : Bytes, stderr~ : Bytes, commands~ : Int32)
 } derive(@debug.Debug)
-pub fn RuntimeError::commands(Self) -> Int
+pub fn RuntimeError::commands(Self) -> Int32
 pub fn RuntimeError::error(Self) -> @planner.ExecutionError
-pub fn RuntimeError::exit_code(Self) -> Int
+pub fn RuntimeError::exit_code(Self) -> Int32
 pub fn RuntimeError::message(Self) -> String
 pub fn RuntimeError::stderr(Self) -> BytesView
 pub fn RuntimeError::stdout(Self) -> BytesView
@@ -38,9 +38,9 @@ pub fn RuntimeError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct ExecutionSummary {
-  commands : Int
+  commands : Int32
 } derive(Eq, @debug.Debug)
-pub fn ExecutionSummary::commands(Self) -> Int
+pub fn ExecutionSummary::commands(Self) -> Int32
 #deprecated
 pub fn ExecutionSummary::equal(Self, Self) -> Bool
 #deprecated

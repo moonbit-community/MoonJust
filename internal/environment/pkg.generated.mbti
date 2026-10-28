@@ -29,22 +29,22 @@ pub fn[T : @host.HostEnv] snapshot(T, name_mode? : EnvNameMode) -> EnvTable rais
 // Errors
 pub(all) suberror DotenvError {
   InvalidUtf8(path~ : @path.PathValue)
-  Parse(line~ : Int, column~ : Int)
-  ParseValue(line~ : Int, column~ : Int, value~ : String, index~ : Int)
-  ParseFile(path~ : @path.PathValue, line~ : Int, column~ : Int)
-  ParseFileValue(path~ : @path.PathValue, line~ : Int, column~ : Int, value~ : String, index~ : Int)
+  Parse(line~ : Int32, column~ : Int32)
+  ParseValue(line~ : Int32, column~ : Int32, value~ : String, index~ : Int32)
+  ParseFile(path~ : @path.PathValue, line~ : Int32, column~ : Int32)
+  ParseFileValue(path~ : @path.PathValue, line~ : Int32, column~ : Int32, value~ : String, index~ : Int32)
   HostDenied(@host.HostCapability)
   HostUnavailable(@host.HostCapability)
   SourceAccess
   InvalidPath
   Required
   ArgumentsRequireLists
-  CommandUnavailable(index~ : Int)
-  CommandFailed(index~ : Int, exit_code~ : Int)
+  CommandUnavailable(index~ : Int32)
+  CommandFailed(index~ : Int32, exit_code~ : Int32)
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn DotenvError::equal(Self, Self) -> Bool
-pub fn DotenvError::exit_code(Self) -> Int
+pub fn DotenvError::exit_code(Self) -> Int32
 pub fn DotenvError::message(Self) -> String
 #deprecated
 pub fn DotenvError::not_equal(Self, Self) -> Bool

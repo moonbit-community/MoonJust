@@ -1,7 +1,7 @@
 ///|
 fn live_cache_failure(
   message : String,
-  commands? : Int = 0,
+  commands~ : Int32 = 0,
 ) -> LiveRuntimeError {
   live_failure(CacheFailure(message~), commands)
 }

@@ -86,7 +86,7 @@ fn Parser::parse_ast_recovering(self : Parser) -> ParseReport {
 /// Lexer failures still abort because no trustworthy token boundary exists.
 pub fn parse_recovering(
   source : @source.Source,
-  limits? : ParserLimits = ParserLimits::default(),
+  limits~ : ParserLimits = ParserLimits::default(),
 ) -> ParseReport raise ParserError {
   let stream = @lexer.lex(source) catch { error => raise LexerFailure(error) }
   Parser::new(source, stream, limits).parse_ast_recovering()

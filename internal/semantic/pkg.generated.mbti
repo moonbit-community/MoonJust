@@ -45,7 +45,7 @@ pub(all) suberror SemanticError {
   SymbolRedefinition(name~ : String, first_kind~ : String, second_kind~ : String, first~ : @source.Span, second~ : @source.Span)
   DuplicateFunctionParameter(function_name~ : String, parameter~ : String, span~ : @source.Span)
   UndefinedFunction(name~ : String, span~ : @source.Span)
-  FunctionArgumentCount(name~ : String, expected~ : String, actual~ : Int, span~ : @source.Span)
+  FunctionArgumentCount(name~ : String, expected~ : String, actual~ : Int32, span~ : @source.Span)
   UserFunctionsUnstable(span~ : @source.Span)
   ListsUnstable(span~ : @source.Span)
   GuardAndInfallibleSigil(span~ : @source.Span)
@@ -63,7 +63,7 @@ pub(all) suberror SemanticError {
   DuplicateRecipeParameter(recipe~ : String, parameter~ : String, span~ : @source.Span)
   ParameterFollowsDefault(parameter~ : String, span~ : @source.Span)
   ParameterFollowsVariadic(parameter~ : String, span~ : @source.Span)
-  InvalidDependencyArguments(name~ : String, expected~ : String, actual~ : Int, span~ : @source.Span)
+  InvalidDependencyArguments(name~ : String, expected~ : String, actual~ : Int32, span~ : @source.Span)
   SettingConflict(first~ : String, second~ : String, first_span~ : @source.Span, span~ : @source.Span)
   InvalidSettingValue(name~ : String, span~ : @source.Span)
   EmptySetting(name~ : String, span~ : @source.Span)
@@ -358,7 +358,7 @@ pub(all) enum TargetOs {
 #deprecated
 pub fn TargetOs::equal(Self, Self) -> Bool
 #deprecated
-pub fn TargetOs::hash(Self) -> Int
+pub fn TargetOs::hash(Self) -> Int32
 #deprecated
 pub fn TargetOs::hash_combine(Self, Hasher) -> Unit
 #deprecated

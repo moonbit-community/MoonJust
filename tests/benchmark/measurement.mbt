@@ -54,7 +54,7 @@ async fn warmup(
   official : @testkit.PreparedProgram,
   fixture : Fixture,
   workload : Workload,
-  count : Int,
+  count : Int32,
 ) -> Unit {
   for _ in 0..<count {
     ignore(sample(candidate, fixture, workload))

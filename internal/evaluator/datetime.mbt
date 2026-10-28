@@ -1,5 +1,5 @@
 ///|
-fn zero_pad(value : Int, width : Int) -> String {
+fn zero_pad(value : Int32, width : Int32) -> String {
   value.to_string().pad_start(width, '0')
 }
 
@@ -17,7 +17,7 @@ fn weekday_names(day : @time.Weekday) -> (String, String) {
 }
 
 ///|
-fn month_names(month : Int) -> (String, String) {
+fn month_names(month : Int32) -> (String, String) {
   let short = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
     "Dec",
@@ -30,7 +30,7 @@ fn month_names(month : Int) -> (String, String) {
 }
 
 ///|
-fn offset_text(seconds : Int, colon : Bool) -> String {
+fn offset_text(seconds : Int32, colon : Bool) -> String {
   let sign = if seconds < 0 { "-" } else { "+" }
   let absolute = seconds.abs()
   let hours = absolute / 3600
@@ -44,7 +44,7 @@ fn offset_text(seconds : Int, colon : Bool) -> String {
 ///|
 fn format_datetime(
   millis : Int64,
-  offset_seconds : Int,
+  offset_seconds : Int32,
   format : String,
   function_name : String,
   span : @source.Span,

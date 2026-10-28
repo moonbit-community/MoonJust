@@ -60,7 +60,7 @@ fn collect_nonempty(value : String, separator : StringView) -> Array[String] {
 }
 
 ///|
-fn chars_after(value : String, count : Int) -> String {
+fn chars_after(value : String, count : Int32) -> String {
   let builder = StringBuilder()
   let mut index = 0
   for character in value {

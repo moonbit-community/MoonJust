@@ -433,7 +433,7 @@ test "upstream parser::tests::parse_complex" {
 }
 
 ///|
-fn assert_justfile_parser_items(text : String, expected : Int) -> Unit raise {
+fn assert_justfile_parser_items(text : String, expected : Int32) -> Unit raise {
   let ast = try! parse(parser_remaining_source(text))
   assert_eq(ast.items().length(), expected)
 }

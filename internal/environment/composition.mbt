@@ -221,11 +221,11 @@ pub fn ShellConfiguration::arguments(
 /// Windows, matching just 1.57.0.
 pub fn resolve_shell(
   platform : PlatformConfiguration,
-  cli_shell? : String? = None,
-  cli_arguments? : Array[String]? = None,
-  setting_shell? : ShellConfiguration? = None,
-  windows_shell? : ShellConfiguration? = None,
-  windows_powershell? : Bool = false,
+  cli_shell~ : String? = None,
+  cli_arguments~ : Array[String]? = None,
+  setting_shell~ : ShellConfiguration? = None,
+  windows_shell~ : ShellConfiguration? = None,
+  windows_powershell~ : Bool = false,
 ) -> ShellConfiguration raise EnvironmentConfigError {
   match (cli_shell, cli_arguments) {
     (Some(program), Some(arguments)) =>
@@ -291,8 +291,8 @@ fn resolve_directory(
 ///|
 pub fn resolve_temporary_directory(
   project_directory : @path.PathValue,
-  cli_tempdir? : String? = None,
-  setting_tempdir? : String? = None,
+  cli_tempdir~ : String? = None,
+  setting_tempdir~ : String? = None,
 ) -> TemporaryDirectoryConfiguration raise EnvironmentConfigError {
   match cli_tempdir {
     Some(value) =>
@@ -323,7 +323,7 @@ pub fn compose_process_environment(
   exported_variables : EnvTable,
   exported_parameters : EnvTable,
   recipe_environment : EnvTable,
-  unexports? : ArrayView[String] = [],
+  unexports~ : ArrayView[String] = [],
 ) -> EnvTable {
   let result = EnvTable::from_entries(
     ambient.entries()[:],
@@ -355,13 +355,13 @@ pub fn EnvironmentConfiguration::new(
   platform : @host.PlatformInfo,
   project_directory : @path.PathValue,
   variable_overrides : ArrayView[(String, String)],
-  cli_shell? : String? = None,
-  cli_shell_arguments? : Array[String]? = None,
-  cli_tempdir? : String? = None,
-  setting_shell? : ShellConfiguration? = None,
-  setting_tempdir? : String? = None,
-  windows_shell? : ShellConfiguration? = None,
-  windows_powershell? : Bool = false,
+  cli_shell~ : String? = None,
+  cli_shell_arguments~ : Array[String]? = None,
+  cli_tempdir~ : String? = None,
+  setting_shell~ : ShellConfiguration? = None,
+  setting_tempdir~ : String? = None,
+  windows_shell~ : ShellConfiguration? = None,
+  windows_powershell~ : Bool = false,
 ) -> EnvironmentConfiguration raise EnvironmentConfigError {
   let platform = PlatformConfiguration::new(platform)
   {

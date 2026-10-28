@@ -1,7 +1,7 @@
 ///|
 priv struct StringKind {
   delimiter : Byte
-  delimiter_length : Int
+  delimiter_length : Int32
   cooked : Bool
   backtick : Bool
 }
@@ -24,14 +24,14 @@ fn Lexer::top_format_kind(self : Lexer) -> StringKind? {
 }
 
 ///|
-fn Lexer::consume_count(self : Lexer, count : Int) -> Unit {
+fn Lexer::consume_count(self : Lexer, count : Int32) -> Unit {
   for index = 0; index < count; index = index + 1 {
     self.take()
   }
 }
 
 ///|
-fn Lexer::starts_with_byte(self : Lexer, byte : Byte, count : Int) -> Bool {
+fn Lexer::starts_with_byte(self : Lexer, byte : Byte, count : Int32) -> Bool {
   if self.offset + count > self.bytes.length() {
     return false
   }
@@ -70,7 +70,7 @@ fn Lexer::take_scalar(self : Lexer) -> Unit {
 ///|
 fn Lexer::lex_string_segment(
   self : Lexer,
-  start : Int,
+  start : Int32,
   kind : StringKind,
   format : Bool,
   resumed : Bool,
@@ -137,14 +137,17 @@ fn Lexer::lex_string_segment(
 }
 
 ///|
-fn Lexer::lex_string(self : Lexer, start : Int) -> Unit raise LexerError {
+fn Lexer::lex_string(self : Lexer, start : Int32) -> Unit raise LexerError {
   let kind = self.string_kind()
   let format = !kind.backtick && self.previous_token_is_format_prefix()
   self.lex_string_segment(start, kind, format, false)
 }
 
 ///|
-fn Lexer::lex_format_resume(self : Lexer, start : Int) -> Unit raise LexerError {
+fn Lexer::lex_format_resume(
+  self : Lexer,
+  start : Int32,
+) -> Unit raise LexerError {
   match self.top_format_kind() {
     Some(kind) => self.lex_string_segment(start, kind, true, true)
     None => ()

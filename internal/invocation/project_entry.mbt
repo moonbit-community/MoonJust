@@ -5,8 +5,8 @@
 pub fn parse_project_invocations(
   project : @semantic.ProjectCompilation,
   arguments : ArrayView[String],
-  overrides? : ArrayView[(String, String)] = [],
-  allow_missing? : Bool = false,
+  overrides~ : ArrayView[(String, String)] = [],
+  allow_missing~ : Bool = false,
 ) -> Array[ProjectInvocation] raise InvocationError {
   let environments : Map[@modulepath.ModulePath, @evaluator.Environment] = Map([])
   for path in project.module_paths() {
@@ -34,8 +34,8 @@ pub fn parse_project_invocations_in_environments(
   project : @semantic.ProjectCompilation,
   arguments : ArrayView[String],
   environments : Map[@modulepath.ModulePath, @evaluator.Environment],
-  allow_missing? : Bool = false,
-  resolve_expressions? : Bool = true,
+  allow_missing~ : Bool = false,
+  resolve_expressions~ : Bool = true,
 ) -> Array[ProjectInvocation] raise InvocationError {
   let result : Array[ProjectInvocation] = []
   let mut cursor = 0

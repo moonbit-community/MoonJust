@@ -25,7 +25,7 @@ pub(all) suberror ApplicationError {
     command~ : String,
     termination~ : @host.ProcessTermination
   )
-  DotenvCommand(command~ : String, exit_code~ : Int)
+  DotenvCommand(command~ : String, exit_code~ : Int32)
   WriteJustfile(path~ : @path.PathValue, detail~ : String)
   AlreadyExists(@path.PathValue)
   Query(String)
@@ -43,7 +43,7 @@ fn process_exit_label() -> String {
 }
 
 ///|
-fn ApplicationError::exit_code(self : ApplicationError) -> Int {
+fn ApplicationError::exit_code(self : ApplicationError) -> Int32 {
   match self {
     Cli(_) | UnsupportedCommand(_) => 2
     InteractiveProcess(termination=Exited(code), ..) => code

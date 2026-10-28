@@ -84,8 +84,8 @@ fn recipe_attribute_span(
 ///|
 fn combined_recipe_line(
   lines : ArrayView[@syntax.RecipeLine],
-  start : Int,
-) -> (@syntax.RecipeLine, Int) {
+  start : Int32,
+) -> (@syntax.RecipeLine, Int32) {
   let fragments : Array[@syntax.RecipeFragment] = []
   let mut index = start
   while index < lines.length() {
@@ -429,8 +429,8 @@ pub fn plan_recipe_graph(
   global : @evaluator.Environment,
   shell : @environment.ShellConfiguration,
   cwd : @path.PathValue,
-  process_environment? : ArrayView[(String, String)] = [],
-  options? : ExecutionOptions = ExecutionOptions::new(),
+  process_environment~ : ArrayView[(String, String)] = [],
+  options~ : ExecutionOptions = ExecutionOptions::new(),
 ) -> ExecutionPlan raise ExecutionError {
   let commands : Array[PlannedCommand] = []
   let stderr : Array[Byte] = []

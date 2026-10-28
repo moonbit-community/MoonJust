@@ -19,8 +19,8 @@ pub struct LazyEnvironment {
 ///|
 pub fn LazyEnvironment::new(
   compilation : @semantic.Compilation,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
 ) -> LazyEnvironment {
   environment.set_functions(FunctionEnvironment::from_compilation(compilation))
   let states : Map[String, LazyState] = Map([])
@@ -128,7 +128,7 @@ fn LazyEnvironment::cycle(
 }
 
 ///|
-fn variable_name_compare(left : String, right : String) -> Int {
+fn variable_name_compare(left : String, right : String) -> Int32 {
   let common = left.length().min(right.length())
   for index in 0..<common {
     let order = left.unsafe_get(index).compare(right.unsafe_get(index))

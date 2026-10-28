@@ -1,13 +1,13 @@
 ///|
 fn upstream_cache_key(
-  recipe? : String = "foo",
-  body? : String = "echo foo\n",
-  interpreter? : String = "sh",
-  extension? : String = "",
-  working_directory? : String = "/workspace",
-  positional? : Array[String] = [],
-  inputs? : Array[InputDigest] = [],
-  outputs? : Array[String] = ["out"],
+  recipe~ : String = "foo",
+  body~ : String = "echo foo\n",
+  interpreter~ : String = "sh",
+  extension~ : String = "",
+  working_directory~ : String = "/workspace",
+  positional~ : Array[String] = [],
+  inputs~ : Array[InputDigest] = [],
+  outputs~ : Array[String] = ["out"],
 ) -> CacheKey {
   try! CacheKey::new(
     recipe,

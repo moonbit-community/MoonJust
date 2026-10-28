@@ -1,6 +1,6 @@
 ///|
-pub fn lexical_compare(left : String, right : String) -> Int {
-  let length = Int::min(left.length(), right.length())
+pub fn lexical_compare(left : String, right : String) -> Int32 {
+  let length = Int32::min(left.length(), right.length())
   for index in 0..<length {
     let order = left.unsafe_get(index).compare(right.unsafe_get(index))
     if order != 0 {
@@ -11,7 +11,7 @@ pub fn lexical_compare(left : String, right : String) -> Int {
 }
 
 ///|
-fn is_combining(code : Int) -> Bool {
+fn is_combining(code : Int32) -> Bool {
   (code >= 0x0300 && code <= 0x036f) ||
   (code >= 0x1ab0 && code <= 0x1aff) ||
   (code >= 0x1dc0 && code <= 0x1dff) ||
@@ -20,7 +20,7 @@ fn is_combining(code : Int) -> Bool {
 }
 
 ///|
-fn is_wide(code : Int) -> Bool {
+fn is_wide(code : Int32) -> Bool {
   code >= 0x1100 &&
   (
     code <= 0x115f ||
@@ -40,7 +40,7 @@ fn is_wide(code : Int) -> Bool {
 }
 
 ///|
-pub fn display_width(value : String) -> Int {
+pub fn display_width(value : String) -> Int32 {
   let mut width = 0
   for character in value {
     let code = character.to_int()

@@ -1,7 +1,7 @@
 ///|
 #cfg(all(target="native", not(platform="windows")))
 #borrow(buffer)
-extern "C" fn native_uname(buffer : Bytes) -> Int = "uname"
+extern "C" fn native_uname(buffer : Bytes) -> Int32 = "uname"
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
@@ -11,12 +11,15 @@ priv type NativeCwdPointer
 ///|
 #cfg(all(target="native", not(platform="windows")))
 #borrow(buffer)
-extern "C" fn native_getcwd(buffer : Bytes, capacity : Int) -> NativeCwdPointer = "getcwd"
+extern "C" fn native_getcwd(
+  buffer : Bytes,
+  capacity : Int32,
+) -> NativeCwdPointer = "getcwd"
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
 #borrow(pointer)
-extern "C" fn native_cwd_pointer_is_null(pointer : NativeCwdPointer) -> Int = "moonbitlang_x_fs_is_null"
+extern "C" fn native_cwd_pointer_is_null(pointer : NativeCwdPointer) -> Int32 = "moonbitlang_x_fs_is_null"
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
@@ -32,7 +35,7 @@ let native_justfile_warning_state : Ref[Bool] = Ref(false)
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
-fn native_uname_field(buffer : Bytes, offset : Int, width : Int) -> String {
+fn native_uname_field(buffer : Bytes, offset : Int32, width : Int32) -> String {
   let mut length = 0
   while length < width && buffer[offset + length] != 0 {
     length += 1
@@ -55,13 +58,13 @@ fn native_uname_buffer() -> Bytes? {
 
 ///|
 #cfg(platform="windows")
-fn native_operating_system() -> Int {
+fn native_operating_system() -> Int32 {
   3
 }
 
 ///|
 #cfg(not(platform="windows"))
-fn native_operating_system() -> Int {
+fn native_operating_system() -> Int32 {
   match native_uname_buffer() {
     Some(buffer) if native_uname_field(buffer, 0, 256) == "Darwin" => 2
     Some(buffer) if native_uname_field(buffer, 0, 256) == "Linux" => 1
@@ -195,38 +198,38 @@ fn native_warn_nonunicode_justfile() -> Unit {
 
 ///|
 #cfg(platform="windows")
-extern "C" fn native_is_terminal_raw(stream : Int) -> Int = "_isatty"
+extern "C" fn native_is_terminal_raw(stream : Int32) -> Int32 = "_isatty"
 
 ///|
 #cfg(not(platform="windows"))
-extern "C" fn native_is_terminal_raw(stream : Int) -> Int = "isatty"
+extern "C" fn native_is_terminal_raw(stream : Int32) -> Int32 = "isatty"
 
 ///|
 #cfg(platform="windows")
-extern "C" fn native_pid() -> Int = "GetCurrentProcessId"
+extern "C" fn native_pid() -> Int32 = "GetCurrentProcessId"
 
 ///|
 #cfg(not(platform="windows"))
-extern "C" fn native_pid() -> Int = "getpid"
+extern "C" fn native_pid() -> Int32 = "getpid"
 
 ///|
 #cfg(not(platform="windows"))
-extern "C" fn native_num_cpus_sysconf(name : Int) -> Int64 = "sysconf"
+extern "C" fn native_num_cpus_sysconf(name : Int32) -> Int64 = "sysconf"
 
 ///|
-fn native_is_terminal(stream : Int) -> Int {
+fn native_is_terminal(stream : Int32) -> Int32 {
   native_is_terminal_raw(stream)
 }
 
 ///|
 #cfg(platform="windows")
-fn native_num_cpus() -> Int {
+fn native_num_cpus() -> Int32 {
   native_num_cpus_raw(0)
 }
 
 ///|
 #cfg(not(platform="windows"))
-fn native_num_cpus() -> Int {
+fn native_num_cpus() -> Int32 {
   // _SC_NPROCESSORS_ONLN is 84 on Linux and 58 on Darwin.
   let value = native_num_cpus_sysconf(
     if native_operating_system() == 2 {
@@ -244,10 +247,10 @@ fn native_num_cpus() -> Int {
 
 ///|
 #cfg(platform="windows")
-extern "C" fn native_num_cpus_raw(group : UInt) -> Int = "GetActiveProcessorCount"
+extern "C" fn native_num_cpus_raw(group : UInt32) -> Int32 = "GetActiveProcessorCount"
 
 ///|
-fn detected_pid() -> Int? {
+fn detected_pid() -> Int32? {
   match native_pid() {
     value if value > 0 => Some(value)
     _ => None
@@ -255,7 +258,7 @@ fn detected_pid() -> Int? {
 }
 
 ///|
-fn detected_num_cpus() -> Int? {
+fn detected_num_cpus() -> Int32? {
   match native_num_cpus() {
     value if value > 0 => Some(value)
     _ => None

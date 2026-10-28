@@ -14,7 +14,7 @@ pub fn lex_with_limits(@source.Source, LexerLimits) -> TokenStream raise LexerEr
 
 // Errors
 pub(all) suberror LexerConfigurationError {
-  InvalidLexerLimit(name~ : String, value~ : Int)
+  InvalidLexerLimit(name~ : String, value~ : Int32)
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn LexerConfigurationError::equal(Self, Self) -> Bool
@@ -31,15 +31,15 @@ pub(all) suberror LexerError {
   EscapeEndOfFile(span~ : @source.Span)
   UnpairedCarriageReturn(span~ : @source.Span)
   UnexpectedClosingDelimiter(close~ : DelimiterKind, span~ : @source.Span)
-  MismatchedClosingDelimiter(open~ : DelimiterKind, close~ : DelimiterKind, open_line~ : Int, span~ : @source.Span)
+  MismatchedClosingDelimiter(open~ : DelimiterKind, close~ : DelimiterKind, open_line~ : Int32, span~ : @source.Span)
   UnterminatedString(span~ : @source.Span)
   UnterminatedBacktick(span~ : @source.Span)
   UnterminatedInterpolation(span~ : @source.Span)
   MixedLeadingWhitespace(whitespace~ : String, span~ : @source.Span)
   InconsistentLeadingWhitespace(expected~ : String, found~ : String, span~ : @source.Span)
-  SourceLimitExceeded(length~ : Int, limit~ : Int, span~ : @source.Span)
-  TokenLimitExceeded(limit~ : Int, span~ : @source.Span)
-  NestingLimitExceeded(limit~ : Int, span~ : @source.Span)
+  SourceLimitExceeded(length~ : Int32, limit~ : Int32, span~ : @source.Span)
+  TokenLimitExceeded(limit~ : Int32, span~ : @source.Span)
+  NestingLimitExceeded(limit~ : Int32, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn LexerError::code(Self) -> String
 #deprecated
@@ -111,12 +111,12 @@ pub(all) enum Keyword {
   X
 } derive(Compare, Eq, Hash, @debug.Debug)
 #deprecated
-pub fn Keyword::compare(Self, Self) -> Int
+pub fn Keyword::compare(Self, Self) -> Int32
 #deprecated
 pub fn Keyword::equal(Self, Self) -> Bool
 pub fn Keyword::from_lexeme(String) -> Self?
 #deprecated
-pub fn Keyword::hash(Self) -> Int
+pub fn Keyword::hash(Self) -> Int32
 #deprecated
 pub fn Keyword::hash_combine(Self, Hasher) -> Unit
 pub fn Keyword::lexeme(Self) -> String
@@ -134,17 +134,17 @@ pub fn Keyword::op_lt(Self, Self) -> Bool
 pub fn Keyword::to_repr(Self) -> @debug.Repr
 
 pub struct LexerLimits {
-  max_source_bytes : Int
-  max_tokens : Int
-  max_nesting : Int
+  max_source_bytes : Int32
+  max_tokens : Int32
+  max_nesting : Int32
 } derive(Eq, @debug.Debug)
 pub fn LexerLimits::default() -> Self
 #deprecated
 pub fn LexerLimits::equal(Self, Self) -> Bool
-pub fn LexerLimits::max_nesting(Self) -> Int
-pub fn LexerLimits::max_source_bytes(Self) -> Int
-pub fn LexerLimits::max_tokens(Self) -> Int
-pub fn LexerLimits::new(Int, Int, Int) -> Self raise LexerConfigurationError
+pub fn LexerLimits::max_nesting(Self) -> Int32
+pub fn LexerLimits::max_source_bytes(Self) -> Int32
+pub fn LexerLimits::max_tokens(Self) -> Int32
+pub fn LexerLimits::new(Int32, Int32, Int32) -> Self raise LexerConfigurationError
 #deprecated
 pub fn LexerLimits::not_equal(Self, Self) -> Bool
 #deprecated
@@ -212,11 +212,11 @@ pub(all) enum TokenKind {
 } derive(Compare, Eq, Hash, @debug.Debug)
 pub fn TokenKind::as_string(Self) -> String
 #deprecated
-pub fn TokenKind::compare(Self, Self) -> Int
+pub fn TokenKind::compare(Self, Self) -> Int32
 #deprecated
 pub fn TokenKind::equal(Self, Self) -> Bool
 #deprecated
-pub fn TokenKind::hash(Self) -> Int
+pub fn TokenKind::hash(Self) -> Int32
 #deprecated
 pub fn TokenKind::hash_combine(Self, Hasher) -> Unit
 #deprecated
@@ -236,7 +236,7 @@ pub struct TokenStream {
   source_id : @source.SourceId
   tokens : Array[Token]
 } derive(@debug.Debug)
-pub fn TokenStream::length(Self) -> Int
+pub fn TokenStream::length(Self) -> Int32
 pub fn TokenStream::source_id(Self) -> @source.SourceId
 #deprecated
 pub fn TokenStream::to_repr(Self) -> @debug.Repr

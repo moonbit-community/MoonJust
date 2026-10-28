@@ -1,28 +1,28 @@
 ///|
-pub const FORMAT_VERSION : Int = 1
+pub const FORMAT_VERSION : Int32 = 1
 
 ///|
 pub const KEY_ALGORITHM : String = "moonjust-cache-key-v1+blake3"
 
 ///|
-pub const MAX_MANIFEST_BYTES : Int = 256 * 1024
+pub const MAX_MANIFEST_BYTES : Int32 = 256 * 1024
 
 ///|
-pub const MAX_INPUTS : Int = 1024
+pub const MAX_INPUTS : Int32 = 1024
 
 ///|
-pub const MAX_OUTPUTS : Int = 1024
+pub const MAX_OUTPUTS : Int32 = 1024
 
 ///|
 pub(all) suberror CacheError {
   InvalidDigest(String)
   InvalidPath(String)
   DuplicatePath(String)
-  TooManyInputs(Int)
-  TooManyOutputs(Int)
-  ManifestTooLarge(Int)
+  TooManyInputs(Int32)
+  TooManyOutputs(Int32)
+  ManifestTooLarge(Int32)
   MalformedManifest(String)
-  UnsupportedVersion(Int)
+  UnsupportedVersion(Int32)
   AlgorithmMismatch(String)
   KeyMismatch
   RecipeMismatch
@@ -90,8 +90,8 @@ pub impl Debug for CacheKey with fn to_repr(self) {
 }
 
 ///|
-fn lexical_compare(left : String, right : String) -> Int {
-  let length = Int::min(left.length(), right.length())
+fn lexical_compare(left : String, right : String) -> Int32 {
+  let length = Int32::min(left.length(), right.length())
   for index in 0..<length {
     let order = left.unsafe_get(index).compare(right.unsafe_get(index))
     if order != 0 {
@@ -102,7 +102,7 @@ fn lexical_compare(left : String, right : String) -> Int {
 }
 
 ///|
-fn input_compare(left : InputDigest, right : InputDigest) -> Int {
+fn input_compare(left : InputDigest, right : InputDigest) -> Int32 {
   lexical_compare(left.path(), right.path())
 }
 
@@ -110,7 +110,7 @@ fn input_compare(left : InputDigest, right : InputDigest) -> Int {
 fn environment_compare(
   left : (String, String),
   right : (String, String),
-) -> Int {
+) -> Int32 {
   let key = lexical_compare(left.0, right.0)
   if key != 0 {
     key
@@ -205,14 +205,14 @@ pub fn CacheKey::new(
   recipe : String,
   body : String,
   interpreter : String,
-  interpreter_arguments? : Array[String] = [],
-  environment? : Array[(String, String)] = [],
-  extension? : String = "",
-  working_directory? : String = "",
-  positional? : Array[String] = [],
-  extra? : String = "",
-  inputs? : Array[InputDigest] = [],
-  outputs? : Array[String] = [],
+  interpreter_arguments~ : Array[String] = [],
+  environment~ : Array[(String, String)] = [],
+  extension~ : String = "",
+  working_directory~ : String = "",
+  positional~ : Array[String] = [],
+  extra~ : String = "",
+  inputs~ : Array[InputDigest] = [],
+  outputs~ : Array[String] = [],
 ) -> CacheKey raise CacheError {
   let environment = environment.copy()
   environment.sort_by(environment_compare)
@@ -411,7 +411,7 @@ pub fn ContentHasher::finalize(self : ContentHasher) -> String {
 
 ///|
 pub struct CacheManifest {
-  version : Int
+  version : Int32
   algorithm : String
   key : String
   recipe : String

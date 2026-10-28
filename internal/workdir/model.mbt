@@ -36,7 +36,7 @@ pub struct WorkingDirectoryModel {
 pub fn WorkingDirectoryModel::from_justfile(
   invocation : @path.PathValue,
   justfile : @path.PathValue,
-  working_directory? : @path.PathValue? = None,
+  working_directory~ : @path.PathValue? = None,
 ) -> WorkingDirectoryModel raise WorkingDirectoryError {
   let resolved_justfile = resolve_from(invocation, justfile)
   let justfile_parent = match resolved_justfile.parent() {
@@ -60,7 +60,7 @@ pub fn WorkingDirectoryModel::from_justfile(
 /// unless the CLI supplied `--working-directory`.
 pub fn WorkingDirectoryModel::from_stdin(
   invocation : @path.PathValue,
-  working_directory? : @path.PathValue? = None,
+  working_directory~ : @path.PathValue? = None,
 ) -> WorkingDirectoryModel raise WorkingDirectoryError {
   let project = match working_directory {
     Some(directory) => resolve_from(invocation, directory)
@@ -149,7 +149,7 @@ pub fn WorkingDirectoryModel::for_module(
 /// and recipe working-directory attributes. `no-cd` does not affect evaluation.
 pub fn WorkingDirectoryModel::evaluation_directory(
   self : WorkingDirectoryModel,
-  module_setting? : String? = None,
+  module_setting~ : String? = None,
 ) -> @path.PathValue raise WorkingDirectoryError {
   match module_setting {
     Some(directory) => child_path(self.module_base, directory)
@@ -162,10 +162,10 @@ pub fn WorkingDirectoryModel::evaluation_directory(
 /// over module-level no-cd, and a recipe no-cd attribute wins over module cwd.
 pub fn WorkingDirectoryModel::recipe_directory(
   self : WorkingDirectoryModel,
-  module_setting? : String? = None,
-  module_no_cd? : Bool = false,
-  recipe_no_cd? : Bool = false,
-  recipe_working_directory? : String? = None,
+  module_setting~ : String? = None,
+  module_no_cd~ : Bool = false,
+  recipe_no_cd~ : Bool = false,
+  recipe_working_directory~ : String? = None,
 ) -> @path.PathValue raise WorkingDirectoryError {
   let evaluation = self.evaluation_directory(module_setting~)
   match recipe_working_directory {

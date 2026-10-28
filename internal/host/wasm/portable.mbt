@@ -97,7 +97,7 @@ pub impl @host.HostFs for PortableHost with fn read_file_range(
   _self : PortableHost,
   path : @path.PathValue,
   offset : Int64,
-  length : Int,
+  length : Int32,
 ) -> Bytes raise @host.HostError {
   if offset < 0L || length < 0 || offset > 0x7fff_ffffL {
     raise InvalidInput("file range must be representable and non-negative")
@@ -107,7 +107,7 @@ pub impl @host.HostFs for PortableHost with fn read_file_range(
   if start >= contents.length() {
     return b""
   }
-  contents[start:Int::min(contents.length(), start + length)].to_owned()
+  contents[start:Int32::min(contents.length(), start + length)].to_owned()
 }
 
 ///|
@@ -200,7 +200,7 @@ pub impl @host.HostFs for PortableHost with fn persist_temp_file(
 #cfg(target="wasm")
 async fn portable_read_source(
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 || max_bytes == 0x7fffffff {
     raise InvalidInput("source byte limit is invalid")
@@ -223,12 +223,12 @@ async fn portable_read_source(
   let size_hint = if probed_size > 0L && probed_size < read_limit.to_int64() {
     probed_size.to_int()
   } else {
-    Int::min(read_limit, 64 * 1024)
+    Int32::min(read_limit, 64 * 1024)
   }
   let result = Buffer(size_hint~)
   while result.length() < read_limit {
     let chunk = file.read_some(
-      max_len=Int::min(read_limit - result.length(), 64 * 1024),
+      max_len=Int32::min(read_limit - result.length(), 64 * 1024),
     ) catch {
       error => raise InvalidInput("source read failed: " + error.to_string())
     }
@@ -250,7 +250,7 @@ async fn portable_read_source(
 #cfg(any(target="wasm-gc", target="js"))
 fn portable_read_source(
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 || max_bytes == 0x7fffffff {
     raise InvalidInput("source byte limit is invalid")
@@ -268,7 +268,7 @@ fn portable_read_source(
 pub impl @host.HostSourceReader for PortableHost with fn read_source(
   _self : PortableHost,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   portable_read_source(path, max_bytes)
 }
@@ -310,7 +310,7 @@ fn portable_flavor(os : @host.OperatingSystem) -> @path.PathFlavor {
 
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-fn portable_positive_int(name : String) -> Int? {
+fn portable_positive_int(name : String) -> Int32? {
   guard @env.get_env_var(name) is Some(value) else { return None }
   let parsed = @string.parse_int(value[:]) catch { _ => return None }
   if parsed > 0 {
@@ -436,7 +436,7 @@ pub impl @host.HostClock for PortableHost with fn now_millis(
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub impl @host.HostRandom for PortableHost with fn random_bytes(
   _self : PortableHost,
-  count : Int,
+  count : Int32,
 ) -> Bytes raise @host.HostError {
   if count < 0 {
     raise InvalidInput("random byte count must not be negative")

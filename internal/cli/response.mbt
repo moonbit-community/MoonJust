@@ -3,22 +3,22 @@
 pub struct ApplicationResponse {
   stdout : Bytes
   stderr : Bytes
-  exit_code : Int
+  exit_code : Int32
 } derive(Eq, Debug)
 
 ///|
 pub fn ApplicationResponse::new(
   stdout : Bytes,
   stderr : Bytes,
-  exit_code : Int,
+  exit_code : Int32,
 ) -> ApplicationResponse {
   { stdout, stderr, exit_code, }
 }
 
 ///|
 pub fn ApplicationResponse::success(
-  stdout? : Bytes = b"",
-  stderr? : Bytes = b"",
+  stdout~ : Bytes = b"",
+  stderr~ : Bytes = b"",
 ) -> ApplicationResponse {
   { stdout, stderr, exit_code: 0, }
 }
@@ -34,7 +34,7 @@ pub fn ApplicationResponse::stderr(self : ApplicationResponse) -> BytesView {
 }
 
 ///|
-pub fn ApplicationResponse::exit_code(self : ApplicationResponse) -> Int {
+pub fn ApplicationResponse::exit_code(self : ApplicationResponse) -> Int32 {
   self.exit_code
 }
 

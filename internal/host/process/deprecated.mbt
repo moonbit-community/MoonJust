@@ -11,6 +11,6 @@ pub fn enable_process_group_boundary() -> Unit {
 }
 
 ///|
-pub fn exec_process_group_from_args() -> Int {
+pub fn exec_process_group_from_args() -> Int32 {
   95
 }

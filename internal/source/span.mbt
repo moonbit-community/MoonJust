@@ -1,16 +1,16 @@
 ///|
 /// Stable identity for one loaded source.
-pub struct SourceId(Int) derive(Eq, Compare, Hash, Debug)
+pub struct SourceId(Int32) derive(Eq, Compare, Hash, Debug)
 
 ///|
 /// Create a source identity from an application-assigned integer.
-pub fn SourceId::new(value : Int) -> SourceId {
+pub fn SourceId::new(value : Int32) -> SourceId {
   SourceId(value)
 }
 
 ///|
 /// Return the application-assigned integer value.
-pub fn SourceId::value(self : SourceId) -> Int {
+pub fn SourceId::value(self : SourceId) -> Int32 {
   self.0
 }
 
@@ -18,16 +18,16 @@ pub fn SourceId::value(self : SourceId) -> Int {
 /// A half-open UTF-8 byte range within one source.
 pub struct Span {
   source_id : SourceId
-  start_byte : Int
-  end_byte : Int
+  start_byte : Int32
+  end_byte : Int32
 } derive(Eq, Hash, Debug)
 
 ///|
 /// Create a half-open byte span.
 pub fn Span::new(
   source_id : SourceId,
-  start_byte : Int,
-  end_byte : Int,
+  start_byte : Int32,
+  end_byte : Int32,
 ) -> Span raise SourceError {
   if start_byte < 0 || end_byte < start_byte {
     raise InvalidSpan(start_byte~, end_byte~)
@@ -49,19 +49,19 @@ pub fn Span::source_id(self : Span) -> SourceId {
 
 ///|
 /// Return the inclusive start byte offset.
-pub fn Span::start_byte(self : Span) -> Int {
+pub fn Span::start_byte(self : Span) -> Int32 {
   self.start_byte
 }
 
 ///|
 /// Return the exclusive end byte offset.
-pub fn Span::end_byte(self : Span) -> Int {
+pub fn Span::end_byte(self : Span) -> Int32 {
   self.end_byte
 }
 
 ///|
 /// Return the span length in UTF-8 bytes.
-pub fn Span::length(self : Span) -> Int {
+pub fn Span::length(self : Span) -> Int32 {
   self.end_byte - self.start_byte
 }
 
@@ -73,7 +73,7 @@ pub fn Span::is_empty(self : Span) -> Bool {
 
 ///|
 /// Return whether the byte offset is in this half-open span.
-pub fn Span::contains(self : Span, offset : Int) -> Bool {
+pub fn Span::contains(self : Span, offset : Int32) -> Bool {
   self.start_byte <= offset && offset < self.end_byte
 }
 
@@ -99,7 +99,7 @@ pub fn Span::cover(self : Span, other : Span) -> Span raise SourceError {
   }
   {
     source_id: self.source_id,
-    start_byte: Int::min(self.start_byte, other.start_byte),
-    end_byte: Int::max(self.end_byte, other.end_byte),
+    start_byte: Int32::min(self.start_byte, other.start_byte),
+    end_byte: Int32::max(self.end_byte, other.end_byte),
   }
 }

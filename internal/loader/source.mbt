@@ -9,10 +9,10 @@ pub(all) struct SearchOptions {
 
 ///|
 pub fn SearchOptions::new(
-  filename? : String = "justfile",
-  ceiling? : @path.PathValue? = None,
-  explicit? : @path.PathValue? = None,
-  global? : @path.PathValue? = None,
+  filename~ : String = "justfile",
+  ceiling~ : @path.PathValue? = None,
+  explicit~ : @path.PathValue? = None,
+  global~ : @path.PathValue? = None,
 ) -> SearchOptions {
   { filename, ceiling, explicit, global, }
 }
@@ -72,7 +72,7 @@ pub fn LoadedGraph::files(self : LoadedGraph) -> ArrayView[LoadedSource] {
 
 ///|
 pub(all) struct GraphLimits {
-  max_files : Int
+  max_files : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -81,7 +81,7 @@ pub fn GraphLimits::default() -> GraphLimits {
 }
 
 ///|
-pub fn GraphLimits::new(max_files : Int) -> GraphLimits raise LoaderError {
+pub fn GraphLimits::new(max_files : Int32) -> GraphLimits raise LoaderError {
   if max_files <= 0 {
     raise InvalidLimit
   }
@@ -179,8 +179,8 @@ fn LoadedSource::with_context(
 pub fn load_stdin(
   bytes : Bytes,
   source_id : @source.SourceId,
-  display_name? : String = "<stdin>",
-  environment? : ArrayView[(String, String)] = [],
+  display_name~ : String = "<stdin>",
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
   let source = @source.Source::from_bytes(source_id, display_name, bytes) catch {
     error => raise InvalidSource(error)
@@ -205,7 +205,7 @@ pub fn load_stdin(
 ///|
 fn parse_loaded_source(
   source : @source.Source,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> @syntax.Ast raise LoaderError {
   @parser.parse_with_environment(source, environment) catch {
     error =>
@@ -236,8 +236,8 @@ fn lower_ascii(value : String) -> String {
 }
 
 ///|
-fn filename_lexical_compare(left : String, right : String) -> Int {
-  let length = Int::min(left.length(), right.length())
+fn filename_lexical_compare(left : String, right : String) -> Int32 {
+  let length = Int32::min(left.length(), right.length())
   for index in 0..<length {
     let order = left.unsafe_get(index).compare(right.unsafe_get(index))
     if order != 0 {

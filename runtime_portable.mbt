@@ -10,14 +10,14 @@ fn runtime_environment_host() -> @host_wasm.PortableHost {
 
 ///|
 #cfg(target="wasm")
-fn portable_exit(code : Int) -> Unit = "wasi_snapshot_preview1" "proc_exit"
+fn portable_exit(code : Int32) -> Unit = "wasi_snapshot_preview1" "proc_exit"
 
 ///|
 #cfg(any(target="wasm-gc", target="js"))
-fn portable_exit(code : Int) -> Unit = "__moonbit_sys_unstable" "exit"
+fn portable_exit(code : Int32) -> Unit = "__moonbit_sys_unstable" "exit"
 
 ///|
-fn runtime_exit(code : Int) -> Unit {
+fn runtime_exit(code : Int32) -> Unit {
   if code != 0 {
     portable_exit(code)
   }
@@ -151,7 +151,7 @@ fn try_sync_summary(argv : ArrayView[String]) -> String? {
 
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-fn sync_file_command_hint(argv : ArrayView[String]) -> Int {
+fn sync_file_command_hint(argv : ArrayView[String]) -> Int32 {
   let mut check = false
   let mut format = false
   for argument in argv {

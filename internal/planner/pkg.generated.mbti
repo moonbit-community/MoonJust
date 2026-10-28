@@ -17,7 +17,7 @@ import {
 }
 
 // Values
-pub fn build_schedule(ArrayView[TaskSpec], Int) -> Schedule raise SchedulerError
+pub fn build_schedule(ArrayView[TaskSpec], Int32) -> Schedule raise SchedulerError
 
 pub fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScript) -> Unit raise ExecutionError
 
@@ -27,7 +27,7 @@ pub fn combine_execution_plans(ArrayView[ExecutionPlan]) -> ExecutionPlan
 
 pub fn confirmation_answer_is_yes(String) -> Bool
 
-pub fn deterministic_failure(Schedule, ArrayView[Int]) -> Int?
+pub fn deterministic_failure(Schedule, ArrayView[Int32]) -> Int32?
 
 pub fn format_timestamp(Int64, String) -> String
 
@@ -67,16 +67,16 @@ pub(all) suberror ExecutionError {
   InvalidShebang(recipe~ : String, shebang~ : String)
   UnknownRecipe(recipe~ : String)
   DependencyCycle(stack~ : Array[String])
-  CommandFailed(recipe~ : String, line~ : Int, exit_code~ : Int)
-  CommandSignaled(recipe~ : String, line~ : Int, signal~ : @host.SignalKind)
+  CommandFailed(recipe~ : String, line~ : Int32, exit_code~ : Int32)
+  CommandSignaled(recipe~ : String, line~ : Int32, signal~ : @host.SignalKind)
   Interrupted(signal~ : @host.SignalKind)
-  GuardCode(recipe~ : String, line~ : Int, code~ : Int)
+  GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
   CacheFailure(message~ : String)
 } derive(@debug.Debug)
-pub fn ExecutionError::command_failed(String, Int, Int) -> Self
-pub fn ExecutionError::command_signaled(String, Int, @host.SignalKind) -> Self
-pub fn ExecutionError::exit_code(Self) -> Int
+pub fn ExecutionError::command_failed(String, Int32, Int32) -> Self
+pub fn ExecutionError::command_signaled(String, Int32, @host.SignalKind) -> Self
+pub fn ExecutionError::exit_code(Self) -> Int32
 pub fn ExecutionError::host(@host.HostError) -> Self
 pub fn ExecutionError::message(Self) -> String
 pub fn ExecutionError::to_diagnostic(Self) -> @diagnostic.Diagnostic? raise @diagnostic.DiagnosticError
@@ -84,11 +84,11 @@ pub fn ExecutionError::to_diagnostic(Self) -> @diagnostic.Diagnostic? raise @dia
 pub fn ExecutionError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror SchedulerError {
-  InvalidJobs(Int)
-  DuplicateTask(Int)
-  UnknownDependency(task~ : Int, dependency~ : Int)
-  SelfDependency(Int)
-  DependencyCycle(Array[Int])
+  InvalidJobs(Int32)
+  DuplicateTask(Int32)
+  UnknownDependency(task~ : Int32, dependency~ : Int32)
+  SelfDependency(Int32)
+  DependencyCycle(Array[Int32])
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn SchedulerError::equal(Self, Self) -> Bool
@@ -169,11 +169,11 @@ pub struct ExecutionOptions {
   quiet : Bool
   echo_quiet : Bool
   verbose : Bool
-  verbosity : Int
+  verbosity : Int32
   time : Bool
   timestamp : String?
   command_color : CommandColor?
-  jobs : Int
+  jobs : Int32
   cache_enabled : Bool
   unstable : Bool
   no_dependencies : Bool
@@ -191,7 +191,7 @@ pub fn ExecutionOptions::equal(Self, Self) -> Bool
 pub fn ExecutionOptions::explain(Self) -> Bool
 pub fn ExecutionOptions::from_values(Bool, Bool, Bool, Bool, String?, CommandColor?) -> Self
 pub fn ExecutionOptions::guards(Self) -> Bool
-pub fn ExecutionOptions::jobs(Self) -> Int
+pub fn ExecutionOptions::jobs(Self) -> Int32
 pub fn ExecutionOptions::new(dry_run? : Bool, quiet? : Bool, verbose? : Bool, time? : Bool, timestamp? : String, command_color? : CommandColor) -> Self
 pub fn ExecutionOptions::no_dependencies(Self) -> Bool
 #deprecated
@@ -203,17 +203,17 @@ pub fn ExecutionOptions::timestamp(Self) -> String?
 pub fn ExecutionOptions::to_repr(Self) -> @debug.Repr
 pub fn ExecutionOptions::unstable(Self) -> Bool
 pub fn ExecutionOptions::verbose(Self) -> Bool
-pub fn ExecutionOptions::verbosity(Self) -> Int
+pub fn ExecutionOptions::verbosity(Self) -> Int32
 pub fn ExecutionOptions::with_cache(Self, Bool) -> Self
 pub fn ExecutionOptions::with_color_enabled(Self, Bool) -> Self
 pub fn ExecutionOptions::with_echo_quiet(Self, Bool) -> Self
 pub fn ExecutionOptions::with_explain(Self, Bool) -> Self
 pub fn ExecutionOptions::with_guards(Self, Bool) -> Self
-pub fn ExecutionOptions::with_jobs(Self, Int) -> Self
+pub fn ExecutionOptions::with_jobs(Self, Int32) -> Self
 pub fn ExecutionOptions::with_no_dependencies(Self, Bool) -> Self
 pub fn ExecutionOptions::with_quiet(Self, Bool) -> Self
 pub fn ExecutionOptions::with_unstable(Self, Bool) -> Self
-pub fn ExecutionOptions::with_verbosity(Self, Int) -> Self
+pub fn ExecutionOptions::with_verbosity(Self, Int32) -> Self
 
 pub struct ExecutionPlan {
   steps : Array[PlannedStep]
@@ -239,12 +239,12 @@ pub impl @debug.Debug for ExecutionPlan
 pub struct ExecutionReport {
   stdout : Bytes
   stderr : Bytes
-  commands : Int
+  commands : Int32
 } derive(Eq)
-pub fn ExecutionReport::commands(Self) -> Int
+pub fn ExecutionReport::commands(Self) -> Int32
 #deprecated
 pub fn ExecutionReport::equal(Self, Self) -> Bool
-pub fn ExecutionReport::new(Bytes, Bytes, Int) -> Self
+pub fn ExecutionReport::new(Bytes, Bytes, Int32) -> Self
 #deprecated
 pub fn ExecutionReport::not_equal(Self, Self) -> Bool
 pub fn ExecutionReport::stderr(Self) -> BytesView
@@ -254,19 +254,19 @@ pub fn ExecutionReport::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for ExecutionReport
 
 pub struct ExecutionTask {
-  id : Int
-  order : Int
+  id : Int32
+  order : Int32
   recipe : String
   steps : Array[PlannedStep]
-  dependencies : Array[Int]
+  dependencies : Array[Int32]
   cache : CacheDirective?
   print_exit_message : Bool
   preamble : Bytes
 }
 pub fn ExecutionTask::cache(Self) -> CacheDirective?
-pub fn ExecutionTask::dependencies(Self) -> ArrayView[Int]
-pub fn ExecutionTask::id(Self) -> Int
-pub fn ExecutionTask::order(Self) -> Int
+pub fn ExecutionTask::dependencies(Self) -> ArrayView[Int32]
+pub fn ExecutionTask::id(Self) -> Int32
+pub fn ExecutionTask::order(Self) -> Int32
 pub fn ExecutionTask::preamble(Self) -> BytesView
 pub fn ExecutionTask::print_exit_message(Self) -> Bool
 pub fn ExecutionTask::recipe(Self) -> String
@@ -285,7 +285,7 @@ pub fn MaterializedScript::spec(Self) -> @host.CommandSpec
 pub struct PlannedCommand {
   spec : @host.CommandSpec
   recipe : String
-  line : Int
+  line : Int32
   ignore_error : Bool
   echo : Bytes
   is_guard : Bool
@@ -297,7 +297,7 @@ pub fn PlannedCommand::echo(Self) -> BytesView
 pub fn PlannedCommand::equal(Self, Self) -> Bool
 pub fn PlannedCommand::ignore_error(Self) -> Bool
 pub fn PlannedCommand::is_guard(Self) -> Bool
-pub fn PlannedCommand::line(Self) -> Int
+pub fn PlannedCommand::line(Self) -> Int32
 #deprecated
 pub fn PlannedCommand::not_equal(Self, Self) -> Bool
 pub fn PlannedCommand::recipe(Self) -> String
@@ -317,11 +317,11 @@ pub struct PlannedLine {
   recipe : String
   positional : Array[String]
   recipe_quiet : Bool
-  line : Int
+  line : Int32
   continue_signals : Array[@host.SignalKind]
 }
 pub fn PlannedLine::continue_signals(Self) -> ArrayView[@host.SignalKind]
-pub fn PlannedLine::line(Self) -> Int
+pub fn PlannedLine::line(Self) -> Int32
 pub fn PlannedLine::positional(Self) -> ArrayView[String]
 pub fn PlannedLine::recipe(Self) -> String
 #deprecated
@@ -414,20 +414,20 @@ pub fn RecipeRequest::recipe(Self) -> String
 pub fn RecipeRequest::to_repr(Self) -> @debug.Repr
 
 pub struct Schedule {
-  jobs : Int
-  waves : Array[Array[Int]]
-  order : Array[Int]
+  jobs : Int32
+  waves : Array[Array[Int32]]
+  order : Array[Int32]
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn Schedule::equal(Self, Self) -> Bool
-pub fn Schedule::jobs(Self) -> Int
+pub fn Schedule::jobs(Self) -> Int32
 #deprecated
 pub fn Schedule::not_equal(Self, Self) -> Bool
-pub fn Schedule::order(Self) -> ArrayView[Int]
-pub fn Schedule::peak(Self) -> Int
+pub fn Schedule::order(Self) -> ArrayView[Int32]
+pub fn Schedule::peak(Self) -> Int32
 #deprecated
 pub fn Schedule::to_repr(Self) -> @debug.Repr
-pub fn Schedule::waves(Self) -> ArrayView[Array[Int]]
+pub fn Schedule::waves(Self) -> ArrayView[Array[Int32]]
 
 pub struct ScriptConfiguration {
   interpreter : @environment.ShellConfiguration
@@ -448,18 +448,18 @@ pub fn ScriptConfiguration::temporary_directory(Self) -> @path.PathValue
 pub fn ScriptConfiguration::to_repr(Self) -> @debug.Repr
 
 pub struct TaskSpec {
-  id : Int
-  order : Int
-  dependencies : Array[Int]
+  id : Int32
+  order : Int32
+  dependencies : Array[Int32]
 } derive(Eq, @debug.Debug)
-pub fn TaskSpec::dependencies(Self) -> ArrayView[Int]
+pub fn TaskSpec::dependencies(Self) -> ArrayView[Int32]
 #deprecated
 pub fn TaskSpec::equal(Self, Self) -> Bool
-pub fn TaskSpec::id(Self) -> Int
-pub fn TaskSpec::new(Int, Int, dependencies? : Array[Int]) -> Self
+pub fn TaskSpec::id(Self) -> Int32
+pub fn TaskSpec::new(Int32, Int32, dependencies? : Array[Int32]) -> Self
 #deprecated
 pub fn TaskSpec::not_equal(Self, Self) -> Bool
-pub fn TaskSpec::order(Self) -> Int
+pub fn TaskSpec::order(Self) -> Int32
 #deprecated
 pub fn TaskSpec::to_repr(Self) -> @debug.Repr
 

@@ -15,8 +15,8 @@ pub fn render_help() -> String
 
 // Errors
 pub(all) suberror CliContractError {
-  InvalidRecipeExitCode(Int)
-  InvalidSignalNumber(Int)
+  InvalidRecipeExitCode(Int32)
+  InvalidSignalNumber(Int32)
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn CliContractError::equal(Self, Self) -> Bool
@@ -43,7 +43,7 @@ pub struct ApplicationFailure {
   diagnostic : @diagnostic.Diagnostic
 } derive(@debug.Debug)
 pub fn ApplicationFailure::diagnostic(Self) -> @diagnostic.Diagnostic
-pub fn ApplicationFailure::exit_code(Self) -> Int
+pub fn ApplicationFailure::exit_code(Self) -> Int32
 pub fn ApplicationFailure::kind(Self) -> FailureKind
 pub fn ApplicationFailure::new(FailureKind, @diagnostic.Diagnostic) -> Self raise CliContractError
 #deprecated
@@ -69,13 +69,13 @@ pub fn ApplicationRequest::to_repr(Self) -> @debug.Repr
 pub struct ApplicationResponse {
   stdout : Bytes
   stderr : Bytes
-  exit_code : Int
+  exit_code : Int32
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn ApplicationResponse::equal(Self, Self) -> Bool
-pub fn ApplicationResponse::exit_code(Self) -> Int
+pub fn ApplicationResponse::exit_code(Self) -> Int32
 pub fn ApplicationResponse::from_failure(ApplicationFailure, @source.SourceMap) -> Self raise @diagnostic.DiagnosticError
-pub fn ApplicationResponse::new(Bytes, Bytes, Int) -> Self
+pub fn ApplicationResponse::new(Bytes, Bytes, Int32) -> Self
 #deprecated
 pub fn ApplicationResponse::not_equal(Self, Self) -> Bool
 pub fn ApplicationResponse::stderr(Self) -> BytesView
@@ -87,14 +87,14 @@ pub fn ApplicationResponse::to_repr(Self) -> @debug.Repr
 pub struct CliArguments {
   command : CommandKind
   flags : Map[String, Bool]
-  counts : Map[String, Int]
+  counts : Map[String, Int32]
   values : Map[String, Array[String]]
   positional : Array[String]
   variable_overrides : Array[(String, String)]
   shell_arguments : Array[String]?
 }
 pub fn CliArguments::command(Self) -> CommandKind
-pub fn CliArguments::count(Self, String) -> Int
+pub fn CliArguments::count(Self, String) -> Int32
 pub fn CliArguments::flag(Self, String) -> Bool
 pub fn CliArguments::positional(Self) -> ArrayView[String]
 pub fn CliArguments::shell_arguments(Self) -> Array[String]?
@@ -143,8 +143,8 @@ pub(all) enum FailureKind {
   Planning
   Host
   Capability
-  RecipeExit(Int)
-  SignalExit(Int)
+  RecipeExit(Int32)
+  SignalExit(Int32)
   Internal
 } derive(Eq, @debug.Debug)
 pub fn FailureKind::as_string(Self) -> String

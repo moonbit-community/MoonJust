@@ -12,8 +12,8 @@ pub struct ProjectInput {
 ///|
 pub fn ProjectInput::new(
   cwd : @path.PathValue,
-  stdin? : Bytes = b"",
-  source_id? : @source.SourceId = @source.SourceId::new(1),
+  stdin~ : Bytes = b"",
+  source_id~ : @source.SourceId = @source.SourceId::new(1),
 ) -> ProjectInput {
   {
     cwd,

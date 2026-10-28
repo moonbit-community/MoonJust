@@ -6,13 +6,13 @@ type EffectHandler = (String, Array[Value], @source.Span) -> Value raise Evaluat
 
 ///|
 pub(all) struct EvaluationLimits {
-  max_depth : Int
-  max_nodes : Int
-  max_output_bytes : Int
+  max_depth : Int32
+  max_nodes : Int32
+  max_output_bytes : Int32
 } derive(Eq, Debug)
 
 ///|
-fn default_evaluation_depth() -> Int {
+fn default_evaluation_depth() -> Int32 {
   if @env.get_env_var("MOONJUST_OS") == Some("windows") ||
     @env.get_env_var("OS") == Some("Windows_NT") {
     48
@@ -32,9 +32,9 @@ pub fn EvaluationLimits::default() -> EvaluationLimits {
 
 ///|
 pub fn EvaluationLimits::new(
-  max_depth : Int,
-  max_nodes : Int,
-  max_output_bytes : Int,
+  max_depth : Int32,
+  max_nodes : Int32,
+  max_output_bytes : Int32,
 ) -> EvaluationLimits {
   { max_depth, max_nodes, max_output_bytes, }
 }
@@ -46,8 +46,8 @@ priv struct Evaluator {
   context : EvaluationContext?
   effect_handler : EffectHandler?
   functions : FunctionEnvironment
-  mut depth : Int
-  mut nodes : Int
+  mut depth : Int32
+  mut nodes : Int32
 }
 
 ///|
@@ -489,8 +489,8 @@ fn Evaluator::eval(
 /// Evaluate one expression without host capabilities.
 pub fn evaluate(
   expression : @syntax.Expression,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
   functions? : FunctionEnvironment,
 ) -> Value raise EvaluationError {
   let functions = functions.unwrap_or(environment.functions())
@@ -510,8 +510,8 @@ pub fn evaluate(
 pub fn evaluate_with_context(
   expression : @syntax.Expression,
   context : EvaluationContext,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
   functions? : FunctionEnvironment,
 ) -> Value raise EvaluationError {
   let functions = functions.unwrap_or(environment.functions())
@@ -538,9 +538,9 @@ pub fn[
   expression : @syntax.Expression,
   context : EvaluationContext,
   shell : EffectShell,
-  quiet? : Bool = false,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
+  quiet~ : Bool = false,
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
   functions? : FunctionEnvironment,
 ) -> Value raise EvaluationError {
   let functions = functions.unwrap_or(environment.functions())
@@ -579,9 +579,9 @@ pub fn[
 /// Evaluate all assignments, deferring forward references and rejecting cycles.
 pub fn evaluate_compilation(
   compilation : @semantic.Compilation,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
-  overrides? : ArrayView[(String, String)] = [],
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
+  overrides~ : ArrayView[(String, String)] = [],
 ) -> Environment raise EvaluationError {
   let deferred = LazyEnvironment::new(compilation, environment~, limits~)
   deferred.apply_overrides(overrides)
@@ -592,8 +592,8 @@ pub fn evaluate_compilation(
 /// Parse and evaluate one source expression.
 pub fn evaluate_source(
   source : @source.Source,
-  environment? : Environment = Environment::new(),
-  limits? : EvaluationLimits = EvaluationLimits::default(),
+  environment~ : Environment = Environment::new(),
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
 ) -> Value raise EvaluationError {
   let expression = @parser.parse_expression(source) catch {
     error => raise Parse(error)

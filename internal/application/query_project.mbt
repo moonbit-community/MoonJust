@@ -197,7 +197,7 @@ fn append_project_list_module(
   path : @modulepath.ModulePath,
   arguments : @cli.CliArguments,
   color : Bool,
-  depth : Int,
+  depth : Int32,
   globals : Map[@modulepath.ModulePath, @evaluator.Environment],
 ) -> Unit raise ApplicationError {
   let compilation = project.module_compilation(path).unwrap()

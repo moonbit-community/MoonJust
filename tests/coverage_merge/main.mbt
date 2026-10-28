@@ -10,10 +10,10 @@ priv struct CoverageRow {
 priv struct CoverageReport {
   runner_os : String
   target : String
-  upstream_total : Int
-  failures : Int
-  known_differences : Int
-  product_identity_differences : Int
+  upstream_total : Int32
+  failures : Int32
+  known_differences : Int32
+  product_identity_differences : Int32
   rows : Array[CoverageRow]
 }
 
@@ -52,7 +52,7 @@ fn string_field(fields : Map[String, Json], name : String) -> String? {
 }
 
 ///|
-fn int_field(fields : Map[String, Json], name : String) -> Int? {
+fn int_field(fields : Map[String, Json], name : String) -> Int32? {
   match fields.get(name) {
     Some(Number(value, ..)) => Some(value.to_int())
     _ => None

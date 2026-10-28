@@ -7,7 +7,7 @@ fn quote_attribute_argument(argument : @syntax.AttributeArgument) -> String {
 }
 
 ///|
-fn expression_precedence(expression : @syntax.Expression) -> Int {
+fn expression_precedence(expression : @syntax.Expression) -> Int32 {
   match expression {
     Conditional(_) => 1
     Binary(operator=Or, ..) => 2
@@ -37,7 +37,7 @@ fn binary_text(operator : @syntax.BinaryOperator) -> String {
 ///|
 fn expression_text_with_parent(
   expression : @syntax.Expression,
-  parent : Int,
+  parent : Int32,
 ) -> String {
   if expression is Parenthesized(expression=inner, ..) {
     return expression_text_with_parent(inner, parent)

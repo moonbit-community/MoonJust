@@ -134,7 +134,7 @@ fn coverage_status(
 /// Extract a `path:line` location without accepting a missing or non-numeric
 /// line number. Fixture paths in this index are repository-relative and do not
 /// contain a colon.
-fn location_parts(location : String) -> (String, Int)? {
+fn location_parts(location : String) -> (String, Int32)? {
   guard location.find(":") is Some(separator) else { return None }
   let path = location[:separator].to_owned()
   let line = @string.parse_int(location[separator + 1:]) catch {
@@ -342,7 +342,7 @@ fn coverage_json(
   failed : Set[String],
   deferred : Set[String],
   spec_executed : Set[String],
-  failures : Int,
+  failures : Int32,
   execution_platform : String,
   execution_target : String,
 ) -> String {

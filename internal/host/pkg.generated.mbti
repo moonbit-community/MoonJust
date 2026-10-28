@@ -18,19 +18,19 @@ pub(all) suberror HostError {
   InvalidInput(String)
   UnexpectedProcess(CommandSpec)
   ProcessMismatch(expected~ : CommandSpec, actual~ : CommandSpec)
-  RandomExhausted(requested~ : Int, remaining~ : Int)
+  RandomExhausted(requested~ : Int32, remaining~ : Int32)
 } derive(Eq, @debug.Debug)
 
 // Types and methods
 pub struct CacheLease {
   directory : @path.PathValue
   digest : String
-  token : Int
+  token : Int32
 } derive(Eq, @debug.Debug)
 pub fn CacheLease::digest(Self) -> String
 pub fn CacheLease::directory(Self) -> @path.PathValue
-pub fn CacheLease::new(@path.PathValue, String, Int) -> Self
-pub fn CacheLease::token(Self) -> Int
+pub fn CacheLease::new(@path.PathValue, String, Int32) -> Self
+pub fn CacheLease::token(Self) -> Int32
 
 pub struct CommandSpec {
   program : String
@@ -105,17 +105,17 @@ pub struct PlatformInfo {
   architecture : String
   path_flavor : @path.PathFlavor
   portable_runtime : Bool
-  pid : Int?
-  num_cpus : Int?
+  pid : Int32?
+  num_cpus : Int32?
   executable : String?
 } derive(Eq, @debug.Debug)
 pub fn PlatformInfo::architecture(Self) -> String
 pub fn PlatformInfo::executable(Self) -> String?
-pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor, portable_runtime? : Bool, pid? : Int, num_cpus? : Int, executable? : String) -> Self
-pub fn PlatformInfo::num_cpus(Self) -> Int?
+pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor, portable_runtime? : Bool, pid? : Int32, num_cpus? : Int32, executable? : String) -> Self
+pub fn PlatformInfo::num_cpus(Self) -> Int32?
 pub fn PlatformInfo::operating_system(Self) -> OperatingSystem
 pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
-pub fn PlatformInfo::pid(Self) -> Int?
+pub fn PlatformInfo::pid(Self) -> Int32?
 pub fn PlatformInfo::portable_runtime(Self) -> Bool
 
 pub struct ProcessResult {
@@ -123,10 +123,10 @@ pub struct ProcessResult {
   stdout : Bytes
   stderr : Bytes
 } derive(Eq)
-pub fn ProcessResult::exit_code(Self) -> Int?
+pub fn ProcessResult::exit_code(Self) -> Int32?
 pub fn ProcessResult::from_interruption(SignalKind, Bytes, Bytes) -> Self
 pub fn ProcessResult::from_signal(SignalKind, Bytes, Bytes) -> Self
-pub fn ProcessResult::new(Int, Bytes, Bytes) -> Self
+pub fn ProcessResult::new(Int32, Bytes, Bytes) -> Self
 pub fn ProcessResult::signal(Self) -> SignalKind?
 pub fn ProcessResult::stderr(Self) -> BytesView
 pub fn ProcessResult::stdout(Self) -> BytesView
@@ -135,7 +135,7 @@ pub fn ProcessResult::termination(Self) -> ProcessTermination
 pub impl @debug.Debug for ProcessResult
 
 pub(all) enum ProcessTermination {
-  Exited(Int)
+  Exited(Int32)
   Signaled(SignalKind)
   Interrupted(SignalKind)
 } derive(Eq, @debug.Debug)
@@ -144,11 +144,11 @@ pub(all) enum SignalKind {
   Interrupt
   Terminate
   Hangup
-  OtherSignal(Int)
+  OtherSignal(Int32)
 } derive(Eq, @debug.Debug)
-pub fn SignalKind::exit_code(Self) -> Int
+pub fn SignalKind::exit_code(Self) -> Int32
 pub fn SignalKind::name(Self) -> String
-pub fn SignalKind::number(Self) -> Int
+pub fn SignalKind::number(Self) -> Int32
 
 pub(all) enum StdioBehavior {
   Capture
@@ -172,7 +172,7 @@ pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
 
 // Traits
 pub(open) trait HostAsyncOutput {
-  async fn write_output(Self, OutputStream, Bytes) -> Int raise HostError
+  async fn write_output(Self, OutputStream, Bytes) -> Int32 raise HostError
 }
 
 pub(open) trait HostAsyncProcess {
@@ -193,7 +193,7 @@ pub(open) trait HostCacheStore {
   async fn read_cache_manifest(Self, CacheLease) -> Bytes? raise HostError
   async fn write_cache_manifest(Self, CacheLease, Bytes) -> Unit raise HostError
   async fn release_cache_lease(Self, CacheLease) -> Unit raise HostError
-  async fn clean_cache(Self, @path.PathValue, String?) -> Int raise HostError
+  async fn clean_cache(Self, @path.PathValue, String?) -> Int32 raise HostError
 }
 
 pub(open) trait HostClock {
@@ -212,7 +212,7 @@ pub(open) trait HostExecutable {
 
 pub(open) trait HostFs {
   fn read_file(Self, @path.PathValue) -> Bytes raise HostError
-  fn read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise HostError
+  fn read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   fn file_exists(Self, @path.PathValue) -> Bool raise HostError
   fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
@@ -230,7 +230,7 @@ pub(open) trait HostProcess {
 }
 
 pub(open) trait HostRandom {
-  fn random_bytes(Self, Int) -> Bytes raise HostError
+  fn random_bytes(Self, Int32) -> Bytes raise HostError
 }
 
 pub(open) trait HostScriptTemp {
@@ -243,7 +243,7 @@ pub(open) trait HostSignal {
 }
 
 pub(open) trait HostSourceReader {
-  async fn read_source(Self, @path.PathValue, Int) -> Bytes raise HostError
+  async fn read_source(Self, @path.PathValue, Int32) -> Bytes raise HostError
 }
 
 pub(open) trait HostTemp {

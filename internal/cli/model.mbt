@@ -27,7 +27,7 @@ pub(all) enum CommandKind {
 pub struct CliArguments {
   command : CommandKind
   flags : Map[String, Bool]
-  counts : Map[String, Int]
+  counts : Map[String, Int32]
   values : Map[String, Array[String]]
   positional : Array[String]
   variable_overrides : Array[(String, String)]
@@ -45,7 +45,7 @@ pub fn CliArguments::flag(self : CliArguments, name : String) -> Bool {
 }
 
 ///|
-pub fn CliArguments::count(self : CliArguments, name : String) -> Int {
+pub fn CliArguments::count(self : CliArguments, name : String) -> Int32 {
   self.counts.get(name).unwrap_or(0)
 }
 

@@ -51,12 +51,12 @@ fn plan_plain_empty_fanout(
   name : String,
   display_name : String,
   module_path : @modulepath.ModulePath,
-  entry_dependencies : ArrayView[Int],
+  entry_dependencies : ArrayView[Int32],
   tasks : Array[ExecutionTask],
-  ran : Map[String, Int],
+  ran : Map[String, Int32],
   options : ExecutionOptions,
-  retain_tasks? : Bool = true,
-) -> Int? {
+  retain_tasks~ : Bool = true,
+) -> Int32? {
   guard plain_empty_fanout_children(compilation, recipe, attributes, options)
     is Some(child_names) else {
     return None

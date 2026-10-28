@@ -26,11 +26,11 @@ pub fn NativeFs::new() -> Self
 pub fn NativeFs::now_millis(Self) -> Int64 raise @host.HostError
 pub fn NativeFs::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise @host.HostError
 pub fn NativeFs::platform_info(Self) -> @host.PlatformInfo raise @host.HostError
-pub fn NativeFs::random_bytes(Self, Int) -> Bytes raise @host.HostError
+pub fn NativeFs::random_bytes(Self, Int32) -> Bytes raise @host.HostError
 pub fn NativeFs::read_dir(Self, @path.PathValue) -> Array[String] raise @host.HostError
 pub fn NativeFs::read_file(Self, @path.PathValue) -> Bytes raise @host.HostError
-pub fn NativeFs::read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise @host.HostError
-pub async fn NativeFs::read_source(Self, @path.PathValue, Int) -> Bytes raise @host.HostError
+pub fn NativeFs::read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise @host.HostError
+pub async fn NativeFs::read_source(Self, @path.PathValue, Int32) -> Bytes raise @host.HostError
 pub fn NativeFs::remove_script_temp(Self, @path.PathValue) -> Unit raise @host.HostError
 pub fn NativeFs::remove_temp_file(Self, @path.PathValue) -> Unit raise @host.HostError
 pub fn NativeFs::set_executable(Self, @path.PathValue) -> Unit raise @host.HostError

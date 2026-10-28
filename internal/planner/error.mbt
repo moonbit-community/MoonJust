@@ -9,10 +9,10 @@ pub(all) suberror ExecutionError {
   InvalidShebang(recipe~ : String, shebang~ : String)
   UnknownRecipe(recipe~ : String)
   DependencyCycle(stack~ : Array[String])
-  CommandFailed(recipe~ : String, line~ : Int, exit_code~ : Int)
-  CommandSignaled(recipe~ : String, line~ : Int, signal~ : @host.SignalKind)
+  CommandFailed(recipe~ : String, line~ : Int32, exit_code~ : Int32)
+  CommandSignaled(recipe~ : String, line~ : Int32, signal~ : @host.SignalKind)
   Interrupted(signal~ : @host.SignalKind)
-  GuardCode(recipe~ : String, line~ : Int, code~ : Int)
+  GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
   CacheFailure(message~ : String)
 } derive(Debug)
@@ -20,8 +20,8 @@ pub(all) suberror ExecutionError {
 ///|
 pub fn ExecutionError::command_failed(
   recipe : String,
-  line : Int,
-  exit_code : Int,
+  line : Int32,
+  exit_code : Int32,
 ) -> ExecutionError {
   CommandFailed(recipe~, line~, exit_code~)
 }
@@ -29,7 +29,7 @@ pub fn ExecutionError::command_failed(
 ///|
 pub fn ExecutionError::command_signaled(
   recipe : String,
-  line : Int,
+  line : Int32,
   signal : @host.SignalKind,
 ) -> ExecutionError {
   CommandSignaled(recipe~, line~, signal~)
@@ -41,7 +41,7 @@ pub fn ExecutionError::host(error : @host.HostError) -> ExecutionError {
 }
 
 ///|
-pub fn ExecutionError::exit_code(self : ExecutionError) -> Int {
+pub fn ExecutionError::exit_code(self : ExecutionError) -> Int32 {
   match self {
     CommandFailed(exit_code~, ..) => exit_code
     CommandSignaled(signal~, ..) => signal.exit_code()

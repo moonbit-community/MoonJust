@@ -4,14 +4,14 @@ fn write_list_line(
   prefix : String,
   label : String,
   annotations : ArrayView[String],
-  maximum : Int,
+  maximum : Int32,
   color : Bool,
-  rendered? : String = label,
+  rendered~ : String = label,
 ) -> Unit {
   builder.write_string(prefix)
   builder.write_string(rendered)
   if !annotations.is_empty() {
-    let padding = Int::max(1, maximum - @query.display_width(label) + 1)
+    let padding = Int32::max(1, maximum - @query.display_width(label) + 1)
     for _ in 0..<padding {
       builder.write_char(' ')
     }
@@ -39,8 +39,8 @@ fn list_text(
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
   color : Bool,
-  hidden_recipes? : ArrayView[String] = [],
-  hidden_aliases? : ArrayView[String] = [],
+  hidden_recipes~ : ArrayView[String] = [],
+  hidden_aliases~ : ArrayView[String] = [],
   project? : @semantic.ProjectCompilation,
   module_path? : @modulepath.ModulePath,
   globals? : Map[@modulepath.ModulePath, @evaluator.Environment],
@@ -91,7 +91,7 @@ fn list_text(
     let signature = recipe_signature(recipe)
     let signature_width = @query.display_width(signature)
     if signature_width <= 50 {
-      maximum = Int::max(maximum, signature_width)
+      maximum = Int32::max(maximum, signature_width)
     }
     let doc = if attributes.names().contains("doc") {
       match attributes.doc_expression() {
@@ -125,7 +125,7 @@ fn list_text(
           alias_name + signature.view(start_offset=name.length()).to_owned(),
         )
         if alias_width <= 50 {
-          maximum = Int::max(maximum, alias_width)
+          maximum = Int32::max(maximum, alias_width)
         }
       }
     }
@@ -149,7 +149,7 @@ fn list_text(
           continue
         }
         if target.contains("::") {
-          maximum = Int::max(maximum, @query.display_width(symbol.name()))
+          maximum = Int32::max(maximum, @query.display_width(symbol.name()))
           rows.push({
             name: symbol.name(),
             signature: symbol.name(),
@@ -191,7 +191,7 @@ fn list_text(
         } else {
           name + " ..."
         }
-        maximum = Int::max(maximum, @query.display_width(signature))
+        maximum = Int32::max(maximum, @query.display_width(signature))
         let doc = match
           evaluated_module_attribute(project, child, globals, "doc") {
           Some(value) if !value.trim().is_empty() => Some(value)
