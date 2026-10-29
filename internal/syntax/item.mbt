@@ -3,7 +3,7 @@ pub(all) struct Parameter {
   name : String
   default_value : Expression?
   variadic : Bool
-  variadic_minimum : Int
+  variadic_minimum : Int32
   exported : Bool
   span : @source.Span
 } derive(Eq, Debug)
@@ -57,7 +57,7 @@ pub fn Parameter::variadic(self : Parameter) -> Bool {
 }
 
 ///|
-pub fn Parameter::variadic_minimum(self : Parameter) -> Int {
+pub fn Parameter::variadic_minimum(self : Parameter) -> Int32 {
   self.variadic_minimum
 }
 
@@ -77,7 +77,7 @@ pub(all) struct Dependency {
   name_span : @source.Span
   arguments : Array[Expression]
   starred : Bool
-  starred_arguments : Array[Int]
+  starred_arguments : Array[Int32]
   span : @source.Span
 } derive(Eq, Debug)
 
@@ -88,7 +88,7 @@ pub fn Dependency::new(
   arguments : Array[Expression],
   starred : Bool,
   span : @source.Span,
-  starred_arguments? : ArrayView[Int] = [],
+  starred_arguments~ : ArrayView[Int32] = [],
 ) -> Dependency {
   {
     name,
@@ -121,7 +121,7 @@ pub fn Dependency::starred(self : Dependency) -> Bool {
 }
 
 ///|
-pub fn Dependency::starred_arguments(self : Dependency) -> ArrayView[Int] {
+pub fn Dependency::starred_arguments(self : Dependency) -> ArrayView[Int32] {
   self.starred_arguments[:]
 }
 
@@ -140,16 +140,16 @@ pub(all) enum RecipeFragment {
 pub(all) struct RecipeLine {
   fragments : Array[RecipeFragment]
   span : @source.Span
-  source_start_line : Int
-  source_end_line : Int
+  source_start_line : Int32
+  source_end_line : Int32
 } derive(Eq, Debug)
 
 ///|
 pub fn RecipeLine::new(
   fragments : Array[RecipeFragment],
   span : @source.Span,
-  source_start_line? : Int = 1,
-  source_end_line? : Int = source_start_line,
+  source_start_line~ : Int32 = 1,
+  source_end_line~ : Int32 = source_start_line,
 ) -> RecipeLine {
   { fragments, span, source_start_line, source_end_line, }
 }
@@ -165,12 +165,12 @@ pub fn RecipeLine::span(self : RecipeLine) -> @source.Span {
 }
 
 ///|
-pub fn RecipeLine::source_start_line(self : RecipeLine) -> Int {
+pub fn RecipeLine::source_start_line(self : RecipeLine) -> Int32 {
   self.source_start_line
 }
 
 ///|
-pub fn RecipeLine::source_end_line(self : RecipeLine) -> Int {
+pub fn RecipeLine::source_end_line(self : RecipeLine) -> Int32 {
   self.source_end_line
 }
 
@@ -253,7 +253,7 @@ pub fn Assignment::new(
   exported : Bool,
   eager : Bool,
   span : @source.Span,
-  attributes? : Array[Attribute] = [],
+  attributes~ : Array[Attribute] = [],
 ) -> Assignment {
   { name, value, exported, eager, attributes, span, }
 }
@@ -374,7 +374,7 @@ pub fn Alias::new(
   name : String,
   target : String,
   span : @source.Span,
-  attributes? : Array[Attribute] = [],
+  attributes~ : Array[Attribute] = [],
 ) -> Alias {
   { name, target, attributes, span, }
 }
@@ -478,7 +478,7 @@ pub fn Module::new(
   path : StringLiteral?,
   optional : Bool,
   span : @source.Span,
-  attributes? : Array[Attribute] = [],
+  attributes~ : Array[Attribute] = [],
 ) -> Module {
   { name, name_span, path, optional, attributes, span, }
 }

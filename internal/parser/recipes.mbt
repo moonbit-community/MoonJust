@@ -26,7 +26,7 @@ fn Parser::unparenthesized_join_span(
   match expression {
     Binary(operator=Join, lhs~, rhs~, ..) => {
       let start = if lhs.span().is_empty() {
-        Int::max(lhs.span().start_byte() - 1, 0)
+        Int32::max(lhs.span().start_byte() - 1, 0)
       } else {
         lhs.span().end_byte()
       }
@@ -130,7 +130,7 @@ fn Parser::parse_dependency(
     self.expect(ParenL) |> ignore
     let (name, name_span) = self.parse_namepath()
     let arguments : Array[@syntax.Expression] = []
-    let starred_arguments : Array[Int] = []
+    let starred_arguments : Array[Int32] = []
     while self.peek_kind() != ParenR {
       if !mapped_argument_start(self.peek_kind()) {
         let found = self.peek()
@@ -174,7 +174,7 @@ fn Parser::parse_dependency(
   if self.accept(ParenL) is Some(_) {
     let (name, name_span) = self.parse_namepath()
     let arguments : Array[@syntax.Expression] = []
-    let starred_arguments : Array[Int] = []
+    let starred_arguments : Array[Int32] = []
     while self.peek_kind() != ParenR {
       if !mapped_argument_start(self.peek_kind()) {
         let found = self.peek()

@@ -2,7 +2,7 @@
 fn write_repeated(
   builder : StringBuilder,
   character : Char,
-  count : Int,
+  count : Int32,
 ) -> Unit {
   let mut remaining = count
   while remaining > 0 {
@@ -25,7 +25,7 @@ fn expanded_source_line(line : String) -> String {
 }
 
 ///|
-fn source_character_width(character : Char) -> Int {
+fn source_character_width(character : Char) -> Int32 {
   let code = character.to_int()
   if (code >= 0x0300 && code <= 0x036F) ||
     (code >= 0x1AB0 && code <= 0x1AFF) ||
@@ -53,7 +53,7 @@ fn source_character_width(character : Char) -> Int {
 }
 
 ///|
-fn visual_source_column(line : String, scalar_column : Int) -> Int {
+fn visual_source_column(line : String, scalar_column : Int32) -> Int32 {
   let mut visual = 0
   let mut scalar = 0
   for character in line {
@@ -154,7 +154,7 @@ fn render_label(
     }
     visual_source_column(line_text, line_end.scalar_column())
   }
-  let width = Int::max(1, line_end_column - start_visual_column)
+  let width = Int32::max(1, line_end_column - start_visual_column)
   let gutter_width = start.line().to_string().length()
   write_repeated(builder, ' ', gutter_width)
   if color {

@@ -6,15 +6,15 @@ import {
 }
 
 // Values
-pub const FORMAT_VERSION : Int = 1
+pub const FORMAT_VERSION : Int32 = 1
 
 pub const KEY_ALGORITHM : String = "moonjust-cache-key-v1+blake3"
 
-pub const MAX_INPUTS : Int = 1024
+pub const MAX_INPUTS : Int32 = 1024
 
-pub const MAX_MANIFEST_BYTES : Int = 262144
+pub const MAX_MANIFEST_BYTES : Int32 = 262144
 
-pub const MAX_OUTPUTS : Int = 1024
+pub const MAX_OUTPUTS : Int32 = 1024
 
 pub fn decode_manifest(String) -> CacheManifest raise CacheError
 
@@ -27,11 +27,11 @@ pub(all) suberror CacheError {
   InvalidDigest(String)
   InvalidPath(String)
   DuplicatePath(String)
-  TooManyInputs(Int)
-  TooManyOutputs(Int)
-  ManifestTooLarge(Int)
+  TooManyInputs(Int32)
+  TooManyOutputs(Int32)
+  ManifestTooLarge(Int32)
   MalformedManifest(String)
-  UnsupportedVersion(Int)
+  UnsupportedVersion(Int32)
   AlgorithmMismatch(String)
   KeyMismatch
   RecipeMismatch
@@ -73,7 +73,7 @@ pub fn CacheKey::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for CacheKey
 
 pub struct CacheManifest {
-  version : Int
+  version : Int32
   algorithm : String
   key : String
   recipe : String

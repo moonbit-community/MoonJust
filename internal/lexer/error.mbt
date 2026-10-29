@@ -20,7 +20,7 @@ pub(all) suberror LexerError {
   MismatchedClosingDelimiter(
     open~ : DelimiterKind,
     close~ : DelimiterKind,
-    open_line~ : Int,
+    open_line~ : Int32,
     span~ : @source.Span
   )
   UnterminatedString(span~ : @source.Span)
@@ -32,9 +32,9 @@ pub(all) suberror LexerError {
     found~ : String,
     span~ : @source.Span
   )
-  SourceLimitExceeded(length~ : Int, limit~ : Int, span~ : @source.Span)
-  TokenLimitExceeded(limit~ : Int, span~ : @source.Span)
-  NestingLimitExceeded(limit~ : Int, span~ : @source.Span)
+  SourceLimitExceeded(length~ : Int32, limit~ : Int32, span~ : @source.Span)
+  TokenLimitExceeded(limit~ : Int32, span~ : @source.Span)
+  NestingLimitExceeded(limit~ : Int32, span~ : @source.Span)
 } derive(Eq, Debug)
 
 ///|

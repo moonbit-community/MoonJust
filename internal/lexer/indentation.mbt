@@ -14,7 +14,11 @@ fn Lexer::current_indentation(self : Lexer) -> String {
 }
 
 ///|
-fn Lexer::consume_leading(self : Lexer, count : Int, kind : TokenKind) -> Unit {
+fn Lexer::consume_leading(
+  self : Lexer,
+  count : Int32,
+  kind : TokenKind,
+) -> Unit {
   let start = self.offset
   for index = 0; index < count; index = index + 1 {
     self.take()
@@ -106,7 +110,7 @@ fn Lexer::lex_line_start(self : Lexer) -> Unit raise LexerError {
 
   let current = self.current_indentation()
   let current_length = current.length()
-  let body_length = Int::min(whitespace.length(), current_length)
+  let body_length = Int32::min(whitespace.length(), current_length)
   let body_whitespace = self.slice(start, start + body_length)
   let spaces = contains_space(whitespace)
   let tabs = contains_tab(whitespace)

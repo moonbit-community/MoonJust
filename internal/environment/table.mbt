@@ -14,14 +14,14 @@ pub struct EnvTable {
 }
 
 ///|
-pub fn EnvTable::new(name_mode? : EnvNameMode = Sensitive) -> EnvTable {
+pub fn EnvTable::new(name_mode~ : EnvNameMode = Sensitive) -> EnvTable {
   { values: Map([]), ordered: [], name_mode, }
 }
 
 ///|
 pub fn EnvTable::from_entries(
   entries : ArrayView[(String, String)],
-  name_mode? : EnvNameMode = Sensitive,
+  name_mode~ : EnvNameMode = Sensitive,
 ) -> EnvTable {
   let table = EnvTable::new(name_mode~)
   for entry in entries {
@@ -94,7 +94,7 @@ pub fn EnvTable::remove(self : EnvTable, key : String) -> Unit {
 pub fn EnvTable::merge(
   self : EnvTable,
   incoming : EnvTable,
-  override_existing? : Bool = true,
+  override_existing~ : Bool = true,
 ) -> Unit {
   for entry in incoming.entries() {
     if override_existing || !self.contains(entry.0) {
@@ -116,7 +116,7 @@ pub fn EnvTable::keys(self : EnvTable) -> Array[String] {
 ///|
 pub fn[T : @host.HostEnv] snapshot(
   host : T,
-  name_mode? : EnvNameMode = Sensitive,
+  name_mode~ : EnvNameMode = Sensitive,
 ) -> EnvTable raise @host.HostError {
   EnvTable::from_entries(@host.HostEnv::env_entries(host)[:], name_mode~)
 }

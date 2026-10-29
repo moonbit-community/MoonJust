@@ -203,7 +203,7 @@ fn process_environment(
   entries : ArrayView[(String, String)],
   global : @evaluator.Environment,
   flavor : @path.PathFlavor,
-  unexports? : ArrayView[String] = [],
+  unexports~ : ArrayView[String] = [],
 ) -> Array[(String, String)] {
   let mode : @environment.EnvNameMode = if flavor == Windows {
     AsciiInsensitive

@@ -11,7 +11,7 @@ fn parse_shebang(line : String) -> ShebangCommand? {
   if text.is_empty() {
     return None
   }
-  let mut separator : Int? = None
+  let mut separator : Int32? = None
   for index in 0..<text.length() {
     let byte = text.unsafe_get(index)
     if byte == ' ' || byte == '\t' {
@@ -189,7 +189,7 @@ fn execution_script_contents(contents : Bytes, strip_shebang : Bool) -> Bytes {
         remaining + 1 < bytes.length() &&
         bytes[remaining] == b'#' &&
         bytes[remaining + 1] == b'!' {
-    let mut newline : Int? = None
+    let mut newline : Int32? = None
     for index in remaining..<bytes.length() {
       if bytes[index] == b'\n' {
         newline = Some(index)
@@ -219,7 +219,7 @@ fn prepare_planned_script(
   process_environment : ArrayView[(String, String)],
   positional : ArrayView[String],
   quiet : Bool,
-  continue_signals? : ArrayView[@host.SignalKind] = [],
+  continue_signals~ : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript raise ExecutionError {
   let shebang = match lines.get(0) {
     Some(line) if line.has_prefix("#!") &&
@@ -253,10 +253,10 @@ pub fn plan_script_recipe(
   environment : @evaluator.Environment,
   cwd : @path.PathValue,
   configuration : ScriptConfiguration,
-  process_environment? : ArrayView[(String, String)] = [],
-  positional? : ArrayView[String] = [],
-  quiet? : Bool = false,
-  continue_signals? : ArrayView[@host.SignalKind] = [],
+  process_environment~ : ArrayView[(String, String)] = [],
+  positional~ : ArrayView[String] = [],
+  quiet~ : Bool = false,
+  continue_signals~ : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript raise ExecutionError {
   prepare_planned_script(
     recipe,
@@ -283,11 +283,11 @@ pub async fn[
   shell : @environment.ShellConfiguration,
   cwd : @path.PathValue,
   configuration : ScriptConfiguration,
-  process_environment? : ArrayView[(String, String)] = [],
-  positional? : ArrayView[String] = [],
-  quiet? : Bool = false,
-  dry_run? : Bool = false,
-  continue_signals? : ArrayView[@host.SignalKind] = [],
+  process_environment~ : ArrayView[(String, String)] = [],
+  positional~ : ArrayView[String] = [],
+  quiet~ : Bool = false,
+  dry_run~ : Bool = false,
+  continue_signals~ : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript raise ExecutionError {
   let effect_shell = @evaluator.EffectShell::new(
     shell.program(),
@@ -474,7 +474,7 @@ fn script_command(
   shebang : ShebangCommand?,
   platform : @host.PlatformInfo,
   discard_output : Bool,
-  positional? : ArrayView[String] = [],
+  positional~ : ArrayView[String] = [],
 ) -> @host.CommandSpec raise ExecutionError {
   let (program, arguments) = match shebang {
     Some(value) if platform.operating_system() == Windows => {

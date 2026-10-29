@@ -89,11 +89,11 @@ fn ensure_project_recipe_available(
 }
 
 ///|
-fn invocation_edit_distance(left : String, right : String) -> Int {
+fn invocation_edit_distance(left : String, right : String) -> Int32 {
   let a = left.to_array()
   let b = right.to_array()
-  let previous : Array[Int] = Array::make(b.length() + 1, 0)
-  let current : Array[Int] = Array::make(b.length() + 1, 0)
+  let previous : Array[Int32] = Array::make(b.length() + 1, 0)
+  let current : Array[Int32] = Array::make(b.length() + 1, 0)
   for index in 0..<=b.length() {
     previous[index] = index
   }
@@ -102,9 +102,9 @@ fn invocation_edit_distance(left : String, right : String) -> Int {
     for column in 1..<=b.length() {
       let substitution = previous[column - 1] +
         (if a[row - 1] == b[column - 1] { 0 } else { 1 })
-      current[column] = Int::min(
+      current[column] = Int32::min(
         substitution,
-        Int::min(previous[column] + 1, current[column - 1] + 1),
+        Int32::min(previous[column] + 1, current[column - 1] + 1),
       )
     }
     for column in 0..<=b.length() {
@@ -190,8 +190,8 @@ fn unknown_project_submodule(
 fn resolve_project_recipe(
   project : @semantic.ProjectCompilation,
   arguments : ArrayView[String],
-  start : Int,
-) -> (@modulepath.ModulePath, String, Int) raise InvocationError {
+  start : Int32,
+) -> (@modulepath.ModulePath, String, Int32) raise InvocationError {
   if start >= arguments.length() {
     let recipe = require_project_default_recipe(
       project,

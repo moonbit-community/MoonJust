@@ -137,7 +137,7 @@ fn[T : @host.HostRandom] choose_value(
 }
 
 ///|
-fn hex_digit(character : Char) -> Int? {
+fn hex_digit(character : Char) -> Int32? {
   if character >= '0' && character <= '9' {
     Some(character.to_int() - '0'.to_int())
   } else if character >= 'a' && character <= 'f' {
@@ -150,7 +150,7 @@ fn hex_digit(character : Char) -> Int? {
 }
 
 ///|
-fn rgb_code(value : String) -> (Int, Int, Int)? {
+fn rgb_code(value : String) -> (Int32, Int32, Int32)? {
   let digits = value.to_array()
   if digits.length() == 3 {
     guard hex_digit(digits[0]) is Some(r) else { return None }

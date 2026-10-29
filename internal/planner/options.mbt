@@ -5,11 +5,11 @@ pub struct ExecutionOptions {
   quiet : Bool
   echo_quiet : Bool
   verbose : Bool
-  verbosity : Int
+  verbosity : Int32
   time : Bool
   timestamp : String?
   command_color : CommandColor?
-  jobs : Int
+  jobs : Int32
   cache_enabled : Bool
   unstable : Bool
   no_dependencies : Bool
@@ -20,10 +20,10 @@ pub struct ExecutionOptions {
 
 ///|
 pub fn ExecutionOptions::new(
-  dry_run? : Bool = false,
-  quiet? : Bool = false,
-  verbose? : Bool = false,
-  time? : Bool = false,
+  dry_run~ : Bool = false,
+  quiet~ : Bool = false,
+  verbose~ : Bool = false,
+  time~ : Bool = false,
   timestamp? : String,
   command_color? : CommandColor,
 ) -> ExecutionOptions {
@@ -86,7 +86,7 @@ pub fn ExecutionOptions::from_values(
 /// Return a copy with the bounded scheduler width selected by the application.
 pub fn ExecutionOptions::with_jobs(
   self : ExecutionOptions,
-  jobs : Int,
+  jobs : Int32,
 ) -> ExecutionOptions {
   { ..self, jobs, }
 }
@@ -160,7 +160,7 @@ pub fn ExecutionOptions::with_echo_quiet(
 ///|
 pub fn ExecutionOptions::with_verbosity(
   self : ExecutionOptions,
-  verbosity : Int,
+  verbosity : Int32,
 ) -> ExecutionOptions {
   { ..self, verbose: verbosity > 0, verbosity, }
 }
@@ -186,7 +186,7 @@ pub fn ExecutionOptions::verbose(self : ExecutionOptions) -> Bool {
 }
 
 ///|
-pub fn ExecutionOptions::verbosity(self : ExecutionOptions) -> Int {
+pub fn ExecutionOptions::verbosity(self : ExecutionOptions) -> Int32 {
   self.verbosity
 }
 
@@ -208,7 +208,7 @@ pub fn ExecutionOptions::command_color(
 }
 
 ///|
-pub fn ExecutionOptions::jobs(self : ExecutionOptions) -> Int {
+pub fn ExecutionOptions::jobs(self : ExecutionOptions) -> Int32 {
   self.jobs
 }
 

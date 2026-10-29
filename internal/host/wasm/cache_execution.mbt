@@ -1,11 +1,11 @@
 ///|
-let execution_cache_locks : Map[Int, @async_fs.File] = Map([])
+let execution_cache_locks : Map[Int32, @async_fs.File] = Map([])
 
 ///|
-let execution_cache_keys : Map[Int, String] = Map([])
+let execution_cache_keys : Map[Int32, String] = Map([])
 
 ///|
-let execution_cache_token : Ref[Int] = Ref(0)
+let execution_cache_token : Ref[Int32] = Ref(0)
 
 ///|
 fn execution_cache_child(
@@ -62,7 +62,7 @@ async fn clean_execution_cache_temporary(
 }
 
 ///|
-fn next_execution_cache_token() -> Int {
+fn next_execution_cache_token() -> Int32 {
   let mut token = execution_cache_token.val
   while execution_cache_locks.contains(token) {
     token += 1
@@ -279,7 +279,7 @@ pub impl @host.HostCacheStore for ExecutionFs with fn clean_cache(
   self : ExecutionFs,
   directory : @path.PathValue,
   recipe_prefix : String?,
-) -> Int raise @host.HostError {
+) -> Int32 raise @host.HostError {
   let names = try @async_fs.readdir(directory.as_string(), sort=true) catch {
     @os_error.OSError(_) as error if error.is_ENOENT() => return 0
     error => raise execution_cache_error(error)

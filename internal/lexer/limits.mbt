@@ -1,17 +1,17 @@
 ///|
 /// Resource budgets applied by lexical analysis.
 pub struct LexerLimits {
-  max_source_bytes : Int
-  max_tokens : Int
-  max_nesting : Int
+  max_source_bytes : Int32
+  max_tokens : Int32
+  max_nesting : Int32
 } derive(Eq, Debug)
 
 ///|
 /// Construct explicit non-negative lexer budgets.
 pub fn LexerLimits::new(
-  max_source_bytes : Int,
-  max_tokens : Int,
-  max_nesting : Int,
+  max_source_bytes : Int32,
+  max_tokens : Int32,
+  max_nesting : Int32,
 ) -> LexerLimits raise LexerConfigurationError {
   if max_source_bytes < 0 {
     raise InvalidLexerLimit(name="max_source_bytes", value=max_source_bytes)
@@ -37,24 +37,24 @@ pub fn LexerLimits::default() -> LexerLimits {
 
 ///|
 /// Return the maximum accepted UTF-8 source length in bytes.
-pub fn LexerLimits::max_source_bytes(self : LexerLimits) -> Int {
+pub fn LexerLimits::max_source_bytes(self : LexerLimits) -> Int32 {
   self.max_source_bytes
 }
 
 ///|
 /// Return the maximum emitted token count, including synthetic tokens.
-pub fn LexerLimits::max_tokens(self : LexerLimits) -> Int {
+pub fn LexerLimits::max_tokens(self : LexerLimits) -> Int32 {
   self.max_tokens
 }
 
 ///|
 /// Return the combined indentation, delimiter, and interpolation depth limit.
-pub fn LexerLimits::max_nesting(self : LexerLimits) -> Int {
+pub fn LexerLimits::max_nesting(self : LexerLimits) -> Int32 {
   self.max_nesting
 }
 
 ///|
 /// Invalid lexer configuration supplied by an embedding host.
 pub(all) suberror LexerConfigurationError {
-  InvalidLexerLimit(name~ : String, value~ : Int)
+  InvalidLexerLimit(name~ : String, value~ : Int32)
 } derive(Eq, Debug)

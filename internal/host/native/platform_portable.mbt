@@ -25,7 +25,7 @@ fn detected_architecture() -> String {
 }
 
 ///|
-fn portable_positive_int(name : String) -> Int? {
+fn portable_positive_int(name : String) -> Int32? {
   guard @env.get_env_var(name) is Some(value) else { return None }
   let parsed = @string.parse_int(value[:]) catch { _ => return None }
   if parsed > 0 {
@@ -36,12 +36,12 @@ fn portable_positive_int(name : String) -> Int? {
 }
 
 ///|
-fn detected_pid() -> Int? {
+fn detected_pid() -> Int32? {
   portable_positive_int("MOONJUST_PID")
 }
 
 ///|
-fn detected_num_cpus() -> Int? {
+fn detected_num_cpus() -> Int32? {
   portable_positive_int("MOONJUST_NUM_CPUS")
 }
 

@@ -1,11 +1,11 @@
 ///|
-let native_cache_locks : Map[Int, @async_fs.File] = Map([])
+let native_cache_locks : Map[Int32, @async_fs.File] = Map([])
 
 ///|
-let native_cache_keys : Map[Int, String] = Map([])
+let native_cache_keys : Map[Int32, String] = Map([])
 
 ///|
-let native_cache_token : Ref[Int] = Ref(0)
+let native_cache_token : Ref[Int32] = Ref(0)
 
 ///|
 fn native_cache_error(error : Error) -> @host.HostError {
@@ -78,7 +78,7 @@ async fn clean_native_cache_temporary(
 }
 
 ///|
-fn next_native_cache_token() -> Int {
+fn next_native_cache_token() -> Int32 {
   let mut token = native_cache_token.val
   while native_cache_locks.contains(token) {
     token += 1
@@ -284,7 +284,7 @@ pub impl @host.HostCacheStore for NativeFs with fn clean_cache(
   self : NativeFs,
   directory : @path.PathValue,
   recipe_prefix : String?,
-) -> Int raise @host.HostError {
+) -> Int32 raise @host.HostError {
   let names = try @async_fs.readdir(directory.as_string(), sort=true) catch {
     @os_error.OSError(_) as error if error.is_ENOENT() => return 0
     error => raise native_cache_error(error)

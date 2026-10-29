@@ -29,7 +29,7 @@ pub fn[T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatfor
 
 pub fn[E : @host.HostEnv] parse_environment(E) -> InvocationEnvironment raise @host.HostError
 
-pub async fn read_stdin_source_bounded(Int) -> Bytes
+pub async fn read_stdin_source_bounded(Int32) -> Bytes
 
 pub fn[F : @host.HostFs, E : @host.HostEnv + @host.HostPlatform] resolve_global_context(F, E, @cli.CliArguments, @project.ProjectInput) -> @project.ProjectInput raise ApplicationError
 
@@ -57,7 +57,7 @@ pub(all) suberror ApplicationError {
   WorkingDirectory(@workdir.WorkingDirectoryError)
   InteractiveInvocation(kind~ : String, command~ : String, detail~ : String)
   InteractiveProcess(kind~ : String, command~ : String, termination~ : @host.ProcessTermination)
-  DotenvCommand(command~ : String, exit_code~ : Int)
+  DotenvCommand(command~ : String, exit_code~ : Int32)
   WriteJustfile(path~ : @path.PathValue, detail~ : String)
   AlreadyExists(@path.PathValue)
   Query(String)

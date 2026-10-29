@@ -14,7 +14,7 @@ pub fn ExecutionFs::new() -> ExecutionFs {
 pub impl @host.HostSourceReader for ExecutionFs with fn read_source(
   self : ExecutionFs,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   @host.HostSourceReader::read_source(self.reads, path, max_bytes)
 }
@@ -32,7 +32,7 @@ pub impl @host.HostFs for ExecutionFs with fn read_file_range(
   self : ExecutionFs,
   path : @path.PathValue,
   offset : Int64,
-  length : Int,
+  length : Int32,
 ) -> Bytes raise @host.HostError {
   @host.HostFs::read_file_range(self.reads, path, offset, length)
 }

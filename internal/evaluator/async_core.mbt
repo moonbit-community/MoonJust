@@ -9,8 +9,8 @@ priv struct AsyncEvaluator[P, H] {
   functions : FunctionEnvironment
   quiet : Bool
   dry_run : Bool
-  mut depth : Int
-  mut nodes : Int
+  mut depth : Int32
+  mut nodes : Int32
 }
 
 ///|

@@ -3,7 +3,6 @@ import {
   "ZSeanYves/MoonJust/internal/loader",
   "ZSeanYves/MoonJust/internal/semantic",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/set",
 }
 
 supported_targets = "-all+native+wasm"

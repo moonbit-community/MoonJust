@@ -22,8 +22,8 @@ pub fn ProjectModule::new(
   compilation : Compilation,
   directory : @path.PathValue,
   source_file? : @path.PathValue,
-  source_files? : ArrayView[(@source.SourceId, @path.PathValue)] = [],
-  declaration_attributes? : Array[@syntax.Attribute] = [],
+  source_files~ : ArrayView[(@source.SourceId, @path.PathValue)] = [],
+  declaration_attributes~ : Array[@syntax.Attribute] = [],
   declaration_doc? : String,
   default_recipe? : String,
 ) -> ProjectModule {
@@ -119,7 +119,7 @@ pub fn ProjectRecipe::recipe_name(self : ProjectRecipe) -> String {
 ///|
 pub fn ProjectCompilation::new(
   entries : Array[ProjectModule],
-  absent_modules? : ArrayView[@modulepath.ModulePath] = [],
+  absent_modules~ : ArrayView[@modulepath.ModulePath] = [],
 ) -> ProjectCompilation raise ProjectCompilationError {
   let module_order : Array[@modulepath.ModulePath] = []
   let modules : Map[@modulepath.ModulePath, ProjectModule] = Map([])
@@ -545,7 +545,7 @@ fn project_dependency_name_span(
 fn validate_project_recipe(
   project : ProjectCompilation,
   address : ProjectRecipe,
-  states : Map[String, Int],
+  states : Map[String, Int32],
   stack : Array[ProjectRecipe],
 ) -> Unit raise SemanticError {
   let key = project_recipe_key(address)
@@ -738,7 +738,7 @@ pub fn validate_project_compilation(
       }
     }
   }
-  let states : Map[String, Int] = Map([])
+  let states : Map[String, Int32] = Map([])
   for path in project.module_paths() {
     let compilation = project.module_compilation(path).unwrap()
     for recipe_name in compilation.recipe_names() {

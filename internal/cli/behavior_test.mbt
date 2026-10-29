@@ -1,6 +1,6 @@
 ///|
 test "parse invocation preserves command values and positionals" {
-  let parsed = try! parse_arguments(
+  let parsed = try! @cli.parse_arguments(
     ["--list", "--group", "ci", "build"],
     Map([]),
   )
@@ -12,7 +12,7 @@ test "parse invocation preserves command values and positionals" {
 
 ///|
 test "parse invocation reports invalid command combinations" {
-  try parse_arguments(["--group", "ci"], Map([])) catch {
+  try @cli.parse_arguments(["--group", "ci"], Map([])) catch {
     Invalid(message) => assert_true(message.contains("--group"))
     error => fail("unexpected parse error: \{Repr(error)}")
   } noraise {
@@ -22,9 +22,9 @@ test "parse invocation reports invalid command combinations" {
 
 ///|
 test "static flags remain parseable without environment" {
-  let help = try! parse_arguments(["--help"], Map([]))
+  let help = try! @cli.parse_arguments(["--help"], Map([]))
   assert_true(help.flag("help"))
   assert_eq(help.command(), RunCommand)
-  let version = try! parse_arguments(["-V"], Map([]))
+  let version = try! @cli.parse_arguments(["-V"], Map([]))
   assert_true(version.flag("version"))
 }

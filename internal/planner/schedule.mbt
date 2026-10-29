@@ -2,77 +2,77 @@
 /// A deterministic scheduler task. `order` is the stable source-order tie
 /// breaker used whenever multiple tasks become runnable together.
 pub struct TaskSpec {
-  id : Int
-  order : Int
-  dependencies : Array[Int]
+  id : Int32
+  order : Int32
+  dependencies : Array[Int32]
 } derive(Eq, Debug)
 
 ///|
 pub fn TaskSpec::new(
-  id : Int,
-  order : Int,
-  dependencies? : Array[Int] = [],
+  id : Int32,
+  order : Int32,
+  dependencies~ : Array[Int32] = [],
 ) -> TaskSpec {
   { id, order, dependencies: dependencies.copy(), }
 }
 
 ///|
-pub fn TaskSpec::id(self : TaskSpec) -> Int {
+pub fn TaskSpec::id(self : TaskSpec) -> Int32 {
   self.id
 }
 
 ///|
-pub fn TaskSpec::order(self : TaskSpec) -> Int {
+pub fn TaskSpec::order(self : TaskSpec) -> Int32 {
   self.order
 }
 
 ///|
-pub fn TaskSpec::dependencies(self : TaskSpec) -> ArrayView[Int] {
+pub fn TaskSpec::dependencies(self : TaskSpec) -> ArrayView[Int32] {
   self.dependencies[:]
 }
 
 ///|
 pub(all) suberror SchedulerError {
-  InvalidJobs(Int)
-  DuplicateTask(Int)
-  UnknownDependency(task~ : Int, dependency~ : Int)
-  SelfDependency(Int)
-  DependencyCycle(Array[Int])
+  InvalidJobs(Int32)
+  DuplicateTask(Int32)
+  UnknownDependency(task~ : Int32, dependency~ : Int32)
+  SelfDependency(Int32)
+  DependencyCycle(Array[Int32])
 } derive(Eq, Debug)
 
 ///|
 pub struct Schedule {
-  jobs : Int
-  waves : Array[Array[Int]]
-  order : Array[Int]
+  jobs : Int32
+  waves : Array[Array[Int32]]
+  order : Array[Int32]
 } derive(Eq, Debug)
 
 ///|
-pub fn Schedule::jobs(self : Schedule) -> Int {
+pub fn Schedule::jobs(self : Schedule) -> Int32 {
   self.jobs
 }
 
 ///|
-pub fn Schedule::waves(self : Schedule) -> ArrayView[Array[Int]] {
+pub fn Schedule::waves(self : Schedule) -> ArrayView[Array[Int32]] {
   self.waves[:]
 }
 
 ///|
-pub fn Schedule::order(self : Schedule) -> ArrayView[Int] {
+pub fn Schedule::order(self : Schedule) -> ArrayView[Int32] {
   self.order[:]
 }
 
 ///|
-pub fn Schedule::peak(self : Schedule) -> Int {
+pub fn Schedule::peak(self : Schedule) -> Int32 {
   let mut result = 0
   for wave in self.waves {
-    result = Int::max(result, wave.length())
+    result = Int32::max(result, wave.length())
   }
   result
 }
 
 ///|
-fn compare_task(left : TaskSpec, right : TaskSpec) -> Int {
+fn compare_task(left : TaskSpec, right : TaskSpec) -> Int32 {
   let order = left.order().compare(right.order())
   if order != 0 {
     order
@@ -133,14 +133,14 @@ fn ready_heap_pop(heap : Array[TaskSpec]) -> TaskSpec {
 /// is used by stress tests as the reference for runtime readiness and fairness.
 pub fn build_schedule(
   input : ArrayView[TaskSpec],
-  jobs : Int,
+  jobs : Int32,
 ) -> Schedule raise SchedulerError {
   if jobs <= 0 {
     raise InvalidJobs(jobs)
   }
   let tasks = input.to_owned()
   tasks.sort_by(compare_task)
-  let ids : Set[Int] = Set([])
+  let ids : Set[Int32] = Set([])
   for task in tasks {
     if ids.contains(task.id()) {
       raise DuplicateTask(task.id())
@@ -157,9 +157,9 @@ pub fn build_schedule(
       }
     }
   }
-  let tasks_by_id : Map[Int, TaskSpec] = Map([])
-  let remaining : Map[Int, Int] = Map([])
-  let dependents : Map[Int, Array[Int]] = Map([])
+  let tasks_by_id : Map[Int32, TaskSpec] = Map([])
+  let remaining : Map[Int32, Int32] = Map([])
+  let dependents : Map[Int32, Array[Int32]] = Map([])
   let ready : Array[TaskSpec] = []
   for task in tasks {
     tasks_by_id[task.id()] = task
@@ -174,12 +174,12 @@ pub fn build_schedule(
       }
     }
   }
-  let completed : Set[Int] = Set([])
-  let waves : Array[Array[Int]] = []
-  let order : Array[Int] = []
+  let completed : Set[Int32] = Set([])
+  let waves : Array[Array[Int32]] = []
+  let order : Array[Int32] = []
   while completed.length() < tasks.length() {
     if ready.is_empty() {
-      let blocked : Array[Int] = []
+      let blocked : Array[Int32] = []
       for task in tasks {
         if !completed.contains(task.id()) {
           blocked.push(task.id())
@@ -187,12 +187,12 @@ pub fn build_schedule(
       }
       raise DependencyCycle(blocked)
     }
-    let count = Int::min(jobs, ready.length())
+    let count = Int32::min(jobs, ready.length())
     let wave_tasks : Array[TaskSpec] = []
     for _ in 0..<count {
       wave_tasks.push(ready_heap_pop(ready))
     }
-    let wave : Array[Int] = []
+    let wave : Array[Int32] = []
     for task in wave_tasks {
       let id = task.id()
       wave.push(id)
@@ -220,9 +220,9 @@ pub fn build_schedule(
 /// timing. `failures` may arrive in any order from concurrent workers.
 pub fn deterministic_failure(
   schedule : Schedule,
-  failures : ArrayView[Int],
-) -> Int? {
-  let failed : Set[Int] = Set(failures)
+  failures : ArrayView[Int32],
+) -> Int32? {
+  let failed : Set[Int32] = Set(failures)
   for id in schedule.order() {
     if failed.contains(id) {
       return Some(id)

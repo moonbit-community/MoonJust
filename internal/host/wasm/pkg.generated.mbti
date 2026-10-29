@@ -16,7 +16,7 @@ pub struct ExecutionFs {
 }
 pub async fn ExecutionFs::acquire_cache_lease(Self, @path.PathValue, String) -> @host.CacheLease raise @host.HostError
 pub fn ExecutionFs::canonicalize(Self, @path.PathValue) -> @path.PathValue raise @host.HostError
-pub async fn ExecutionFs::clean_cache(Self, @path.PathValue, String?) -> Int raise @host.HostError
+pub async fn ExecutionFs::clean_cache(Self, @path.PathValue, String?) -> Int32 raise @host.HostError
 pub async fn ExecutionFs::create_script_temp_async(Self, @path.PathValue, String, String, Bytes, Bool) -> @path.PathValue raise @host.HostError
 pub fn ExecutionFs::create_temp_file(Self, @path.PathValue, String, Bytes) -> @path.PathValue raise @host.HostError
 pub fn ExecutionFs::file_exists(Self, @path.PathValue) -> Bool raise @host.HostError
@@ -26,8 +26,8 @@ pub fn ExecutionFs::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bo
 pub async fn ExecutionFs::read_cache_manifest(Self, @host.CacheLease) -> Bytes? raise @host.HostError
 pub fn ExecutionFs::read_dir(Self, @path.PathValue) -> Array[String] raise @host.HostError
 pub fn ExecutionFs::read_file(Self, @path.PathValue) -> Bytes raise @host.HostError
-pub fn ExecutionFs::read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise @host.HostError
-pub async fn ExecutionFs::read_source(Self, @path.PathValue, Int) -> Bytes raise @host.HostError
+pub fn ExecutionFs::read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise @host.HostError
+pub async fn ExecutionFs::read_source(Self, @path.PathValue, Int32) -> Bytes raise @host.HostError
 pub async fn ExecutionFs::release_cache_lease(Self, @host.CacheLease) -> Unit raise @host.HostError
 pub async fn ExecutionFs::remove_script_temp_async(Self, @path.PathValue) -> Unit raise @host.HostError
 pub fn ExecutionFs::remove_temp_file(Self, @path.PathValue) -> Unit raise @host.HostError
@@ -54,11 +54,11 @@ pub fn PortableHost::new() -> Self
 pub fn PortableHost::now_millis(Self) -> Int64 raise @host.HostError
 pub fn PortableHost::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise @host.HostError
 pub fn PortableHost::platform_info(Self) -> @host.PlatformInfo raise @host.HostError
-pub fn PortableHost::random_bytes(Self, Int) -> Bytes raise @host.HostError
+pub fn PortableHost::random_bytes(Self, Int32) -> Bytes raise @host.HostError
 pub fn PortableHost::read_dir(Self, @path.PathValue) -> Array[String] raise @host.HostError
 pub fn PortableHost::read_file(Self, @path.PathValue) -> Bytes raise @host.HostError
-pub fn PortableHost::read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise @host.HostError
-pub async fn PortableHost::read_source(Self, @path.PathValue, Int) -> Bytes raise @host.HostError
+pub fn PortableHost::read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise @host.HostError
+pub async fn PortableHost::read_source(Self, @path.PathValue, Int32) -> Bytes raise @host.HostError
 pub fn PortableHost::terminal_info(Self) -> @host.TerminalInfo raise @host.HostError
 pub fn PortableHost::write_file(Self, @path.PathValue, Bytes) -> Unit raise @host.HostError
 pub impl @host.HostClock for PortableHost
@@ -80,8 +80,8 @@ pub fn ReadOnlyFs::new() -> Self
 pub fn ReadOnlyFs::persist_temp_file(Self, @path.PathValue, @path.PathValue, Bool) -> Unit raise @host.HostError
 pub fn ReadOnlyFs::read_dir(Self, @path.PathValue) -> Array[String] raise @host.HostError
 pub fn ReadOnlyFs::read_file(Self, @path.PathValue) -> Bytes raise @host.HostError
-pub fn ReadOnlyFs::read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise @host.HostError
-pub async fn ReadOnlyFs::read_source(Self, @path.PathValue, Int) -> Bytes raise @host.HostError
+pub fn ReadOnlyFs::read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise @host.HostError
+pub async fn ReadOnlyFs::read_source(Self, @path.PathValue, Int32) -> Bytes raise @host.HostError
 pub fn ReadOnlyFs::remove_temp_file(Self, @path.PathValue) -> Unit raise @host.HostError
 pub fn ReadOnlyFs::write_file(Self, @path.PathValue, Bytes) -> Unit raise @host.HostError
 pub async fn ReadOnlyFs::write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise @host.HostError

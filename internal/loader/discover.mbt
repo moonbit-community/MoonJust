@@ -3,7 +3,7 @@
 pub fn[T : @host.HostFs] discover(
   host : T,
   start : @path.PathValue,
-  options? : SearchOptions = SearchOptions::new(),
+  options~ : SearchOptions = SearchOptions::new(),
 ) -> @path.PathValue raise LoaderError {
   match options.explicit() {
     Some(path) => {
@@ -57,7 +57,7 @@ pub fn[T : @host.HostFs] load(
   host : T,
   path : @path.PathValue,
   source_id : @source.SourceId,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
   let bytes = @host.HostFs::read_file(host, path) catch {
     error => raise Host(error)
@@ -128,7 +128,7 @@ pub fn load_bytes(
   bytes : Bytes,
   source_id : @source.SourceId,
   display_name : String,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
   let path = @path.PathValue::new(display_name, Unix) catch {
     _ => raise Host(InvalidInput("invalid source display name"))
@@ -153,8 +153,8 @@ pub fn load_bytes(
 pub fn load_markdown(
   bytes : Bytes,
   source_id : @source.SourceId,
-  display_name? : String = "README.md",
-  environment? : ArrayView[(String, String)] = [],
+  display_name~ : String = "README.md",
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
   let raw = @source.Source::from_bytes(source_id, display_name, bytes) catch {
     error => raise InvalidSource(error)
@@ -185,7 +185,7 @@ pub fn load_markdown(
 pub fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(
   host : T,
   source_id : @source.SourceId,
-  options? : SearchOptions = SearchOptions::new(),
+  options~ : SearchOptions = SearchOptions::new(),
 ) -> LoadedSource raise LoaderError {
   let cwd = @host.HostEnv::current_dir(host) catch {
     error => raise Host(error)
@@ -201,7 +201,7 @@ pub fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(
 fn import_path(
   parent : @path.PathValue,
   literal : @syntax.StringLiteral,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> @path.PathValue raise LoaderError {
   let mut value = literal.cooked()
   if value.has_prefix("~/") || value.has_prefix("~\\") {

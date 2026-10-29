@@ -12,7 +12,7 @@ pub fn SourceMap::new() -> SourceMap {
 
 ///|
 /// Return the number of registered sources.
-pub fn SourceMap::length(self : SourceMap) -> Int {
+pub fn SourceMap::length(self : SourceMap) -> Int32 {
   self.sources.length()
 }
 

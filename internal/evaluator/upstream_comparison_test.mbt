@@ -1,11 +1,13 @@
 ///|
-fn eval_upstream_comparison(text : String) -> Bool raise EvaluationError {
+fn eval_upstream_comparison(
+  text : String,
+) -> Bool raise @evaluator.EvaluationError {
   let source = @source.Source::from_text(
     @source.SourceId::new(700),
     "expr",
     text,
   )
-  evaluate_source(source).truthy()
+  @evaluator.evaluate_source(source).truthy()
 }
 
 ///|

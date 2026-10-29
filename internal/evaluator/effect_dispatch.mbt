@@ -328,7 +328,7 @@ pub fn[T : @host.HostProcess] evaluate_backtick_with_shell(
   context : EvaluationContext,
   shell : EffectShell,
   span : @source.Span,
-  quiet? : Bool = false,
+  quiet~ : Bool = false,
 ) -> Value raise EvaluationError {
   call_shell_effect(
     host,

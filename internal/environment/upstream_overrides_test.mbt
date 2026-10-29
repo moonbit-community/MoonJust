@@ -1,6 +1,6 @@
 ///|
 fn assert_invalid_override(path : String) -> Unit raise {
-  try VariableOverride::parse(path, "bar") catch {
+  try @environment.VariableOverride::parse(path, "bar") catch {
     InvalidOverridePath(path=actual) => assert_eq(actual, path)
     error => fail("unexpected override error: \{Repr(error)}")
   } noraise {

@@ -7,7 +7,7 @@ pub struct RecipeRequest {
 ///|
 pub fn RecipeRequest::new(
   recipe : String,
-  arguments? : Array[@value.Value] = [],
+  arguments~ : Array[@value.Value] = [],
 ) -> RecipeRequest {
   { recipe, arguments: arguments.copy(), }
 }
@@ -36,7 +36,7 @@ pub struct ProjectRecipeRequest {
 pub fn ProjectRecipeRequest::new(
   module_path : @modulepath.ModulePath,
   recipe : String,
-  arguments? : Array[@value.Value] = [],
+  arguments~ : Array[@value.Value] = [],
 ) -> ProjectRecipeRequest {
   { module_path, recipe, arguments: arguments.copy(), }
 }

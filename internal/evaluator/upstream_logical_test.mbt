@@ -1,5 +1,7 @@
 ///|
-fn eval_upstream_logical(text : String) -> String raise EvaluationError {
+fn eval_upstream_logical(
+  text : String,
+) -> String raise @evaluator.EvaluationError {
   let source = @source.Source::from_text(
     @source.SourceId::new(703),
     "expr",
@@ -85,7 +87,7 @@ test "upstream negation::negates_empty_list" {
     "expr",
     "![]",
   )
-  assert_true(try! evaluate_source(source).truthy())
+  assert_true(try! @evaluator.evaluate_source(source).truthy())
 }
 
 ///|
@@ -95,7 +97,7 @@ test "upstream negation::negates_truthy_value" {
     "expr",
     "!'foo'",
   )
-  assert_true(!(try! evaluate_source(source).truthy()))
+  assert_true(!(try! @evaluator.evaluate_source(source).truthy()))
 }
 
 ///|
@@ -107,7 +109,7 @@ test "upstream booleans::bool_true_values" {
       "expr",
       text,
     )
-    guard (try! evaluate_source(source).truthy()) else { fail(text) }
+    guard (try! @evaluator.evaluate_source(source).truthy()) else { fail(text) }
   }
 }
 

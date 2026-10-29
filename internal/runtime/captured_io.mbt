@@ -223,7 +223,7 @@ fn append_report(
   stdout : Array[Byte],
   stderr : Array[Byte],
   report : @planner.ExecutionReport,
-) -> Int {
+) -> Int32 {
   for byte in report.stdout() {
     stdout.push(byte)
   }

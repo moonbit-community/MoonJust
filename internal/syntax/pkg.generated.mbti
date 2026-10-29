@@ -123,7 +123,7 @@ pub(all) struct Dependency {
   name_span : @source.Span
   arguments : Array[Expression]
   starred : Bool
-  starred_arguments : Array[Int]
+  starred_arguments : Array[Int32]
   span : @source.Span
 } derive(Eq, @debug.Debug)
 pub fn Dependency::arguments(Self) -> ArrayView[Expression]
@@ -131,12 +131,12 @@ pub fn Dependency::arguments(Self) -> ArrayView[Expression]
 pub fn Dependency::equal(Self, Self) -> Bool
 pub fn Dependency::name(Self) -> String
 pub fn Dependency::name_span(Self) -> @source.Span
-pub fn Dependency::new(String, @source.Span, Array[Expression], Bool, @source.Span, starred_arguments? : ArrayView[Int]) -> Self
+pub fn Dependency::new(String, @source.Span, Array[Expression], Bool, @source.Span, starred_arguments? : ArrayView[Int32]) -> Self
 #deprecated
 pub fn Dependency::not_equal(Self, Self) -> Bool
 pub fn Dependency::span(Self) -> @source.Span
 pub fn Dependency::starred(Self) -> Bool
-pub fn Dependency::starred_arguments(Self) -> ArrayView[Int]
+pub fn Dependency::starred_arguments(Self) -> ArrayView[Int32]
 #deprecated
 pub fn Dependency::to_repr(Self) -> @debug.Repr
 
@@ -277,7 +277,7 @@ pub(all) struct Parameter {
   name : String
   default_value : Expression?
   variadic : Bool
-  variadic_minimum : Int
+  variadic_minimum : Int32
   exported : Bool
   span : @source.Span
 } derive(Eq, @debug.Debug)
@@ -294,7 +294,7 @@ pub fn Parameter::span(Self) -> @source.Span
 #deprecated
 pub fn Parameter::to_repr(Self) -> @debug.Repr
 pub fn Parameter::variadic(Self) -> Bool
-pub fn Parameter::variadic_minimum(Self) -> Int
+pub fn Parameter::variadic_minimum(Self) -> Int32
 
 pub(all) struct Recipe {
   name : String
@@ -338,17 +338,17 @@ pub fn RecipeFragment::to_repr(Self) -> @debug.Repr
 pub(all) struct RecipeLine {
   fragments : Array[RecipeFragment]
   span : @source.Span
-  source_start_line : Int
-  source_end_line : Int
+  source_start_line : Int32
+  source_end_line : Int32
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn RecipeLine::equal(Self, Self) -> Bool
 pub fn RecipeLine::fragments(Self) -> ArrayView[RecipeFragment]
-pub fn RecipeLine::new(Array[RecipeFragment], @source.Span, source_start_line? : Int, source_end_line? : Int) -> Self
+pub fn RecipeLine::new(Array[RecipeFragment], @source.Span, source_start_line? : Int32, source_end_line? : Int32) -> Self
 #deprecated
 pub fn RecipeLine::not_equal(Self, Self) -> Bool
-pub fn RecipeLine::source_end_line(Self) -> Int
-pub fn RecipeLine::source_start_line(Self) -> Int
+pub fn RecipeLine::source_end_line(Self) -> Int32
+pub fn RecipeLine::source_start_line(Self) -> Int32
 pub fn RecipeLine::span(Self) -> @source.Span
 #deprecated
 pub fn RecipeLine::to_repr(Self) -> @debug.Repr

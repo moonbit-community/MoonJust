@@ -11,7 +11,7 @@ fn format_diff(original : String, formatted : String, color : Bool) -> String {
     .map(fn(line) { line.to_owned() })
     .collect()
   let builder = StringBuilder()
-  let length = Int::max(left.length(), right.length())
+  let length = Int32::max(left.length(), right.length())
   for index in 0..<length {
     match (left.get(index), right.get(index)) {
       (Some(before), Some(after)) if before == after =>

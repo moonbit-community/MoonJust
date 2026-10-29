@@ -19,7 +19,7 @@ fn NativePath::from_path(path : @path.PathValue) -> NativePath {
 }
 
 ///|
-fn transaction_status(error : Int) -> Int {
+fn transaction_status(error : Int32) -> Int32 {
   let value = @os_error.OSError(error, context="filesystem transaction")
   if value.is_EEXIST() {
     1
@@ -37,80 +37,80 @@ fn transaction_status(error : Int) -> Int {
 #borrow(path)
 extern "C" fn native_open_exclusive(
   path : Bytes,
-  flags : Int,
-  mode : Int,
-) -> Int = "open"
+  flags : Int32,
+  mode : Int32,
+) -> Int32 = "open"
 
 ///|
 #cfg(platform="windows")
 #borrow(path)
 extern "C" fn native_open_exclusive_windows(
   path : String,
-  flags : Int,
-  share : Int,
-  mode : Int,
-) -> Int = "_wsopen"
+  flags : Int32,
+  share : Int32,
+  mode : Int32,
+) -> Int32 = "_wsopen"
 
 ///|
 #cfg(not(platform="windows"))
 #borrow(buffer)
-extern "C" fn native_write(fd : Int, buffer : Bytes, count : Int) -> Int = "write"
+extern "C" fn native_write(fd : Int32, buffer : Bytes, count : Int32) -> Int32 = "write"
 
 ///|
 #cfg(platform="windows")
 #borrow(buffer)
-extern "C" fn native_write(fd : Int, buffer : Bytes, count : Int) -> Int = "_write"
+extern "C" fn native_write(fd : Int32, buffer : Bytes, count : Int32) -> Int32 = "_write"
 
 ///|
 #cfg(not(platform="windows"))
 #borrow(path)
-extern "C" fn native_unlink(path : Bytes) -> Int = "unlink"
+extern "C" fn native_unlink(path : Bytes) -> Int32 = "unlink"
 
 ///|
 #cfg(platform="windows")
 #borrow(path)
-extern "C" fn native_unlink(path : String) -> Int = "_wremove"
+extern "C" fn native_unlink(path : String) -> Int32 = "_wremove"
 
 ///|
 #cfg(not(platform="windows"))
-extern "C" fn native_close(fd : Int) -> Int = "close"
+extern "C" fn native_close(fd : Int32) -> Int32 = "close"
 
 ///|
 #cfg(platform="windows")
-extern "C" fn native_close(fd : Int) -> Int = "_close"
+extern "C" fn native_close(fd : Int32) -> Int32 = "_close"
 
 ///|
 #cfg(not(platform="windows"))
-extern "C" fn native_sync(fd : Int) -> Int = "fsync"
+extern "C" fn native_sync(fd : Int32) -> Int32 = "fsync"
 
 ///|
 #cfg(platform="windows")
-extern "C" fn native_sync(fd : Int) -> Int = "_commit"
+extern "C" fn native_sync(fd : Int32) -> Int32 = "_commit"
 
 ///|
 #cfg(not(platform="windows"))
 #borrow(old_path, new_path)
-extern "C" fn native_rename(old_path : Bytes, new_path : Bytes) -> Int = "rename"
+extern "C" fn native_rename(old_path : Bytes, new_path : Bytes) -> Int32 = "rename"
 
 ///|
 #cfg(not(platform="windows"))
 #borrow(old_path, new_path)
-extern "C" fn native_link(old_path : Bytes, new_path : Bytes) -> Int = "link"
+extern "C" fn native_link(old_path : Bytes, new_path : Bytes) -> Int32 = "link"
 
 ///|
 #cfg(not(platform="windows"))
 #borrow(path)
-extern "C" fn native_chmod(path : Bytes, mode : Int) -> Int = "chmod"
+extern "C" fn native_chmod(path : Bytes, mode : Int32) -> Int32 = "chmod"
 
 ///|
 #cfg(not(platform="windows"))
 #borrow(path, metadata)
-extern "C" fn native_stat(path : Bytes, metadata : Bytes) -> Int = "stat"
+extern "C" fn native_stat(path : Bytes, metadata : Bytes) -> Int32 = "stat"
 
 ///|
 #cfg(platform="windows")
 #borrow(path)
-extern "C" fn native_chmod(path : String, mode : Int) -> Int = "_wchmod"
+extern "C" fn native_chmod(path : String, mode : Int32) -> Int32 = "_wchmod"
 
 ///|
 #cfg(platform="windows")
@@ -118,29 +118,29 @@ extern "C" fn native_chmod(path : String, mode : Int) -> Int = "_wchmod"
 extern "C" fn native_move_temp(
   old_path : String,
   new_path : String,
-  flags : UInt,
-) -> Int = "MoveFileExW"
+  flags : UInt32,
+) -> Int32 = "MoveFileExW"
 
 ///|
 #cfg(platform="windows")
 #borrow(path)
-extern "C" fn native_file_attributes(path : String) -> UInt = "GetFileAttributesW"
+extern "C" fn native_file_attributes(path : String) -> UInt32 = "GetFileAttributesW"
 
 ///|
 #cfg(platform="windows")
 #borrow(path)
 extern "C" fn native_set_file_attributes(
   path : String,
-  attributes : UInt,
-) -> Int = "SetFileAttributesW"
+  attributes : UInt32,
+) -> Int32 = "SetFileAttributesW"
 
 ///|
 #cfg(platform="windows")
-extern "C" fn native_last_error() -> Int = "GetLastError"
+extern "C" fn native_last_error() -> Int32 = "GetLastError"
 
 ///|
 #cfg(platform="windows")
-fn native_open_exclusive_value(path : NativePath) -> Int {
+fn native_open_exclusive_value(path : NativePath) -> Int32 {
   match path {
     NativePath(value) => native_open_exclusive_windows(value, 34049, 32, 384)
   }
@@ -148,7 +148,7 @@ fn native_open_exclusive_value(path : NativePath) -> Int {
 
 ///|
 #cfg(not(platform="windows"))
-fn native_open_exclusive_value(path : NativePath) -> Int {
+fn native_open_exclusive_value(path : NativePath) -> Int32 {
   match path {
     NativePath(value) =>
       native_open_exclusive(value, native_exclusive_flags(), 0o600)
@@ -156,7 +156,7 @@ fn native_open_exclusive_value(path : NativePath) -> Int {
 }
 
 ///|
-fn native_exclusive_flags() -> Int {
+fn native_exclusive_flags() -> Int32 {
   if native_operating_system() == 2 {
     2561
   } else {
@@ -166,7 +166,7 @@ fn native_exclusive_flags() -> Int {
 
 ///|
 #cfg(platform="windows")
-fn native_unlink_value(path : NativePath) -> Int {
+fn native_unlink_value(path : NativePath) -> Int32 {
   match path {
     NativePath(value) => native_unlink(value)
   }
@@ -176,7 +176,7 @@ fn native_unlink_value(path : NativePath) -> Int {
 /// Return `(status, mode)` for an existing POSIX destination. The mode field
 /// is the only metadata needed to preserve atomic overwrite semantics.
 #cfg(not(platform="windows"))
-fn native_destination_mode(path : NativePath) -> (Int, Int) {
+fn native_destination_mode(path : NativePath) -> (Int32, Int32) {
   match path {
     NativePath(value) => {
       let metadata = Bytes::make(512, 0)
@@ -200,13 +200,13 @@ fn native_destination_mode(path : NativePath) -> (Int, Int) {
 
 ///|
 #cfg(platform="windows")
-fn native_set_temp_mode(_path : NativePath) -> Int {
+fn native_set_temp_mode(_path : NativePath) -> Int32 {
   0
 }
 
 ///|
 #cfg(not(platform="windows"))
-fn native_set_temp_mode(path : NativePath) -> Int {
+fn native_set_temp_mode(path : NativePath) -> Int32 {
   match path {
     NativePath(value) => native_chmod(value, 0o600)
   }
@@ -214,14 +214,14 @@ fn native_set_temp_mode(path : NativePath) -> Int {
 
 ///|
 #cfg(not(platform="windows"))
-fn native_unlink_value(path : NativePath) -> Int {
+fn native_unlink_value(path : NativePath) -> Int32 {
   match path {
     NativePath(value) => native_unlink(value)
   }
 }
 
 ///|
-fn create_exclusive_ffi(path : NativePath, contents : Bytes) -> Int {
+fn create_exclusive_ffi(path : NativePath, contents : Bytes) -> Int32 {
   let descriptor = native_open_exclusive_value(path)
   if descriptor < 0 {
     transaction_status(@os_error.get_errno())
@@ -274,7 +274,7 @@ fn persist_temp_ffi(
   temporary : NativePath,
   destination : NativePath,
   overwrite : Bool,
-) -> Int {
+) -> Int32 {
   let (temporary, destination) = match (temporary, destination) {
     (NativePath(temporary), NativePath(destination)) => (temporary, destination)
   }
@@ -302,7 +302,7 @@ fn persist_temp_ffi(
   temporary : NativePath,
   destination : NativePath,
   overwrite : Bool,
-) -> Int {
+) -> Int32 {
   let (temporary, destination) = match (temporary, destination) {
     (NativePath(temporary), NativePath(destination)) => (temporary, destination)
   }
@@ -331,19 +331,19 @@ fn persist_temp_ffi(
 }
 
 ///|
-fn set_executable_ffi(path : NativePath) -> Int {
+fn set_executable_ffi(path : NativePath) -> Int32 {
   native_set_executable_value(path)
 }
 
 ///|
 #cfg(platform="windows")
-fn native_set_executable_value(_path : NativePath) -> Int {
+fn native_set_executable_value(_path : NativePath) -> Int32 {
   0
 }
 
 ///|
 #cfg(not(platform="windows"))
-fn native_set_executable_value(path : NativePath) -> Int {
+fn native_set_executable_value(path : NativePath) -> Int32 {
   match path {
     NativePath(value) =>
       if native_chmod(value, 0o700) == 0 {
@@ -356,7 +356,7 @@ fn native_set_executable_value(path : NativePath) -> Int {
 
 ///|
 fn transaction_error(
-  status : Int,
+  status : Int32,
   path : @path.PathValue,
   capability : @host.HostCapability,
 ) -> @host.HostError {

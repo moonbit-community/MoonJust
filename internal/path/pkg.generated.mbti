@@ -27,7 +27,7 @@ pub(all) enum PathFlavor {
 #deprecated
 pub fn PathFlavor::equal(Self, Self) -> Bool
 #deprecated
-pub fn PathFlavor::hash(Self) -> Int
+pub fn PathFlavor::hash(Self) -> Int32
 #deprecated
 pub fn PathFlavor::hash_combine(Self, Hasher) -> Unit
 #deprecated
@@ -48,7 +48,7 @@ pub fn PathValue::extension(Self) -> String?
 pub fn PathValue::file_name(Self) -> String?
 pub fn PathValue::flavor(Self) -> PathFlavor
 #deprecated
-pub fn PathValue::hash(Self) -> Int
+pub fn PathValue::hash(Self) -> Int32
 #deprecated
 pub fn PathValue::hash_combine(Self, Hasher) -> Unit
 pub fn PathValue::is_absolute(Self) -> Bool

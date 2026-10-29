@@ -10,7 +10,7 @@ fn runtime_environment_host() -> @host_native.NativeFs {
 
 ///|
 #cfg(platform="windows")
-extern "C" fn native_set_file_mode(fd : Int, mode : Int) -> Int = "_setmode"
+extern "C" fn native_set_file_mode(fd : Int32, mode : Int32) -> Int32 = "_setmode"
 
 ///|
 #cfg(platform="windows")
@@ -21,10 +21,10 @@ fn configure_binary_standard_streams() -> Unit {
 }
 
 ///|
-extern "c" fn native_exit(code : Int) = "exit"
+extern "c" fn native_exit(code : Int32) = "exit"
 
 ///|
-fn runtime_exit(code : Int) -> Unit {
+fn runtime_exit(code : Int32) -> Unit {
   if code != 0 {
     native_exit(code)
   }

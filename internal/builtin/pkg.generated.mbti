@@ -34,7 +34,7 @@ pub fn sha256_chunks(ArrayView[Bytes]) -> String
 // Errors
 pub(all) suberror BuiltinError {
   Unknown(name~ : String)
-  Arity(name~ : String, expected~ : String, actual~ : Int)
+  Arity(name~ : String, expected~ : String, actual~ : Int32)
   Type(name~ : String, expected~ : String, actual~ : @value.Value)
   InvalidPath(value~ : String)
   InvalidRequirement(value~ : String)
@@ -61,8 +61,8 @@ pub fn Blake3Hasher::new() -> Self
 pub fn Blake3Hasher::update(Self, Bytes) -> Unit
 
 pub struct Blake3StackEntry {
-  level : Int
-  chaining_value : Array[UInt]
+  level : Int32
+  chaining_value : Array[UInt32]
 }
 
 pub(all) enum BuiltinCapability {
@@ -96,22 +96,22 @@ pub fn BuiltinPurity::to_repr(Self) -> @debug.Repr
 pub(all) struct BuiltinSpec {
   name : String
   purity : BuiltinPurity
-  min_arguments : Int
-  max_arguments : Int?
+  min_arguments : Int32
+  max_arguments : Int32?
   aliases : Array[String]
   capabilities : Array[BuiltinCapability]
   targets : Array[BuiltinTarget]
   evidence : String
 } derive(Eq, @debug.Debug)
-pub fn BuiltinSpec::accepts_arity(Self, Int) -> Bool
+pub fn BuiltinSpec::accepts_arity(Self, Int32) -> Bool
 pub fn BuiltinSpec::aliases(Self) -> ArrayView[String]
 pub fn BuiltinSpec::arity_description(Self) -> String
 pub fn BuiltinSpec::capabilities(Self) -> ArrayView[BuiltinCapability]
 #deprecated
 pub fn BuiltinSpec::equal(Self, Self) -> Bool
 pub fn BuiltinSpec::evidence(Self) -> String
-pub fn BuiltinSpec::max_arguments(Self) -> Int?
-pub fn BuiltinSpec::min_arguments(Self) -> Int
+pub fn BuiltinSpec::max_arguments(Self) -> Int32?
+pub fn BuiltinSpec::min_arguments(Self) -> Int32
 pub fn BuiltinSpec::name(Self) -> String
 #deprecated
 pub fn BuiltinSpec::not_equal(Self, Self) -> Bool

@@ -22,14 +22,17 @@ fn canonical_upstream_tangle(source : @source.Source) -> String raise {
 fn assert_upstream_tangle(
   input : String,
   expected : String,
-  id : Int,
+  id : Int32,
 ) -> Unit raise {
   let source = @source.Source::from_text(
     @source.SourceId::new(id),
     "upstream-tangle.md",
     input,
   )
-  assert_eq(canonical_upstream_tangle(tangle(source).source()), expected)
+  assert_eq(
+    canonical_upstream_tangle(@formatter.tangle(source).source()),
+    expected,
+  )
 }
 
 ///|

@@ -155,7 +155,7 @@ pub fn[T : @host.HostFs] load_sources(
 pub fn[T : @host.HostFs] load_snapshot(
   host : T,
   request : ProjectLoadRequest,
-  allow_unstable? : Bool = false,
+  allow_unstable~ : Bool = false,
 ) -> ProjectSnapshot raise ProjectError {
   let sources = load_sources(host, request)
   let compilation = compile_loaded_graph(
@@ -206,7 +206,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_sources_async(
 pub async fn[T : @host.HostFs + @host.HostSourceReader] load_snapshot_async(
   host : T,
   request : ProjectLoadRequest,
-  allow_unstable? : Bool = false,
+  allow_unstable~ : Bool = false,
 ) -> ProjectSnapshot raise ProjectError {
   let sources = load_sources_async(host, request)
   let compilation = compile_loaded_graph(
@@ -231,7 +231,7 @@ pub fn[T : @host.HostFs] load_sources_async(
 pub fn[T : @host.HostFs] load_snapshot_async(
   host : T,
   request : ProjectLoadRequest,
-  allow_unstable? : Bool = false,
+  allow_unstable~ : Bool = false,
 ) -> ProjectSnapshot raise ProjectError {
   load_snapshot(host, request, allow_unstable~)
 }

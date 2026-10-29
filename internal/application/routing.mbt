@@ -141,12 +141,12 @@ pub async fn[E : @host.HostEnv + @host.HostPlatform] classify_request(
 }
 
 ///|
-pub async fn read_stdin_source_bounded(max_bytes : Int) -> Bytes {
+pub async fn read_stdin_source_bounded(max_bytes : Int32) -> Bytes {
   let read_limit = max_bytes + 1
-  let result = Buffer(size_hint=Int::min(read_limit, 64 * 1024))
+  let result = Buffer(size_hint=Int32::min(read_limit, 64 * 1024))
   while result.length() < read_limit {
     let remaining = read_limit - result.length()
-    guard @stdio.stdin.read_some(max_len=Int::min(remaining, 64 * 1024))
+    guard @stdio.stdin.read_some(max_len=Int32::min(remaining, 64 * 1024))
       is Some(chunk) else {
       break
     }

@@ -6,7 +6,7 @@ pub struct FakeHost {
   files : Map[@path.PathValue, Bytes]
   non_executable_files : Set[@path.PathValue]
   directories : Set[@path.PathValue]
-  mut temp_serial : Int
+  mut temp_serial : Int32
   mut fail_next_persist : Bool
   script_temp_creations : Array[(@path.PathValue, Bytes)]
   executable_calls : Array[@path.PathValue]
@@ -15,7 +15,7 @@ pub struct FakeHost {
   mut cwd : @path.PathValue
   mut clock_millis : Int64
   mut random_stream : Bytes
-  mut random_offset : Int
+  mut random_offset : Int32
   expected_commands : Array[@host.CommandSpec]
   expected_outputs : Array[@host.ProcessResult]
   process_calls : Array[@host.CommandSpec]
@@ -24,8 +24,8 @@ pub struct FakeHost {
   signals : Array[@host.SignalKind]
   mut platform : @host.PlatformInfo
   cache_entries : Map[String, Bytes]
-  cache_leases : Map[Int, String]
-  mut cache_token : Int
+  cache_leases : Map[Int32, String]
+  mut cache_token : Int32
 }
 
 ///|
@@ -103,7 +103,7 @@ pub fn FakeHost::cache_manifest_digests(
 }
 
 ///|
-pub fn FakeHost::held_cache_leases(self : FakeHost) -> Int {
+pub fn FakeHost::held_cache_leases(self : FakeHost) -> Int32 {
   self.cache_leases.length()
 }
 
@@ -254,7 +254,7 @@ pub fn FakeHost::output_events(
 }
 
 ///|
-pub fn FakeHost::pending_process_expectations(self : FakeHost) -> Int {
+pub fn FakeHost::pending_process_expectations(self : FakeHost) -> Int32 {
   self.expected_commands.length()
 }
 
@@ -299,7 +299,7 @@ pub impl @host.HostFs for FakeHost with fn read_file_range(
   self : FakeHost,
   path : @path.PathValue,
   offset : Int64,
-  length : Int,
+  length : Int32,
 ) -> Bytes raise @host.HostError {
   self.require(FsRead)
   if offset < 0L || length < 0 {
@@ -313,7 +313,7 @@ pub impl @host.HostFs for FakeHost with fn read_file_range(
     return b""
   }
   let start = offset.to_int()
-  let end = Int::min(start + length, contents.length())
+  let end = Int32::min(start + length, contents.length())
   contents[start:end].to_owned()
 }
 
@@ -321,7 +321,7 @@ pub impl @host.HostFs for FakeHost with fn read_file_range(
 pub impl @host.HostSourceReader for FakeHost with fn read_source(
   self : FakeHost,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 {
     raise InvalidInput("source byte limit must not be negative")
@@ -330,7 +330,7 @@ pub impl @host.HostSourceReader for FakeHost with fn read_source(
     raise InvalidInput("source byte limit is too large")
   }
   let contents = @host.HostFs::read_file(self, path)
-  contents[:Int::min(contents.length(), max_bytes + 1)].to_owned()
+  contents[:Int32::min(contents.length(), max_bytes + 1)].to_owned()
 }
 
 ///|
@@ -659,7 +659,7 @@ pub impl @host.HostCacheStore for FakeHost with fn clean_cache(
   self : FakeHost,
   directory : @path.PathValue,
   recipe_prefix : String?,
-) -> Int raise @host.HostError {
+) -> Int32 raise @host.HostError {
   self.require(FsWrite)
   let prefix = directory.as_string() + "|"
   let removable : Array[String] = []
@@ -711,7 +711,7 @@ pub impl @host.HostEnv for FakeHost with fn env_entries(self : FakeHost) -> Arra
   self.require(Environment)
   let keys = self.environment.keys().collect()
   keys.sort_by(fn(left, right) {
-    let length = Int::min(left.length(), right.length())
+    let length = Int32::min(left.length(), right.length())
     for index in 0..<length {
       let order = left.unsafe_get(index).compare(right.unsafe_get(index))
       if order != 0 {
@@ -782,7 +782,7 @@ pub impl @host.HostAsyncOutput for FakeHost with fn write_output(
   self : FakeHost,
   stream : @host.OutputStream,
   bytes : Bytes,
-) -> Int raise @host.HostError {
+) -> Int32 raise @host.HostError {
   let length = bytes.length()
   self.output_events.push((stream, bytes))
   length
@@ -797,7 +797,7 @@ pub impl @host.HostClock for FakeHost with fn now_millis(self : FakeHost) -> Int
 ///|
 pub impl @host.HostRandom for FakeHost with fn random_bytes(
   self : FakeHost,
-  count : Int,
+  count : Int32,
 ) -> Bytes raise @host.HostError {
   self.require(Random)
   if count < 0 {

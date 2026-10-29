@@ -5,8 +5,8 @@ pub(all) suberror DiagnosticError {
   MissingSource(@source.SourceId)
   InvalidLabelSpan(
     source_id~ : @source.SourceId,
-    start_byte~ : Int,
-    end_byte~ : Int
+    start_byte~ : Int32,
+    end_byte~ : Int32
   )
 } derive(Eq, Debug)
 

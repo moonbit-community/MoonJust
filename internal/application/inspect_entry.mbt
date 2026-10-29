@@ -4,7 +4,7 @@ fn[T : @host.HostFs] execute_inspect_command(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> @cli.ApplicationResponse raise ApplicationError {
   let (graph, _) = load_graph_input_with_directories(
     host,
@@ -42,7 +42,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] execute_inspect_command_asyn
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> @cli.ApplicationResponse raise ApplicationError {
   let (graph, _) = load_graph_input_with_directories_async(
     host,

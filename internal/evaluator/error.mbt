@@ -7,26 +7,26 @@ pub(all) suberror EvaluationError {
   Builtin(@builtin.BuiltinError, span~ : @source.Span)
   EffectRequired(effect~ : String, span~ : @source.Span)
   Host(@host.HostError, span~ : @source.Span)
-  ProcessFailure(code~ : Int, span~ : @source.Span)
-  BacktickFailure(code~ : Int, span~ : @source.Span)
+  ProcessFailure(code~ : Int32, span~ : @source.Span)
+  BacktickFailure(code~ : Int32, span~ : @source.Span)
   ProcessSignaled(signal~ : @host.SignalKind, span~ : @source.Span)
   InvalidUtf8(span~ : @source.Span)
-  RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
-  FunctionRecursionLimit(name~ : String, limit~ : Int, span~ : @source.Span)
-  NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
-  OutputLimitExceeded(limit~ : Int, span~ : @source.Span)
+  RecursionLimitExceeded(limit~ : Int32, span~ : @source.Span)
+  FunctionRecursionLimit(name~ : String, limit~ : Int32, span~ : @source.Span)
+  NodeLimitExceeded(limit~ : Int32, span~ : @source.Span)
+  OutputLimitExceeded(limit~ : Int32, span~ : @source.Span)
   MissingContext(fact~ : String, span~ : @source.Span)
   ArgumentCount(
     recipe~ : String,
     expected~ : String,
-    actual~ : Int,
+    actual~ : Int32,
     span~ : @source.Span
   )
   UnknownOverrides(names~ : Array[String], span~ : @source.Span)
   FunctionArgumentCount(
     name~ : String,
-    expected~ : Int,
-    actual~ : Int,
+    expected~ : Int32,
+    actual~ : Int32,
     span~ : @source.Span
   )
   EmptyParameter(recipe~ : String, parameter~ : String, span~ : @source.Span)

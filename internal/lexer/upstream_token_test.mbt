@@ -1,7 +1,7 @@
 ///|
 fn assert_tokens(
   text : String,
-  expected : Array[(TokenKind, String)],
+  expected : Array[(@lexer.TokenKind, String)],
 ) -> Unit raise {
   let source = @source.Source::from_text(
     @source.SourceId::new(803),

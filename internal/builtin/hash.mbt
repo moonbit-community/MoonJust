@@ -1,49 +1,49 @@
 ///|
-let blake3_iv : ReadOnlyArray[UInt] = [
+let blake3_iv : ReadOnlyArray[UInt32] = [
   0x6A09E667U, 0xBB67AE85U, 0x3C6EF372U, 0xA54FF53AU, 0x510E527FU, 0x9B05688CU, 0x1F83D9ABU,
   0x5BE0CD19U,
 ]
 
 ///|
-let blake3_permutation : ReadOnlyArray[Int] = [
+let blake3_permutation : ReadOnlyArray[Int32] = [
   2, 6, 3, 10, 7, 0, 4, 13, 1, 11, 12, 5, 9, 14, 15, 8,
 ]
 
 ///|
-const CHUNK_START : UInt = 1U
+const CHUNK_START : UInt32 = 1U
 
 ///|
-const CHUNK_END : UInt = 2U
+const CHUNK_END : UInt32 = 2U
 
 ///|
-const PARENT : UInt = 4U
+const PARENT : UInt32 = 4U
 
 ///|
-const ROOT : UInt = 8U
+const ROOT : UInt32 = 8U
 
 ///|
 priv struct Blake3Output {
-  input_cv : Array[UInt]
-  block : Array[UInt]
+  input_cv : Array[UInt32]
+  block : Array[UInt32]
   counter : UInt64
-  block_len : UInt
-  flags : UInt
+  block_len : UInt32
+  flags : UInt32
 }
 
 ///|
-fn rotate_right(value : UInt, amount : Int) -> UInt {
+fn rotate_right(value : UInt32, amount : Int32) -> UInt32 {
   (value >> amount) | (value << (32 - amount))
 }
 
 ///|
 fn mix(
-  state : Array[UInt],
-  a : Int,
-  b : Int,
-  c : Int,
-  d : Int,
-  x : UInt,
-  y : UInt,
+  state : Array[UInt32],
+  a : Int32,
+  b : Int32,
+  c : Int32,
+  d : Int32,
+  x : UInt32,
+  y : UInt32,
 ) -> Unit {
   state[a] = state[a] + state[b] + x
   state[d] = rotate_right(state[d] ^ state[a], 16)
@@ -56,7 +56,7 @@ fn mix(
 }
 
 ///|
-fn round(state : Array[UInt], message : Array[UInt]) -> Unit {
+fn round(state : Array[UInt32], message : Array[UInt32]) -> Unit {
   mix(state, 0, 4, 8, 12, message[0], message[1])
   mix(state, 1, 5, 9, 13, message[2], message[3])
   mix(state, 2, 6, 10, 14, message[4], message[5])
@@ -69,12 +69,12 @@ fn round(state : Array[UInt], message : Array[UInt]) -> Unit {
 
 ///|
 fn compress(
-  input_cv : Array[UInt],
-  block : Array[UInt],
+  input_cv : Array[UInt32],
+  block : Array[UInt32],
   counter : UInt64,
-  block_len : UInt,
-  flags : UInt,
-) -> Array[UInt] {
+  block_len : UInt32,
+  flags : UInt32,
+) -> Array[UInt32] {
   let state = input_cv.copy()
   for word in blake3_iv[:4] {
     state.push(word)
@@ -86,13 +86,13 @@ fn compress(
   let mut message = block.copy()
   for _ in 0..<7 {
     round(state, message)
-    let permuted : Array[UInt] = []
+    let permuted : Array[UInt32] = []
     for index in 0..<16 {
       permuted.push(message[blake3_permutation[index]])
     }
     message = permuted
   }
-  let result : Array[UInt] = []
+  let result : Array[UInt32] = []
   for index in 0..<8 {
     result.push(state[index] ^ state[index + 8])
   }
@@ -103,8 +103,8 @@ fn compress(
 }
 
 ///|
-fn copy_words(words : ArrayView[UInt]) -> Array[UInt] {
-  let result : Array[UInt] = []
+fn copy_words(words : ArrayView[UInt32]) -> Array[UInt32] {
+  let result : Array[UInt32] = []
   for word in words {
     result.push(word)
   }
@@ -112,8 +112,8 @@ fn copy_words(words : ArrayView[UInt]) -> Array[UInt] {
 }
 
 ///|
-fn block_words(bytes : Bytes, start : Int, length : Int) -> Array[UInt] {
-  let words : Array[UInt] = []
+fn block_words(bytes : Bytes, start : Int32, length : Int32) -> Array[UInt32] {
+  let words : Array[UInt32] = []
   for word_index in 0..<16 {
     let offset = start + word_index * 4
     let mut word = 0U
@@ -131,8 +131,8 @@ fn block_words(bytes : Bytes, start : Int, length : Int) -> Array[UInt] {
 ///|
 fn chunk_output(
   bytes : Bytes,
-  start : Int,
-  length : Int,
+  start : Int32,
+  length : Int32,
   counter : UInt64,
 ) -> Blake3Output {
   let block_count = if length == 0 { 1 } else { (length + 63) / 64 }
@@ -161,7 +161,7 @@ fn chunk_output(
 }
 
 ///|
-fn output_chaining_value(output : Blake3Output) -> Array[UInt] {
+fn output_chaining_value(output : Blake3Output) -> Array[UInt32] {
   let compressed = compress(
     output.input_cv,
     output.block,
@@ -173,7 +173,7 @@ fn output_chaining_value(output : Blake3Output) -> Array[UInt] {
 }
 
 ///|
-fn parent_output(left : Array[UInt], right : Array[UInt]) -> Blake3Output {
+fn parent_output(left : Array[UInt32], right : Array[UInt32]) -> Blake3Output {
   let block = left.copy()
   for word in right {
     block.push(word)
@@ -190,8 +190,8 @@ fn parent_output(left : Array[UInt], right : Array[UInt]) -> Blake3Output {
 ///|
 fn subtree(
   bytes : Bytes,
-  start : Int,
-  length : Int,
+  start : Int32,
+  length : Int32,
   counter : UInt64,
 ) -> Blake3Output {
   if length <= 1024 {
@@ -214,7 +214,7 @@ fn subtree(
 }
 
 ///|
-fn hex_word(value : UInt, builder : StringBuilder) -> Unit {
+fn hex_word(value : UInt32, builder : StringBuilder) -> Unit {
   for index in 0..<4 {
     let byte = (value >> (index * 8)).to_byte()
     let digits = [
@@ -245,8 +245,8 @@ pub fn blake3_bytes(bytes : Bytes) -> String {
 
 ///|
 pub struct Blake3StackEntry {
-  level : Int
-  chaining_value : Array[UInt]
+  level : Int32
+  chaining_value : Array[UInt32]
 }
 
 ///|
@@ -264,7 +264,7 @@ pub fn Blake3Hasher::new() -> Blake3Hasher {
 ///|
 fn push_chunk_chaining_value(
   stack : Array[Blake3StackEntry],
-  chaining_value : Array[UInt],
+  chaining_value : Array[UInt32],
 ) -> Unit {
   let mut current = chaining_value
   let mut level = 0

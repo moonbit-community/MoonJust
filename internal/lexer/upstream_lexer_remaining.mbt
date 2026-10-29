@@ -255,7 +255,7 @@ test "upstream keyword::tests::keyword_case" {
 fn assert_unknown_start(
   text : String,
   expected : String,
-  offset : Int,
+  offset : Int32,
 ) -> Unit raise {
   let source = @source.Source::from_text(
     @source.SourceId::new(901),

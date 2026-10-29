@@ -29,7 +29,7 @@ pub(all) suberror SemanticError {
   FunctionArgumentCount(
     name~ : String,
     expected~ : String,
-    actual~ : Int,
+    actual~ : Int32,
     span~ : @source.Span
   )
   UserFunctionsUnstable(span~ : @source.Span)
@@ -64,7 +64,7 @@ pub(all) suberror SemanticError {
   InvalidDependencyArguments(
     name~ : String,
     expected~ : String,
-    actual~ : Int,
+    actual~ : Int32,
     span~ : @source.Span
   )
   SettingConflict(

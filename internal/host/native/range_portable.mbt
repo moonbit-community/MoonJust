@@ -14,7 +14,7 @@ fn file_executable_value(value : String) -> Bool {
 fn read_file_range_value(
   value : String,
   offset : Int64,
-  length : Int,
+  length : Int32,
 ) -> Bytes? {
   if offset < 0L || length < 0 || offset > 0x7fff_ffffL {
     return None
@@ -24,7 +24,7 @@ fn read_file_range_value(
   if start >= contents.length() {
     return Some(b"")
   }
-  Some(contents[start:Int::min(contents.length(), start + length)].to_owned())
+  Some(contents[start:Int32::min(contents.length(), start + length)].to_owned())
 }
 
 ///|

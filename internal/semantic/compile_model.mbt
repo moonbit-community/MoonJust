@@ -1,9 +1,9 @@
 ///|
 fn compile_full(
   ast : @syntax.Ast,
-  platform? : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
-  allow_unstable? : Bool = false,
-  defer_recipe_linking? : Bool = false,
+  platform~ : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
+  allow_unstable~ : Bool = false,
+  defer_recipe_linking~ : Bool = false,
 ) -> Compilation raise SemanticError {
   let preliminary_settings_nodes : Array[@syntax.Setting] = []
   let mut preliminary_attributes : Array[@syntax.Attribute] = []
@@ -482,7 +482,7 @@ fn compile_full(
     )
   }
   if !defer_recipe_linking && recipes_have_dependencies {
-    let states : Map[String, Int] = Map([])
+    let states : Map[String, Int32] = Map([])
     for recipe in recipes {
       if !recipe.dependencies().is_empty() ||
         !recipe.subsequent_dependencies().is_empty() {

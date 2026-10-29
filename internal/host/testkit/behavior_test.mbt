@@ -1,7 +1,7 @@
 ///|
-fn test_host() -> FakeHost raise @path.PathError {
+fn test_host() -> @testkit.FakeHost raise @path.PathError {
   let cwd = @path.PathValue::new("/workspace", Unix)
-  FakeHost::new(cwd, @host.PlatformInfo::new(Linux, "test", Unix))
+  @testkit.FakeHost::new(cwd, @host.PlatformInfo::new(Linux, "test", Unix))
 }
 
 ///|

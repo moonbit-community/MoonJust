@@ -177,12 +177,12 @@ pub fn[T : @host.HostFs] load_graph(
   host : T,
   root : @path.PathValue,
   source_id : @source.SourceId,
-  limits? : GraphLimits = GraphLimits::default(),
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  limits~ : GraphLimits = GraphLimits::default(),
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
   build_graph(
     host,
@@ -201,12 +201,12 @@ pub fn[T : @host.HostFs] load_stdin_graph(
   bytes : Bytes,
   source_id : @source.SourceId,
   base : @path.PathValue,
-  limits? : GraphLimits = GraphLimits::default(),
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  limits~ : GraphLimits = GraphLimits::default(),
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
   let loaded = load_stdin(bytes, source_id, environment~)
   let name = @path.PathValue::new("<stdin>", base.flavor()) catch {

@@ -9,7 +9,7 @@ fn invocation_compilation(text : String) -> @semantic.Compilation raise {
 ///|
 test "invocation single_no_arguments" {
   let compilation = try! invocation_compilation("foo:\n")
-  let invocations = try! parse_invocations(compilation, ["foo"])
+  let invocations = try! @invocation.parse_invocations(compilation, ["foo"])
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].recipe(), "foo")
   assert_true(invocations[0].arguments().is_empty())
@@ -18,7 +18,9 @@ test "invocation single_no_arguments" {
 ///|
 test "invocation single_with_argument" {
   let compilation = try! invocation_compilation("foo bar:\n")
-  let invocations = try! parse_invocations(compilation, ["foo", "baz"])
+  let invocations = try! @invocation.parse_invocations(compilation, [
+    "foo", "baz",
+  ])
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].recipe(), "foo")
   assert_eq(invocations[0].arguments()[0].elements(), ["baz"])
@@ -27,7 +29,7 @@ test "invocation single_with_argument" {
 ///|
 test "invocation single_argument_count_mismatch" {
   let compilation = try! invocation_compilation("foo bar:\n")
-  try parse_invocations(compilation, ["foo"]) catch {
+  try @invocation.parse_invocations(compilation, ["foo"]) catch {
     PositionalArgumentCountMismatch(recipe="foo", minimum=1, ..) => ()
     _ => fail("unexpected invocation error")
   } noraise {
@@ -38,7 +40,7 @@ test "invocation single_argument_count_mismatch" {
 ///|
 test "invocation single_unknown" {
   let compilation = try! invocation_compilation("foo:\n")
-  try parse_invocations(compilation, ["bar"]) catch {
+  try @invocation.parse_invocations(compilation, ["bar"]) catch {
     UnknownRecipe(recipe="bar") => ()
     _ => fail("unexpected invocation error")
   } noraise {
@@ -49,7 +51,7 @@ test "invocation single_unknown" {
 ///|
 test "invocation multiple_unknown" {
   let compilation = try! invocation_compilation("foo:\n")
-  try parse_invocations(compilation, ["bar", "baz"]) catch {
+  try @invocation.parse_invocations(compilation, ["bar", "baz"]) catch {
     UnknownRecipe(recipe="bar") => ()
     _ => fail("unexpected invocation error")
   } noraise {
@@ -64,7 +66,7 @@ test "invocation complex_grouping" {
     "BAR X:\n    @echo bar\n" +
     "BAZ +Z:\n    @echo baz\n",
   )
-  let invocations = try! parse_invocations(compilation, [
+  let invocations = try! @invocation.parse_invocations(compilation, [
     "BAR", "0", "FOO", "1", "2", "BAZ", "3", "4", "5",
   ])
   assert_eq(invocations.length(), 3)
@@ -82,7 +84,9 @@ test "invocation long_argument" {
   let compilation = try! invocation_compilation(
     "[arg('bar', long='bar')]\nfoo bar:\n    @:\n",
   )
-  let invocations = try! parse_invocations(compilation, ["foo", "--bar", "baz"])
+  let invocations = try! @invocation.parse_invocations(compilation, [
+    "foo", "--bar", "baz",
+  ])
   assert_eq(invocations[0].recipe(), "foo")
   assert_eq(invocations[0].arguments()[0].elements(), ["baz"])
 }
@@ -92,7 +96,7 @@ test "invocation repeatable_long_option" {
   let compilation = try! invocation_compilation(
     "[arg('bar', long='bar')]\nfoo +bar:\n    @:\n",
   )
-  let invocations = try! parse_invocations(compilation, [
+  let invocations = try! @invocation.parse_invocations(compilation, [
     "foo", "--bar", "a", "--bar", "b",
   ])
   assert_eq(invocations[0].arguments()[0].elements(), ["a", "b"])
@@ -103,7 +107,7 @@ test "invocation long_argument_with_positional" {
   let compilation = try! invocation_compilation(
     "[arg('bar', long='bar')]\nfoo baz bar:\n    @:\n",
   )
-  let invocations = try! parse_invocations(compilation, [
+  let invocations = try! @invocation.parse_invocations(compilation, [
     "foo", "qux", "--bar", "baz",
   ])
   assert_eq(invocations[0].arguments()[0].elements(), ["qux"])
@@ -115,7 +119,9 @@ test "invocation long_argument_terminator" {
   let compilation = try! invocation_compilation(
     "[arg('bar', long='bar')]\nfoo baz qux='qux' bar='bar':\n    @:\n",
   )
-  let invocations = try! parse_invocations(compilation, ["foo", "--", "--bar"])
+  let invocations = try! @invocation.parse_invocations(compilation, [
+    "foo", "--", "--bar",
+  ])
   assert_eq(invocations[0].arguments()[0].elements(), ["--bar"])
   assert_true(invocations[0].arguments()[1].elements().is_empty())
   assert_true(invocations[0].arguments()[2].elements().is_empty())
@@ -124,7 +130,7 @@ test "invocation long_argument_terminator" {
 ///|
 test "invocation no_recipes" {
   let compilation = try! invocation_compilation("")
-  try parse_invocations(compilation, []) catch {
+  try @invocation.parse_invocations(compilation, []) catch {
     NoRecipes => ()
     _ => fail("unexpected invocation error")
   } noraise {
@@ -135,7 +141,7 @@ test "invocation no_recipes" {
 ///|
 test "invocation default_recipe_requires_arguments" {
   let compilation = try! invocation_compilation("foo bar:\n    @:\n")
-  try parse_invocations(compilation, []) catch {
+  try @invocation.parse_invocations(compilation, []) catch {
     DefaultRecipeRequiresArguments(recipe="foo", minimum=1) => ()
     _ => fail("unexpected invocation error")
   } noraise {

@@ -132,8 +132,8 @@ pub fn format_timestamp(millis : Int64, format : String) -> String {
 /// Render one command exactly as it is written to stderr.
 pub fn render_command_echo(
   command : String,
-  timestamp? : String? = None,
-  color? : CommandColor? = None,
+  timestamp~ : String? = None,
+  color~ : CommandColor? = None,
 ) -> Bytes {
   let prefix = match timestamp {
     Some(value) => "[" + paint_command(value, color) + "] "

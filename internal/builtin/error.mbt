@@ -1,7 +1,7 @@
 ///|
 pub(all) suberror BuiltinError {
   Unknown(name~ : String)
-  Arity(name~ : String, expected~ : String, actual~ : Int)
+  Arity(name~ : String, expected~ : String, actual~ : Int32)
   Type(name~ : String, expected~ : String, actual~ : @value.Value)
   InvalidPath(value~ : String)
   InvalidRequirement(value~ : String)

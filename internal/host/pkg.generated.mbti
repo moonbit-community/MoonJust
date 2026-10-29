@@ -18,19 +18,25 @@ pub(all) suberror HostError {
   InvalidInput(String)
   UnexpectedProcess(CommandSpec)
   ProcessMismatch(expected~ : CommandSpec, actual~ : CommandSpec)
-  RandomExhausted(requested~ : Int, remaining~ : Int)
+  RandomExhausted(requested~ : Int32, remaining~ : Int32)
 } derive(Eq, @debug.Debug)
+pub fn HostError::equal(Self, Self) -> Bool
+pub fn HostError::not_equal(Self, Self) -> Bool
+pub fn HostError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct CacheLease {
   directory : @path.PathValue
   digest : String
-  token : Int
+  token : Int32
 } derive(Eq, @debug.Debug)
 pub fn CacheLease::digest(Self) -> String
 pub fn CacheLease::directory(Self) -> @path.PathValue
-pub fn CacheLease::new(@path.PathValue, String, Int) -> Self
-pub fn CacheLease::token(Self) -> Int
+pub fn CacheLease::equal(Self, Self) -> Bool
+pub fn CacheLease::new(@path.PathValue, String, Int32) -> Self
+pub fn CacheLease::not_equal(Self, Self) -> Bool
+pub fn CacheLease::to_repr(Self) -> @debug.Repr
+pub fn CacheLease::token(Self) -> Int32
 
 pub struct CommandSpec {
   program : String
@@ -48,9 +54,11 @@ pub fn CommandSpec::arguments(Self) -> ArrayView[String]
 pub fn CommandSpec::copy(Self) -> Self
 pub fn CommandSpec::cwd(Self) -> @path.PathValue?
 pub fn CommandSpec::environment(Self) -> ArrayView[(String, String)]
+pub fn CommandSpec::equal(Self, Self) -> Bool
 pub fn CommandSpec::inherits_environment(Self) -> Bool
 pub fn CommandSpec::inherits_stdin(Self) -> Bool
 pub fn CommandSpec::new(String, Array[String]) -> Self raise HostError
+pub fn CommandSpec::not_equal(Self, Self) -> Bool
 pub fn CommandSpec::program(Self) -> String
 pub fn CommandSpec::set_cwd(Self, @path.PathValue) -> Unit
 pub fn CommandSpec::set_inherit_environment(Self, Bool) -> Unit
@@ -61,6 +69,7 @@ pub fn CommandSpec::set_stdout(Self, StdioBehavior) -> Unit
 pub fn CommandSpec::stderr(Self) -> StdioBehavior
 pub fn CommandSpec::stdin(Self) -> BytesView
 pub fn CommandSpec::stdout(Self) -> StdioBehavior
+pub fn CommandSpec::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for CommandSpec
 
 pub(all) struct FileMetadata {
@@ -69,12 +78,15 @@ pub(all) struct FileMetadata {
   size : Int64
   is_executable : Bool
 } derive(Eq, @debug.Debug)
+pub fn FileMetadata::equal(Self, Self) -> Bool
 pub fn FileMetadata::is_directory(Self) -> Bool
 pub fn FileMetadata::is_executable(Self) -> Bool
 pub fn FileMetadata::is_file(Self) -> Bool
 pub fn FileMetadata::new(Bool, Bool, Int64) -> Self
 pub fn FileMetadata::new_with_executable(Bool, Bool, Int64, Bool) -> Self
+pub fn FileMetadata::not_equal(Self, Self) -> Bool
 pub fn FileMetadata::size(Self) -> Int64
+pub fn FileMetadata::to_repr(Self) -> @debug.Repr
 
 pub(all) enum HostCapability {
   FsRead
@@ -87,6 +99,11 @@ pub(all) enum HostCapability {
   Signal
   Platform
 } derive(Eq, Hash, @debug.Debug)
+pub fn HostCapability::equal(Self, Self) -> Bool
+pub fn HostCapability::hash(Self) -> Int32
+pub fn HostCapability::hash_combine(Self, Hasher) -> Unit
+pub fn HostCapability::not_equal(Self, Self) -> Bool
+pub fn HostCapability::to_repr(Self) -> @debug.Repr
 
 pub(all) enum OperatingSystem {
   Linux
@@ -94,67 +111,90 @@ pub(all) enum OperatingSystem {
   Windows
   Other(String)
 } derive(Eq, Hash, @debug.Debug)
+pub fn OperatingSystem::equal(Self, Self) -> Bool
+pub fn OperatingSystem::hash(Self) -> Int32
+pub fn OperatingSystem::hash_combine(Self, Hasher) -> Unit
+pub fn OperatingSystem::not_equal(Self, Self) -> Bool
+pub fn OperatingSystem::to_repr(Self) -> @debug.Repr
 
 pub(all) enum OutputStream {
   Stdout
   Stderr
 } derive(Eq, @debug.Debug)
+pub fn OutputStream::equal(Self, Self) -> Bool
+pub fn OutputStream::not_equal(Self, Self) -> Bool
+pub fn OutputStream::to_repr(Self) -> @debug.Repr
 
 pub struct PlatformInfo {
   operating_system : OperatingSystem
   architecture : String
   path_flavor : @path.PathFlavor
   portable_runtime : Bool
-  pid : Int?
-  num_cpus : Int?
+  pid : Int32?
+  num_cpus : Int32?
   executable : String?
 } derive(Eq, @debug.Debug)
 pub fn PlatformInfo::architecture(Self) -> String
+pub fn PlatformInfo::equal(Self, Self) -> Bool
 pub fn PlatformInfo::executable(Self) -> String?
-pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor, portable_runtime? : Bool, pid? : Int, num_cpus? : Int, executable? : String) -> Self
-pub fn PlatformInfo::num_cpus(Self) -> Int?
+pub fn PlatformInfo::new(OperatingSystem, String, @path.PathFlavor, portable_runtime? : Bool, pid? : Int32, num_cpus? : Int32, executable? : String) -> Self
+pub fn PlatformInfo::not_equal(Self, Self) -> Bool
+pub fn PlatformInfo::num_cpus(Self) -> Int32?
 pub fn PlatformInfo::operating_system(Self) -> OperatingSystem
 pub fn PlatformInfo::path_flavor(Self) -> @path.PathFlavor
-pub fn PlatformInfo::pid(Self) -> Int?
+pub fn PlatformInfo::pid(Self) -> Int32?
 pub fn PlatformInfo::portable_runtime(Self) -> Bool
+pub fn PlatformInfo::to_repr(Self) -> @debug.Repr
 
 pub struct ProcessResult {
   termination : ProcessTermination
   stdout : Bytes
   stderr : Bytes
 } derive(Eq)
-pub fn ProcessResult::exit_code(Self) -> Int?
+pub fn ProcessResult::equal(Self, Self) -> Bool
+pub fn ProcessResult::exit_code(Self) -> Int32?
 pub fn ProcessResult::from_interruption(SignalKind, Bytes, Bytes) -> Self
 pub fn ProcessResult::from_signal(SignalKind, Bytes, Bytes) -> Self
-pub fn ProcessResult::new(Int, Bytes, Bytes) -> Self
+pub fn ProcessResult::new(Int32, Bytes, Bytes) -> Self
+pub fn ProcessResult::not_equal(Self, Self) -> Bool
 pub fn ProcessResult::signal(Self) -> SignalKind?
 pub fn ProcessResult::stderr(Self) -> BytesView
 pub fn ProcessResult::stdout(Self) -> BytesView
 pub fn ProcessResult::success(Self) -> Bool
 pub fn ProcessResult::termination(Self) -> ProcessTermination
+pub fn ProcessResult::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for ProcessResult
 
 pub(all) enum ProcessTermination {
-  Exited(Int)
+  Exited(Int32)
   Signaled(SignalKind)
   Interrupted(SignalKind)
 } derive(Eq, @debug.Debug)
+pub fn ProcessTermination::equal(Self, Self) -> Bool
+pub fn ProcessTermination::not_equal(Self, Self) -> Bool
+pub fn ProcessTermination::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SignalKind {
   Interrupt
   Terminate
   Hangup
-  OtherSignal(Int)
+  OtherSignal(Int32)
 } derive(Eq, @debug.Debug)
-pub fn SignalKind::exit_code(Self) -> Int
+pub fn SignalKind::equal(Self, Self) -> Bool
+pub fn SignalKind::exit_code(Self) -> Int32
 pub fn SignalKind::name(Self) -> String
-pub fn SignalKind::number(Self) -> Int
+pub fn SignalKind::not_equal(Self, Self) -> Bool
+pub fn SignalKind::number(Self) -> Int32
+pub fn SignalKind::to_repr(Self) -> @debug.Repr
 
 pub(all) enum StdioBehavior {
   Capture
   Inherit
   Discard
 } derive(Eq, @debug.Debug)
+pub fn StdioBehavior::equal(Self, Self) -> Bool
+pub fn StdioBehavior::not_equal(Self, Self) -> Bool
+pub fn StdioBehavior::to_repr(Self) -> @debug.Repr
 
 pub struct TerminalInfo {
   stdin_is_terminal : Bool
@@ -163,16 +203,19 @@ pub struct TerminalInfo {
   color_supported : Bool
 } derive(Eq, @debug.Debug)
 pub fn TerminalInfo::color_supported(Self) -> Bool
+pub fn TerminalInfo::equal(Self, Self) -> Bool
 pub fn TerminalInfo::new(Bool, Bool, Bool, Bool) -> Self
+pub fn TerminalInfo::not_equal(Self, Self) -> Bool
 pub fn TerminalInfo::stderr_is_terminal(Self) -> Bool
 pub fn TerminalInfo::stdin_is_terminal(Self) -> Bool
 pub fn TerminalInfo::stdout_is_terminal(Self) -> Bool
+pub fn TerminalInfo::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 
 // Traits
 pub(open) trait HostAsyncOutput {
-  async fn write_output(Self, OutputStream, Bytes) -> Int raise HostError
+  async fn write_output(Self, OutputStream, Bytes) -> Int32 raise HostError
 }
 
 pub(open) trait HostAsyncProcess {
@@ -193,7 +236,7 @@ pub(open) trait HostCacheStore {
   async fn read_cache_manifest(Self, CacheLease) -> Bytes? raise HostError
   async fn write_cache_manifest(Self, CacheLease, Bytes) -> Unit raise HostError
   async fn release_cache_lease(Self, CacheLease) -> Unit raise HostError
-  async fn clean_cache(Self, @path.PathValue, String?) -> Int raise HostError
+  async fn clean_cache(Self, @path.PathValue, String?) -> Int32 raise HostError
 }
 
 pub(open) trait HostClock {
@@ -212,7 +255,7 @@ pub(open) trait HostExecutable {
 
 pub(open) trait HostFs {
   fn read_file(Self, @path.PathValue) -> Bytes raise HostError
-  fn read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise HostError
+  fn read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   fn file_exists(Self, @path.PathValue) -> Bool raise HostError
   fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
@@ -230,7 +273,7 @@ pub(open) trait HostProcess {
 }
 
 pub(open) trait HostRandom {
-  fn random_bytes(Self, Int) -> Bytes raise HostError
+  fn random_bytes(Self, Int32) -> Bytes raise HostError
 }
 
 pub(open) trait HostScriptTemp {
@@ -243,7 +286,7 @@ pub(open) trait HostSignal {
 }
 
 pub(open) trait HostSourceReader {
-  async fn read_source(Self, @path.PathValue, Int) -> Bytes raise HostError
+  async fn read_source(Self, @path.PathValue, Int32) -> Bytes raise HostError
 }
 
 pub(open) trait HostTemp {

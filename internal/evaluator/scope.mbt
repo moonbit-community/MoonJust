@@ -5,9 +5,9 @@ pub fn bind_recipe_parameters(
   recipe : @syntax.Recipe,
   arguments : Array[@value.Value],
   parent : Environment,
-  limits? : EvaluationLimits = EvaluationLimits::default(),
-  allow_empty? : Set[String] = Set([]),
-  lists? : Bool = false,
+  limits~ : EvaluationLimits = EvaluationLimits::default(),
+  allow_empty~ : Set[String] = Set([]),
+  lists~ : Bool = false,
 ) -> Environment raise EvaluationError {
   let parameters = recipe.parameters()
   let mut minimum = 0
@@ -24,7 +24,7 @@ pub fn bind_recipe_parameters(
       minimum += 1
     }
   }
-  let maximum : Int? = if has_variadic {
+  let maximum : Int32? = if has_variadic {
     None
   } else {
     Some(parameters.length())

@@ -72,7 +72,7 @@ fn evaluate_text(
       let mut maximum = 0
       for name in names {
         if !private.contains(name) {
-          maximum = Int::max(maximum, name.length())
+          maximum = Int32::max(maximum, name.length())
         }
       }
       let builder = StringBuilder()
@@ -135,7 +135,7 @@ fn evaluated_environment_text(
       let mut maximum = 0
       for name in names {
         if !private.contains(name) {
-          maximum = Int::max(maximum, name.length())
+          maximum = Int32::max(maximum, name.length())
         }
       }
       let builder = StringBuilder()

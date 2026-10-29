@@ -1,6 +1,6 @@
 ///|
-fn heading_levels(text : String) -> Array[Int] {
-  let levels : Array[Int] = []
+fn heading_levels(text : String) -> Array[Int32] {
+  let levels : Array[Int32] = []
   for line in text.split("\n") {
     let trimmed = line.trim()
     if trimmed.has_prefix("#") {
@@ -75,7 +75,7 @@ test "upstream examples::examples" {
 
 ///|
 test "upstream changelog::print_changelog" {
-  let response = static_invocation_response(["--changelog"]).unwrap()
+  let response = @application.static_invocation_response(["--changelog"]).unwrap()
   assert_eq(response.exit_code(), 0)
   let text = try! @utf8.decode(response.stdout().to_owned())
   assert_true(text.contains("MoonJust"))
@@ -84,7 +84,7 @@ test "upstream changelog::print_changelog" {
 
 ///|
 test "upstream man::print_complete_page" {
-  let response = static_invocation_response(["--man"]).unwrap()
+  let response = @application.static_invocation_response(["--man"]).unwrap()
   assert_eq(response.exit_code(), 0)
   assert_eq(response.stdout().length(), 8211)
   assert_eq(

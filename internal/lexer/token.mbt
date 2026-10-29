@@ -155,6 +155,6 @@ pub fn TokenStream::tokens(self : TokenStream) -> ArrayView[Token] {
 
 ///|
 /// Return the number of tokens, including `Eof`.
-pub fn TokenStream::length(self : TokenStream) -> Int {
+pub fn TokenStream::length(self : TokenStream) -> Int32 {
   self.tokens.length()
 }

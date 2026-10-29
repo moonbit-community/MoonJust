@@ -5,7 +5,7 @@ fn which_case(
   path_value : String,
   pathext : String?,
   files : Array[String],
-) -> @value.Value raise EvaluationError {
+) -> @value.Value raise @evaluator.EvaluationError {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
@@ -19,8 +19,8 @@ fn which_case(
   for file in files {
     host.put_file(try! cwd.join(try! @path.PathValue::new(file, Unix)), b"")
   }
-  let context = EvaluationContext::new(cwd~, lists=true)
-  call_non_process_effect_with_context(
+  let context = @evaluator.EvaluationContext::new(cwd~, lists=true)
+  @evaluator.call_non_process_effect_with_context(
     host,
     "which",
     [String(executable)],
@@ -30,7 +30,7 @@ fn which_case(
 }
 
 ///|
-fn require_case() -> @value.Value raise EvaluationError {
+fn require_case() -> @value.Value raise @evaluator.EvaluationError {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
@@ -38,11 +38,11 @@ fn require_case() -> @value.Value raise EvaluationError {
   )
   host.set_env("PATH", "/workspace")
   host.put_file(try! cwd.join(@path.PathValue::new("hello.exe", Unix)), b"")
-  call_non_process_effect_with_context(
+  @evaluator.call_non_process_effect_with_context(
     host,
     "require",
     [String("hello.exe")],
-    EvaluationContext::new(cwd~, lists=true),
+    @evaluator.EvaluationContext::new(cwd~, lists=true),
     @source.Span::origin(@source.SourceId::new(930)),
   )
 }
@@ -84,9 +84,9 @@ test "upstream which_function::requires_lists_setting" {
     cwd,
     @host.PlatformInfo::new(Linux, "test", Unix),
   )
-  let context = EvaluationContext::new(cwd~, lists=false)
+  let context = @evaluator.EvaluationContext::new(cwd~, lists=false)
   try
-    call_non_process_effect_with_context(
+    @evaluator.call_non_process_effect_with_context(
       host,
       "which",
       [String("foo")],
@@ -139,11 +139,11 @@ test "upstream which_function::ignores_nonexecutable_candidates" {
     try! cwd.join(@path.PathValue::new("subdir/foo.exe", Unix)),
     b"#!/bin/sh",
   )
-  let value = try! call_non_process_effect_with_context(
+  let value = try! @evaluator.call_non_process_effect_with_context(
     host,
     "which",
     [String("foo.exe")],
-    EvaluationContext::new(cwd~, lists=true),
+    @evaluator.EvaluationContext::new(cwd~, lists=true),
     @source.Span::origin(@source.SourceId::new(932)),
   )
   assert_eq(value.elements(), ["/workspace/subdir/foo.exe"])
@@ -161,11 +161,11 @@ test "upstream which_function::skips_non_executable_files" {
     try! cwd.join(@path.PathValue::new("hi", Unix)),
     b"regular",
   )
-  let value = try! call_non_process_effect_with_context(
+  let value = try! @evaluator.call_non_process_effect_with_context(
     host,
     "which",
     [String("hi")],
-    EvaluationContext::new(cwd~, lists=true),
+    @evaluator.EvaluationContext::new(cwd~, lists=true),
     @source.Span::origin(@source.SourceId::new(933)),
   )
   assert_true(value.elements().is_empty())

@@ -22,15 +22,15 @@ async fn[
   options : ExecutionOptions,
   configuration : ScriptConfiguration,
   scope : @evaluator.Environment,
-  ran : Map[String, Int],
+  ran : Map[String, Int32],
   stack : Array[String],
-  entry_dependencies : ArrayView[Int],
+  entry_dependencies : ArrayView[Int32],
   tasks : Array[ExecutionTask],
   stderr : Array[Byte],
   confirmations : Array[ConfirmationRequest],
   parallel : Bool,
-) -> (Array[Int], Array[Int]) raise ExecutionError {
-  let terminals : Array[Int] = []
+) -> (Array[Int32], Array[Int32]) raise ExecutionError {
+  let terminals : Array[Int32] = []
   let mut serial_fence = entry_dependencies.to_owned()
   for dependency in dependencies {
     let target = dependency_planning_target(
