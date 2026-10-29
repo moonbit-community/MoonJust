@@ -19,7 +19,7 @@ pub fn tick(String) -> String
 pub(all) suberror DiagnosticError {
   AnsiEscapeInField(field~ : String)
   MissingSource(@source.SourceId)
-  InvalidLabelSpan(source_id~ : @source.SourceId, start_byte~ : Int, end_byte~ : Int)
+  InvalidLabelSpan(source_id~ : @source.SourceId, start_byte~ : Int32, end_byte~ : Int32)
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn DiagnosticError::equal(Self, Self) -> Bool
@@ -32,13 +32,13 @@ pub fn DiagnosticError::to_repr(Self) -> @debug.Repr
 pub struct Count {
   singular : String
   plural : String
-  count : Int
+  count : Int32
   numbered : Bool
 }
-pub fn Count::numbered(String, Int) -> Self
-pub fn Count::numbered_irregular(String, String, Int) -> Self
+pub fn Count::numbered(String, Int32) -> Self
+pub fn Count::numbered_irregular(String, String, Int32) -> Self
 pub fn Count::to_string(Self) -> String
-pub fn Count::unnumbered(String, Int) -> Self
+pub fn Count::unnumbered(String, Int32) -> Self
 
 pub struct Diagnostic {
   code : String

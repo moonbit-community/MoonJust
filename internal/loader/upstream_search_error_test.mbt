@@ -1,6 +1,6 @@
 ///|
 test "upstream search_error::tests::multiple_candidates_formatting" {
-  let error = LoaderError::AmbiguousJustfile(
+  let error = @loader.LoaderError::AmbiguousJustfile(
     directory=try! @path.PathValue::new("/foo", Unix),
     found=["JUSTFILE", "justfile"],
   )

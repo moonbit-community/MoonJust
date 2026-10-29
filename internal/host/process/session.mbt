@@ -8,7 +8,7 @@ pub struct ProcessAdapter {
 /// Captured output is retained so the runtime can flush parallel tasks in
 /// deterministic invocation order. Bound each stream to keep one child from
 /// exhausting the runtime while its pipe is drained with backpressure.
-const MAX_CAPTURED_STREAM_BYTES : Int = 16 * 1024 * 1024
+const MAX_CAPTURED_STREAM_BYTES : Int32 = 16 * 1024 * 1024
 
 ///|
 fn[X] stdio_is_regular(fd : X) -> Bool {
@@ -36,7 +36,7 @@ priv enum ObservedProcess {
 
 ///|
 priv enum WaitOutcome {
-  Completed(Int)
+  Completed(Int32)
   Cancelled
 }
 
@@ -104,7 +104,7 @@ async fn write_stdio(
   mutex : @async.Mutex,
   stream : @host.OutputStream,
   bytes : Bytes,
-) -> Int raise @host.HostError {
+) -> Int32 raise @host.HostError {
   try mutex.acquire() catch {
     _ => raise InvalidInput("runtime output lock failed")
   } noraise {
@@ -136,12 +136,12 @@ pub impl @host.HostAsyncOutput for ProcessAdapter with fn write_output(
   self : ProcessAdapter,
   stream : @host.OutputStream,
   bytes : Bytes,
-) -> Int raise @host.HostError {
+) -> Int32 raise @host.HostError {
   write_stdio(self.output_mutex, stream, bytes)
 }
 
 ///|
-fn signal_from_number(number : Int) -> @host.SignalKind {
+fn signal_from_number(number : Int32) -> @host.SignalKind {
   match number {
     1 => Hangup
     2 => Interrupt
@@ -151,7 +151,7 @@ fn signal_from_number(number : Int) -> @host.SignalKind {
 }
 
 ///|
-fn signal_from_status(status : Int) -> @host.SignalKind {
+fn signal_from_status(status : Int32) -> @host.SignalKind {
   signal_from_number(-status)
 }
 

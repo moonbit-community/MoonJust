@@ -131,9 +131,9 @@ fn recipe_dependencies(
 }
 
 ///|
-fn version_parts(value : String) -> (Int, Int, Int)? {
+fn version_parts(value : String) -> (Int32, Int32, Int32)? {
   let text = value.trim()
-  let numbers : Array[Int] = [0, 0, 0]
+  let numbers : Array[Int32] = [0, 0, 0]
   let mut part = 0
   let mut number = 0
   let mut has_digit = false
@@ -172,7 +172,10 @@ fn version_parts(value : String) -> (Int, Int, Int)? {
 }
 
 ///|
-fn version_greater(left : (Int, Int, Int), right : (Int, Int, Int)) -> Bool {
+fn version_greater(
+  left : (Int32, Int32, Int32),
+  right : (Int32, Int32, Int32),
+) -> Bool {
   if left.0 != right.0 {
     return left.0 > right.0
   }
@@ -254,7 +257,7 @@ fn validate_dependency_graph(
   recipe : @syntax.Recipe,
   recipes : Map[String, @syntax.Recipe],
   aliases : Map[String, String],
-  states : Map[String, Int],
+  states : Map[String, Int32],
   lists : Bool,
 ) -> Unit raise SemanticError {
   let name = recipe.name()
@@ -406,7 +409,7 @@ fn validate_item_attributes(
 fn semantic_name_span(
   span : @source.Span,
   name : String,
-  offset? : Int = 0,
+  offset~ : Int32 = 0,
 ) -> @source.Span {
   @source.Span::new(
     span.source_id(),
@@ -420,8 +423,8 @@ fn semantic_name_span(
 ///|
 fn semantic_span_offsets(
   span : @source.Span,
-  start_offset : Int,
-  end_offset : Int,
+  start_offset : Int32,
+  end_offset : Int32,
 ) -> @source.Span {
   @source.Span::new(
     span.source_id(),
@@ -574,7 +577,7 @@ fn comparison_condition(expression : @syntax.Expression) -> Bool {
 }
 
 ///|
-fn expression_prefix_span(span : @source.Span, width : Int) -> @source.Span {
+fn expression_prefix_span(span : @source.Span, width : Int32) -> @source.Span {
   @source.Span::new(
     span.source_id(),
     span.start_byte(),
@@ -588,7 +591,7 @@ fn expression_prefix_span(span : @source.Span, width : Int) -> @source.Span {
 fn validate_list_mode_expression(
   expression : @syntax.Expression,
   lists : Bool,
-  comparison_allowed? : Bool = false,
+  comparison_allowed~ : Bool = false,
 ) -> Unit raise SemanticError {
   if lists {
     return

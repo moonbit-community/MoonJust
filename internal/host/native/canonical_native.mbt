@@ -8,12 +8,12 @@ priv type NativePathHandle
 #borrow(path)
 extern "C" fn native_create_path_handle(
   path : String,
-  access : UInt,
-  share : UInt,
-  security : Int,
-  disposition : UInt,
-  flags : UInt,
-  template : Int,
+  access : UInt32,
+  share : UInt32,
+  security : Int32,
+  disposition : UInt32,
+  flags : UInt32,
+  template : Int32,
 ) -> NativePathHandle = "CreateFileW"
 
 ///|
@@ -22,14 +22,14 @@ extern "C" fn native_create_path_handle(
 extern "C" fn native_final_path(
   handle : NativePathHandle,
   buffer : String,
-  capacity : UInt,
-  flags : UInt,
-) -> UInt = "GetFinalPathNameByHandleW"
+  capacity : UInt32,
+  flags : UInt32,
+) -> UInt32 = "GetFinalPathNameByHandleW"
 
 ///|
 #cfg(platform="windows")
 #borrow(handle)
-extern "C" fn native_close_path_handle(handle : NativePathHandle) -> Int = "CloseHandle"
+extern "C" fn native_close_path_handle(handle : NativePathHandle) -> Int32 = "CloseHandle"
 
 ///|
 #cfg(platform="windows")
@@ -59,8 +59,8 @@ fn canonical_path_string(value : String) -> String? {
 extern "C" fn native_readlink(
   path : Bytes,
   buffer : Bytes,
-  length : Int,
-) -> Int = "readlink"
+  length : Int32,
+) -> Int32 = "readlink"
 
 ///|
 #cfg(all(target="native", not(platform="windows")))

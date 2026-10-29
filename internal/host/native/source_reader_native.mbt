@@ -1,7 +1,7 @@
 ///|
 async fn read_bounded_source_native(
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   if max_bytes < 0 {
     raise InvalidInput("source byte limit must not be negative")
@@ -27,14 +27,14 @@ async fn read_bounded_source_native(
   let size_hint = if probed_size > 0L && probed_size < read_limit.to_int64() {
     probed_size.to_int()
   } else {
-    Int::min(read_limit, 64 * 1024)
+    Int32::min(read_limit, 64 * 1024)
   }
   let result = Buffer(size_hint~)
   // Continue to the hard limit even when the size probe was smaller: the file
   // may grow between the probe and the final read.
   while result.length() < read_limit {
     let remaining = read_limit - result.length()
-    let chunk = file.read_some(max_len=Int::min(remaining, 64 * 1024)) catch {
+    let chunk = file.read_some(max_len=Int32::min(remaining, 64 * 1024)) catch {
       error => raise InvalidInput("source read failed: " + error.to_string())
     }
     guard chunk is Some(chunk) else { break }
@@ -50,7 +50,7 @@ async fn read_bounded_source_native(
 pub impl @host.HostSourceReader for NativeFs with fn read_source(
   _self : NativeFs,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   read_bounded_source_native(path, max_bytes)
 }

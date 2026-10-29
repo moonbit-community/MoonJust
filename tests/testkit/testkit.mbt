@@ -1,13 +1,13 @@
 ///|
 pub(all) struct RunResult {
-  status : Int
+  status : Int32
   stdout : Bytes
   stderr : Bytes
 }
 
 ///|
 pub(all) struct LiveRunResult {
-  status : Int
+  status : Int32
   stdout : Bytes
   stderr : Bytes
   observed : Bool
@@ -117,7 +117,7 @@ async fn resolve_program(program : String) -> String {
 ///|
 pub async fn prepare_program(
   program : String,
-  runner? : String = "",
+  runner~ : String = "",
 ) -> PreparedProgram {
   let path = resolve_program(program)
   let executable = if runner.is_empty() {
@@ -146,8 +146,8 @@ pub async fn prepare_program(
 pub async fn prepare_command(
   executable : String,
   prefix : Array[String],
-  subject_path? : String = "",
-  no_console_window? : Bool = true,
+  subject_path~ : String = "",
+  no_console_window~ : Bool = true,
 ) -> PreparedProgram {
   let resolved_executable = resolve_program(executable)
   let subject = if subject_path.is_empty() {
@@ -248,8 +248,8 @@ pub async fn run_prepared(
   args : Array[String],
   stdin_path? : String,
   cwd? : String,
-  extra_env? : Map[String, String] = Map([]),
-  inherit_env? : Bool = true,
+  extra_env~ : Map[String, String] = Map([]),
+  inherit_env~ : Bool = true,
 ) -> RunResult {
   collect(
     program.executable,
@@ -268,8 +268,8 @@ pub async fn run_prepared_bytes(
   args : Array[String],
   stdin? : Bytes,
   cwd? : String,
-  extra_env? : Map[String, String] = Map([]),
-  inherit_env? : Bool = true,
+  extra_env~ : Map[String, String] = Map([]),
+  inherit_env~ : Bool = true,
 ) -> RunResult {
   let input_dir = match stdin {
     Some(_) => Some(@fs.tmpdir(prefix="moonjust-input"))
@@ -297,8 +297,8 @@ pub async fn run(
   args : Array[String],
   stdin? : Bytes,
   cwd? : String,
-  extra_env? : Map[String, String] = Map([]),
-  inherit_env? : Bool = true,
+  extra_env~ : Map[String, String] = Map([]),
+  inherit_env~ : Bool = true,
 ) -> RunResult {
   let prepared = prepare_program(program)
   let input_dir = match stdin {
@@ -336,8 +336,8 @@ pub async fn run_merged(
   stdin : Bytes,
   cwd : String,
   extra_env : Map[String, String],
-  inherit_env? : Bool = false,
-) -> (Int, Bytes) {
+  inherit_env~ : Bool = false,
+) -> (Int32, Bytes) {
   let program = resolve_program(program)
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
   defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
@@ -363,8 +363,8 @@ pub async fn run_merged_prepared(
   stdin : Bytes,
   cwd : String,
   extra_env : Map[String, String],
-  inherit_env? : Bool = false,
-) -> (Int, Bytes) {
+  inherit_env~ : Bool = false,
+) -> (Int32, Bytes) {
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
   defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
   let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
@@ -413,8 +413,8 @@ pub async fn run_live_stdout(
   cwd : String,
   extra_env : Map[String, String],
   prefix : Bytes,
-  timeout_ms : Int,
-  inherit_env? : Bool = false,
+  timeout_ms : Int32,
+  inherit_env~ : Bool = false,
 ) -> LiveRunResult {
   let program = resolve_program(program)
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
@@ -476,8 +476,8 @@ pub async fn run_live_stdout_prepared(
   cwd : String,
   extra_env : Map[String, String],
   prefix : Bytes,
-  timeout_ms : Int,
-  inherit_env? : Bool = false,
+  timeout_ms : Int32,
+  inherit_env~ : Bool = false,
 ) -> LiveRunResult {
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
   defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })

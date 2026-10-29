@@ -5,7 +5,7 @@ test "attribute name preserves kebab-case" {
     "justfile",
     "[no-exit-message]\nfoo:\n    @:\n",
   )
-  let ast = try! parse(source)
+  let ast = try! @parser.parse(source)
   guard ast.items()[0] is Recipe(recipe) else { fail("expected recipe") }
   assert_eq(recipe.attributes().length(), 1)
   assert_eq(recipe.attributes()[0].name(), "no-exit-message")

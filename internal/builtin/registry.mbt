@@ -30,8 +30,8 @@ pub(all) enum BuiltinTarget {
 pub(all) struct BuiltinSpec {
   name : String
   purity : BuiltinPurity
-  min_arguments : Int
-  max_arguments : Int?
+  min_arguments : Int32
+  max_arguments : Int32?
   aliases : Array[String]
   capabilities : Array[BuiltinCapability]
   targets : Array[BuiltinTarget]
@@ -49,12 +49,12 @@ pub fn BuiltinSpec::purity(self : BuiltinSpec) -> BuiltinPurity {
 }
 
 ///|
-pub fn BuiltinSpec::min_arguments(self : BuiltinSpec) -> Int {
+pub fn BuiltinSpec::min_arguments(self : BuiltinSpec) -> Int32 {
   self.min_arguments
 }
 
 ///|
-pub fn BuiltinSpec::max_arguments(self : BuiltinSpec) -> Int? {
+pub fn BuiltinSpec::max_arguments(self : BuiltinSpec) -> Int32? {
   self.max_arguments
 }
 
@@ -81,7 +81,7 @@ pub fn BuiltinSpec::evidence(self : BuiltinSpec) -> String {
 }
 
 ///|
-pub fn BuiltinSpec::accepts_arity(self : BuiltinSpec, actual : Int) -> Bool {
+pub fn BuiltinSpec::accepts_arity(self : BuiltinSpec, actual : Int32) -> Bool {
   actual >= self.min_arguments &&
   (match self.max_arguments {
     Some(maximum) => actual <= maximum
@@ -95,7 +95,7 @@ pub fn BuiltinSpec::arity_description(self : BuiltinSpec) -> String {
 }
 
 ///|
-fn argument_range_description(minimum : Int, maximum : Int?) -> String {
+fn argument_range_description(minimum : Int32, maximum : Int32?) -> String {
   match maximum {
     Some(maximum) =>
       if maximum == minimum {
@@ -128,7 +128,7 @@ pub fn names() -> ArrayView[String] {
 }
 
 ///|
-fn builtin_arity(name : String) -> (Int, Int?) {
+fn builtin_arity(name : String) -> (Int32, Int32?) {
   match name {
     "arch"
     | "cache_directory"

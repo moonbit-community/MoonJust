@@ -15,7 +15,7 @@ fn expression_line_end_expected(expression : @syntax.Expression) -> String {
 pub fn parse_tokens(
   source : @source.Source,
   stream : @lexer.TokenStream,
-  limits? : ParserLimits = ParserLimits::default(),
+  limits~ : ParserLimits = ParserLimits::default(),
 ) -> @syntax.Ast raise ParserError {
   Parser::new(source, stream, limits).parse_ast()
 }
@@ -27,7 +27,7 @@ pub fn parse_tokens_with_environment(
   source : @source.Source,
   stream : @lexer.TokenStream,
   environment : ArrayView[(String, String)],
-  limits? : ParserLimits = ParserLimits::default(),
+  limits~ : ParserLimits = ParserLimits::default(),
 ) -> @syntax.Ast raise ParserError {
   Parser::new(source, stream, limits, environment~).parse_ast()
 }
@@ -36,7 +36,7 @@ pub fn parse_tokens_with_environment(
 /// Lex and parse one complete justfile source.
 pub fn parse(
   source : @source.Source,
-  limits? : ParserLimits = ParserLimits::default(),
+  limits~ : ParserLimits = ParserLimits::default(),
 ) -> @syntax.Ast raise ParserError {
   let stream = @lexer.lex(source) catch { error => raise LexerFailure(error) }
   parse_tokens(source, stream, limits~)
@@ -47,7 +47,7 @@ pub fn parse(
 pub fn parse_with_environment(
   source : @source.Source,
   environment : ArrayView[(String, String)],
-  limits? : ParserLimits = ParserLimits::default(),
+  limits~ : ParserLimits = ParserLimits::default(),
 ) -> @syntax.Ast raise ParserError {
   let stream = @lexer.lex(source) catch { error => raise LexerFailure(error) }
   parse_tokens_with_environment(source, stream, environment, limits~)

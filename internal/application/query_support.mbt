@@ -3,8 +3,8 @@
 /// its domain error into the response-oriented application error.
 fn compile_loaded_graph(
   graph : @loader.LoadedGraph,
-  allow_unstable? : Bool = false,
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  allow_unstable~ : Bool = false,
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
@@ -219,11 +219,11 @@ fn styled_recipe_signature(recipe : @syntax.Recipe, color : Bool) -> String {
 }
 
 ///|
-fn edit_distance(left : String, right : String) -> Int {
+fn edit_distance(left : String, right : String) -> Int32 {
   let a = left.to_array()
   let b = right.to_array()
-  let previous : Array[Int] = Array::make(b.length() + 1, 0)
-  let current : Array[Int] = Array::make(b.length() + 1, 0)
+  let previous : Array[Int32] = Array::make(b.length() + 1, 0)
+  let current : Array[Int32] = Array::make(b.length() + 1, 0)
   for index in 0..<=b.length() {
     previous[index] = index
   }
@@ -232,9 +232,9 @@ fn edit_distance(left : String, right : String) -> Int {
     for column in 1..<=b.length() {
       let substitution = previous[column - 1] +
         (if a[row - 1] == b[column - 1] { 0 } else { 1 })
-      current[column] = Int::min(
+      current[column] = Int32::min(
         substitution,
-        Int::min(previous[column] + 1, current[column - 1] + 1),
+        Int32::min(previous[column] + 1, current[column - 1] + 1),
       )
     }
     for column in 0..<=b.length() {
@@ -324,7 +324,7 @@ fn unknown_recipe_message(
 fn alias_names(
   compilation : @semantic.Compilation,
   target : String,
-  hidden? : ArrayView[String] = [],
+  hidden~ : ArrayView[String] = [],
 ) -> Array[String] {
   let result : Array[String] = []
   for symbol in compilation.symbols() {

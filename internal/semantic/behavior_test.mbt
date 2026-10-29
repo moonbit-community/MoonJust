@@ -9,7 +9,7 @@ test "semantic compilation preserves declaration order and settings" {
     "set quiet\nexport NAME := \"value\"\n" +
     "[group(\"build\")]\nbuild:\n  echo {{NAME}}\n",
   )
-  let compiled = try! compile(try! @parser.parse(source))
+  let compiled = try! @semantic.compile(try! @parser.parse(source))
   assert_true(compiled.settings().bool("quiet"))
   assert_eq(compiled.variable_names(), ["NAME"])
   assert_eq(compiled.recipe_names(), ["build"])
@@ -19,7 +19,7 @@ test "semantic compilation preserves declaration order and settings" {
 ///|
 test "semantic compilation rejects duplicate recipes" {
   let ast = try! @parser.parse(semantic_source("same:\nsame:\n"))
-  try compile(ast) catch {
+  try @semantic.compile(ast) catch {
     DuplicateRecipe(name="same", ..) => ()
     error => fail("unexpected semantic error: \{Repr(error)}")
   } noraise {

@@ -11,7 +11,7 @@ pub fn[X] configure_signal_forwarding(@async.TaskGroup[X], Bool) -> @host.HostEr
 
 pub fn enable_process_group_boundary() -> Unit
 
-pub fn exec_process_group_from_args() -> Int
+pub fn exec_process_group_from_args() -> Int32
 
 pub fn prepare_signal_forwarding() -> Unit
 
@@ -27,7 +27,7 @@ pub struct ProcessAdapter {
 }
 pub fn ProcessAdapter::new() -> Self
 pub async fn ProcessAdapter::run_process_async(Self, @host.CommandSpec) -> @host.ProcessResult raise @host.HostError
-pub async fn ProcessAdapter::write_output(Self, @host.OutputStream, Bytes) -> Int raise @host.HostError
+pub async fn ProcessAdapter::write_output(Self, @host.OutputStream, Bytes) -> Int32 raise @host.HostError
 pub impl @host.HostAsyncOutput for ProcessAdapter
 pub impl @host.HostAsyncProcess for ProcessAdapter
 

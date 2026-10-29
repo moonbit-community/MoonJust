@@ -1,5 +1,5 @@
 ///|
-fn recipe_names(size : Int) -> Array[String] {
+fn recipe_names(size : Int32) -> Array[String] {
   let names : Array[String] = []
   for index = 0; index < size; index = index + 1 {
     names.push("r" + index.to_string())
@@ -17,7 +17,7 @@ fn recipe_lines(names : ArrayView[String], body : String) -> Array[String] {
 }
 
 ///|
-fn generated_source(kind : String, size : Int) -> String {
+fn generated_source(kind : String, size : Int32) -> String {
   let names = recipe_names(size)
   match kind {
     "dag" => {
@@ -69,18 +69,18 @@ fn generated_source(kind : String, size : Int) -> String {
 ///|
 fn workload(
   name : String,
-  size : Int,
+  size : Int32,
   kind : String,
   command : Array[String],
-  source? : String = "",
-  stdin_source? : String = "",
-  calibration_ms? : Int64 = 0L,
+  source~ : String = "",
+  stdin_source~ : String = "",
+  calibration_ms~ : Int64 = 0L,
 ) -> Workload {
   { name, size, kind, source, stdin_source, command, calibration_ms, }
 }
 
 ///|
-fn noops_workload(size : Int, calibration_ms : Int64) -> Workload {
+fn noops_workload(size : Int32, calibration_ms : Int64) -> Workload {
   workload(
     "run-noops",
     size,

@@ -28,7 +28,7 @@ pub fn ModulePath::components(Self) -> ArrayView[String]
 #deprecated
 pub fn ModulePath::equal(Self, Self) -> Bool
 #deprecated
-pub fn ModulePath::hash(Self) -> Int
+pub fn ModulePath::hash(Self) -> Int32
 #deprecated
 pub fn ModulePath::hash_combine(Self, Hasher) -> Unit
 pub fn ModulePath::is_root(Self) -> Bool

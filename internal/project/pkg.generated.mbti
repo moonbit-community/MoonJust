@@ -30,6 +30,7 @@ pub(all) suberror ProjectError {
   Semantic(@semantic.SemanticError)
   Compilation(@semantic.ProjectCompilationError)
 } derive(@debug.Debug)
+pub fn ProjectError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct ProjectInput {
@@ -45,6 +46,7 @@ pub fn ProjectInput::global_project_directory(Self) -> @path.PathValue?
 pub fn ProjectInput::new(@path.PathValue, stdin? : Bytes, source_id? : @source.SourceId) -> Self
 pub fn ProjectInput::source_id(Self) -> @source.SourceId
 pub fn ProjectInput::stdin(Self) -> BytesView
+pub fn ProjectInput::to_repr(Self) -> @debug.Repr
 pub fn ProjectInput::with_cwd(Self, @path.PathValue) -> Self
 pub fn ProjectInput::with_global_justfile(Self, @path.PathValue, @path.PathValue) -> Self
 
@@ -82,6 +84,7 @@ pub(all) enum SourceSelection {
   File(@path.PathValue)
   Stdin
 } derive(@debug.Debug)
+pub fn SourceSelection::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

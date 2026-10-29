@@ -1,5 +1,5 @@
 ///|
-fn backtick_failure_code(command : String, code : Int) -> Int? {
+fn backtick_failure_code(command : String, code : Int32) -> Int32? {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,

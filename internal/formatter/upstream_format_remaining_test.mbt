@@ -1,6 +1,6 @@
 ///|
 fn format_upstream_remaining(text : String) -> String raise {
-  format_source(
+  @formatter.format_source(
     @source.Source::from_text(@source.SourceId::new(899), "justfile", text),
   )
 }
@@ -20,7 +20,7 @@ test "upstream format::unchanged_justfiles_are_not_written_to_disk" {
     "justfile",
     "\n",
   )
-  let formatted = try! format_source(source)
+  let formatted = try! @formatter.format_source(source)
   assert_eq(formatted, "\n")
 }
 

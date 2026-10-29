@@ -1,6 +1,8 @@
 ///|
-fn upstream_cli(args : Array[String]) -> CliArguments raise CliParseError {
-  parse_arguments(args, Map([]))
+fn upstream_cli(
+  args : Array[String],
+) -> @cli.CliArguments raise @cli.CliParseError {
+  @cli.parse_arguments(args, Map([]))
 }
 
 ///|

@@ -10,7 +10,7 @@ priv struct EvaluatedLine {
 fn source_line_sigils(
   line : @syntax.RecipeLine,
   guards : Bool,
-) -> (Int, Bool, Bool, Bool) {
+) -> (Int32, Bool, Bool, Bool) {
   guard line.fragments().get(0) is Some(Text(text~, ..)) else {
     return (0, false, false, false)
   }
@@ -243,7 +243,7 @@ fn command_spec(
   cwd : @path.PathValue,
   environment : ArrayView[(String, String)],
   discard_output : Bool,
-  positional? : ArrayView[String] = [],
+  positional~ : ArrayView[String] = [],
 ) -> @host.CommandSpec raise ExecutionError {
   let arguments = shell.arguments().to_owned()
   arguments.push(command)

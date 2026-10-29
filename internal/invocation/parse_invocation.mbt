@@ -3,10 +3,10 @@ fn parse_one(
   compilation : @semantic.Compilation,
   global : @evaluator.Environment,
   input : ArrayView[String],
-  start : Int,
-  resolve_expressions? : Bool = true,
+  start : Int32,
+  resolve_expressions~ : Bool = true,
   display_name? : String,
-) -> (Invocation, Int) raise InvocationError {
+) -> (Invocation, Int32) raise InvocationError {
   let (recipe, consumed) = match input.get(start) {
     Some(requested) =>
       match resolve_recipe_name(compilation, requested) {
@@ -21,7 +21,7 @@ fn parse_one(
   }
   let spec = recipe_spec(compilation, recipe)
   let groups : Array[Array[String]] = spec.parameters.map(fn(_) { [] })
-  let positional : Array[Int] = []
+  let positional : Array[Int32] = []
   let mut has_options = false
   for index, parameter in spec.parameters {
     if parameter.is_option() {
@@ -202,7 +202,7 @@ fn parse_one(
 pub fn parse_project_invocation_targets(
   project : @semantic.ProjectCompilation,
   arguments : ArrayView[String],
-  allow_missing? : Bool = false,
+  allow_missing~ : Bool = false,
 ) -> Array[(@modulepath.ModulePath, String)] raise InvocationError {
   let result : Array[(@modulepath.ModulePath, String)] = []
   let mut cursor = 0
@@ -252,7 +252,7 @@ pub fn parse_project_invocation_targets(
 pub fn parse_invocations(
   compilation : @semantic.Compilation,
   arguments : ArrayView[String],
-  overrides? : ArrayView[(String, String)] = [],
+  overrides~ : ArrayView[(String, String)] = [],
 ) -> Array[Invocation] raise InvocationError {
   let global = @evaluator.evaluate_compilation(compilation, overrides~) catch {
     error => raise Evaluation(error)

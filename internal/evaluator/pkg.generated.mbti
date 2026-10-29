@@ -64,18 +64,18 @@ pub(all) suberror EvaluationError {
   Builtin(@ZSeanYves/MoonJust/internal/builtin.BuiltinError, span~ : @source.Span)
   EffectRequired(effect~ : String, span~ : @source.Span)
   Host(@host.HostError, span~ : @source.Span)
-  ProcessFailure(code~ : Int, span~ : @source.Span)
-  BacktickFailure(code~ : Int, span~ : @source.Span)
+  ProcessFailure(code~ : Int32, span~ : @source.Span)
+  BacktickFailure(code~ : Int32, span~ : @source.Span)
   ProcessSignaled(signal~ : @host.SignalKind, span~ : @source.Span)
   InvalidUtf8(span~ : @source.Span)
-  RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
-  FunctionRecursionLimit(name~ : String, limit~ : Int, span~ : @source.Span)
-  NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
-  OutputLimitExceeded(limit~ : Int, span~ : @source.Span)
+  RecursionLimitExceeded(limit~ : Int32, span~ : @source.Span)
+  FunctionRecursionLimit(name~ : String, limit~ : Int32, span~ : @source.Span)
+  NodeLimitExceeded(limit~ : Int32, span~ : @source.Span)
+  OutputLimitExceeded(limit~ : Int32, span~ : @source.Span)
   MissingContext(fact~ : String, span~ : @source.Span)
-  ArgumentCount(recipe~ : String, expected~ : String, actual~ : Int, span~ : @source.Span)
+  ArgumentCount(recipe~ : String, expected~ : String, actual~ : Int32, span~ : @source.Span)
   UnknownOverrides(names~ : Array[String], span~ : @source.Span)
-  FunctionArgumentCount(name~ : String, expected~ : Int, actual~ : Int, span~ : @source.Span)
+  FunctionArgumentCount(name~ : String, expected~ : Int32, actual~ : Int32, span~ : @source.Span)
   EmptyParameter(recipe~ : String, parameter~ : String, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn EvaluationError::code(Self) -> String
@@ -146,12 +146,12 @@ pub(all) struct EvaluationContext {
   data_local_directory : @path.PathValue?
   cache_directory : @path.PathValue?
   runtime_directory : @path.PathValue?
-  pid : Int?
-  num_cpus : Int?
-  num_jobs : Int?
+  pid : Int32?
+  num_cpus : Int32?
+  num_jobs : Int32?
   is_dependency : Bool
   lists : Bool
-  utc_offset_seconds : Int?
+  utc_offset_seconds : Int32?
   color_mode : String?
   command_color : String?
   environment : Array[(String, String)]?
@@ -180,30 +180,30 @@ pub fn EvaluationContext::lists(Self) -> Bool
 pub fn EvaluationContext::module_file(Self) -> @path.PathValue?
 pub fn EvaluationContext::module_name(Self) -> String?
 pub fn EvaluationContext::module_path(Self) -> String?
-pub fn EvaluationContext::new(cwd? : @path.PathValue, recipe? : String, module_name? : String, source? : @source.SourceId, justfile? : @path.PathValue, source_file? : @path.PathValue, source_files? : ArrayView[(@source.SourceId, @path.PathValue)], module_file? : @path.PathValue, module_path? : String, executable? : @path.PathValue, executable_directory? : @path.PathValue, invocation_directory? : @path.PathValue, invocation_directory_native? : @path.PathValue, home_directory? : @path.PathValue, config_directory? : @path.PathValue, config_local_directory? : @path.PathValue, data_directory? : @path.PathValue, data_local_directory? : @path.PathValue, cache_directory? : @path.PathValue, runtime_directory? : @path.PathValue, pid? : Int, num_cpus? : Int, num_jobs? : Int, is_dependency? : Bool, lists? : Bool, utc_offset_seconds? : Int, color_mode? : String, command_color? : String, environment? : Array[(String, String)], process_environment? : Array[(String, String)]) -> Self
+pub fn EvaluationContext::new(cwd? : @path.PathValue, recipe? : String, module_name? : String, source? : @source.SourceId, justfile? : @path.PathValue, source_file? : @path.PathValue, source_files? : ArrayView[(@source.SourceId, @path.PathValue)], module_file? : @path.PathValue, module_path? : String, executable? : @path.PathValue, executable_directory? : @path.PathValue, invocation_directory? : @path.PathValue, invocation_directory_native? : @path.PathValue, home_directory? : @path.PathValue, config_directory? : @path.PathValue, config_local_directory? : @path.PathValue, data_directory? : @path.PathValue, data_local_directory? : @path.PathValue, cache_directory? : @path.PathValue, runtime_directory? : @path.PathValue, pid? : Int32, num_cpus? : Int32, num_jobs? : Int32, is_dependency? : Bool, lists? : Bool, utc_offset_seconds? : Int32, color_mode? : String, command_color? : String, environment? : Array[(String, String)], process_environment? : Array[(String, String)]) -> Self
 #deprecated
 pub fn EvaluationContext::not_equal(Self, Self) -> Bool
-pub fn EvaluationContext::num_cpus(Self) -> Int?
-pub fn EvaluationContext::num_jobs(Self) -> Int?
-pub fn EvaluationContext::pid(Self) -> Int?
+pub fn EvaluationContext::num_cpus(Self) -> Int32?
+pub fn EvaluationContext::num_jobs(Self) -> Int32?
+pub fn EvaluationContext::pid(Self) -> Int32?
 pub fn EvaluationContext::recipe(Self) -> String?
 pub fn EvaluationContext::runtime_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::source(Self) -> @source.SourceId?
 pub fn EvaluationContext::source_file(Self) -> @path.PathValue?
 #deprecated
 pub fn EvaluationContext::to_repr(Self) -> @debug.Repr
-pub fn EvaluationContext::utc_offset_seconds(Self) -> Int?
+pub fn EvaluationContext::utc_offset_seconds(Self) -> Int32?
 pub fn EvaluationContext::with_process_environment(Self, ArrayView[(String, String)]) -> Self
 
 pub(all) struct EvaluationLimits {
-  max_depth : Int
-  max_nodes : Int
-  max_output_bytes : Int
+  max_depth : Int32
+  max_nodes : Int32
+  max_output_bytes : Int32
 } derive(Eq, @debug.Debug)
 pub fn EvaluationLimits::default() -> Self
 #deprecated
 pub fn EvaluationLimits::equal(Self, Self) -> Bool
-pub fn EvaluationLimits::new(Int, Int, Int) -> Self
+pub fn EvaluationLimits::new(Int32, Int32, Int32) -> Self
 #deprecated
 pub fn EvaluationLimits::not_equal(Self, Self) -> Bool
 #deprecated

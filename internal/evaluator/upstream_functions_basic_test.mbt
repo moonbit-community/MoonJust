@@ -1,11 +1,13 @@
 ///|
-fn eval_upstream_function_text(text : String) -> String raise EvaluationError {
+fn eval_upstream_function_text(
+  text : String,
+) -> String raise @evaluator.EvaluationError {
   let source = @source.Source::from_text(
     @source.SourceId::new(707),
     "expr",
     text,
   )
-  evaluate_source(source).to_string()
+  @evaluator.evaluate_source(source).to_string()
 }
 
 ///|
@@ -45,11 +47,11 @@ fn assert_shell_invocation(
   for argument in arguments {
     values.push(String(argument))
   }
-  let value = try! call_shell_effect(
+  let value = try! @evaluator.call_shell_effect(
     host,
     values,
-    EvaluationContext::new(cwd~),
-    EffectShell::new("sh", ["-cu"]),
+    @evaluator.EvaluationContext::new(cwd~),
+    @evaluator.EffectShell::new("sh", ["-cu"]),
     @source.Span::origin(@source.SourceId::new(935)),
   )
   assert_eq(value.to_string(), expected_output.trim_end().to_owned())
@@ -184,7 +186,7 @@ test "upstream functions::broken_without_extension_function" {
 ///|
 fn eval_upstream_context_function(
   text : String,
-) -> String raise EvaluationError {
+) -> String raise @evaluator.EvaluationError {
   let source = @source.Source::from_text(
     @source.SourceId::new(708),
     "expr",
@@ -193,7 +195,10 @@ fn eval_upstream_context_function(
   let expression = @parser.parse_expression(source) catch {
     error => raise Parse(error)
   }
-  evaluate_with_context(expression, EvaluationContext::new()).to_string()
+  @evaluator.evaluate_with_context(
+    expression,
+    @evaluator.EvaluationContext::new(),
+  ).to_string()
 }
 
 ///|
@@ -397,19 +402,19 @@ test "upstream functions::join_windows" {
     cwd,
     @host.PlatformInfo::new(Windows, "test", Windows),
   )
-  let value = try! call_non_process_effect_with_context(
+  let value = try! @evaluator.call_non_process_effect_with_context(
     host,
     "join",
     [String("a"), String("b"), String("c"), String("d")],
-    EvaluationContext::new(cwd~),
+    @evaluator.EvaluationContext::new(cwd~),
     @source.Span::origin(@source.SourceId::new(715)),
   )
   assert_eq(value.to_string(), "a\\b\\c\\d")
-  let rooted = try! call_non_process_effect_with_context(
+  let rooted = try! @evaluator.call_non_process_effect_with_context(
     host,
     "join",
     [String("a"), String("\\b"), String("\\c"), String("d")],
-    EvaluationContext::new(cwd~),
+    @evaluator.EvaluationContext::new(cwd~),
     @source.Span::origin(@source.SourceId::new(716)),
   )
   assert_eq(rooted.to_string(), "\\c\\d")
@@ -430,11 +435,11 @@ test "upstream functions::shell_with_powershell" {
   expected.set_stdout(Capture)
   expected.set_stderr(Inherit)
   host.expect_process(expected, @host.ProcessResult::new(0, b"bar\r\n", b""))
-  let value = try! call_shell_effect(
+  let value = try! @evaluator.call_shell_effect(
     host,
     [String("Write-Output bar")],
-    EvaluationContext::new(cwd~),
-    EffectShell::new("pwsh.exe", ["-NoLogo", "-Command"]),
+    @evaluator.EvaluationContext::new(cwd~),
+    @evaluator.EffectShell::new("pwsh.exe", ["-NoLogo", "-Command"]),
     @source.Span::origin(@source.SourceId::new(717)),
   )
   assert_eq(value.to_string(), "bar")
@@ -448,10 +453,10 @@ test "upstream functions::just_version" {
     "expr",
     "just_version()",
   )
-  let context = EvaluationContext::new()
+  let context = @evaluator.EvaluationContext::new()
   let expression = try! @parser.parse_expression(source)
   assert_eq(
-    try! evaluate_with_context(expression, context).to_string(),
+    try! @evaluator.evaluate_with_context(expression, context).to_string(),
     "1.57.0",
   )
 }
@@ -463,9 +468,12 @@ test "upstream functions::module_path" {
     "expr",
     "module_path()",
   )
-  let context = EvaluationContext::new(module_path="")
+  let context = @evaluator.EvaluationContext::new(module_path="")
   let expression = try! @parser.parse_expression(source)
-  assert_eq(try! evaluate_with_context(expression, context).to_string(), "")
+  assert_eq(
+    try! @evaluator.evaluate_with_context(expression, context).to_string(),
+    "",
+  )
 }
 
 ///|
@@ -476,11 +484,14 @@ test "upstream functions::is_dependency" {
     "is_dependency()",
   )
   let expression = try! @parser.parse_expression(source)
-  let root = EvaluationContext::new(is_dependency=false)
-  let dependency = EvaluationContext::new(is_dependency=true)
-  assert_eq(try! evaluate_with_context(expression, root).to_string(), "false")
+  let root = @evaluator.EvaluationContext::new(is_dependency=false)
+  let dependency = @evaluator.EvaluationContext::new(is_dependency=true)
   assert_eq(
-    try! evaluate_with_context(expression, dependency).to_string(),
+    try! @evaluator.evaluate_with_context(expression, root).to_string(),
+    "false",
+  )
+  assert_eq(
+    try! @evaluator.evaluate_with_context(expression, dependency).to_string(),
     "true",
   )
 }

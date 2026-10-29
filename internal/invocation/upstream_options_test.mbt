@@ -11,7 +11,9 @@ test "upstream options::parameters_with_both_long_and_short_option_may_be_passed
   let compilation = try! options_upstream_compilation(
     "[arg('bar', long='bar', short='b')]\nfoo bar:\n",
   )
-  let invocations = try! parse_invocations(compilation, ["foo", "--bar", "baz"])
+  let invocations = try! @invocation.parse_invocations(compilation, [
+    "foo", "--bar", "baz",
+  ])
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].arguments()[0].elements(), ["baz"])
 }
@@ -21,7 +23,9 @@ test "upstream options::parameters_with_both_long_and_short_option_may_be_passed
   let compilation = try! options_upstream_compilation(
     "[arg('bar', long='bar', short='b')]\nfoo bar:\n",
   )
-  let invocations = try! parse_invocations(compilation, ["foo", "-b", "baz"])
+  let invocations = try! @invocation.parse_invocations(compilation, [
+    "foo", "-b", "baz",
+  ])
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].arguments()[0].elements(), ["baz"])
 }
@@ -32,7 +36,9 @@ test "upstream options::parameters_with_both_long_and_short_may_not_use_both" {
     "[arg('bar', long='bar', short='b')]\nfoo bar:\n",
   )
   try
-    parse_invocations(compilation, ["foo", "--bar", "baz", "-b", "baz"])
+    @invocation.parse_invocations(compilation, [
+      "foo", "--bar", "baz", "-b", "baz",
+    ])
   catch {
     DuplicateOption(recipe="foo", option="-b") => ()
     error => fail("unexpected invocation error: \{Repr(error)}")

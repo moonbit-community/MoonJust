@@ -23,7 +23,7 @@ pub fn StringLiteral::new(
   cooked : String,
   kind : StringKind,
   span : @source.Span,
-  shell_expanded? : Bool = false,
+  shell_expanded~ : Bool = false,
 ) -> StringLiteral {
   { raw, cooked, kind, span, shell_expanded, }
 }

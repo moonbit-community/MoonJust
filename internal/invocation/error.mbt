@@ -3,7 +3,7 @@
 pub(all) suberror InvocationError {
   NoRecipes
   NoDefaultRecipe
-  DefaultRecipeRequiresArguments(recipe~ : String, minimum~ : Int)
+  DefaultRecipeRequiresArguments(recipe~ : String, minimum~ : Int32)
   UnknownRecipe(recipe~ : String)
   UnknownRecipeSuggested(
     recipe~ : String,
@@ -45,22 +45,22 @@ pub(all) suberror InvocationError {
   MissingOption(recipe~ : String, option~ : String)
   PositionalArgumentCountMismatch(
     recipe~ : String,
-    found~ : Int,
-    minimum~ : Int,
-    maximum~ : Int?,
+    found~ : Int32,
+    minimum~ : Int32,
+    maximum~ : Int32?,
     usage~ : String
   )
   ArgumentTooFewValues(
     recipe~ : String,
     parameter~ : String,
-    found~ : Int,
-    minimum~ : Int
+    found~ : Int32,
+    minimum~ : Int32
   )
   ArgumentTooManyValues(
     recipe~ : String,
     parameter~ : String,
-    found~ : Int,
-    maximum~ : Int
+    found~ : Int32,
+    maximum~ : Int32
   )
   ArgumentPatternMismatch(
     recipe~ : String,
@@ -101,7 +101,7 @@ pub fn InvocationError::code(self : InvocationError) -> String {
 }
 
 ///|
-fn counted(count : Int, singular : String) -> String {
+fn counted(count : Int32, singular : String) -> String {
   @diagnostic.Count::numbered(singular, count).to_string()
 }
 

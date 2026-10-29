@@ -16,8 +16,8 @@ async fn[O : @host.HostAsyncOutput] emit_live(
   output : O,
   stream : @host.OutputStream,
   bytes : BytesView,
-  commands : Int,
-) -> Int raise LiveRuntimeError {
+  commands : Int32,
+) -> Int32 raise LiveRuntimeError {
   if bytes.is_empty() {
     return 0
   }

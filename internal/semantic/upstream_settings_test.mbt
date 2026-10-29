@@ -2,7 +2,7 @@
 fn upstream_setting_undefined(
   text : String,
   expected_name : String,
-  start : Int,
+  start : Int32,
 ) -> Unit raise {
   try
     @semantic.compile_source(

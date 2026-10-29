@@ -3,14 +3,14 @@ fn assert_upstream_variable_cycle(
   text : String,
   expected_name : String,
   expected_stack : Array[String],
-  expected_offset : Int,
-  expected_width : Int,
+  expected_offset : Int32,
+  expected_width : Int32,
 ) -> Unit raise {
   let compilation = try! @semantic.compile_source(
     @source.Source::from_text(@source.SourceId::new(960), "justfile", text),
     allow_unstable=true,
   )
-  try evaluate_compilation(compilation) catch {
+  try @evaluator.evaluate_compilation(compilation) catch {
     VariableCycle(name~, stack~, span~) => {
       assert_eq(stack, expected_stack)
       assert_eq(name, expected_name)

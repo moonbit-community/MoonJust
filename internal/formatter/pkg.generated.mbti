@@ -50,7 +50,7 @@ pub fn FormatterError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror MarkdownError {
   InvalidLimit
-  LimitExceeded(limit~ : Int, span~ : @source.Span)
+  LimitExceeded(limit~ : Int32, span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn MarkdownError::equal(Self, Self) -> Bool
@@ -74,13 +74,13 @@ pub fn CheckResult::not_equal(Self, Self) -> Bool
 pub fn CheckResult::to_repr(Self) -> @debug.Repr
 
 pub struct MarkdownLimits {
-  max_lines : Int
-  max_bytes : Int
+  max_lines : Int32
+  max_bytes : Int32
 } derive(Eq, @debug.Debug)
 pub fn MarkdownLimits::default() -> Self
 #deprecated
 pub fn MarkdownLimits::equal(Self, Self) -> Bool
-pub fn MarkdownLimits::new(Int, Int) -> Self raise MarkdownError
+pub fn MarkdownLimits::new(Int32, Int32) -> Self raise MarkdownError
 #deprecated
 pub fn MarkdownLimits::not_equal(Self, Self) -> Bool
 #deprecated
@@ -88,9 +88,9 @@ pub fn MarkdownLimits::to_repr(Self) -> @debug.Repr
 
 pub struct TangledSource {
   source : @source.Source
-  selected_blocks : Int
+  selected_blocks : Int32
 } derive(@debug.Debug)
-pub fn TangledSource::selected_blocks(Self) -> Int
+pub fn TangledSource::selected_blocks(Self) -> Int32
 pub fn TangledSource::source(Self) -> @source.Source
 #deprecated
 pub fn TangledSource::to_repr(Self) -> @debug.Repr

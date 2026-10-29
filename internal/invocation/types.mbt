@@ -60,15 +60,15 @@ priv struct ParameterSpec {
   span : @source.Span
   defaulted : Bool
   variadic : Bool
-  variadic_minimum : Int
+  variadic_minimum : Int32
   mut long : String?
   mut short : Char?
   mut long_defaulted : Bool
   mut flag : Bool
   mut value : @syntax.Expression?
   mut multiple : Bool
-  mut minimum : Int?
-  mut maximum : Int?
+  mut minimum : Int32?
+  mut maximum : Int32?
   mut pattern : @syntax.Expression?
   mut patterns : Array[String]
   mut long_span : @source.Span?

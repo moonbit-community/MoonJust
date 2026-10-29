@@ -36,7 +36,7 @@ pub impl @host.HostFs for NativeFs with fn read_file_range(
   _self : NativeFs,
   path : @path.PathValue,
   offset : Int64,
-  length : Int,
+  length : Int32,
 ) -> Bytes raise @host.HostError {
   if offset < 0L || length < 0 {
     raise InvalidInput("file range must not be negative")
@@ -205,7 +205,7 @@ pub impl @host.HostEnv for NativeFs with fn env_entries(_self : NativeFs) -> Arr
   let variables = @env.get_env_vars()
   let keys = variables.keys().collect()
   keys.sort_by(fn(left, right) {
-    let length = Int::min(left.length(), right.length())
+    let length = Int32::min(left.length(), right.length())
     for index in 0..<length {
       let order = left.unsafe_get(index).compare(right.unsafe_get(index))
       if order != 0 {
@@ -250,7 +250,7 @@ pub impl @host.HostEnv for NativeFs with fn current_dir(_self : NativeFs) -> @pa
 ///|
 pub impl @host.HostRandom for NativeFs with fn random_bytes(
   _self : NativeFs,
-  count : Int,
+  count : Int32,
 ) -> Bytes raise @host.HostError {
   if count < 0 {
     raise InvalidInput("random byte count must not be negative")

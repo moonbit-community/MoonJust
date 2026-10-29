@@ -1,9 +1,9 @@
 ///|
-fn hex_value(character : Char) -> Int? {
+fn hex_value(character : Char) -> Int32? {
   match character {
-    '0'..='9' => Some(character.to_int() - '0'.to_int())
-    'a'..='f' => Some(character.to_int() - 'a'.to_int() + 10)
-    'A'..='F' => Some(character.to_int() - 'A'.to_int() + 10)
+    '0'..<='9' => Some(character.to_int() - '0'.to_int())
+    'a'..<='f' => Some(character.to_int() - 'a'.to_int() + 10)
+    'A'..<='F' => Some(character.to_int() - 'A'.to_int() + 10)
     _ => None
   }
 }
@@ -283,7 +283,7 @@ fn expand_shell_string(
 }
 
 ///|
-fn literal_parts(raw : String) -> (@syntax.StringKind, Int, Bool) {
+fn literal_parts(raw : String) -> (@syntax.StringKind, Int32, Bool) {
   if raw.has_prefix("\"\"\"") {
     (TripleCooked, 3, true)
   } else if raw.has_prefix("'''") {
@@ -298,7 +298,7 @@ fn literal_parts(raw : String) -> (@syntax.StringKind, Int, Bool) {
 }
 
 ///|
-fn slice_literal(raw : String, open : Int, close : Int) -> String {
+fn slice_literal(raw : String, open : Int32, close : Int32) -> String {
   raw[open:raw.length() - close].to_owned()
 }
 
@@ -357,7 +357,7 @@ fn Parser::format_segment(
   first : Bool,
   last : Bool,
   kind : @syntax.StringKind,
-  delimiter : Int,
+  delimiter : Int32,
 ) -> @syntax.StringLiteral raise ParserError {
   let raw = self.lexeme(token)
   let open = if first { delimiter } else { 2 }

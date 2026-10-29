@@ -15,7 +15,7 @@ pub fn PolicyFs::new() -> PolicyFs {
 pub impl @host.HostSourceReader for PolicyFs with fn read_source(
   self : PolicyFs,
   path : @path.PathValue,
-  max_bytes : Int,
+  max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
   @host.HostSourceReader::read_source(self.inner, path, max_bytes)
 }
@@ -137,7 +137,7 @@ pub impl @host.HostFs for PolicyFs with fn read_file_range(
   self : PolicyFs,
   path : @path.PathValue,
   offset : Int64,
-  length : Int,
+  length : Int32,
 ) -> Bytes raise @host.HostError {
   if offset < 0L || length < 0 || offset > 0x7fff_ffffL {
     raise InvalidInput("file range must be representable and non-negative")
@@ -147,7 +147,7 @@ pub impl @host.HostFs for PolicyFs with fn read_file_range(
   if start >= contents.length() {
     return b""
   }
-  contents[start:Int::min(contents.length(), start + length)].to_owned()
+  contents[start:Int32::min(contents.length(), start + length)].to_owned()
 }
 
 ///|

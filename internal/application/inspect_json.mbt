@@ -530,7 +530,7 @@ fn settings_json(settings : @semantic.CompiledSettings) -> Json {
 fn inspect_json(
   loaded : @loader.LoadedSource,
   compilation : @semantic.Compilation,
-  module_path? : @modulepath.ModulePath = @modulepath.ModulePath::root(),
+  module_path~ : @modulepath.ModulePath = @modulepath.ModulePath::root(),
   project? : @semantic.ProjectCompilation,
   graph? : @loader.LoadedGraph,
 ) -> Json {

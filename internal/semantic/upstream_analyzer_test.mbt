@@ -111,9 +111,9 @@ fn assert_function_arity(
   text : String,
   function_name : String,
   expected_arity : String,
-  actual_count : Int,
-  start : Int,
-  length : Int,
+  actual_count : Int32,
+  start : Int32,
+  length : Int32,
 ) -> Unit raise {
   try @semantic.compile_source(analyzer_source(text)) catch {
     FunctionArgumentCount(name~, expected~, actual~, span~) => {
@@ -294,7 +294,7 @@ test "upstream analyzer::tests::extra_whitespace" {
 fn assert_undefined_variable(
   text : String,
   expected_name : String,
-  start : Int,
+  start : Int32,
 ) -> Unit raise {
   try @semantic.compile_source(analyzer_source(text)) catch {
     UndefinedVariable(name~, span~) => {
@@ -340,7 +340,7 @@ test "upstream variable_resolver::tests::function_parameters_shadow_variables" {
 fn assert_recipe_cycle(
   text : String,
   expected_recipe : String,
-  start : Int,
+  start : Int32,
 ) -> Unit raise {
   try @semantic.compile_source(analyzer_source(text)) catch {
     DependencyCycle(name~, span~) => {

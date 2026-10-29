@@ -2,9 +2,9 @@
 fn assert_clean_path(
   raw : String,
   expected : String,
-  flavor : PathFlavor,
+  flavor : @path.PathFlavor,
 ) -> Unit raise {
-  let value = PathValue::new(raw, flavor) catch {
+  let value = @path.PathValue::new(raw, flavor) catch {
     _ => fail("path normalization unexpectedly rejected input")
   }
   assert_eq(value.as_string(), expected)
@@ -125,8 +125,8 @@ test "upstream search::tests::clean" {
       ("/foo/bar", "..", "/foo"),
       ("/foo/bar/", "..", "/foo"),
     ] {
-    let prefix = try! PathValue::new(expected.0, Unix)
-    let suffix = try! PathValue::new(expected.1, Unix)
+    let prefix = try! @path.PathValue::new(expected.0, Unix)
+    let suffix = try! @path.PathValue::new(expected.1, Unix)
     assert_eq(try! prefix.join(suffix).clean().as_string(), expected.2)
   }
 }

@@ -11,7 +11,7 @@ test "parser builds recipes, parameters, aliases, and settings" {
     "hello name +rest: hi\n" +
     "  @echo {{name}}\n",
   )
-  let ast = try! parse(source)
+  let ast = try! @parser.parse(source)
   assert_eq(ast.items().length(), 3)
   guard ast.items()[1] is Alias(alias_item) else { fail("expected alias") }
   assert_eq(alias_item.name(), "hi")
@@ -26,7 +26,7 @@ test "parser builds recipes, parameters, aliases, and settings" {
 
 ///|
 test "parser rejects dangling attributes" {
-  try parse(parser_source("[private]\n")) catch {
+  try @parser.parse(parser_source("[private]\n")) catch {
     UnexpectedToken(found=Eof, ..) => ()
     error => fail("unexpected parser error: \{Repr(error)}")
   } noraise {

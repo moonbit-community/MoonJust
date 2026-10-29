@@ -68,7 +68,9 @@ fn upstream_alias_project() -> @semantic.ProjectCompilation raise {
 ///|
 test "upstream invocation_parser::tests::recipe_in_submodule" {
   let project = try! upstream_project("", "bar:\n")
-  let invocations = try! parse_project_invocations(project, ["foo", "bar"])
+  let invocations = try! @invocation.parse_project_invocations(project, [
+    "foo", "bar",
+  ])
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].module_path().as_string(), "foo")
   assert_eq(invocations[0].invocation().recipe(), "bar")
@@ -78,7 +80,7 @@ test "upstream invocation_parser::tests::recipe_in_submodule" {
 ///|
 test "upstream invocation_parser::tests::recipe_in_submodule_path_unknown" {
   let project = try! upstream_project("", "bar:\n")
-  try parse_project_invocations(project, ["foo::zzz"]) catch {
+  try @invocation.parse_project_invocations(project, ["foo::zzz"]) catch {
     UnknownRecipe(recipe="foo::zzz") => ()
     error => fail("unexpected invocation error: \{Repr(error)}")
   } noraise {
@@ -89,7 +91,7 @@ test "upstream invocation_parser::tests::recipe_in_submodule_path_unknown" {
 ///|
 test "upstream invocation_parser::tests::recipe_in_submodule_unknown" {
   let project = try! upstream_project("", "bar:\n")
-  try parse_project_invocations(project, ["foo", "zzz"]) catch {
+  try @invocation.parse_project_invocations(project, ["foo", "zzz"]) catch {
     UnknownRecipe(recipe="foo zzz") => ()
     error => fail("unexpected invocation error: \{Repr(error)}")
   } noraise {
@@ -100,7 +102,7 @@ test "upstream invocation_parser::tests::recipe_in_submodule_unknown" {
 ///|
 test "upstream invocation_parser::tests::module_path_not_consumed" {
   let project = try! upstream_project("", "bar:\n")
-  try parse_project_invocations(project, ["foo::bar::baz"]) catch {
+  try @invocation.parse_project_invocations(project, ["foo::bar::baz"]) catch {
     ExpectedSubmoduleFoundRecipe(path="foo::bar") => ()
     error => fail("unexpected invocation error: \{Repr(error)}")
   } noraise {
@@ -125,7 +127,7 @@ test "upstream invocation_parser::tests::recipe_in_absent_optional_module" {
     ],
     absent_modules=[absent],
   )
-  try parse_project_invocations(project, ["foo::bar"]) catch {
+  try @invocation.parse_project_invocations(project, ["foo::bar"]) catch {
     OptionalModuleAbsent(module_path="foo") => ()
     error => fail("unexpected invocation error: \{Repr(error)}")
   } noraise {
@@ -136,7 +138,9 @@ test "upstream invocation_parser::tests::recipe_in_absent_optional_module" {
 ///|
 test "upstream invocation_parser::tests::module_alias" {
   let project = try! upstream_alias_project()
-  let invocations = try! parse_project_invocations(project, ["f", "bar"])
+  let invocations = try! @invocation.parse_project_invocations(project, [
+    "f", "bar",
+  ])
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].module_path().as_string(), "foo")
   assert_eq(invocations[0].invocation().recipe(), "bar")
@@ -156,7 +160,7 @@ test "upstream invocation_parser::tests::no_default_recipe" {
       source_file=@path.PathValue::new("/workspace/justfile", Unix),
     ),
   ])
-  try parse_project_invocations(project, []) catch {
+  try @invocation.parse_project_invocations(project, []) catch {
     NoDefaultRecipe => ()
     error => fail("unexpected invocation error: \{Repr(error)}")
   } noraise {
@@ -167,7 +171,7 @@ test "upstream invocation_parser::tests::no_default_recipe" {
 ///|
 test "upstream invocation_parser::tests::trailing_separator_not_last_argument" {
   let project = try! upstream_project("", "bar:\n")
-  try parse_project_invocations(project, ["foo::", "bar"]) catch {
+  try @invocation.parse_project_invocations(project, ["foo::", "bar"]) catch {
     UnknownRecipe(recipe="foo::") => ()
     error => fail("unexpected invocation error: \{Repr(error)}")
   } noraise {
@@ -178,7 +182,9 @@ test "upstream invocation_parser::tests::trailing_separator_not_last_argument" {
 ///|
 test "upstream invocation_parser::tests::trailing_separator_runs_default_recipe" {
   let project = try! upstream_project("", "bar:\n")
-  let invocations = try! parse_project_invocations(project, ["foo::"])
+  let invocations = try! @invocation.parse_project_invocations(project, [
+    "foo::",
+  ])
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].module_path().as_string(), "foo")
   assert_eq(invocations[0].invocation().recipe(), "bar")

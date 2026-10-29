@@ -1,26 +1,26 @@
 ///|
 /// Human-facing position resolved from a UTF-8 byte offset.
 pub struct SourcePosition {
-  line : Int
-  byte_column : Int
-  scalar_column : Int
+  line : Int32
+  byte_column : Int32
+  scalar_column : Int32
 } derive(Eq, Debug)
 
 ///|
 /// Return the one-based line number.
-pub fn SourcePosition::line(self : SourcePosition) -> Int {
+pub fn SourcePosition::line(self : SourcePosition) -> Int32 {
   self.line
 }
 
 ///|
 /// Return the zero-based UTF-8 byte column.
-pub fn SourcePosition::byte_column(self : SourcePosition) -> Int {
+pub fn SourcePosition::byte_column(self : SourcePosition) -> Int32 {
   self.byte_column
 }
 
 ///|
 /// Return the zero-based Unicode scalar column.
-pub fn SourcePosition::scalar_column(self : SourcePosition) -> Int {
+pub fn SourcePosition::scalar_column(self : SourcePosition) -> Int32 {
   self.scalar_column
 }
 
@@ -30,11 +30,11 @@ pub struct Source {
   id : SourceId
   name : String
   bytes : Bytes
-  line_starts : Array[Int]
+  line_starts : Array[Int32]
 } derive(Debug)
 
 ///|
-fn build_line_index(bytes : Bytes) -> Array[Int] {
+fn build_line_index(bytes : Bytes) -> Array[Int32] {
   let starts = [0]
   for index, byte in bytes {
     if byte == b'\n' {
@@ -91,18 +91,21 @@ pub fn Source::text(self : Source) -> String {
 
 ///|
 /// Return the source length in UTF-8 bytes.
-pub fn Source::length(self : Source) -> Int {
+pub fn Source::length(self : Source) -> Int32 {
   self.bytes.length()
 }
 
 ///|
 /// Return the number of logical lines. Empty input has one line.
-pub fn Source::line_count(self : Source) -> Int {
+pub fn Source::line_count(self : Source) -> Int32 {
   self.line_starts.length()
 }
 
 ///|
-fn Source::check_offset(self : Source, offset : Int) -> Unit raise SourceError {
+fn Source::check_offset(
+  self : Source,
+  offset : Int32,
+) -> Unit raise SourceError {
   if offset < 0 || offset > self.bytes.length() {
     raise OffsetOutOfBounds(offset~, length=self.bytes.length())
   }
@@ -119,7 +122,7 @@ fn is_utf8_continuation(byte : Byte) -> Bool {
 ///|
 fn Source::check_boundary(
   self : Source,
-  offset : Int,
+  offset : Int32,
 ) -> Unit raise SourceError {
   self.check_offset(offset)
   if offset < self.bytes.length() && is_utf8_continuation(self.bytes[offset]) {
@@ -130,8 +133,8 @@ fn Source::check_boundary(
 ///|
 fn Source::line_index_for_offset(
   self : Source,
-  offset : Int,
-) -> Int raise SourceError {
+  offset : Int32,
+) -> Int32 raise SourceError {
   self.check_offset(offset)
   match self.line_starts.binary_search(offset) {
     Ok(index) => index
@@ -140,7 +143,7 @@ fn Source::line_index_for_offset(
 }
 
 ///|
-fn Source::check_line(self : Source, line : Int) -> Int raise SourceError {
+fn Source::check_line(self : Source, line : Int32) -> Int32 raise SourceError {
   if line < 1 || line > self.line_starts.length() {
     raise InvalidLine(line~, line_count=self.line_starts.length())
   }
@@ -149,14 +152,17 @@ fn Source::check_line(self : Source, line : Int) -> Int raise SourceError {
 
 ///|
 /// Return the byte offset at the start of a one-based line.
-pub fn Source::line_start(self : Source, line : Int) -> Int raise SourceError {
+pub fn Source::line_start(
+  self : Source,
+  line : Int32,
+) -> Int32 raise SourceError {
   let index = self.check_line(line)
   self.line_starts[index]
 }
 
 ///|
 /// Return a line span without its LF or CRLF terminator.
-pub fn Source::line_span(self : Source, line : Int) -> Span raise SourceError {
+pub fn Source::line_span(self : Source, line : Int32) -> Span raise SourceError {
   let index = self.check_line(line)
   let start_byte = self.line_starts[index]
   let raw_end = if index + 1 < self.line_starts.length() {
@@ -180,7 +186,10 @@ pub fn Source::line_span(self : Source, line : Int) -> Span raise SourceError {
 
 ///|
 /// Return one decoded line without its line terminator.
-pub fn Source::line_text(self : Source, line : Int) -> String raise SourceError {
+pub fn Source::line_text(
+  self : Source,
+  line : Int32,
+) -> String raise SourceError {
   self.slice_text(self.line_span(line))
 }
 
@@ -188,7 +197,7 @@ pub fn Source::line_text(self : Source, line : Int) -> String raise SourceError 
 /// Resolve a UTF-8 boundary offset to line and column values.
 pub fn Source::locate(
   self : Source,
-  offset : Int,
+  offset : Int32,
 ) -> SourcePosition raise SourceError {
   self.check_boundary(offset)
   let line_index = self.line_index_for_offset(offset)

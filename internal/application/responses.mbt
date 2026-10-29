@@ -1,5 +1,5 @@
 ///|
-fn failure(message : String, exit_code : Int) -> @cli.ApplicationResponse {
+fn failure(message : String, exit_code : Int32) -> @cli.ApplicationResponse {
   @cli.ApplicationResponse::new(
     b"",
     @utf8.encode(message.trim_end().to_owned() + "\n"),

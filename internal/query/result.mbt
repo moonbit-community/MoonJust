@@ -8,8 +8,8 @@ pub struct QueryResult {
 
 ///|
 pub fn QueryResult::new(
-  stdout? : Bytes = b"",
-  stderr? : Bytes = b"",
+  stdout~ : Bytes = b"",
+  stderr~ : Bytes = b"",
 ) -> QueryResult {
   { stdout, stderr, }
 }

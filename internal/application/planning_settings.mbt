@@ -359,7 +359,7 @@ fn selected_command_color(
 }
 
 ///|
-fn selected_jobs(arguments : @cli.CliArguments) -> Int raise ApplicationError {
+fn selected_jobs(arguments : @cli.CliArguments) -> Int32 raise ApplicationError {
   guard arguments.value("jobs") is Some(value) else { return 1 }
   let jobs = @string.parse_int(value[:]) catch {
     _ =>

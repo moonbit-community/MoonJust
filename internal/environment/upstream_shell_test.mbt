@@ -1,34 +1,37 @@
 ///|
-fn shell_platform(windows : Bool) -> PlatformConfiguration {
+fn shell_platform(windows : Bool) -> @environment.PlatformConfiguration {
   let info = if windows {
     @host.PlatformInfo::new(Windows, "unknown", Windows)
   } else {
     @host.PlatformInfo::new(Linux, "unknown", Unix)
   }
-  PlatformConfiguration::new(info)
+  @environment.PlatformConfiguration::new(info)
 }
 
 ///|
 fn shell_config(
   program : String,
   arguments : Array[String],
-) -> ShellConfiguration {
-  try! ShellConfiguration::new(program, arguments)
+) -> @environment.ShellConfiguration {
+  try! @environment.ShellConfiguration::new(program, arguments)
 }
 
 ///|
 test "upstream settings::tests::default_shell" {
-  let shell = try! resolve_shell(shell_platform(false))
+  let shell = try! @environment.resolve_shell(shell_platform(false))
   assert_eq(shell.program(), "sh")
   assert_eq(shell.arguments(), ["-cu"])
 }
 
 ///|
 test "upstream settings::tests::default_shell_powershell" {
-  let unix = try! resolve_shell(shell_platform(false), windows_powershell=true)
+  let unix = try! @environment.resolve_shell(
+    shell_platform(false),
+    windows_powershell=true,
+  )
   assert_eq(unix.program(), "sh")
   assert_eq(unix.arguments(), ["-cu"])
-  let windows = try! resolve_shell(
+  let windows = try! @environment.resolve_shell(
     shell_platform(true),
     windows_powershell=true,
   )
@@ -38,7 +41,7 @@ test "upstream settings::tests::default_shell_powershell" {
 
 ///|
 test "upstream settings::tests::overwrite_shell" {
-  let shell = try! resolve_shell(
+  let shell = try! @environment.resolve_shell(
     shell_platform(false),
     setting_shell=Some(shell_config("lol", ["-nice"])),
   )
@@ -48,7 +51,7 @@ test "upstream settings::tests::overwrite_shell" {
 
 ///|
 test "upstream settings::tests::overwrite_shell_powershell" {
-  let shell = try! resolve_shell(
+  let shell = try! @environment.resolve_shell(
     shell_platform(true),
     cli_shell=Some("lol"),
     cli_arguments=Some(["-nice"]),
@@ -60,7 +63,7 @@ test "upstream settings::tests::overwrite_shell_powershell" {
 
 ///|
 test "upstream settings::tests::shell_args_present_but_not_shell" {
-  let shell = try! resolve_shell(
+  let shell = try! @environment.resolve_shell(
     shell_platform(true),
     cli_arguments=Some(["-nice"]),
     windows_powershell=true,
@@ -71,7 +74,7 @@ test "upstream settings::tests::shell_args_present_but_not_shell" {
 
 ///|
 test "upstream settings::tests::shell_cooked" {
-  let shell = try! resolve_shell(
+  let shell = try! @environment.resolve_shell(
     shell_platform(false),
     setting_shell=Some(shell_config("asdf.exe", ["-nope"])),
   )
@@ -81,7 +84,7 @@ test "upstream settings::tests::shell_cooked" {
 
 ///|
 test "upstream settings::tests::shell_present_but_not_shell_args" {
-  let shell = try! resolve_shell(
+  let shell = try! @environment.resolve_shell(
     shell_platform(true),
     cli_shell=Some("lol"),
     windows_powershell=true,

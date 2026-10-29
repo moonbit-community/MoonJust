@@ -7,23 +7,23 @@
 priv struct ExecutionCoordinator {
   mutex : @async.Mutex
   wake : @async.Semaphore
-  remaining : Array[Int]
+  remaining : Array[Int32]
   blocked : Array[Bool]
-  dependents : Array[Array[Int]]
-  order : Array[Int]
-  output_order : Array[Int]
-  ready : Array[Int]
-  mut completed : Int
-  workers : Int
-  total : Int
+  dependents : Array[Array[Int32]]
+  order : Array[Int32]
+  output_order : Array[Int32]
+  ready : Array[Int32]
+  mut completed : Int32
+  workers : Int32
+  total : Int32
 }
 
 ///|
 fn ExecutionCoordinator::coordinator_compare(
   self : ExecutionCoordinator,
-  left : Int,
-  right : Int,
-) -> Int {
+  left : Int32,
+  right : Int32,
+) -> Int32 {
   let order = self.order[left].compare(self.order[right])
   if order != 0 {
     order
@@ -35,7 +35,7 @@ fn ExecutionCoordinator::coordinator_compare(
 ///|
 fn ExecutionCoordinator::coordinator_push_ready(
   self : ExecutionCoordinator,
-  id : Int,
+  id : Int32,
 ) -> Unit {
   self.ready.push(id)
   let mut index = self.ready.length() - 1
@@ -54,7 +54,7 @@ fn ExecutionCoordinator::coordinator_push_ready(
 ///|
 fn ExecutionCoordinator::coordinator_pop_ready(
   self : ExecutionCoordinator,
-) -> Int {
+) -> Int32 {
   let first = self.ready[0]
   let last = self.ready.pop().unwrap()
   if !self.ready.is_empty() {
@@ -87,16 +87,16 @@ fn ExecutionCoordinator::coordinator_pop_ready(
 ///|
 fn execution_coordinator(
   tasks : ArrayView[@planner.ExecutionTask],
-  workers : Int,
+  workers : Int32,
 ) -> ExecutionCoordinator? {
   if workers <= 0 || tasks.is_empty() {
     return None
   }
   let total = tasks.length()
-  let remaining : Array[Int] = []
+  let remaining : Array[Int32] = []
   let blocked : Array[Bool] = []
-  let dependents : Array[Array[Int]] = []
-  let order : Array[Int] = []
+  let dependents : Array[Array[Int32]] = []
+  let order : Array[Int32] = []
   for index, task in tasks {
     if task.id() != index {
       return None
@@ -114,7 +114,7 @@ fn execution_coordinator(
       dependents[dependency].push(task.id())
     }
   }
-  let output_order : Array[Int] = []
+  let output_order : Array[Int32] = []
   for id in 0..<total {
     output_order.push(id)
   }
@@ -147,14 +147,14 @@ fn execution_coordinator(
 ///|
 fn ExecutionCoordinator::output_order(
   self : ExecutionCoordinator,
-) -> ArrayView[Int] {
+) -> ArrayView[Int32] {
   self.output_order[:]
 }
 
 ///|
 async fn ExecutionCoordinator::next(
   self : ExecutionCoordinator,
-) -> (Int, Bool)? {
+) -> (Int32, Bool)? {
   while true {
     self.wake.acquire()
     self.mutex.acquire()
@@ -177,7 +177,7 @@ async fn ExecutionCoordinator::next(
 ///|
 async fn ExecutionCoordinator::finish(
   self : ExecutionCoordinator,
-  id : Int,
+  id : Int32,
   failed : Bool,
 ) -> Unit {
   self.mutex.acquire()

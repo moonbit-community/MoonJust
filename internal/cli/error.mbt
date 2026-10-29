@@ -1,8 +1,8 @@
 ///|
 /// Invalid states rejected by the CLI composition contract.
 pub(all) suberror CliContractError {
-  InvalidRecipeExitCode(Int)
-  InvalidSignalNumber(Int)
+  InvalidRecipeExitCode(Int32)
+  InvalidSignalNumber(Int32)
 } derive(Eq, Debug)
 
 ///|
@@ -18,8 +18,8 @@ pub(all) enum FailureKind {
   Planning
   Host
   Capability
-  RecipeExit(Int)
-  SignalExit(Int)
+  RecipeExit(Int32)
+  SignalExit(Int32)
   Internal
 } derive(Eq, Debug)
 
@@ -76,7 +76,7 @@ pub fn ApplicationFailure::diagnostic(
 
 ///|
 /// Map a failure to the exit status used by upstream `just` 1.57.0.
-pub fn ApplicationFailure::exit_code(self : ApplicationFailure) -> Int {
+pub fn ApplicationFailure::exit_code(self : ApplicationFailure) -> Int32 {
   match self.kind {
     Usage => 2
     RecipeExit(code) => code

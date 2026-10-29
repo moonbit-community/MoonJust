@@ -2,7 +2,7 @@
 /// File operations required by the pure application core.
 pub(open) trait HostFs {
   fn read_file(Self, @path.PathValue) -> Bytes raise HostError
-  fn read_file_range(Self, @path.PathValue, Int64, Int) -> Bytes raise HostError
+  fn read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   fn file_exists(Self, @path.PathValue) -> Bool raise HostError
   fn read_dir(Self, @path.PathValue) -> Array[String] raise HostError
@@ -16,7 +16,7 @@ pub(open) trait HostFs {
 /// must never retain more than `max_bytes + 1` bytes before returning so the
 /// lexer can report an exact source-limit failure without a full-file read.
 pub(open) trait HostSourceReader {
-  async fn read_source(Self, @path.PathValue, Int) -> Bytes raise HostError
+  async fn read_source(Self, @path.PathValue, Int32) -> Bytes raise HostError
 }
 
 ///|
@@ -71,14 +71,14 @@ pub(open) trait HostAtomicFs {
 pub struct CacheLease {
   directory : @path.PathValue
   digest : String
-  token : Int
+  token : Int32
 } derive(Eq, Debug)
 
 ///|
 pub fn CacheLease::new(
   directory : @path.PathValue,
   digest : String,
-  token : Int,
+  token : Int32,
 ) -> CacheLease {
   { directory, digest, token, }
 }
@@ -94,7 +94,7 @@ pub fn CacheLease::digest(self : CacheLease) -> String {
 }
 
 ///|
-pub fn CacheLease::token(self : CacheLease) -> Int {
+pub fn CacheLease::token(self : CacheLease) -> Int32 {
   self.token
 }
 
@@ -108,7 +108,7 @@ pub(open) trait HostCacheStore {
   async fn read_cache_manifest(Self, CacheLease) -> Bytes? raise HostError
   async fn write_cache_manifest(Self, CacheLease, Bytes) -> Unit raise HostError
   async fn release_cache_lease(Self, CacheLease) -> Unit raise HostError
-  async fn clean_cache(Self, @path.PathValue, String?) -> Int raise HostError
+  async fn clean_cache(Self, @path.PathValue, String?) -> Int32 raise HostError
 }
 
 ///|
@@ -135,7 +135,7 @@ pub(open) trait HostAsyncProcess {
 ///|
 /// Ordered runtime output which is not produced by a child process.
 pub(open) trait HostAsyncOutput {
-  async fn write_output(Self, OutputStream, Bytes) -> Int raise HostError
+  async fn write_output(Self, OutputStream, Bytes) -> Int32 raise HostError
 }
 
 ///|
@@ -147,7 +147,7 @@ pub(open) trait HostClock {
 ///|
 /// Host-provided random bytes.
 pub(open) trait HostRandom {
-  fn random_bytes(Self, Int) -> Bytes raise HostError
+  fn random_bytes(Self, Int32) -> Bytes raise HostError
 }
 
 ///|

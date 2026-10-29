@@ -1,11 +1,13 @@
 ///|
-fn eval_upstream_function(text : String) -> String raise EvaluationError {
+fn eval_upstream_function(
+  text : String,
+) -> String raise @evaluator.EvaluationError {
   let source = @source.Source::from_text(
     @source.SourceId::new(702),
     "expr",
     text,
   )
-  evaluate_source(source).display()
+  @evaluator.evaluate_source(source).display()
 }
 
 ///|

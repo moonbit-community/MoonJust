@@ -1,8 +1,8 @@
 ///|
 async fn run_process_with_output_limit(
   command : @host.CommandSpec,
-  output_limit : Int,
-  output_mutex? : @async.Mutex = Mutex(),
+  output_limit : Int32,
+  output_mutex~ : @async.Mutex = Mutex(),
 ) -> @host.ProcessResult raise @host.HostError {
   if output_limit < 0 {
     raise InvalidInput("captured process output limit must be non-negative")

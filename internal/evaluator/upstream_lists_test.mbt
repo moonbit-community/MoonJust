@@ -1,15 +1,17 @@
 ///|
-fn eval_upstream_list(text : String) -> String raise EvaluationError {
+fn eval_upstream_list(text : String) -> String raise @evaluator.EvaluationError {
   let source = @source.Source::from_text(
     @source.SourceId::new(701),
     "expr",
     text,
   )
-  evaluate_source(source).display()
+  @evaluator.evaluate_source(source).display()
 }
 
 ///|
-fn eval_upstream_list_context(text : String) -> String raise EvaluationError {
+fn eval_upstream_list_context(
+  text : String,
+) -> String raise @evaluator.EvaluationError {
   let source = @source.Source::from_text(
     @source.SourceId::new(717),
     "expr",
@@ -18,12 +20,12 @@ fn eval_upstream_list_context(text : String) -> String raise EvaluationError {
   let expression = @parser.parse_expression(source) catch {
     error => raise Parse(error)
   }
-  let context = EvaluationContext::new(
+  let context = @evaluator.EvaluationContext::new(
     cwd=try! @path.PathValue::new("/tmp", Unix),
     lists=true,
     environment=[],
   )
-  evaluate_with_context(expression, context).display()
+  @evaluator.evaluate_with_context(expression, context).display()
 }
 
 ///|

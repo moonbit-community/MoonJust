@@ -1,13 +1,13 @@
 ///|
 pub struct MarkdownLimits {
-  max_lines : Int
-  max_bytes : Int
+  max_lines : Int32
+  max_bytes : Int32
 } derive(Eq, Debug)
 
 ///|
 pub fn MarkdownLimits::new(
-  max_lines : Int,
-  max_bytes : Int,
+  max_lines : Int32,
+  max_bytes : Int32,
 ) -> MarkdownLimits raise MarkdownError {
   if max_lines <= 0 || max_bytes <= 0 {
     raise InvalidLimit
@@ -23,13 +23,13 @@ pub fn MarkdownLimits::default() -> MarkdownLimits {
 ///|
 pub(all) suberror MarkdownError {
   InvalidLimit
-  LimitExceeded(limit~ : Int, span~ : @source.Span)
+  LimitExceeded(limit~ : Int32, span~ : @source.Span)
 } derive(Eq, Debug)
 
 ///|
 pub struct TangledSource {
   source : @source.Source
-  selected_blocks : Int
+  selected_blocks : Int32
 } derive(Debug)
 
 ///|
@@ -38,12 +38,12 @@ pub fn TangledSource::source(self : TangledSource) -> @source.Source {
 }
 
 ///|
-pub fn TangledSource::selected_blocks(self : TangledSource) -> Int {
+pub fn TangledSource::selected_blocks(self : TangledSource) -> Int32 {
   self.selected_blocks
 }
 
 ///|
-fn fence_open(line : String) -> (Char, Int, String)? {
+fn fence_open(line : String) -> (Char, Int32, String)? {
   let chars = line.to_array()
   let mut indent = 0
   while indent < chars.length() && chars[indent] == ' ' {
@@ -73,7 +73,7 @@ fn fence_open(line : String) -> (Char, Int, String)? {
 }
 
 ///|
-fn fence_close(line : String, character : Char, minimum : Int) -> Bool {
+fn fence_close(line : String, character : Char, minimum : Int32) -> Bool {
   let chars = line.to_array()
   let mut indent = 0
   while indent < chars.length() && chars[indent] == ' ' {
@@ -112,7 +112,7 @@ fn first_info_token(info : String) -> String? {
 }
 
 ///|
-fn leading_spaces(line : String) -> Int {
+fn leading_spaces(line : String) -> Int32 {
   let chars = line.to_array()
   let mut count = 0
   while count < chars.length() && chars[count] == ' ' {
@@ -122,7 +122,7 @@ fn leading_spaces(line : String) -> Int {
 }
 
 ///|
-fn list_content_indent(line : String) -> Int? {
+fn list_content_indent(line : String) -> Int32? {
   let chars = line.to_array()
   let indent = leading_spaces(line)
   if indent > 3 || indent >= chars.length() {
@@ -167,7 +167,7 @@ fn list_content_indent(line : String) -> Int? {
 fn append_line(
   output : Array[Byte],
   source : @source.Source,
-  line : Int,
+  line : Int32,
   keep : Bool,
 ) -> Unit {
   let span = try! source.line_span(line)
@@ -194,7 +194,7 @@ fn append_line(
 /// the original Markdown file without a second source-map format.
 pub fn tangle(
   source : @source.Source,
-  limits? : MarkdownLimits = MarkdownLimits::default(),
+  limits~ : MarkdownLimits = MarkdownLimits::default(),
 ) -> TangledSource raise MarkdownError {
   if source.length() > limits.max_bytes {
     raise LimitExceeded(limit=limits.max_bytes, span=source.full_span())
@@ -209,7 +209,7 @@ pub fn tangle(
   let mut ignored_fence_length = 0
   let mut selected = false
   let mut in_html_comment = false
-  let mut active_list_indent : Int? = None
+  let mut active_list_indent : Int32? = None
   let mut selected_blocks = 0
   for line in 1..<=source.line_count() {
     let text = try! source.line_text(line)

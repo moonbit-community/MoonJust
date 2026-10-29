@@ -3,5 +3,4 @@ import {
   "ZSeanYves/MoonJust/internal/parser",
   "ZSeanYves/MoonJust/internal/source",
   "ZSeanYves/MoonJust/internal/syntax",
-  "moonbitlang/core/bytes",
 }

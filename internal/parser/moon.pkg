@@ -5,7 +5,3 @@ import {
   "ZSeanYves/MoonJust/internal/syntax",
   "moonbitlang/core/env",
 }
-
-import {
-  "moonbitlang/core/bench",
-} for "test"

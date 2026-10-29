@@ -1,7 +1,7 @@
 ///|
 test "upstream tempdir::argument_overrides_setting" {
   let project = try! @path.PathValue::new("/workspace/project", Unix)
-  let config = try! resolve_temporary_directory(
+  let config = try! @environment.resolve_temporary_directory(
     project,
     cli_tempdir=Some("cli"),
     setting_tempdir=Some("setting"),
@@ -13,7 +13,7 @@ test "upstream tempdir::argument_overrides_setting" {
 ///|
 test "upstream tempdir::setting" {
   let project = try! @path.PathValue::new("/workspace/project", Unix)
-  let config = try! resolve_temporary_directory(
+  let config = try! @environment.resolve_temporary_directory(
     project,
     setting_tempdir=Some("setting"),
   )

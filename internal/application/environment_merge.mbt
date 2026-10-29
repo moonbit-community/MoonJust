@@ -8,7 +8,7 @@ fn merge_dotenv_entries(
 ) -> Array[(String, String)] {
   // Index the existing prefix once. This keeps inherited dotenv composition
   // linear in the number of entries rather than rescanning the prefix.
-  let positions : Map[String, Int] = Map([])
+  let positions : Map[String, Int32] = Map([])
   for index, entry in environment {
     if !positions.contains(entry.0) {
       positions[entry.0] = index

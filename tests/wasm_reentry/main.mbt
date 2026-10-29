@@ -1,6 +1,6 @@
 ///|
 #cfg(platform="windows")
-extern "C" fn native_set_file_mode(fd : Int, mode : Int) -> Int = "_setmode"
+extern "C" fn native_set_file_mode(fd : Int32, mode : Int32) -> Int32 = "_setmode"
 
 ///|
 #cfg(platform="windows")

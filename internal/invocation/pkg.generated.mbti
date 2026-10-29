@@ -29,7 +29,7 @@ pub fn validate_recipe_argument_values(@semantic.Compilation, String, ArrayView[
 pub(all) suberror InvocationError {
   NoRecipes
   NoDefaultRecipe
-  DefaultRecipeRequiresArguments(recipe~ : String, minimum~ : Int)
+  DefaultRecipeRequiresArguments(recipe~ : String, minimum~ : Int32)
   UnknownRecipe(recipe~ : String)
   UnknownRecipeSuggested(recipe~ : String, suggestion~ : String, alias_target~ : String?)
   UnknownSubmodule(name~ : String, suggestion~ : String?)
@@ -48,9 +48,9 @@ pub(all) suberror InvocationError {
   OptionMissingValue(recipe~ : String, option~ : String)
   DuplicateOption(recipe~ : String, option~ : String)
   MissingOption(recipe~ : String, option~ : String)
-  PositionalArgumentCountMismatch(recipe~ : String, found~ : Int, minimum~ : Int, maximum~ : Int?, usage~ : String)
-  ArgumentTooFewValues(recipe~ : String, parameter~ : String, found~ : Int, minimum~ : Int)
-  ArgumentTooManyValues(recipe~ : String, parameter~ : String, found~ : Int, maximum~ : Int)
+  PositionalArgumentCountMismatch(recipe~ : String, found~ : Int32, minimum~ : Int32, maximum~ : Int32?, usage~ : String)
+  ArgumentTooFewValues(recipe~ : String, parameter~ : String, found~ : Int32, minimum~ : Int32)
+  ArgumentTooManyValues(recipe~ : String, parameter~ : String, found~ : Int32, maximum~ : Int32)
   ArgumentPatternMismatch(recipe~ : String, parameter~ : String, argument~ : String, patterns~ : Array[String])
 } derive(Eq, @debug.Debug)
 pub fn InvocationError::code(Self) -> String

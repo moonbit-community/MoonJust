@@ -2,11 +2,11 @@
 priv struct Parser {
   source : @source.Source
   tokens : ArrayView[@lexer.Token]
-  mut index : Int
+  mut index : Int32
   limits : ParserLimits
   environment : Array[(String, String)]
-  mut depth : Int
-  mut nodes : Int
+  mut depth : Int32
+  mut nodes : Int32
   mut parsing_parameter_default : Bool
 }
 
@@ -15,7 +15,7 @@ fn Parser::new(
   source : @source.Source,
   stream : @lexer.TokenStream,
   limits : ParserLimits,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> Parser {
   {
     source,
@@ -53,7 +53,7 @@ fn Parser::peek_kind(self : Parser) -> @lexer.TokenKind {
 }
 
 ///|
-fn Parser::peek_kind_at(self : Parser, offset : Int) -> @lexer.TokenKind? {
+fn Parser::peek_kind_at(self : Parser, offset : Int32) -> @lexer.TokenKind? {
   let mut cursor = self.index
   let mut seen = 0
   while cursor < self.tokens.length() {
@@ -166,7 +166,7 @@ fn Parser::expect_identifier(
 }
 
 ///|
-fn Parser::span(self : Parser, start : Int, end : Int) -> @source.Span {
+fn Parser::span(self : Parser, start : Int32, end : Int32) -> @source.Span {
   try! @source.Span::new(self.source.id(), start, end)
 }
 

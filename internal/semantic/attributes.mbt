@@ -202,8 +202,8 @@ fn platform_for(name : String) -> TargetOs? {
 }
 
 ///|
-fn attribute_lexical_compare(left : String, right : String) -> Int {
-  let length = Int::min(left.length(), right.length())
+fn attribute_lexical_compare(left : String, right : String) -> Int32 {
+  let length = Int32::min(left.length(), right.length())
   for index in 0..<length {
     let order = left.unsafe_get(index).compare(right.unsafe_get(index))
     if order != 0 {

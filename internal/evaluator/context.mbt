@@ -23,12 +23,12 @@ pub(all) struct EvaluationContext {
   data_local_directory : @path.PathValue?
   cache_directory : @path.PathValue?
   runtime_directory : @path.PathValue?
-  pid : Int?
-  num_cpus : Int?
-  num_jobs : Int?
+  pid : Int32?
+  num_cpus : Int32?
+  num_jobs : Int32?
   is_dependency : Bool
   lists : Bool
-  utc_offset_seconds : Int?
+  utc_offset_seconds : Int32?
   color_mode : String?
   command_color : String?
   environment : Array[(String, String)]?
@@ -43,7 +43,7 @@ pub fn EvaluationContext::new(
   source? : @source.SourceId,
   justfile? : @path.PathValue,
   source_file? : @path.PathValue,
-  source_files? : ArrayView[(@source.SourceId, @path.PathValue)] = [],
+  source_files~ : ArrayView[(@source.SourceId, @path.PathValue)] = [],
   module_file? : @path.PathValue,
   module_path? : String,
   executable? : @path.PathValue,
@@ -57,12 +57,12 @@ pub fn EvaluationContext::new(
   data_local_directory? : @path.PathValue,
   cache_directory? : @path.PathValue,
   runtime_directory? : @path.PathValue,
-  pid? : Int,
-  num_cpus? : Int,
-  num_jobs? : Int,
-  is_dependency? : Bool = false,
-  lists? : Bool = false,
-  utc_offset_seconds? : Int,
+  pid? : Int32,
+  num_cpus? : Int32,
+  num_jobs? : Int32,
+  is_dependency~ : Bool = false,
+  lists~ : Bool = false,
+  utc_offset_seconds? : Int32,
   color_mode? : String,
   command_color? : String,
   environment? : Array[(String, String)],
@@ -272,17 +272,17 @@ pub fn EvaluationContext::runtime_directory(
 }
 
 ///|
-pub fn EvaluationContext::pid(self : EvaluationContext) -> Int? {
+pub fn EvaluationContext::pid(self : EvaluationContext) -> Int32? {
   self.pid
 }
 
 ///|
-pub fn EvaluationContext::num_cpus(self : EvaluationContext) -> Int? {
+pub fn EvaluationContext::num_cpus(self : EvaluationContext) -> Int32? {
   self.num_cpus
 }
 
 ///|
-pub fn EvaluationContext::num_jobs(self : EvaluationContext) -> Int? {
+pub fn EvaluationContext::num_jobs(self : EvaluationContext) -> Int32? {
   self.num_jobs
 }
 
@@ -297,7 +297,9 @@ pub fn EvaluationContext::lists(self : EvaluationContext) -> Bool {
 }
 
 ///|
-pub fn EvaluationContext::utc_offset_seconds(self : EvaluationContext) -> Int? {
+pub fn EvaluationContext::utc_offset_seconds(
+  self : EvaluationContext,
+) -> Int32? {
   self.utc_offset_seconds
 }
 
@@ -345,9 +347,9 @@ fn require_context_string(
 ///|
 fn require_context_int(
   fact : String,
-  value : Int?,
+  value : Int32?,
   span : @source.Span,
-) -> Int raise EvaluationError {
+) -> Int32 raise EvaluationError {
   match value {
     Some(number) => number
     None => raise MissingContext(fact~, span~)

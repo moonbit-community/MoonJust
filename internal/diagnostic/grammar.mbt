@@ -3,12 +3,12 @@
 pub struct Count {
   singular : String
   plural : String
-  count : Int
+  count : Int32
   numbered : Bool
 }
 
 ///|
-pub fn Count::numbered(singular : String, count : Int) -> Count {
+pub fn Count::numbered(singular : String, count : Int32) -> Count {
   { singular, plural: singular + "s", count, numbered: true, }
 }
 
@@ -16,13 +16,13 @@ pub fn Count::numbered(singular : String, count : Int) -> Count {
 pub fn Count::numbered_irregular(
   singular : String,
   plural : String,
-  count : Int,
+  count : Int32,
 ) -> Count {
   { singular, plural, count, numbered: true, }
 }
 
 ///|
-pub fn Count::unnumbered(singular : String, count : Int) -> Count {
+pub fn Count::unnumbered(singular : String, count : Int32) -> Count {
   { singular, plural: singular + "s", count, numbered: false, }
 }
 
@@ -45,7 +45,7 @@ pub fn tick(value : String) -> String {
 pub fn join_list(
   values : ArrayView[String],
   conjunction : String,
-  ticked? : Bool = false,
+  ticked~ : Bool = false,
 ) -> String {
   let rendered = values.map(fn(value) {
     if ticked {

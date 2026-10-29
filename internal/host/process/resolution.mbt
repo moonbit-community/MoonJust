@@ -19,7 +19,7 @@ async fn materialize_windows_command(
     .to_lower()
   let is_cmd = basename == "cmd.exe" || basename == "cmd"
   let mut body : String? = None
-  let mut command_index : Int? = None
+  let mut command_index : Int32? = None
   if is_cmd {
     for index, argument in arguments {
       let lower_argument = argument.to_lower()
@@ -209,7 +209,7 @@ fn windows_resolution_key(
   path : String,
   pathext : String,
   cygpath : String,
-  shell_mode? : String = "auto",
+  shell_mode~ : String = "auto",
 ) -> String {
   program +
   "\u{0000}" +
@@ -293,18 +293,18 @@ async fn resolve_process_program_cached(
 async fn read_bounded_process_output(
   output_mutex : @async.Mutex,
   reader : @async_process.ReadFromProcess,
-  limit : Int,
+  limit : Int32,
   retain : Bool,
   process : ObservedProcess,
   forward : @host.OutputStream?,
 ) -> (Bytes, Bool) {
   defer reader.close()
   let output = Buffer(
-    size_hint=if retain { Int::min(limit, 64 * 1024) } else { 0 },
+    size_hint=if retain { Int32::min(limit, 64 * 1024) } else { 0 },
   )
   while true {
     let max_length = if retain {
-      Int::min(64 * 1024, Int::max(limit - output.length(), 0) + 1)
+      Int32::min(64 * 1024, Int32::max(limit - output.length(), 0) + 1)
     } else {
       64 * 1024
     }
@@ -319,7 +319,7 @@ async fn read_bounded_process_output(
     if !retain {
       continue
     }
-    let remaining = Int::max(limit - output.length(), 0)
+    let remaining = Int32::max(limit - output.length(), 0)
     if chunk.length() > remaining {
       if remaining > 0 {
         output.write_bytes(chunk[:remaining])

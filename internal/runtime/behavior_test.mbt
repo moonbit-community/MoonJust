@@ -29,7 +29,7 @@ async test "runtime executes planned commands and returns child output" {
     plan.commands()[0].spec(),
     @host.ProcessResult::new(0, b"ok\n", b""),
   )
-  let report = try! execute_plan(host, host, host, plan)
+  let report = try! @runtime.execute_plan(host, host, host, plan)
   assert_eq(report.commands(), 1)
   assert_eq(report.stdout(), b"ok\n")
 }

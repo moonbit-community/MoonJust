@@ -2,12 +2,12 @@
 fn flag(
   name : String,
   short? : Char,
-  long? : String = name,
-  about? : String = "",
-  action? : @argparse.FlagAction = SetTrue,
+  long~ : String = name,
+  about~ : String = "",
+  action~ : @argparse.FlagAction = SetTrue,
   env? : StringView,
-  requires? : ArrayView[String] = [],
-  conflicts? : ArrayView[String] = [],
+  requires~ : ArrayView[String] = [],
+  conflicts~ : ArrayView[String] = [],
 ) -> @argparse.FlagArg {
   match short {
     Some(value) =>
@@ -38,13 +38,13 @@ fn flag(
 fn option(
   name : String,
   short? : Char,
-  long? : String = name,
-  about? : String = "",
-  action? : @argparse.OptionAction = Set,
+  long~ : String = name,
+  about~ : String = "",
+  action~ : @argparse.OptionAction = Set,
   env? : StringView,
-  defaults? : ArrayView[String] = [],
-  requires? : ArrayView[String] = [],
-  conflicts? : ArrayView[String] = [],
+  defaults~ : ArrayView[String] = [],
+  requires~ : ArrayView[String] = [],
+  conflicts~ : ArrayView[String] = [],
 ) -> @argparse.OptionArg {
   match short {
     Some(value) =>

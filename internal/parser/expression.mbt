@@ -305,7 +305,7 @@ fn Parser::parse_value(self : Parser) -> @syntax.Expression raise ParserError {
 pub fn parse_expression_tokens(
   source : @source.Source,
   stream : @lexer.TokenStream,
-  limits? : ParserLimits = ParserLimits::default(),
+  limits~ : ParserLimits = ParserLimits::default(),
 ) -> @syntax.Expression raise ParserError {
   let parser = Parser::new(source, stream, limits)
   let expression = parser.parse_expression_node()
@@ -321,7 +321,7 @@ pub fn parse_expression_tokens(
 /// Lex and parse one expression.
 pub fn parse_expression(
   source : @source.Source,
-  limits? : ParserLimits = ParserLimits::default(),
+  limits~ : ParserLimits = ParserLimits::default(),
 ) -> @syntax.Expression raise ParserError {
   let stream = @lexer.lex(source) catch { error => raise LexerFailure(error) }
   parse_expression_tokens(source, stream, limits~)

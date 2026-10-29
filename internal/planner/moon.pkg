@@ -13,7 +13,6 @@ import {
   "ZSeanYves/MoonJust/internal/builtin",
   "ZSeanYves/MoonJust/internal/cache",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/set",
   "moonbitlang/x/time",
 }
 

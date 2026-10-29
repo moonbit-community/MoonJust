@@ -7,7 +7,7 @@ fn replacement_name_character(character : Char) -> Bool {
 }
 
 ///|
-fn replacement_capture_index(regexp : @regexp.Regexp, name : String) -> Int? {
+fn replacement_capture_index(regexp : @regexp.Regexp, name : String) -> Int32? {
   if name == "" {
     return None
   }

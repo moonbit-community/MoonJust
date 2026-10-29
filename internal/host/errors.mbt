@@ -9,5 +9,5 @@ pub(all) suberror HostError {
   InvalidInput(String)
   UnexpectedProcess(CommandSpec)
   ProcessMismatch(expected~ : CommandSpec, actual~ : CommandSpec)
-  RandomExhausted(requested~ : Int, remaining~ : Int)
+  RandomExhausted(requested~ : Int32, remaining~ : Int32)
 } derive(Eq, Debug)

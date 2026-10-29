@@ -1,6 +1,6 @@
 ///|
-fn regex_unclosed_group_index(pattern : String) -> Int {
-  let open : Array[Int] = []
+fn regex_unclosed_group_index(pattern : String) -> Int32 {
+  let open : Array[Int32] = []
   let mut escaped = false
   for index, character in pattern.to_array() {
     if escaped {
@@ -17,7 +17,7 @@ fn regex_unclosed_group_index(pattern : String) -> Int {
 }
 
 ///|
-fn regex_repeat_index(pattern : String) -> Int {
+fn regex_repeat_index(pattern : String) -> Int32 {
   let characters = pattern.to_array()
   for index, character in characters {
     if character == '{' ||
@@ -35,14 +35,14 @@ fn regex_error_index(
   pattern : String,
   error : @regexp.Err,
   source_fragment : StringView,
-) -> Int {
+) -> Int32 {
   match error {
     MissingParenthesis => regex_unclosed_group_index(pattern)
-    TrailingBackslash => Int::max(pattern.to_array().length() - 1, 0)
+    TrailingBackslash => Int32::max(pattern.to_array().length() - 1, 0)
     MissingRepeatArgument => regex_repeat_index(pattern)
     _ => {
       let consumed = pattern.length() - source_fragment.length()
-      let prefix = pattern[:Int::max(consumed, 0)]
+      let prefix = pattern[:Int32::max(consumed, 0)]
       prefix.to_array().length()
     }
   }

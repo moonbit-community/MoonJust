@@ -1,13 +1,13 @@
 ///|
 priv struct SemVersion {
-  major : Int
-  minor : Int
-  patch : Int
+  major : Int32
+  minor : Int32
+  patch : Int32
   prerelease : Array[String]
 }
 
 ///|
-fn parse_semver_int(value : String) -> Int? {
+fn parse_semver_int(value : String) -> Int32? {
   if value.is_empty() {
     return None
   }
@@ -101,7 +101,7 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
   if parts.length() > 3 || (!partial && parts.length() != 3) {
     return None
   }
-  let numbers : Array[Int] = []
+  let numbers : Array[Int32] = []
   for part in parts {
     match parse_semver_int(part) {
       Some(number) => numbers.push(number)
@@ -115,7 +115,7 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
 }
 
 ///|
-fn semver_component_count(value : String) -> Int {
+fn semver_component_count(value : String) -> Int32 {
   let mut core = value
   match core.find("+") {
     Some(index) => core = core.view(end_offset=index).to_owned()
@@ -129,7 +129,7 @@ fn semver_component_count(value : String) -> Int {
 }
 
 ///|
-fn compare_semver(left : SemVersion, right : SemVersion) -> Int {
+fn compare_semver(left : SemVersion, right : SemVersion) -> Int32 {
   if left.major != right.major {
     return if left.major < right.major { -1 } else { 1 }
   }
@@ -148,7 +148,7 @@ fn compare_semver(left : SemVersion, right : SemVersion) -> Int {
   if right.prerelease.is_empty() {
     return -1
   }
-  let length = Int::min(left.prerelease.length(), right.prerelease.length())
+  let length = Int32::min(left.prerelease.length(), right.prerelease.length())
   for index in 0..<length {
     let left_id = left.prerelease[index]
     let right_id = right.prerelease[index]
@@ -190,7 +190,7 @@ fn wildcard_clause(
   if parts.length() == 0 || parts.length() > 3 {
     raise InvalidRequirement(value=raw)
   }
-  let numbers : Array[Int] = []
+  let numbers : Array[Int32] = []
   let mut wildcard = false
   for part in parts {
     if part == "*" || part == "x" || part == "X" {
@@ -268,7 +268,7 @@ fn normalize_semver_token(raw : String) -> String? {
 fn exact_partial(
   actual : SemVersion,
   expected : SemVersion,
-  components : Int,
+  components : Int32,
 ) -> Bool {
   actual.major == expected.major &&
   (components < 2 || actual.minor == expected.minor) &&
@@ -280,7 +280,7 @@ fn exact_partial(
 fn greater_partial(
   actual : SemVersion,
   expected : SemVersion,
-  components : Int,
+  components : Int32,
 ) -> Bool {
   if actual.major != expected.major {
     return actual.major > expected.major
@@ -301,7 +301,7 @@ fn greater_partial(
 fn less_partial(
   actual : SemVersion,
   expected : SemVersion,
-  components : Int,
+  components : Int32,
 ) -> Bool {
   if actual.major != expected.major {
     return actual.major < expected.major
@@ -322,7 +322,7 @@ fn less_partial(
 fn compatible_partial(
   actual : SemVersion,
   expected : SemVersion,
-  components : Int,
+  components : Int32,
   caret : Bool,
 ) -> Bool {
   if actual.major != expected.major {

@@ -5,13 +5,13 @@ fn upstream_parser_source(text : String) -> @source.Source {
 
 ///|
 test "parser empty" {
-  let ast = try! parse(upstream_parser_source(""))
+  let ast = try! @parser.parse(upstream_parser_source(""))
   assert_true(ast.items().is_empty())
 }
 
 ///|
 test "parser alias_single" {
-  let ast = try! parse(upstream_parser_source("alias t := test"))
+  let ast = try! @parser.parse(upstream_parser_source("alias t := test"))
   guard ast.items()[0] is Alias(alias_item) else { fail("expected alias") }
   assert_eq(alias_item.name(), "t")
   assert_eq(alias_item.target(), "test")
@@ -19,7 +19,7 @@ test "parser alias_single" {
 
 ///|
 test "parser assignment" {
-  let ast = try! parse(upstream_parser_source("x := 'hello'"))
+  let ast = try! @parser.parse(upstream_parser_source("x := 'hello'"))
   guard ast.items()[0] is Assignment(assignment) else {
     fail("expected assignment")
   }
@@ -29,7 +29,7 @@ test "parser assignment" {
 
 ///|
 test "parser backtick" {
-  let ast = try! parse(upstream_parser_source("x := `hello`"))
+  let ast = try! @parser.parse(upstream_parser_source("x := `hello`"))
   guard ast.items()[0] is Assignment(assignment) else {
     fail("expected assignment")
   }
@@ -38,14 +38,14 @@ test "parser backtick" {
 
 ///|
 test "parser comment" {
-  let ast = try! parse(upstream_parser_source("# foo"))
+  let ast = try! @parser.parse(upstream_parser_source("# foo"))
   guard ast.items()[0] is Comment(text~, ..) else { fail("expected comment") }
   assert_eq(text, "# foo")
 }
 
 ///|
 test "parser empty_body" {
-  let ast = try! parse(upstream_parser_source("a:"))
+  let ast = try! @parser.parse(upstream_parser_source("a:"))
   guard ast.items()[0] is Recipe(recipe) else { fail("expected recipe") }
   assert_eq(recipe.name(), "a")
   assert_true(recipe.lines().is_empty())
@@ -53,7 +53,7 @@ test "parser empty_body" {
 
 ///|
 test "parser export" {
-  let ast = try! parse(upstream_parser_source("export x := 'hello'"))
+  let ast = try! @parser.parse(upstream_parser_source("export x := 'hello'"))
   guard ast.items()[0] is Assignment(assignment) else {
     fail("expected assignment")
   }
@@ -62,7 +62,7 @@ test "parser export" {
 
 ///|
 test "parser group" {
-  let ast = try! parse(upstream_parser_source("x := (y)"))
+  let ast = try! @parser.parse(upstream_parser_source("x := (y)"))
   guard ast.items()[0] is Assignment(assignment) else {
     fail("expected assignment")
   }
@@ -71,7 +71,7 @@ test "parser group" {
 
 ///|
 test "parser import" {
-  let ast = try! parse(upstream_parser_source("import 'foo.just'"))
+  let ast = try! @parser.parse(upstream_parser_source("import 'foo.just'"))
   guard ast.items()[0] is Import(import_item) else { fail("expected import") }
   assert_eq(import_item.path().cooked(), "foo.just")
   assert_true(!import_item.optional())
@@ -79,7 +79,7 @@ test "parser import" {
 
 ///|
 test "parser optional_import" {
-  let ast = try! parse(upstream_parser_source("import? 'foo.just'"))
+  let ast = try! @parser.parse(upstream_parser_source("import? 'foo.just'"))
   guard ast.items()[0] is Import(import_item) else { fail("expected import") }
   assert_true(import_item.optional())
 }

@@ -1,7 +1,7 @@
 ///|
 priv struct DelimiterFrame {
   kind : DelimiterKind
-  line : Int
+  line : Int32
   format : StringKind?
 }
 
@@ -9,9 +9,9 @@ priv struct DelimiterFrame {
 priv struct Lexer {
   source : @source.Source
   bytes : BytesView
-  mut offset : Int
-  mut line : Int
-  mut column : Int
+  mut offset : Int32
+  mut line : Int32
+  mut column : Int32
   tokens : Array[Token]
   delimiters : Array[DelimiterFrame]
   interpolations : Array[@source.Span]
@@ -25,7 +25,7 @@ priv struct Lexer {
 ///|
 fn Lexer::new(source : @source.Source, limits : LexerLimits) -> Lexer {
   let token_capacity = if source.length() >= 1024 {
-    Int::min(limits.max_tokens(), source.length() / 4 + 1)
+    Int32::min(limits.max_tokens(), source.length() / 4 + 1)
   } else {
     0
   }
@@ -35,7 +35,7 @@ fn Lexer::new(source : @source.Source, limits : LexerLimits) -> Lexer {
     offset: 0,
     line: 1,
     column: 0,
-    tokens: Array::new(capacity=token_capacity),
+    tokens: Array(capacity=token_capacity),
     delimiters: [],
     interpolations: [],
     indentation: [""],
@@ -47,12 +47,12 @@ fn Lexer::new(source : @source.Source, limits : LexerLimits) -> Lexer {
 }
 
 ///|
-fn Lexer::span(self : Lexer, start : Int, end : Int) -> @source.Span {
+fn Lexer::span(self : Lexer, start : Int32, end : Int32) -> @source.Span {
   try! @source.Span::new(self.source.id(), start, end)
 }
 
 ///|
-fn Lexer::emit(self : Lexer, kind : TokenKind, start : Int) -> Unit {
+fn Lexer::emit(self : Lexer, kind : TokenKind, start : Int32) -> Unit {
   if self.tokens.length() >= self.limits.max_tokens() {
     if self.limit_error is None {
       self.limit_error = Some(
@@ -81,7 +81,7 @@ fn Lexer::raise_limit_error(self : Lexer) -> Unit raise LexerError {
 }
 
 ///|
-fn Lexer::nesting_depth(self : Lexer) -> Int {
+fn Lexer::nesting_depth(self : Lexer) -> Int32 {
   self.delimiters.length() +
   self.interpolations.length() +
   self.indentation.length() -
@@ -99,12 +99,12 @@ fn Lexer::ensure_nesting(
 }
 
 ///|
-fn Lexer::has(self : Lexer, distance : Int) -> Bool {
+fn Lexer::has(self : Lexer, distance : Int32) -> Bool {
   self.offset + distance < self.bytes.length()
 }
 
 ///|
-fn Lexer::peek(self : Lexer, distance : Int) -> Byte {
+fn Lexer::peek(self : Lexer, distance : Int32) -> Byte {
   self.bytes[self.offset + distance]
 }
 
@@ -132,7 +132,7 @@ fn is_identifier_continue(byte : Byte) -> Bool {
 }
 
 ///|
-fn utf8_scalar_width(byte : Byte) -> Int {
+fn utf8_scalar_width(byte : Byte) -> Int32 {
   if byte < 0x80 {
     1
   } else if byte < 0xe0 {
@@ -145,12 +145,12 @@ fn utf8_scalar_width(byte : Byte) -> Int {
 }
 
 ///|
-fn Lexer::slice(self : Lexer, start : Int, end : Int) -> String {
+fn Lexer::slice(self : Lexer, start : Int32, end : Int32) -> String {
   try! self.source.slice_text(self.span(start, end))
 }
 
 ///|
-fn Lexer::lex_identifier(self : Lexer, start : Int) -> Unit {
+fn Lexer::lex_identifier(self : Lexer, start : Int32) -> Unit {
   self.take()
   while self.has(0) && is_identifier_continue(self.peek(0)) {
     self.take()
@@ -159,7 +159,7 @@ fn Lexer::lex_identifier(self : Lexer, start : Int) -> Unit {
 }
 
 ///|
-fn Lexer::lex_whitespace(self : Lexer, start : Int) -> Unit {
+fn Lexer::lex_whitespace(self : Lexer, start : Int32) -> Unit {
   while self.has(0) && (self.peek(0) == b' ' || self.peek(0) == b'\t') {
     self.take()
   }
@@ -167,7 +167,7 @@ fn Lexer::lex_whitespace(self : Lexer, start : Int) -> Unit {
 }
 
 ///|
-fn Lexer::lex_comment(self : Lexer, start : Int) -> Unit {
+fn Lexer::lex_comment(self : Lexer, start : Int32) -> Unit {
   while self.has(0) && self.peek(0) != b'\n' && self.peek(0) != b'\r' {
     self.take()
   }
@@ -211,7 +211,7 @@ fn token_for_close(byte : Byte) -> TokenKind {
 }
 
 ///|
-fn Lexer::lex_open(self : Lexer, start : Int) -> Unit raise LexerError {
+fn Lexer::lex_open(self : Lexer, start : Int32) -> Unit raise LexerError {
   let byte = self.peek(0)
   self.ensure_nesting(self.span(start, start + 1))
   self.delimiters.push({
@@ -224,7 +224,7 @@ fn Lexer::lex_open(self : Lexer, start : Int) -> Unit raise LexerError {
 }
 
 ///|
-fn Lexer::lex_close(self : Lexer, start : Int) -> Unit raise LexerError {
+fn Lexer::lex_close(self : Lexer, start : Int32) -> Unit raise LexerError {
   let byte = self.peek(0)
   let close = delimiter_for_close(byte)
   match self.delimiters.pop() {
@@ -246,7 +246,7 @@ fn Lexer::lex_close(self : Lexer, start : Int) -> Unit raise LexerError {
 ///|
 fn Lexer::lex_digraph(
   self : Lexer,
-  start : Int,
+  start : Int32,
   second : Byte,
   kind : TokenKind,
 ) -> Unit raise LexerError {
@@ -272,7 +272,7 @@ fn Lexer::lex_digraph(
 }
 
 ///|
-fn Lexer::lex_escape(self : Lexer, start : Int) -> Unit raise LexerError {
+fn Lexer::lex_escape(self : Lexer, start : Int32) -> Unit raise LexerError {
   self.take()
   if !self.has(0) {
     raise EscapeEndOfFile(span=self.span(start, self.offset))
@@ -299,7 +299,7 @@ fn Lexer::lex_escape(self : Lexer, start : Int) -> Unit raise LexerError {
 }
 
 ///|
-fn Lexer::lex_eol(self : Lexer, start : Int) -> Unit raise LexerError {
+fn Lexer::lex_eol(self : Lexer, start : Int32) -> Unit raise LexerError {
   if self.peek(0) == b'\r' {
     self.take()
     if !self.has(0) || self.peek(0) != b'\n' {
@@ -320,7 +320,7 @@ fn Lexer::lex_eol(self : Lexer, start : Int) -> Unit raise LexerError {
 ///|
 fn Lexer::lex_choice(
   self : Lexer,
-  start : Int,
+  start : Int32,
   second : Byte,
   double : TokenKind,
   single : TokenKind,

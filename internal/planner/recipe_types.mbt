@@ -47,14 +47,14 @@ pub fn ScriptConfiguration::platform(
 pub struct ExecutionReport {
   stdout : Bytes
   stderr : Bytes
-  commands : Int
+  commands : Int32
 } derive(Eq)
 
 ///|
 pub fn ExecutionReport::new(
   stdout : Bytes,
   stderr : Bytes,
-  commands : Int,
+  commands : Int32,
 ) -> ExecutionReport {
   { stdout, stderr, commands, }
 }
@@ -64,7 +64,7 @@ pub fn ExecutionReport::new(
 pub struct PlannedCommand {
   spec : @host.CommandSpec
   recipe : String
-  line : Int
+  line : Int32
   ignore_error : Bool
   echo : Bytes
   is_guard : Bool
@@ -75,11 +75,11 @@ pub struct PlannedCommand {
 fn PlannedCommand::new(
   spec : @host.CommandSpec,
   recipe : String,
-  line : Int,
+  line : Int32,
   ignore_error : Bool,
-  echo? : Bytes = b"",
-  is_guard? : Bool = false,
-  continue_signals? : ArrayView[@host.SignalKind] = [],
+  echo~ : Bytes = b"",
+  is_guard~ : Bool = false,
+  continue_signals~ : ArrayView[@host.SignalKind] = [],
 ) -> PlannedCommand {
   {
     spec,
@@ -103,7 +103,7 @@ pub fn PlannedCommand::recipe(self : PlannedCommand) -> String {
 }
 
 ///|
-pub fn PlannedCommand::line(self : PlannedCommand) -> Int {
+pub fn PlannedCommand::line(self : PlannedCommand) -> Int32 {
   self.line
 }
 
@@ -154,7 +154,7 @@ pub struct PlannedLine {
   recipe : String
   positional : Array[String]
   recipe_quiet : Bool
-  line : Int
+  line : Int32
   continue_signals : Array[@host.SignalKind]
 }
 
@@ -168,10 +168,10 @@ fn PlannedLine::new(
   process_environment : Array[(String, String)],
   options : ExecutionOptions,
   recipe : String,
-  positional? : ArrayView[String] = [],
+  positional~ : ArrayView[String] = [],
   recipe_quiet : Bool,
-  line : Int,
-  continue_signals? : ArrayView[@host.SignalKind] = [],
+  line : Int32,
+  continue_signals~ : ArrayView[@host.SignalKind] = [],
 ) -> PlannedLine {
   {
     source,
@@ -212,7 +212,7 @@ pub fn PlannedLine::positional(self : PlannedLine) -> ArrayView[String] {
 }
 
 ///|
-pub fn PlannedLine::line(self : PlannedLine) -> Int {
+pub fn PlannedLine::line(self : PlannedLine) -> Int32 {
   self.line
 }
 
@@ -248,7 +248,7 @@ fn PlannedScript::new(
   configuration : ScriptConfiguration,
   positional : ArrayView[String],
   quiet : Bool,
-  continue_signals? : ArrayView[@host.SignalKind] = [],
+  continue_signals~ : ArrayView[@host.SignalKind] = [],
 ) -> PlannedScript {
   {
     recipe,

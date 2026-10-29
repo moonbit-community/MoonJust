@@ -11,10 +11,10 @@ test "upstream recursion_limit::user_defined_function_recursion_limit" {
   )
   try
     ignore(
-      evaluate_with_context(
+      @evaluator.evaluate_with_context(
         expression,
-        EvaluationContext::new(),
-        functions=FunctionEnvironment::from_compilation(compilation),
+        @evaluator.EvaluationContext::new(),
+        functions=@evaluator.FunctionEnvironment::from_compilation(compilation),
       ),
     )
   catch {

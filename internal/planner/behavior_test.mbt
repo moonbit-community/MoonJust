@@ -7,24 +7,24 @@ test "planner preserves dependency order and dry-run output" {
   )
   let compilation = try! @semantic.compile(try! @parser.parse(source))
   let shell = try! @environment.ShellConfiguration::new("sh", ["-cu"])
-  let plan = try! plan_recipe_graph(
+  let plan = try! @planner.plan_recipe_graph(
     compilation,
-    [RecipeRequest::new("build")],
+    [@planner.RecipeRequest::new("build")],
     @evaluator.Environment::new(),
     shell,
     @path.PathValue::new("/workspace", Unix),
-    options=ExecutionOptions::new(),
+    options=@planner.ExecutionOptions::new(),
   )
   assert_eq(plan.commands().length(), 2)
   assert_eq(plan.commands()[0].recipe(), "prepare")
   assert_eq(plan.commands()[1].recipe(), "build")
-  let dry = try! plan_recipe_graph(
+  let dry = try! @planner.plan_recipe_graph(
     compilation,
-    [RecipeRequest::new("build")],
+    [@planner.RecipeRequest::new("build")],
     @evaluator.Environment::new(),
     shell,
     @path.PathValue::new("/workspace", Unix),
-    options=ExecutionOptions::new(dry_run=true),
+    options=@planner.ExecutionOptions::new(dry_run=true),
   )
   assert_true(dry.options().dry_run())
   assert_true(dry.commands().is_empty())

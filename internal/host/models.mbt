@@ -76,8 +76,8 @@ pub struct PlatformInfo {
   architecture : String
   path_flavor : @path.PathFlavor
   portable_runtime : Bool
-  pid : Int?
-  num_cpus : Int?
+  pid : Int32?
+  num_cpus : Int32?
   executable : String?
 } derive(Eq, Debug)
 
@@ -86,9 +86,9 @@ pub fn PlatformInfo::new(
   operating_system : OperatingSystem,
   architecture : String,
   path_flavor : @path.PathFlavor,
-  portable_runtime? : Bool = false,
-  pid? : Int,
-  num_cpus? : Int,
+  portable_runtime~ : Bool = false,
+  pid? : Int32,
+  num_cpus? : Int32,
   executable? : String,
 ) -> PlatformInfo {
   {
@@ -125,12 +125,12 @@ pub fn PlatformInfo::portable_runtime(self : PlatformInfo) -> Bool {
 }
 
 ///|
-pub fn PlatformInfo::pid(self : PlatformInfo) -> Int? {
+pub fn PlatformInfo::pid(self : PlatformInfo) -> Int32? {
   self.pid
 }
 
 ///|
-pub fn PlatformInfo::num_cpus(self : PlatformInfo) -> Int? {
+pub fn PlatformInfo::num_cpus(self : PlatformInfo) -> Int32? {
   self.num_cpus
 }
 
@@ -188,24 +188,24 @@ pub(all) enum SignalKind {
   Interrupt
   Terminate
   Hangup
-  OtherSignal(Int)
+  OtherSignal(Int32)
 } derive(Eq, Debug)
 
 ///|
 /// Return the conventional Unix signal number used by just's exit-status
 /// contract. Unknown native signals retain their positive numeric value.
-pub fn SignalKind::number(self : SignalKind) -> Int {
+pub fn SignalKind::number(self : SignalKind) -> Int32 {
   match self {
     Hangup => 1
     Interrupt => 2
     Terminate => 15
-    OtherSignal(value) => Int::max(1, value)
+    OtherSignal(value) => Int32::max(1, value)
   }
 }
 
 ///|
-pub fn SignalKind::exit_code(self : SignalKind) -> Int {
-  128 + Int::min(self.number(), 127)
+pub fn SignalKind::exit_code(self : SignalKind) -> Int32 {
+  128 + Int32::min(self.number(), 127)
 }
 
 ///|
@@ -425,7 +425,7 @@ pub impl Debug for CommandSpec with fn to_repr(self) {
 ///|
 /// How a child process terminated.
 pub(all) enum ProcessTermination {
-  Exited(Int)
+  Exited(Int32)
   Signaled(SignalKind)
   Interrupted(SignalKind)
 } derive(Eq, Debug)
@@ -443,7 +443,7 @@ pub struct ProcessResult {
 
 ///|
 pub fn ProcessResult::new(
-  exit_code : Int,
+  exit_code : Int32,
   stdout : Bytes,
   stderr : Bytes,
 ) -> ProcessResult {
@@ -476,7 +476,7 @@ pub fn ProcessResult::termination(self : ProcessResult) -> ProcessTermination {
 }
 
 ///|
-pub fn ProcessResult::exit_code(self : ProcessResult) -> Int? {
+pub fn ProcessResult::exit_code(self : ProcessResult) -> Int32? {
   match self.termination {
     Exited(code) => Some(code)
     Signaled(_) | Interrupted(_) => None

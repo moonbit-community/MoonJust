@@ -52,13 +52,13 @@ pub(all) suberror ParserError {
   UnknownSetting(name~ : String, span~ : @source.Span)
   InvalidSettingValue(name~ : String, span~ : @source.Span)
   UnknownAttribute(name~ : String, span~ : @source.Span)
-  InvalidAttributeArity(name~ : String, actual~ : Int, span~ : @source.Span)
+  InvalidAttributeArity(name~ : String, actual~ : Int32, span~ : @source.Span)
   InvalidAttributeArgument(name~ : String, span~ : @source.Span)
   PositionalAttributeAfterKeyword(span~ : @source.Span)
   UnknownAttributeKey(attribute~ : String, key~ : String, span~ : @source.Span)
   ExtraneousAttribute(span~ : @source.Span)
-  RecursionLimitExceeded(limit~ : Int, span~ : @source.Span)
-  NodeLimitExceeded(limit~ : Int, span~ : @source.Span)
+  RecursionLimitExceeded(limit~ : Int32, span~ : @source.Span)
+  NodeLimitExceeded(limit~ : Int32, span~ : @source.Span)
   ExtraneousInput(span~ : @source.Span)
 } derive(Eq, @debug.Debug)
 pub fn ParserError::code(Self) -> String
@@ -83,17 +83,17 @@ pub fn ParseReport::errors(Self) -> ArrayView[ParserError]
 pub fn ParseReport::to_repr(Self) -> @debug.Repr
 
 pub struct ParserLimits {
-  max_depth : Int
-  max_nodes : Int
-  max_diagnostics : Int
+  max_depth : Int32
+  max_nodes : Int32
+  max_diagnostics : Int32
 } derive(Eq, @debug.Debug)
 pub fn ParserLimits::default() -> Self
 #deprecated
 pub fn ParserLimits::equal(Self, Self) -> Bool
-pub fn ParserLimits::max_depth(Self) -> Int
-pub fn ParserLimits::max_diagnostics(Self) -> Int
-pub fn ParserLimits::max_nodes(Self) -> Int
-pub fn ParserLimits::new(Int, Int, Int) -> Self raise ParserConfigurationError
+pub fn ParserLimits::max_depth(Self) -> Int32
+pub fn ParserLimits::max_diagnostics(Self) -> Int32
+pub fn ParserLimits::max_nodes(Self) -> Int32
+pub fn ParserLimits::new(Int32, Int32, Int32) -> Self raise ParserConfigurationError
 #deprecated
 pub fn ParserLimits::not_equal(Self, Self) -> Bool
 #deprecated

@@ -10,8 +10,8 @@ priv enum QuoteState {
 } derive(Eq)
 
 ///|
-fn logical_lines(text : String) -> Array[(Int, String)] raise DotenvError {
-  let result : Array[(Int, String)] = []
+fn logical_lines(text : String) -> Array[(Int32, String)] raise DotenvError {
+  let result : Array[(Int32, String)] = []
   let builder = StringBuilder()
   let mut state = Plain
   let mut whitespace = true
@@ -91,7 +91,7 @@ fn logical_lines(text : String) -> Array[(Int, String)] raise DotenvError {
 }
 
 ///|
-fn skip_space(chars : Array[Char], start : Int) -> Int {
+fn skip_space(chars : Array[Char], start : Int32) -> Int32 {
   let mut index = start
   while index < chars.length() && chars[index].is_whitespace() {
     index += 1
@@ -115,9 +115,9 @@ fn valid_key_continue(character : Char) -> Bool {
 ///|
 fn parse_key(
   chars : Array[Char],
-  start : Int,
-  line : Int,
-) -> (String, Int) raise DotenvError {
+  start : Int32,
+  line : Int32,
+) -> (String, Int32) raise DotenvError {
   if start >= chars.length() || !valid_key_start(chars[start]) {
     raise Parse(line~, column=start + 1)
   }
@@ -139,8 +139,8 @@ fn substitution(ambient : EnvTable, parsed : EnvTable, name : String) -> String 
 ///|
 fn parse_value(
   chars : Array[Char],
-  start : Int,
-  line : Int,
+  start : Int32,
+  line : Int32,
   ambient : EnvTable,
   parsed : EnvTable,
 ) -> String raise DotenvError {
@@ -248,7 +248,7 @@ fn parse_value(
 ///|
 fn parse_line(
   text : String,
-  line : Int,
+  line : Int32,
   ambient : EnvTable,
   parsed : EnvTable,
 ) -> Unit raise DotenvError {
@@ -281,7 +281,7 @@ fn parse_line(
 /// substitutions. Duplicate keys use the last parsed value, matching `just`.
 pub fn parse_dotenv(
   text : String,
-  ambient? : EnvTable = EnvTable::new(),
+  ambient~ : EnvTable = EnvTable::new(),
 ) -> EnvTable raise DotenvError {
   let parsed = EnvTable::new()
   for line in logical_lines(text) {

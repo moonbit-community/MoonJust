@@ -2,7 +2,7 @@
 fn expect_string(
   name : String,
   arguments : Array[Value],
-  index : Int,
+  index : Int32,
   span : @source.Span,
 ) -> String raise EvaluationError {
   if index >= arguments.length() {
@@ -150,8 +150,8 @@ pub fn[T : @host.HostProcess] call_shell_effect(
   context : EvaluationContext,
   shell : EffectShell,
   span : @source.Span,
-  quiet? : Bool = false,
-  shell_function? : Bool = true,
+  quiet~ : Bool = false,
+  shell_function~ : Bool = true,
 ) -> Value raise EvaluationError {
   let name = validate_effect_arity("shell", arguments, span)
   let command = expect_string(name, arguments, 0, span)
@@ -199,8 +199,8 @@ pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
   context : EvaluationContext,
   shell : EffectShell,
   span : @source.Span,
-  quiet? : Bool = false,
-  shell_function? : Bool = true,
+  quiet~ : Bool = false,
+  shell_function~ : Bool = true,
 ) -> Value raise EvaluationError {
   let name = validate_effect_arity("shell", arguments, span)
   let command = expect_string(name, arguments, 0, span)

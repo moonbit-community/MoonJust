@@ -5,7 +5,7 @@ priv struct CaseMetadata {
   platform : String?
   merged : Bool
   live_prefix : String?
-  live_timeout_ms : Int
+  live_timeout_ms : Int32
   normalizations : Array[String]
   status : String
   compare : Array[String]
@@ -18,14 +18,14 @@ priv struct CaseMetadata {
 
 ///|
 priv struct CompatibilityManifest {
-  schema_version : Int
+  schema_version : Int32
   upstream : String
   cases : Map[String, CaseMetadata]
 }
 
 ///|
 priv struct CaseResult {
-  status : Int
+  status : Int32
   stdout : Bytes
   stderr : Bytes
   merged : Bytes?
@@ -36,7 +36,7 @@ priv struct CaseResult {
 
 ///|
 priv struct StepResult {
-  status : Int
+  status : Int32
   stdout : Bytes
   stderr : Bytes
 }
@@ -72,7 +72,11 @@ fn has_flag(args : ArrayView[String], name : String) -> Bool {
 }
 
 ///|
-fn parsed_int(args : ArrayView[String], name : String, fallback : Int) -> Int {
+fn parsed_int(
+  args : ArrayView[String],
+  name : String,
+  fallback : Int32,
+) -> Int32 {
   @string.parse_int(option(args, name).unwrap_or(fallback.to_string())[:]) catch {
     _ => 0
   }
@@ -997,7 +1001,7 @@ fn decimal_digit(character : Char) -> Bool {
 }
 
 ///|
-fn decimal_range(text : String, start : Int, length : Int) -> Bool {
+fn decimal_range(text : String, start : Int32, length : Int32) -> Bool {
   let view = text.view(start_offset=start, end_offset=start + length)
   for character in view {
     if !decimal_digit(character) {

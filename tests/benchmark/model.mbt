@@ -1,7 +1,7 @@
 ///|
 priv struct Workload {
   name : String
-  size : Int
+  size : Int32
   kind : String
   source : String
   stdin_source : String
@@ -19,9 +19,9 @@ priv struct Fixture {
 ///|
 priv struct BenchmarkSettings {
   profile : String
-  batches : Int
-  rounds : Int
-  warmups : Int
+  batches : Int32
+  rounds : Int32
+  warmups : Int32
   target : String
   output_path : String
   enforce : Bool

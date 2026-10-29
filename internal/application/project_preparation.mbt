@@ -293,11 +293,11 @@ fn[T : @host.HostFs] load_graph_input_with_directories(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> (@loader.LoadedGraph, @workdir.WorkingDirectoryModel) raise ApplicationError {
   let request = project_load_request(arguments, context, platform, environment)
   let sources = @project.load_sources(host, request) catch {

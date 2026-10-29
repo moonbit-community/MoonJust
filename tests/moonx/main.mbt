@@ -17,7 +17,7 @@ struct SmokeCase {
 ///|
 struct CaseReport {
   name : String
-  status : Int
+  status : Int32
   passed : Bool
   details : String
 }
@@ -91,7 +91,7 @@ fn json_string(value : String) -> String {
 }
 
 ///|
-fn asset_not_ready(status : Int, stderr : String) -> Bool {
+fn asset_not_ready(status : Int32, stderr : String) -> Bool {
   let diagnostic = stderr.to_lower()
   status != 0 &&
   (
@@ -221,7 +221,7 @@ async fn run_once(
   program : @testkit.PreparedProgram,
   args : Array[String],
   root : String,
-  extra_env? : Map[String, String] = Map([]),
+  extra_env~ : Map[String, String] = Map([]),
 ) -> @testkit.RunResult {
   @testkit.run_prepared(program, args, cwd=root, extra_env~, inherit_env=true)
 }
@@ -608,8 +608,8 @@ async fn run_full_compat_shard(
   options : Options,
   report : String,
   moon_home : String,
-  shard_count : Int,
-  shard_index : Int,
+  shard_count : Int32,
+  shard_index : Int32,
 ) -> @testkit.RunResult {
   @testkit.run(
     "moon",

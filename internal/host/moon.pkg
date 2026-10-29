@@ -1,6 +1,4 @@
 import {
   "ZSeanYves/MoonJust/internal/path",
-  "moonbitlang/core/array",
-  "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/set",
+  "moonbitlang/core/debug",
 }

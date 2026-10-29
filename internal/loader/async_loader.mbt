@@ -1,6 +1,6 @@
 ///|
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-fn source_read_limit() -> Int {
+fn source_read_limit() -> Int32 {
   // Keep this aligned with LexerLimits::default().max_source_bytes().
   16 * 1024 * 1024
 }
@@ -12,7 +12,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
   host : T,
   path : @path.PathValue,
   source_id : @source.SourceId,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
   let bytes = @host.HostSourceReader::read_source(
     host,
@@ -285,12 +285,12 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
   host : T,
   root : @path.PathValue,
   source_id : @source.SourceId,
-  limits? : GraphLimits = GraphLimits::default(),
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  limits~ : GraphLimits = GraphLimits::default(),
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
   let root_source = load_async(host, root, source_id, environment~)
   if limits.max_files > 0 && !async_graph_expansion_required(root_source) {
@@ -306,12 +306,12 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
   bytes : Bytes,
   source_id : @source.SourceId,
   base : @path.PathValue,
-  limits? : GraphLimits = GraphLimits::default(),
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  limits~ : GraphLimits = GraphLimits::default(),
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
   let loaded = load_stdin(bytes, source_id, environment~)
   let name = @path.PathValue::new("<stdin>", base.flavor()) catch {
@@ -340,7 +340,7 @@ pub fn[T : @host.HostFs] load_async(
   host : T,
   path : @path.PathValue,
   source_id : @source.SourceId,
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
   load(host, path, source_id, environment~)
 }
@@ -351,12 +351,12 @@ pub fn[T : @host.HostFs] load_graph_async(
   host : T,
   root : @path.PathValue,
   source_id : @source.SourceId,
-  limits? : GraphLimits = GraphLimits::default(),
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  limits~ : GraphLimits = GraphLimits::default(),
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
   load_graph(host, root, source_id, limits~, platform~, environment~)
 }
@@ -368,12 +368,12 @@ pub fn[T : @host.HostFs] load_stdin_graph_async(
   bytes : Bytes,
   source_id : @source.SourceId,
   base : @path.PathValue,
-  limits? : GraphLimits = GraphLimits::default(),
-  platform? : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
+  limits~ : GraphLimits = GraphLimits::default(),
+  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
     Other("unknown"),
     false,
   ),
-  environment? : ArrayView[(String, String)] = [],
+  environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
   load_stdin_graph(
     host,
