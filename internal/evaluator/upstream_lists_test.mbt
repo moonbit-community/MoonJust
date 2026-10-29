@@ -5,7 +5,7 @@ fn eval_upstream_list(text : String) -> String raise @evaluator.EvaluationError 
     "expr",
     text,
   )
-  evaluate_source(source).display()
+  @evaluator.evaluate_source(source).display()
 }
 
 ///|

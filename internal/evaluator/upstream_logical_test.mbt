@@ -7,7 +7,7 @@ fn eval_upstream_logical(
     "expr",
     text,
   )
-  evaluate_source(source).to_string()
+  @evaluator.evaluate_source(source).to_string()
 }
 
 ///|

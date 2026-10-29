@@ -7,7 +7,7 @@ fn eval_upstream_string(
     "expr",
     text,
   )
-  evaluate_source(source).to_string()
+  @evaluator.evaluate_source(source).to_string()
 }
 
 ///|

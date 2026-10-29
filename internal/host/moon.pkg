@@ -1,3 +1,7 @@
 import {
   "ZSeanYves/MoonJust/internal/path",
 }
+
+import {
+  "moonbitlang/core/debug",
+}
