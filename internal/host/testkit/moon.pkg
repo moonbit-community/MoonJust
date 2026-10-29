@@ -6,7 +6,4 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
-import {
-} for "test"
-
 supported_targets = "-all+native+wasm"
