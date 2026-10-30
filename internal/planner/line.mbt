@@ -52,7 +52,7 @@ fn evaluate_line(
   let rendered = render_line(line, environment)
   let (offset, quiet, ignore_error, _) = source_line_sigils(line, false)
   {
-    command: rendered.view(start_offset=offset).to_owned(),
+    command: rendered[offset:].to_owned(),
     quiet,
     ignore_error,
     is_guard: false,
@@ -169,7 +169,7 @@ async fn[
     line, guards,
   )
   {
-    command: rendered.view(start_offset=offset).to_owned(),
+    command: rendered[offset:].to_owned(),
     quiet: line_quiet,
     ignore_error,
     is_guard,

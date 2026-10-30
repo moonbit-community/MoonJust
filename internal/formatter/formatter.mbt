@@ -24,7 +24,7 @@ fn format_unchecked(ast : @syntax.Ast, indentation : String) -> String {
     match item {
       Comment(text~, ..) if index > 0 && text.has_prefix("#!") => {
         builder.write_string("# ")
-        builder.write_string(text.view(start_offset=1).to_owned())
+        builder.write_string(text[1:].to_owned())
       }
       _ => builder.write_string(item_text(item, indentation))
     }

@@ -79,9 +79,7 @@ pub fn unindent_string(text : String) -> String {
         output.write_string(if line.has_suffix("\r\n") { "\r\n" } else { "\n" })
       }
     } else {
-      output.write_string(
-        line.view(start_offset=indentation.length()).to_owned(),
-      )
+      output.write_string(line[indentation.length():].to_owned())
     }
   }
   output.to_string()

@@ -54,10 +54,7 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
   let trimmed = value.trim().to_owned()
   let (without_build, build) = match trimmed.find("+") {
     Some(index) =>
-      (
-        trimmed.view(end_offset=index).to_owned(),
-        Some(trimmed.view(start_offset=index + 1).to_owned()),
-      )
+      (trimmed[:index].to_owned(), Some(trimmed[index + 1:].to_owned()))
     None => (trimmed, None)
   }
   match build {
@@ -76,8 +73,8 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
   let (core, prerelease_text) = match without_build.find("-") {
     Some(index) =>
       (
-        without_build.view(end_offset=index).to_owned(),
-        Some(without_build.view(start_offset=index + 1).to_owned()),
+        without_build[:index].to_owned(),
+        Some(without_build[index + 1:].to_owned()),
       )
     None => (without_build, None)
   }
@@ -118,11 +115,11 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
 fn semver_component_count(value : String) -> Int32 {
   let mut core = value
   match core.find("+") {
-    Some(index) => core = core.view(end_offset=index).to_owned()
+    Some(index) => core = core[:index].to_owned()
     None => ()
   }
   match core.find("-") {
-    Some(index) => core = core.view(end_offset=index).to_owned()
+    Some(index) => core = core[:index].to_owned()
     None => ()
   }
   split_owned(core, ".").length()
@@ -241,19 +238,13 @@ fn wildcard_clause(
 fn normalize_semver_token(raw : String) -> String? {
   let token = raw.trim().to_owned()
   let (operator, body) = if token.has_prefix(">=") || token.has_prefix("<=") {
-    (
-      token.view(end_offset=2).to_owned(),
-      token.view(start_offset=2).trim_start().to_owned(),
-    )
+    (token[:2].to_owned(), token[2:].trim_start().to_owned())
   } else if token.has_prefix(">") ||
     token.has_prefix("<") ||
     token.has_prefix("=") ||
     token.has_prefix("^") ||
     token.has_prefix("~") {
-    (
-      token.view(end_offset=1).to_owned(),
-      token.view(start_offset=1).trim_start().to_owned(),
-    )
+    (token[:1].to_owned(), token[1:].trim_start().to_owned())
   } else {
     ("", token)
   }
@@ -390,7 +381,7 @@ fn semver_clause(actual : SemVersion, raw : String) -> Bool raise BuiltinError {
     (!explicit_comparator && !wildcard) {
     let is_caret = !token.has_prefix("~")
     let body = if token.has_prefix("^") || token.has_prefix("~") {
-      token.view(start_offset=1).to_owned()
+      token[1:].to_owned()
     } else {
       token
     }
@@ -403,34 +394,34 @@ fn semver_clause(actual : SemVersion, raw : String) -> Bool raise BuiltinError {
   }
   if wildcard {
     let (operator, body) = if token.has_prefix(">=") {
-      (">=", token.view(start_offset=2).to_owned())
+      (">=", token[2:].to_owned())
     } else if token.has_prefix("<=") {
-      ("<=", token.view(start_offset=2).to_owned())
+      ("<=", token[2:].to_owned())
     } else if token.has_prefix(">") {
-      (">", token.view(start_offset=1).to_owned())
+      (">", token[1:].to_owned())
     } else if token.has_prefix("<") {
-      ("<", token.view(start_offset=1).to_owned())
+      ("<", token[1:].to_owned())
     } else if token.has_prefix("=") {
-      ("=", token.view(start_offset=1).to_owned())
+      ("=", token[1:].to_owned())
     } else if token.has_prefix("^") {
-      ("^", token.view(start_offset=1).to_owned())
+      ("^", token[1:].to_owned())
     } else if token.has_prefix("~") {
-      ("~", token.view(start_offset=1).to_owned())
+      ("~", token[1:].to_owned())
     } else {
       ("=", token)
     }
     return wildcard_clause(actual, body, operator)
   }
   let (operator, body) = if token.has_prefix(">=") {
-    (">=", token.view(start_offset=2).to_owned())
+    (">=", token[2:].to_owned())
   } else if token.has_prefix("<=") {
-    ("<=", token.view(start_offset=2).to_owned())
+    ("<=", token[2:].to_owned())
   } else if token.has_prefix(">") {
-    (">", token.view(start_offset=1).to_owned())
+    (">", token[1:].to_owned())
   } else if token.has_prefix("<") {
-    ("<", token.view(start_offset=1).to_owned())
+    ("<", token[1:].to_owned())
   } else if token.has_prefix("=") {
-    ("=", token.view(start_offset=1).to_owned())
+    ("=", token[1:].to_owned())
   } else {
     ("=", token)
   }
@@ -474,7 +465,7 @@ fn semver_clause_prerelease(actual : SemVersion, raw : String) -> Bool {
         ) {
     start += 1
   }
-  let body = token.view(start_offset=start).to_owned()
+  let body = token[start:].to_owned()
   match parse_semver(body, true) {
     Some(expected) =>
       !expected.prerelease.is_empty() &&

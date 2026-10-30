@@ -27,7 +27,7 @@ fn recipe_docs(ast : @syntax.Ast) -> Map[String, String] {
       Comment(text~, ..) => {
         let text = text.trim()
         if text.has_prefix("# ") {
-          pending.push(text.view(start_offset=2).to_owned())
+          pending.push(text[2:].to_owned())
         } else {
           pending = []
         }

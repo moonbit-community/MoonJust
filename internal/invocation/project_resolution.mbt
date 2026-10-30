@@ -12,7 +12,7 @@ fn project_overrides(
         result.push((name, value))
       }
     } else if name.has_prefix(prefix) {
-      result.push((name.view(start_offset=prefix.length()).to_owned(), value))
+      result.push((name[prefix.length():].to_owned(), value))
     }
   }
   result

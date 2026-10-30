@@ -157,7 +157,7 @@ fn link_metadata_path(root : String) -> String {
 ///|
 fn quoted_value(line : String) -> String? {
   guard line.find("\"") is Some(start) else { return None }
-  let rest = line.view(start_offset=start + 1)
+  let rest = line[start + 1:]
   guard rest.find("\"") is Some(end) else { return None }
   Some(rest[:end].to_owned())
 }
@@ -167,10 +167,10 @@ fn quoted_values(line : String) -> Array[String] {
   let result : Array[String] = []
   let mut rest = line
   while rest.find("\"") is Some(start) {
-    let after_start = rest.view(start_offset=start + 1)
+    let after_start = rest[start + 1:]
     guard after_start.find("\"") is Some(end) else { break }
     result.push(after_start[:end].to_owned())
-    rest = after_start.view(start_offset=end + 1).to_owned()
+    rest = after_start[end + 1:].to_owned()
   }
   result
 }
@@ -803,7 +803,7 @@ fn normalized_tree_path(path : String, bytes : BytesView) -> String {
     let text = @utf8.decode(bytes) catch { _ => "" }
     let recipe = match text.find("\"recipe\":\"") {
       Some(start) => {
-        let tail = text.view(start_offset=start + 10)
+        let tail = text[start + 10:]
         match tail.find("\"") {
           Some(end) => tail[:end].to_owned()
           None => "unknown"
@@ -1002,7 +1002,7 @@ fn decimal_digit(character : Char) -> Bool {
 
 ///|
 fn decimal_range(text : String, start : Int32, length : Int32) -> Bool {
-  let view = text.view(start_offset=start, end_offset=start + length)
+  let view = text[start:start + length]
   for character in view {
     if !decimal_digit(character) {
       return false
@@ -1020,24 +1020,20 @@ fn normalize_datetime(text : String) -> String {
     decimal_range(text, 8, 2) else {
     return text
   }
-  "<DATE>" + text.view(start_offset=10).to_owned()
+  "<DATE>" + text[10:].to_owned()
 }
 
 ///|
 fn normalize_duration(text : String) -> String {
   guard text.find(" completed in ") is Some(start) else { return text }
   let after = start + " completed in ".length()
-  guard text.view(start_offset=after).find("s") is Some(end) else {
-    return text
-  }
+  guard text[after:].find("s") is Some(end) else { return text }
   let end = after + end
-  let value = text.view(start_offset=after, end_offset=end)
+  let value = text[after:end]
   guard !value.is_empty() && value.all(fn(c) { decimal_digit(c) || c == '.' }) else {
     return text
   }
-  text[:after].to_owned() +
-  "<DURATION>" +
-  text.view(start_offset=end).to_owned()
+  text[:after].to_owned() + "<DURATION>" + text[end:].to_owned()
 }
 
 ///|
@@ -1053,7 +1049,7 @@ fn normalize_timestamp(text : String) -> String {
     return text
   }
   let end = 9
-  "[<TIME>]" + text.view(start_offset=end + 1).to_owned()
+  "[<TIME>]" + text[end + 1:].to_owned()
 }
 
 ///|
@@ -1113,11 +1109,9 @@ fn normalize_program_path(text : String) -> String {
   guard text.has_prefix("'") && text.find("'") is Some(first) else {
     return text
   }
-  guard text.view(start_offset=first + 1).find("'") is Some(offset) else {
-    return text
-  }
+  guard text[first + 1:].find("'") is Some(offset) else { return text }
   let second = first + 1 + offset
-  "'<JUST>" + text.view(start_offset=second).to_owned()
+  "'<JUST>" + text[second:].to_owned()
 }
 
 ///|
@@ -1174,18 +1168,16 @@ fn replace_windows_temp_root(text : String, marker : String) -> String {
   let output = StringBuilder()
   let mut cursor = 0
   while cursor < text.length() {
-    let remaining = text.view(start_offset=cursor)
+    let remaining = text[cursor:]
     guard remaining.find(marker) is Some(offset) else {
       output.write_string(remaining.to_owned())
       break
     }
     let start = cursor + offset
-    output.write_string(
-      text.view(start_offset=cursor, end_offset=start).to_owned(),
-    )
+    output.write_string(text[cursor:start].to_owned())
     let token_start = start + marker.length()
     let mut token_end = token_start
-    for character in text.view(start_offset=token_start) {
+    for character in text[token_start:] {
       if character == '\\' ||
         character == '/' ||
         character == '"' ||

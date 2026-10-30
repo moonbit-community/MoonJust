@@ -367,7 +367,7 @@ pub impl @host.HostFs for FakeHost with fn read_dir(
   for file in self.files.keys() {
     let value = file.as_string()
     if value.has_prefix(prefix) {
-      let rest = value.view(start_offset=prefix.length()).to_owned()
+      let rest = value[prefix.length():].to_owned()
       if !rest.contains(path.flavor().separator().to_string()) &&
         !result.contains(rest) {
         result.push(rest)
@@ -377,7 +377,7 @@ pub impl @host.HostFs for FakeHost with fn read_dir(
   for directory in self.directories {
     let value = directory.as_string()
     if value.has_prefix(prefix) {
-      let rest = value.view(start_offset=prefix.length()).to_owned()
+      let rest = value[prefix.length():].to_owned()
       if !rest.is_empty() &&
         !rest.contains(path.flavor().separator().to_string()) &&
         !result.contains(rest) {

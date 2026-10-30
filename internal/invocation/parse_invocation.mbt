@@ -46,9 +46,7 @@ fn parse_one(
     }
     if !end_of_options && argument.has_prefix("-") && argument != "-" {
       let long = argument.has_prefix("--")
-      let stripped = argument
-        .view(start_offset=if long { 2 } else { 1 })
-        .to_owned()
+      let stripped = argument[if long { 2 } else { 1 }:].to_owned()
       let (name, supplied) = split_option(stripped)
       if name.is_empty() {
         raise InvalidOption(argument~)

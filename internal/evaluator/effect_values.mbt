@@ -173,9 +173,9 @@ fn rgb_code(value : String) -> (Int32, Int32, Int32)? {
 ///|
 fn style_code(style : String) -> String? {
   let (background, token) = if style.has_prefix("bg:") {
-    (true, style.view(start_offset=3).to_owned())
+    (true, style[3:].to_owned())
   } else if style.has_prefix("fg:") {
-    (false, style.view(start_offset=3).to_owned())
+    (false, style[3:].to_owned())
   } else {
     (false, style)
   }
@@ -215,7 +215,7 @@ fn style_code(style : String) -> String? {
       }
     None =>
       if token.has_prefix("#") {
-        match rgb_code(token.view(start_offset=1).to_owned()) {
+        match rgb_code(token[1:].to_owned()) {
           Some((red, green, blue)) =>
             Some(
               (if background { "48" } else { "38" }) +

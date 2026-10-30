@@ -24,13 +24,12 @@ fn write_list_line(
 
 ///|
 fn alias_signature(row : ListRow, alias_name : String) -> String {
-  alias_name + row.signature.view(start_offset=row.name.length()).to_owned()
+  alias_name + row.signature[row.name.length():].to_owned()
 }
 
 ///|
 fn rendered_alias_signature(row : ListRow, alias_name : String) -> String {
-  alias_name +
-  row.rendered_signature.view(start_offset=row.name.length()).to_owned()
+  alias_name + row.rendered_signature[row.name.length():].to_owned()
 }
 
 ///|
@@ -122,7 +121,7 @@ fn list_text(
     if alias_style == "separate" {
       for alias_name in aliases {
         let alias_width = @query.display_width(
-          alias_name + signature.view(start_offset=name.length()).to_owned(),
+          alias_name + signature[name.length():].to_owned(),
         )
         if alias_width <= 50 {
           maximum = Int32::max(maximum, alias_width)
