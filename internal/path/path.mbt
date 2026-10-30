@@ -296,7 +296,7 @@ pub fn PathValue::extension(self : PathValue) -> String? {
     Some(name) =>
       match name.rev_find(".") {
         Some(0) | None => None
-        Some(index) => Some("\{name.view(start_offset=index + 1)}")
+        Some(index) => Some("\{name[index + 1:]}")
       }
   }
 }
@@ -310,7 +310,7 @@ pub fn PathValue::without_extension(self : PathValue) -> PathValue {
     Some(name) =>
       match name.rev_find(".") {
         Some(index) if index > 0 => {
-          parsed.components[parsed.components.length() - 1] = "\{name.view(end_offset=index)}"
+          parsed.components[parsed.components.length() - 1] = "\{name[:index]}"
           { value: format_parsed(parsed, self.flavor), flavor: self.flavor, }
         }
         _ => self

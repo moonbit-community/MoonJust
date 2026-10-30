@@ -163,7 +163,7 @@ fn declaration_metadata(
         Comment(text~, ..) => {
           let trimmed = text.trim()
           if trimmed.has_prefix("# ") {
-            pending_docs.push(trimmed.view(start_offset=2).to_owned())
+            pending_docs.push(trimmed[2:].to_owned())
           } else {
             pending_docs.clear()
           }

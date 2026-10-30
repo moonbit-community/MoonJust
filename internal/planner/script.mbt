@@ -7,7 +7,7 @@ priv struct ShebangCommand {
 ///|
 fn parse_shebang(line : String) -> ShebangCommand? {
   guard line.has_prefix("#!") else { return None }
-  let text = line.view(start_offset=2).to_owned().trim().to_owned()
+  let text = line[2:].to_owned().trim().to_owned()
   if text.is_empty() {
     return None
   }
@@ -23,7 +23,7 @@ fn parse_shebang(line : String) -> ShebangCommand? {
     None => Some({ interpreter: text, argument: None, })
     Some(index) => {
       let interpreter = text[:index].to_owned()
-      let argument = text.view(start_offset=index).to_owned().trim().to_owned()
+      let argument = text[index:].to_owned().trim().to_owned()
       Some({
         interpreter,
         argument: if argument.is_empty() {

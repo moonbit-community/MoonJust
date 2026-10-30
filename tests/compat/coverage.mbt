@@ -323,7 +323,7 @@ async fn audited_fixture(
   }
   let marker = "=== " + upstream_test + " ==="
   guard text.find(marker) is Some(start) else { return false }
-  let tail = text.view(start_offset=start)
+  let tail = text[start:]
   guard tail.find("=== end ===") is Some(end) else { return false }
   let block = tail[:end].to_owned()
   block.contains("\nsource: " + anchor + "\n") &&

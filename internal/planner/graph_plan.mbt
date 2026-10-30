@@ -100,9 +100,7 @@ fn combined_recipe_line(
             text
           }
           if continued && fragment_index == source.fragments().length() - 1 {
-            combined = combined
-              .view(end_offset=combined.length() - 1)
-              .to_owned()
+            combined = combined[:combined.length() - 1].to_owned()
           }
           fragments.push(Text(text=combined, span~))
         }

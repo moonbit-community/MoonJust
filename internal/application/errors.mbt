@@ -188,7 +188,7 @@ fn diagnostic_source(
         cwd.as_string() + separator
       }
       if path.as_string().has_prefix(prefix) {
-        display = path.as_string().view(start_offset=prefix.length()).to_owned()
+        display = path.as_string()[prefix.length():].to_owned()
       }
     }
     _ => ()

@@ -212,7 +212,7 @@ fn import_path(
     }
     for entry in environment {
       if entry.0 == home_name {
-        value = entry.1 + value.view(start_offset=1).to_owned()
+        value = entry.1 + value[1:].to_owned()
         break
       }
     }

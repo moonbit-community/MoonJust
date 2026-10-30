@@ -222,15 +222,12 @@ fn builtin_aliases(name : String) -> Array[String] {
   let aliases : Array[String] = []
   if name.has_suffix("_directory_native") {
     aliases.push(
-      name
-      .view(end_offset=name.length() - "_directory_native".length())
-      .to_owned() +
+      name[:name.length() - "_directory_native".length()].to_owned() +
       "_dir_native",
     )
   } else if name.has_suffix("_directory") {
     aliases.push(
-      name.view(end_offset=name.length() - "_directory".length()).to_owned() +
-      "_dir",
+      name[:name.length() - "_directory".length()].to_owned() + "_dir",
     )
   }
   aliases
@@ -272,14 +269,10 @@ pub fn canonical_name(name : String) -> String {
     _ => name
   }
   if compatibility.has_suffix("_dir_native") {
-    compatibility
-    .view(end_offset=compatibility.length() - "_dir_native".length())
-    .to_owned() +
+    compatibility[:compatibility.length() - "_dir_native".length()].to_owned() +
     "_directory_native"
   } else if compatibility.has_suffix("_dir") {
-    compatibility
-    .view(end_offset=compatibility.length() - "_dir".length())
-    .to_owned() +
+    compatibility[:compatibility.length() - "_dir".length()].to_owned() +
     "_directory"
   } else {
     compatibility

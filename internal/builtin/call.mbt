@@ -176,23 +176,19 @@ pub fn call(
       }
       if name == "trim_end_match" {
         if result.has_suffix(match_value) {
-          result = result
-            .view(end_offset=result.length() - match_value.length())
-            .to_owned()
+          result = result[:result.length() - match_value.length()].to_owned()
         }
       } else if name == "trim_start_match" {
         if result.has_prefix(match_value) {
-          result = result.view(start_offset=match_value.length()).to_owned()
+          result = result[match_value.length():].to_owned()
         }
       } else if name == "trim_end_matches" {
         while result.has_suffix(match_value) {
-          result = result
-            .view(end_offset=result.length() - match_value.length())
-            .to_owned()
+          result = result[:result.length() - match_value.length()].to_owned()
         }
       } else {
         while result.has_prefix(match_value) {
-          result = result.view(start_offset=match_value.length()).to_owned()
+          result = result[match_value.length():].to_owned()
         }
       }
       String(result)
