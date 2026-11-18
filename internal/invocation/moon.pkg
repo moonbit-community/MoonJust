@@ -11,7 +11,7 @@ import {
   "moonbitlang/regexp",
 }
 
-supported_targets = "-all+native+wasm"
+supported_targets = "wasm"
 
 import {
   "ZSeanYves/MoonJust/internal/path",

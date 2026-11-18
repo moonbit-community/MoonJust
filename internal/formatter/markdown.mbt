@@ -1,8 +1,9 @@
 ///|
+#derive(Eq, Debug)
 pub struct MarkdownLimits {
   max_lines : Int32
   max_bytes : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn MarkdownLimits::new(
@@ -21,16 +22,18 @@ pub fn MarkdownLimits::default() -> MarkdownLimits {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) suberror MarkdownError {
   InvalidLimit
   LimitExceeded(limit~ : Int32, span~ : @source.Span)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Debug)
 pub struct TangledSource {
   source : @source.Source
   selected_blocks : Int32
-} derive(Debug)
+}
 
 ///|
 pub fn TangledSource::source(self : TangledSource) -> @source.Source {

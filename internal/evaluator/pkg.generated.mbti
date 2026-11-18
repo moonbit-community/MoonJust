@@ -17,37 +17,33 @@ import {
 // Values
 pub fn bind_recipe_parameters(@syntax.Recipe, Array[@value.Value], Environment, limits? : EvaluationLimits, allow_empty? : @set.Set[String], lists? : Bool) -> Environment raise EvaluationError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] bind_recipe_parameters_with_async_effects(P, H, @syntax.Recipe, Array[@value.Value], Environment, EvaluationContext, EffectShell, quiet? : Bool, limits? : EvaluationLimits, allow_empty? : @set.Set[String]) -> Environment raise EvaluationError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] bind_recipe_parameters_with_async_effects(P, H, @syntax.Recipe, Array[@value.Value], Environment, EvaluationContext, EffectShell, quiet? : Bool, limits? : EvaluationLimits, allow_empty? : @set.Set[String]) -> Environment raise EvaluationError
 
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect(T, String, Array[@value.Value], @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
+pub async fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect(T, String, Array[@value.Value], @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect_with_context(T, String, Array[@value.Value], EvaluationContext, @source.Span) -> @value.Value raise EvaluationError
+pub async fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] call_effect_with_context(T, String, Array[@value.Value], EvaluationContext, @source.Span) -> @value.Value raise EvaluationError
 
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] call_non_process_effect_with_context(T, String, Array[@value.Value], EvaluationContext, @source.Span) -> @value.Value raise EvaluationError
+pub async fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] call_non_process_effect_with_context(T, String, Array[@value.Value], EvaluationContext, @source.Span) -> @value.Value raise EvaluationError
 
-pub fn[T : @host.HostProcess] call_shell_effect(T, Array[@value.Value], EvaluationContext, EffectShell, @source.Span, quiet? : Bool, shell_function? : Bool) -> @value.Value raise EvaluationError
-
-pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(T, Array[@value.Value], EvaluationContext, EffectShell, @source.Span, quiet? : Bool, shell_function? : Bool) -> @value.Value raise EvaluationError
+pub async fn[T : @host.HostProcess] call_shell_effect(T, Array[@value.Value], EvaluationContext, EffectShell, @source.Span, quiet? : Bool, shell_function? : Bool) -> @value.Value raise EvaluationError
 
 pub fn evaluate(@syntax.Expression, environment? : Environment, limits? : EvaluationLimits, functions? : FunctionEnvironment) -> @value.Value raise EvaluationError
 
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
+pub async fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_backtick(T, String, @path.PathValue, @source.Span) -> @value.Value raise EvaluationError
 
-pub fn[T : @host.HostProcess] evaluate_backtick_with_shell(T, String, EvaluationContext, EffectShell, @source.Span, quiet? : Bool) -> @value.Value raise EvaluationError
+pub async fn[T : @host.HostProcess] evaluate_backtick_with_shell(T, String, EvaluationContext, EffectShell, @source.Span, quiet? : Bool) -> @value.Value raise EvaluationError
 
 pub fn evaluate_compilation(@semantic.Compilation, environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)]) -> Environment raise EvaluationError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_compilation_with_async_effects(P, H, @semantic.Compilation, EvaluationContext, EffectShell, environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)], quiet? : Bool, dry_run? : Bool) -> Environment raise EvaluationError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_compilation_with_async_effects(P, H, @semantic.Compilation, EvaluationContext, EffectShell, environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)], quiet? : Bool, dry_run? : Bool) -> Environment raise EvaluationError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_compilation_with_async_effects_selected(P, H, @semantic.Compilation, EvaluationContext, EffectShell, ArrayView[String], environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)], quiet? : Bool, dry_run? : Bool) -> Environment raise EvaluationError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_compilation_with_async_effects_selected(P, H, @semantic.Compilation, EvaluationContext, EffectShell, ArrayView[String], environment? : Environment, limits? : EvaluationLimits, overrides? : ArrayView[(String, String)], quiet? : Bool, dry_run? : Bool) -> Environment raise EvaluationError
 
 pub fn evaluate_source(@source.Source, environment? : Environment, limits? : EvaluationLimits) -> @value.Value raise EvaluationError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_with_async_effects(P, H, @syntax.Expression, EvaluationContext, EffectShell, quiet? : Bool, dry_run? : Bool, environment? : Environment, limits? : EvaluationLimits, functions? : FunctionEnvironment) -> @value.Value raise EvaluationError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] evaluate_with_async_effects(P, H, @syntax.Expression, EvaluationContext, EffectShell, quiet? : Bool, dry_run? : Bool, environment? : Environment, limits? : EvaluationLimits, functions? : FunctionEnvironment) -> @value.Value raise EvaluationError
 
 pub fn evaluate_with_context(@syntax.Expression, EvaluationContext, environment? : Environment, limits? : EvaluationLimits, functions? : FunctionEnvironment) -> @value.Value raise EvaluationError
-
-pub fn[T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal] evaluate_with_effects(T, @syntax.Expression, EvaluationContext, EffectShell, quiet? : Bool, environment? : Environment, limits? : EvaluationLimits, functions? : FunctionEnvironment) -> @value.Value raise EvaluationError
 
 pub fn expression_is_effectful(@syntax.Expression) -> Bool
 
@@ -56,6 +52,7 @@ pub fn install_constants(Environment, @path.PathFlavor) -> Unit
 pub fn recipe_variable_references(@semantic.Compilation, ArrayView[String]) -> Array[String]
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror EvaluationError {
   Parse(@parser.ParserError)
   UndefinedVariable(name~ : String, span~ : @source.Span)
@@ -77,7 +74,7 @@ pub(all) suberror EvaluationError {
   UnknownOverrides(names~ : Array[String], span~ : @source.Span)
   FunctionArgumentCount(name~ : String, expected~ : Int32, actual~ : Int32, span~ : @source.Span)
   EmptyParameter(recipe~ : String, parameter~ : String, span~ : @source.Span)
-} derive(Eq, @debug.Debug)
+}
 pub fn EvaluationError::code(Self) -> String
 #deprecated
 pub fn EvaluationError::equal(Self, Self) -> Bool
@@ -90,10 +87,11 @@ pub fn EvaluationError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @dia
 pub fn EvaluationError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct EffectShell {
   program : String
   arguments : Array[String]
-} derive(Eq, @debug.Debug)
+}
 pub fn EffectShell::arguments(Self) -> ArrayView[String]
 #deprecated
 pub fn EffectShell::equal(Self, Self) -> Bool
@@ -104,12 +102,13 @@ pub fn EffectShell::program(Self) -> String
 #deprecated
 pub fn EffectShell::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct Environment {
   values : Map[String, @value.Value]
   ordered : Array[String]
   exported : @set.Set[String]
   mut functions : FunctionEnvironment
-} derive(@debug.Debug)
+}
 pub fn Environment::child(Self) -> Self
 pub fn Environment::contains(Self, String) -> Bool
 pub fn Environment::functions(Self) -> FunctionEnvironment
@@ -125,6 +124,7 @@ pub fn Environment::set_functions(Self, FunctionEnvironment) -> Unit
 #deprecated
 pub fn Environment::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct EvaluationContext {
   cwd : @path.PathValue?
   recipe : String?
@@ -156,7 +156,7 @@ pub(all) struct EvaluationContext {
   command_color : String?
   environment : Array[(String, String)]?
   process_environment : Array[(String, String)]?
-} derive(Eq, @debug.Debug)
+}
 pub fn EvaluationContext::cache_directory(Self) -> @path.PathValue?
 pub fn EvaluationContext::color_mode(Self) -> String?
 pub fn EvaluationContext::command_color(Self) -> String?
@@ -195,11 +195,12 @@ pub fn EvaluationContext::to_repr(Self) -> @debug.Repr
 pub fn EvaluationContext::utc_offset_seconds(Self) -> Int32?
 pub fn EvaluationContext::with_process_environment(Self, ArrayView[(String, String)]) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct EvaluationLimits {
   max_depth : Int32
   max_nodes : Int32
   max_output_bytes : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn EvaluationLimits::default() -> Self
 #deprecated
 pub fn EvaluationLimits::equal(Self, Self) -> Bool
@@ -209,9 +210,10 @@ pub fn EvaluationLimits::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn EvaluationLimits::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct FunctionEnvironment {
   definitions : Map[String, @syntax.FunctionDefinition]
-} derive(@debug.Debug)
+}
 pub fn FunctionEnvironment::from_compilation(@semantic.Compilation) -> Self
 pub fn FunctionEnvironment::get(Self, String) -> @syntax.FunctionDefinition?
 pub fn FunctionEnvironment::names(Self) -> Array[String]
@@ -234,11 +236,12 @@ pub fn LazyEnvironment::new(@semantic.Compilation, environment? : Environment, l
 pub fn LazyEnvironment::resolve(Self, String) -> @value.Value raise EvaluationError
 pub fn LazyEnvironment::state(Self, String) -> LazyState?
 
+#derive(Eq, @debug.Debug)
 pub(all) enum LazyState {
   Unevaluated
   Evaluating
   Evaluated(@value.Value)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn LazyState::equal(Self, Self) -> Bool
 #deprecated

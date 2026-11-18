@@ -1,12 +1,4 @@
 ///|
-struct Options {
-  candidate : String
-  target : String
-  suite : String
-  official : String
-}
-
-///|
 struct SmokeCase {
   name : String
   justfile : String
@@ -33,23 +25,6 @@ fn option(args : ArrayView[String], name : String) -> String? {
 }
 
 ///|
-fn values_after(args : ArrayView[String], name : String) -> Array[String] {
-  for index, value in args {
-    if value == name {
-      let result : Array[String] = []
-      for item in args[index + 1:] {
-        if item.has_prefix("--") {
-          break
-        }
-        result.push(item)
-      }
-      return result
-    }
-  }
-  []
-}
-
-///|
 fn quoted_value(line : String) -> String? {
   guard line.find("\"") is Some(start) else { return None }
   let rest = line[start + 1:]
@@ -59,7 +34,7 @@ fn quoted_value(line : String) -> String? {
 
 ///|
 async fn module_field(name : String) -> String? {
-  let text = @fs.read_file("moon.mod").text() catch { _ => "" }
+  let text = @fs.read_text("moon.mod") catch { _ => "" }
   for raw in text.split("\n") {
     let line = raw.trim().to_owned()
     if line.has_prefix(name + " =") {
@@ -67,15 +42,6 @@ async fn module_field(name : String) -> String? {
     }
   }
   None
-}
-
-///|
-fn coordinate_version(coordinate : String) -> String? {
-  match coordinate.rev_find("@") {
-    Some(index) if index + 1 < coordinate.length() =>
-      Some(coordinate[index + 1:].to_owned())
-    _ => None
-  }
 }
 
 ///|
@@ -107,42 +73,13 @@ fn asset_not_ready(status : Int32, stderr : String) -> Bool {
 }
 
 ///|
-async fn prepare_candidate(options : Options) -> @testkit.PreparedProgram {
+async fn prepare_candidate(coordinate : String) -> @testkit.PreparedProgram {
   @testkit.prepare_command(
     "moonx",
-    ["--target", options.target, options.candidate],
-    subject_path=options.candidate,
+    ["--target", "wasm", coordinate],
+    subject_path=coordinate,
     no_console_window=false,
   )
-}
-
-///|
-#cfg(platform="windows")
-fn moonx_host_os() -> String {
-  "windows"
-}
-
-///|
-#cfg(not(platform="windows"))
-fn moonx_host_os() -> String {
-  match @env.get_env_var("OSTYPE") {
-    Some(value) => {
-      let lower = value.to_lower()
-      if lower.contains("darwin") {
-        "macos"
-      } else if lower.contains("linux") {
-        "linux"
-      } else {
-        "linux"
-      }
-    }
-    None => "linux"
-  }
-}
-
-///|
-fn moonx_host_environment() -> Map[String, String] {
-  { "MOONJUST_OS": moonx_host_os() }
 }
 
 ///|
@@ -153,7 +90,7 @@ fn join(left : String, right : String) -> String {
 ///|
 async fn write_case(root : String, case : SmokeCase) -> Unit {
   if !case.justfile.is_empty() {
-    @fs.write_file(join(root, "justfile"), @utf8.encode(case.justfile))
+    @fs.write_binary(join(root, "justfile"), @utf8.encode(case.justfile))
   }
   for entry in case.files {
     let path = join(root, entry.0)
@@ -161,7 +98,7 @@ async fn write_case(root : String, case : SmokeCase) -> Unit {
     if !@fs.exists(parent.to_string()) {
       @fs.mkdir(parent.to_string(), recursive=true)
     }
-    @fs.write_file(path, entry.1)
+    @fs.write_binary(path, entry.1)
   }
 }
 
@@ -192,7 +129,7 @@ async fn append_tree(
         append_tree(full, path, root, output)
       }
       Regular => {
-        let bytes = normalize_bytes(root, @fs.read_file(full).binary())
+        let bytes = normalize_bytes(root, @fs.read_binary(full))
         let digest = @crypto.bytes_to_hex_string(@crypto.sha256(bytes))
         output.write_string(
           "file\t./" +
@@ -234,17 +171,12 @@ async fn compare_case(
 ) -> CaseReport {
   let candidate_root = @fs.tmpdir(prefix="moonjust moonx candidate")
   let official_root = @fs.tmpdir(prefix="moonjust moonx official")
-  defer (@fs.rmdir(candidate_root, recursive=true) catch { _ => () })
-  defer (@fs.rmdir(official_root, recursive=true) catch { _ => () })
+  defer (@fs.remove(candidate_root, recursive=true) catch { _ => () })
+  defer (@fs.remove(official_root, recursive=true) catch { _ => () })
   write_case(candidate_root, case)
   write_case(official_root, case)
   let expected = run_once(official, case.args, official_root)
-  let actual = run_once(
-    candidate,
-    case.args,
-    candidate_root,
-    extra_env=moonx_host_environment(),
-  )
+  let actual = run_once(candidate, case.args, candidate_root)
   let expected_stdout = normalize_bytes(official_root, expected.stdout)
   let actual_stdout = normalize_bytes(candidate_root, actual.stdout)
   let expected_stderr = normalize_bytes(official_root, expected.stderr)
@@ -267,14 +199,17 @@ async fn compare_case(
   let expected_failure = case.name == "recipe-failure" ||
     case.name == "fmt-check-unformatted" ||
     case.name == "no-dotenv"
-  let quiet_match = case.name != "quiet" ||
-    (actual.status == 0 && actual.stdout.is_empty() && actual.stderr.is_empty())
+  if (actual.status != 0) != expected_failure {
+    failures.push("unexpected exit status")
+  }
+  if case.name == "quiet" &&
+    (!actual.stdout.is_empty() || !actual.stderr.is_empty()) {
+    failures.push("quiet output")
+  }
   {
     name: case.name,
     status: actual.status,
-    passed: failures.is_empty() &&
-    (!expected_failure || actual.status != 0) &&
-    quiet_match,
+    passed: failures.is_empty(),
     details: if failures.is_empty() {
       if expected_failure {
         "expected failure"
@@ -297,14 +232,9 @@ async fn identity_case(
   expected_version : String,
 ) -> CaseReport {
   let root = @fs.tmpdir(prefix="moonjust-moonx-identity")
-  defer (@fs.rmdir(root, recursive=true) catch { _ => () })
+  defer (@fs.remove(root, recursive=true) catch { _ => () })
   write_case(root, case)
-  let result = run_once(
-    candidate,
-    case.args,
-    root,
-    extra_env=moonx_host_environment(),
-  )
+  let result = run_once(candidate, case.args, root)
   let expected_result : @testkit.RunResult = if case.name == "version" {
     {
       status: 0,
@@ -430,8 +360,8 @@ async fn run_cache_case(
   let justfile = "[cache]\n[script]\ncached:\n  echo cached\n"
   let candidate_root = @fs.tmpdir(prefix="moonjust moonx cache candidate")
   let official_root = @fs.tmpdir(prefix="moonjust moonx cache official")
-  defer (@fs.rmdir(candidate_root, recursive=true) catch { _ => () })
-  defer (@fs.rmdir(official_root, recursive=true) catch { _ => () })
+  defer (@fs.remove(candidate_root, recursive=true) catch { _ => () })
+  defer (@fs.remove(official_root, recursive=true) catch { _ => () })
   let case = {
     name: "cache",
     justfile,
@@ -440,25 +370,14 @@ async fn run_cache_case(
   }
   write_case(candidate_root, case)
   write_case(official_root, case)
-  let candidate_first = run_once(
-    candidate,
-    case.args,
-    candidate_root,
-    extra_env=moonx_host_environment(),
-  )
+  let candidate_first = run_once(candidate, case.args, candidate_root)
   let official_first = run_once(official, case.args, official_root)
-  let candidate_hit = run_once(
-    candidate,
-    case.args,
-    candidate_root,
-    extra_env=moonx_host_environment(),
-  )
+  let candidate_hit = run_once(candidate, case.args, candidate_root)
   let official_hit = run_once(official, case.args, official_root)
   let candidate_no_cache = run_once(
     candidate,
     ["--unstable", "--no-cache", "cached"],
     candidate_root,
-    extra_env=moonx_host_environment(),
   )
   let official_no_cache = run_once(
     official,
@@ -469,17 +388,16 @@ async fn run_cache_case(
     candidate,
     ["--unstable", "--clean"],
     candidate_root,
-    extra_env=moonx_host_environment(),
   )
   let official_clean = run_once(
     official,
     ["--unstable", "--clean"],
     official_root,
   )
-  let passed = candidate_first.status == official_first.status &&
-    candidate_hit.status == official_hit.status &&
-    candidate_no_cache.status == official_no_cache.status &&
-    candidate_clean.status == official_clean.status &&
+  let passed = [
+      candidate_first, candidate_hit, candidate_no_cache, candidate_clean, official_first,
+      official_hit, official_no_cache, official_clean,
+    ].all(result => result.status == 0) &&
     @testkit.bytes_equal(candidate_first.stdout, official_first.stdout) &&
     @testkit.bytes_equal(candidate_first.stderr, official_first.stderr) &&
     @testkit.bytes_equal(candidate_hit.stdout, official_hit.stdout) &&
@@ -504,22 +422,15 @@ async fn run_cache_case(
 async fn preflight(
   candidate : @testkit.PreparedProgram,
   expected_version : String,
-  moon_home : String?,
 ) -> (Bool, String) {
   let expected = @utf8.encode("moonjust v" + expected_version + "\n")
   let delays = [5000, 10000, 20000, 30000]
   let mut last = "MoonX asset is not ready"
-  let preflight_environment = moonx_host_environment()
-  match moon_home {
-    Some(path) => preflight_environment["MOON_HOME"] = path
-    None => ()
-  }
   for attempt in 0..<=delays.length() {
     let result = @testkit.run_prepared(
       candidate,
       ["--version"],
       cwd=@env.current_dir().unwrap_or("."),
-      extra_env=preflight_environment,
       inherit_env=true,
     )
     if result.status == 0 &&
@@ -551,108 +462,7 @@ async fn preflight(
 }
 
 ///|
-async fn run_full_compat(
-  options : Options,
-  report : String,
-  moon_home : String,
-) -> @testkit.RunResult {
-  let build_reentry = @testkit.run(
-    "moon",
-    ["build", "--release", "--target", "native", "./tests/wasm_reentry"],
-    inherit_env=true,
-  )
-  if build_reentry.status != 0 {
-    return build_reentry
-  }
-  let shard_count = 8
-  let results = @async.with_task_group() <| group => {
-    let tasks : Array[@async.Task[@testkit.RunResult]] = []
-    for shard_index in 0..<shard_count {
-      tasks.push(
-        group.spawn(() => {
-          run_full_compat_shard(
-            options,
-            report + ".shard-" + shard_index.to_string() + ".json",
-            moon_home,
-            shard_count,
-            shard_index,
-          )
-        }),
-      )
-    }
-    let completed : Array[@testkit.RunResult] = []
-    for task in tasks {
-      completed.push(task.wait())
-    }
-    completed
-  }
-  let stdout = StringBuilder()
-  let stderr = StringBuilder()
-  let mut status = 0
-  for result in results {
-    if result.status != 0 {
-      status = result.status
-    }
-    stdout.write_string(@utf8.decode(result.stdout) catch { _ => "<non-utf8>" })
-    stderr.write_string(@utf8.decode(result.stderr) catch { _ => "<non-utf8>" })
-  }
-  {
-    status,
-    stdout: @utf8.encode(stdout.to_string()),
-    stderr: @utf8.encode(stderr.to_string()),
-  }
-}
-
-///|
-async fn run_full_compat_shard(
-  options : Options,
-  report : String,
-  moon_home : String,
-  shard_count : Int32,
-  shard_index : Int32,
-) -> @testkit.RunResult {
-  @testkit.run(
-    "moon",
-    [
-      "run",
-      "--target",
-      "native",
-      "./tests/compat",
-      "--",
-      "--candidate",
-      options.candidate,
-      "--candidate-runner",
-      "moonx",
-      "--official",
-      options.official,
-      "--strict-coverage",
-      "--allow-deferred-platform",
-      "--shard-count",
-      shard_count.to_string(),
-      "--shard-index",
-      shard_index.to_string(),
-      "--wasm-reentry",
-      "_build/native/release/build/tests/wasm_reentry/wasm_reentry.exe",
-      "--execution-target",
-      options.target,
-      "--coverage-report",
-      report,
-    ],
-    extra_env={
-      "MOONJUST_MOON_HOME": moon_home,
-      "MOONJUST_MOONX": "moonx",
-      "MOONJUST_MOONX_TARGET": options.target,
-    },
-    inherit_env=true,
-  )
-}
-
-///|
-fn report_json(
-  options : Options,
-  reports : Array[CaseReport],
-  full : @testkit.RunResult?,
-) -> String {
+fn report_json(coordinate : String, reports : Array[CaseReport]) -> String {
   let rows : Array[String] = []
   for report in reports {
     rows.push(
@@ -667,48 +477,27 @@ fn report_json(
       "}",
     )
   }
-  let full_json = match full {
-    Some(result) =>
-      ",\"full_status\":" +
-      result.status.to_string() +
-      ",\"full_stdout\":" +
-      json_string(@utf8.decode(result.stdout) catch { _ => "<non-utf8>" }) +
-      ",\"full_stderr\":" +
-      json_string(@utf8.decode(result.stderr) catch { _ => "<non-utf8>" })
-    None => ""
-  }
-  let cases_passed = reports.all(fn(report) { report.passed })
-  let full_passed = match full {
-    Some(result) => result.status == 0
-    None => true
-  }
   "{\"candidate\":" +
-  json_string(options.candidate) +
-  ",\"target\":" +
-  json_string(options.target) +
-  ",\"suite\":" +
-  json_string(options.suite) +
+  json_string(coordinate) +
+  ",\"target\":\"wasm\",\"host\":" +
+  json_string(@testkit.runner_os()) +
   ",\"passed\":" +
-  (cases_passed && full_passed).to_string() +
+  reports.all(report => report.passed).to_string() +
   ",\"cases\":[" +
   rows.join(",") +
-  "]" +
-  full_json +
-  "}\n"
+  "]}\n"
 }
 
 ///|
 fn failure_report_json(
-  options : Options,
+  coordinate : String,
   stage : String,
   details : String,
 ) -> String {
   "{\"candidate\":" +
-  json_string(options.candidate) +
-  ",\"target\":" +
-  json_string(options.target) +
-  ",\"suite\":" +
-  json_string(options.suite) +
+  json_string(coordinate) +
+  ",\"target\":\"wasm\",\"host\":" +
+  json_string(@testkit.runner_os()) +
   ",\"passed\":false,\"stage\":" +
   json_string(stage) +
   ",\"details\":" +
@@ -719,147 +508,36 @@ fn failure_report_json(
 ///|
 async fn write_report(path : String?, content : String) -> Unit {
   match path {
-    Some(output) => @fs.write_file(output, @utf8.encode(content))
+    Some(output) => @fs.write_binary(output, @utf8.encode(content))
     None => ()
   }
 }
 
 ///|
-async fn aggregate_reports(args : ArrayView[String], report : String?) -> Unit {
-  let paths = values_after(args, "--reports")
-  guard !paths.is_empty() else {
-    @stdio.stderr.write("aggregate mode requires --reports PATH...\n")
-    @sys.exit(2)
-    return
-  }
-  let failures : Array[String] = []
-  for path in paths {
-    let text = @fs.read_file(path).text() catch { _ => "" }
-    if text.is_empty() {
-      failures.push(path + ": report is missing or empty")
-    } else if text.contains("\"passed\":false") {
-      failures.push(path + ": report failed")
-    }
-  }
-  let content = "{\"suite\":\"aggregate\",\"passed\":" +
-    failures.is_empty().to_string() +
-    ",\"reports\":[" +
-    paths.map(json_string).join(",") +
-    "]}\n"
-  write_report(report, content)
-  for failure in failures {
-    @stdio.stderr.write("FAIL " + failure + "\n")
-  }
-  if !failures.is_empty() {
-    @sys.exit(1)
-  }
-  @stdio.stdout.write(
-    "PASS aggregate " + paths.length().to_string() + " reports\n",
-  )
-}
-
-///|
 async fn main {
   let args = @env.args()[1:]
-  let candidate = option(args, "--candidate")
-  let target = option(args, "--target").unwrap_or("wasm")
-  let suite = option(args, "--suite").unwrap_or("smoke")
-  let official = option(args, "--official").unwrap_or("just")
   let report = option(args, "--report")
-  guard target == "wasm" || target == "native" else {
-    @stdio.stderr.write("target must be `wasm` or `native`\n")
-    @sys.exit(2)
-    return
+  guard module_field("name") is Some(name) &&
+    module_field("version") is Some(version) else {
+    fail("moon.mod must identify a versioned module")
   }
-  guard suite == "smoke" ||
-    suite == "full" ||
-    suite == "not-applicable" ||
-    suite == "aggregate" ||
-    suite == "validate-publish" else {
-    @stdio.stderr.write(
-      "suite must be `smoke`, `full`, `not-applicable`, `aggregate`, or `validate-publish`\n",
-    )
-    @sys.exit(2)
-    return
+  let coordinate = name + "@" + version
+  let candidate_program = prepare_candidate(coordinate)
+  let official_program = @testkit.prepare_program("just")
+  let oracle = @testkit.run_prepared_bytes(official_program, ["--version"])
+  guard oracle.status == 0 && oracle.stdout == b"just 1.57.0\n" else {
+    fail("expected just 1.57.0")
   }
-  let module_name = module_field("name").unwrap_or("")
-  let version = module_field("version").unwrap_or("")
-  let expected_coordinate = module_name + "@" + version
-  if suite == "not-applicable" {
-    write_report(report, "{\"suite\":\"not-applicable\",\"passed\":true}\n")
-    @stdio.stdout.write("PASS not-applicable MoonX was not invoked\n")
-    return
-  }
-  if suite == "aggregate" {
-    aggregate_reports(args, report)
-    return
-  }
-  if suite == "validate-publish" {
-    let channel = option(args, "--channel").unwrap_or("")
-    let valid = (channel == "rc" && version.contains("-rc.")) ||
-      (channel == "stable" && !version.contains("-"))
-    if !valid {
-      @stdio.stderr.write(
-        "publish channel/version mismatch: channel=" +
-        channel +
-        " version=" +
-        version +
-        "\n",
-      )
-      @sys.exit(1)
-      return
-    }
-    @stdio.stdout.write("PASS publish validation " + expected_coordinate + "\n")
-    return
-  }
-  let candidate_value = candidate.unwrap_or(expected_coordinate)
-  guard candidate_value == expected_coordinate else {
-    @stdio.stderr.write(
-      "candidate must match moon.mod exactly: expected " +
-      expected_coordinate +
-      ", got " +
-      candidate_value +
-      "\n",
-    )
-    @sys.exit(2)
-    return
-  }
-  guard coordinate_version(candidate_value) is Some(candidate_version) &&
-    candidate_version == version else {
-    @stdio.stderr.write("candidate version does not match moon.mod\n")
-    @sys.exit(2)
-    return
-  }
-  let options : Options = {
-    candidate: candidate_value,
-    target,
-    suite,
-    official,
-  }
-  let candidate_program = prepare_candidate(options)
-  let official_program = @testkit.prepare_program(official)
-  let (moon_home, owns_moon_home) = if suite == "full" {
-    match @env.get_env_var("MOON_HOME") {
-      Some(path) if !path.is_empty() => (Some(path), false)
-      _ => (Some(@fs.tmpdir(prefix="moonjust-moonx-registry")), true)
-    }
-  } else {
-    (None, false)
-  }
-  defer (if owns_moon_home {
-    match moon_home {
-      Some(path) => @fs.rmdir(path, recursive=true) catch { _ => () }
-      None => ()
-    }
-  })
-  let preflight_result = preflight(candidate_program, version, moon_home)
+  let preflight_result = preflight(candidate_program, version)
   guard preflight_result.0 else {
     write_report(
       report,
-      failure_report_json(options, "preflight", preflight_result.1),
+      failure_report_json(coordinate, "preflight", preflight_result.1),
     )
-    @stdio.stderr.write("MoonX preflight failed: " + preflight_result.1 + "\n")
-    @sys.exit(1)
+    @stdio.stderr.text.write(
+      "MoonX preflight failed: " + preflight_result.1 + "\n",
+    )
+    @env.exit(1)
     return
   }
   let reports : Array[CaseReport] = []
@@ -881,24 +559,9 @@ async fn main {
     reports.push(compare_case(candidate_program, official_program, case))
   }
   reports.push(run_cache_case(candidate_program, official_program))
-  let full = if suite == "full" {
-    let coverage_report = match report {
-      Some(path) => path + ".compat.json"
-      None => "_build/moonx-coverage.json"
-    }
-    Some(run_full_compat(options, coverage_report, moon_home.unwrap_or("")))
-  } else {
-    None
-  }
-  let smoke_failed = reports.any(fn(result) { !result.passed })
-  let full_failed = match full {
-    Some(result) => result.status != 0
-    None => false
-  }
-  let report_text = report_json(options, reports, full)
-  write_report(report, report_text)
+  write_report(report, report_json(coordinate, reports))
   for result in reports {
-    @stdio.stdout.write(
+    @stdio.stdout.text.write(
       (if result.passed { "PASS " } else { "FAIL " }) +
       result.name +
       " " +
@@ -906,7 +569,7 @@ async fn main {
       "\n",
     )
   }
-  if smoke_failed || full_failed {
-    @sys.exit(1)
+  if reports.any(result => !result.passed) {
+    @env.exit(1)
   }
 }

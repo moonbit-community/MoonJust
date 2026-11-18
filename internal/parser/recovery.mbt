@@ -1,9 +1,10 @@
 ///|
 /// Best-effort parser output for editor and diagnostic tooling.
+#derive(Debug)
 pub struct ParseReport {
   ast : @syntax.Ast
   errors : Array[ParserError]
-} derive(Debug)
+}
 
 ///|
 pub fn ParseReport::ast(self : ParseReport) -> @syntax.Ast {

@@ -8,9 +8,10 @@ import {
 // Values
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror ModulePathError {
   InvalidModulePath(String)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn ModulePathError::equal(Self, Self) -> Bool
 #deprecated
@@ -19,9 +20,10 @@ pub fn ModulePathError::not_equal(Self, Self) -> Bool
 pub fn ModulePathError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, Hash, @debug.Debug)
 pub struct ModulePath {
   components : Array[String]
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn ModulePath::as_string(Self) -> String
 pub fn ModulePath::child(Self, String) -> Self raise ModulePathError
 pub fn ModulePath::components(Self) -> ArrayView[String]

@@ -20,7 +20,7 @@ fn live_cache_path(
 }
 
 ///|
-fn[H : @host.HostFs] live_cache_key(
+async fn[H : @host.HostFs] live_cache_key(
   effects : H,
   directive : @planner.CacheDirective,
 ) -> @cache.CacheKey raise LiveRuntimeError {
@@ -84,7 +84,7 @@ fn[H : @host.HostFs] live_cache_key(
 }
 
 ///|
-fn[H : @host.HostFs] live_cache_outputs_exist(
+async fn[H : @host.HostFs] live_cache_outputs_exist(
   effects : H,
   directive : @planner.CacheDirective,
 ) -> Bool raise LiveRuntimeError {
@@ -102,9 +102,9 @@ fn[H : @host.HostFs] live_cache_outputs_exist(
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   O : @host.HostAsyncOutput,
-  S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_live_cached_task(
   process : P,
@@ -146,123 +146,112 @@ async fn[
   ) catch {
     error => raise live_failure(@planner.ExecutionError::host(error), 0)
   }
-  try
-    @async.with_task_group() <| group => {
-      group.add_defer(() => {
-        try
-          @async.protect_from_cancel(() => {
-            @host.HostCacheStore::release_cache_lease(scripts, lease)
-          })
-        catch {
-          _ => ()
-        } noraise {
-          _ => ()
-        }
-      })
-      let stored = @host.HostCacheStore::read_cache_manifest(scripts, lease) catch {
-        error => raise live_failure(@planner.ExecutionError::host(error), 0)
+  defer (try
+    @async.protect_from_cancel(() => {
+      @host.HostCacheStore::release_cache_lease(scripts, lease)
+    })
+  catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  })
+  let stored = @host.HostCacheStore::read_cache_manifest(scripts, lease) catch {
+    error => raise live_failure(@planner.ExecutionError::host(error), 0)
+  }
+  let hit = match stored {
+    Some(bytes) => {
+      let decoded = try @utf8.decode(bytes) catch {
+        _ => None
+      } noraise {
+        text => Some(text)
       }
-      let hit = match stored {
-        Some(bytes) => {
-          let decoded = try @utf8.decode(bytes) catch {
-            _ => None
-          } noraise {
-            text => Some(text)
+      match decoded {
+        Some(text) =>
+          try {
+            ignore(
+              @cache.validate_manifest(
+                text,
+                digest,
+                directive.recipe(),
+                directive.outputs(),
+              ),
+            )
+            live_cache_outputs_exist(scripts, directive)
+          } catch {
+            _ => false
           }
-          match decoded {
-            Some(text) =>
-              try {
-                ignore(
-                  @cache.validate_manifest(
-                    text,
-                    digest,
-                    directive.recipe(),
-                    directive.outputs(),
-                  ),
-                )
-                live_cache_outputs_exist(scripts, directive)
-              } catch {
-                _ => false
-              }
-            None => false
-          }
-        }
         None => false
       }
-      if hit {
-        if options.verbose() {
-          ignore(
-            emit_live(
-              output,
-              Stderr,
-              @utf8.encode("===> cache hit, skipping invocation\n")[:],
-              0,
-            ),
-          )
-        }
-        return ExecutionSummary::{ commands: 0, }
-      }
-      @host.HostCacheStore::write_cache_manifest(scripts, lease, b"") catch {
-        error => raise live_failure(@planner.ExecutionError::host(error), 0)
-      }
-      let summary = execute_live_steps(
-        process,
-        output,
-        scripts,
-        effects,
-        task.steps(),
-        options,
-        b""[:],
-      )
-      if options.verbosity() >= 2 {
-        ignore(emit_live(output, Stderr, b"\n"[:], summary.commands()))
-      }
-      if !live_cache_outputs_exist(scripts, directive) {
-        let missing = directive.outputs().get(0).unwrap_or("")
-        raise live_failure(
-          CacheFailure(
-            message="recipe `\{directive.recipe()}` failed to create cache output `\{missing}`",
-          ),
-          summary.commands(),
-        )
-      }
-      let manifest = @cache.CacheManifest::new(
-        digest,
-        directive.recipe(),
-        directive.outputs(),
-      ) catch {
-        _ =>
-          raise live_cache_failure(
-            "invalid cache manifest",
-            commands=summary.commands(),
-          )
-      }
-      @host.HostCacheStore::write_cache_manifest(
-        scripts,
-        lease,
-        @utf8.encode(manifest.encode()),
-      ) catch {
-        error =>
-          raise live_failure(
-            @planner.ExecutionError::host(error),
-            summary.commands(),
-          )
-      }
-      summary
     }
-  catch {
-    LiveExecution(..) as failure => raise failure
-    _ => raise live_cache_failure("cache task failed")
-  } noraise {
-    value => value
+    None => false
   }
+  if hit {
+    if options.verbose() {
+      ignore(
+        emit_live(
+          output,
+          Stderr,
+          @utf8.encode("===> cache hit, skipping invocation\n")[:],
+          0,
+        ),
+      )
+    }
+    return ExecutionSummary::{ commands: 0, }
+  }
+  @host.HostCacheStore::write_cache_manifest(scripts, lease, b"") catch {
+    error => raise live_failure(@planner.ExecutionError::host(error), 0)
+  }
+  let summary = execute_live_steps(
+    process,
+    output,
+    scripts,
+    effects,
+    task.steps(),
+    options,
+    b""[:],
+  )
+  if options.verbosity() >= 2 {
+    ignore(emit_live(output, Stderr, b"\n"[:], summary.commands()))
+  }
+  if !live_cache_outputs_exist(scripts, directive) {
+    let missing = directive.outputs().get(0).unwrap_or("")
+    raise live_failure(
+      CacheFailure(
+        message="recipe `\{directive.recipe()}` failed to create cache output `\{missing}`",
+      ),
+      summary.commands(),
+    )
+  }
+  let manifest = @cache.CacheManifest::new(
+    digest,
+    directive.recipe(),
+    directive.outputs(),
+  ) catch {
+    _ =>
+      raise live_cache_failure(
+        "invalid cache manifest",
+        commands=summary.commands(),
+      )
+  }
+  @host.HostCacheStore::write_cache_manifest(
+    scripts,
+    lease,
+    @utf8.encode(manifest.encode()),
+  ) catch {
+    error =>
+      raise live_failure(
+        @planner.ExecutionError::host(error),
+        summary.commands(),
+      )
+  }
+  summary
 }
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   O : @host.HostAsyncOutput,
-  S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_live_task(
   process : P,

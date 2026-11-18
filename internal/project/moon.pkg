@@ -10,8 +10,13 @@ import {
   "moonbitlang/core/debug",
 }
 
-supported_targets = "-all+native+wasm"
+supported_targets = "wasm"
 
 import {
+  "moonbitlang/core/async",
   "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
 } for "test"
+
+options(
+  "allow-experimental-packages": true,
+)

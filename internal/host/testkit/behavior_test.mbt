@@ -1,11 +1,14 @@
 ///|
 fn test_host() -> @testkit.FakeHost raise @path.PathError {
   let cwd = @path.PathValue::new("/workspace", Unix)
-  @testkit.FakeHost::new(cwd, @host.PlatformInfo::new(Linux, "test", Unix))
+  @testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
+  )
 }
 
 ///|
-test "fake host preserves filesystem and environment capabilities" {
+async test "fake host preserves filesystem and environment capabilities" {
   let host = test_host()
   let file = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(file, b"build:\n")
@@ -20,7 +23,7 @@ test "fake host preserves filesystem and environment capabilities" {
 }
 
 ///|
-test "fake host exposes typed capability denial" {
+async test "fake host exposes typed capability denial" {
   let host = test_host()
   host.deny(FsRead)
   let file = @path.PathValue::new("/workspace/justfile", Unix)

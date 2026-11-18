@@ -1,5 +1,6 @@
 ///|
 /// Controls observable line execution behavior without granting host access.
+#derive(Eq, Debug)
 pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
@@ -16,7 +17,7 @@ pub struct ExecutionOptions {
   explain : Bool
   color_enabled : Bool
   guards : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ExecutionOptions::new(
@@ -243,6 +244,7 @@ pub fn ExecutionOptions::guards(self : ExecutionOptions) -> Bool {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandColor {
   Bold
   Black
@@ -253,7 +255,7 @@ pub(all) enum CommandColor {
   Magenta
   Cyan
   White
-} derive(Eq, Debug)
+}
 
 ///|
 /// Interpreter and filesystem choices for one generated script.

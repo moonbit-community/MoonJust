@@ -1,6 +1,6 @@
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] AsyncEvaluator::eval_inner(
   self : AsyncEvaluator[P, H],
@@ -22,7 +22,7 @@ async fn[
       if self.dry_run {
         String("`" + literal.cooked() + "`")
       } else {
-        call_shell_effect_async(
+        call_shell_effect(
           self.process,
           [String(literal.cooked())],
           self.context,
@@ -59,31 +59,13 @@ async fn[
             match context_builtin(name, values, self.context, call_span) {
               Some(value) => value
               None if @builtin.canonical_name(name) == "shell" =>
-                call_shell_effect_async(
+                call_shell_effect(
                   self.process,
                   values,
                   self.context,
                   self.shell,
                   call_span,
                   quiet=self.quiet,
-                )
-              None if @builtin.canonical_name(name) == "canonicalize" =>
-                canonicalize_effect_async(
-                  self.process,
-                  self.host,
-                  values,
-                  self.context,
-                  call_span,
-                )
-              None if @builtin.canonical_name(name) == "which" ||
-                @builtin.canonical_name(name) == "require" =>
-                which_effect_async(
-                  self.process,
-                  self.host,
-                  @builtin.canonical_name(name),
-                  values,
-                  self.context,
-                  call_span,
                 )
               None =>
                 call_non_process_effect_with_context(
@@ -162,7 +144,7 @@ async fn[
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] AsyncEvaluator::eval(
   self : AsyncEvaluator[P, H],

@@ -8,6 +8,7 @@ import {
 // Values
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror SourceError {
   InvalidUtf8(offset~ : Int32)
   InvalidSpan(start_byte~ : Int32, end_byte~ : Int32)
@@ -18,7 +19,7 @@ pub(all) suberror SourceError {
   DisjointSpans(first_start~ : Int32, first_end~ : Int32, second_start~ : Int32, second_end~ : Int32)
   DuplicateSource(SourceId)
   MissingSource(SourceId)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn SourceError::equal(Self, Self) -> Bool
 #deprecated
@@ -27,12 +28,13 @@ pub fn SourceError::not_equal(Self, Self) -> Bool
 pub fn SourceError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(@debug.Debug)
 pub struct Source {
   id : SourceId
   name : String
   bytes : Bytes
   line_starts : Array[Int32]
-} derive(@debug.Debug)
+}
 pub fn Source::bytes(Self) -> BytesView
 pub fn Source::eof_span(Self) -> Span
 pub fn Source::from_bytes(SourceId, String, Bytes) -> Self raise SourceError
@@ -53,7 +55,8 @@ pub fn Source::text(Self) -> String
 #deprecated
 pub fn Source::to_repr(Self) -> @debug.Repr
 
-pub struct SourceId(Int32) derive(Compare, Eq, Hash, @debug.Debug)
+#derive(Compare, Eq, Hash, @debug.Debug)
+pub struct SourceId(Int32)
 #deprecated
 pub fn SourceId::compare(Self, Self) -> Int32
 #deprecated
@@ -86,11 +89,12 @@ pub fn SourceMap::length(Self) -> Int32
 pub fn SourceMap::new() -> Self
 pub fn SourceMap::require(Self, SourceId) -> Source raise SourceError
 
+#derive(Eq, @debug.Debug)
 pub struct SourcePosition {
   line : Int32
   byte_column : Int32
   scalar_column : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn SourcePosition::byte_column(Self) -> Int32
 #deprecated
 pub fn SourcePosition::equal(Self, Self) -> Bool
@@ -101,11 +105,12 @@ pub fn SourcePosition::scalar_column(Self) -> Int32
 #deprecated
 pub fn SourcePosition::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, Hash, @debug.Debug)
 pub struct Span {
   source_id : SourceId
   start_byte : Int32
   end_byte : Int32
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn Span::at_end(Self) -> Self
 pub fn Span::contains(Self, Int32) -> Bool
 pub fn Span::cover(Self, Self) -> Self raise SourceError

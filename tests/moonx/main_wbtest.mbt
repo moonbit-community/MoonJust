@@ -1,11 +1,6 @@
 ///|
 async test "MoonX candidate uses a direct argv prefix" {
-  let candidate = prepare_candidate({
-    candidate: "ZSeanYves/MoonJust@0.1.2",
-    target: "wasm",
-    suite: "smoke",
-    official: "just",
-  })
+  let candidate = prepare_candidate("ZSeanYves/MoonJust@0.1.2")
   assert_true(
     candidate.executable == "moonx" ||
     candidate.executable.to_lower().has_suffix(".exe"),
@@ -13,19 +8,6 @@ async test "MoonX candidate uses a direct argv prefix" {
   assert_eq(candidate.arguments(["--version"]), [
     "--target", "wasm", "ZSeanYves/MoonJust@0.1.2", "--version",
   ])
-}
-
-///|
-test "aggregate report paths stop at the next option" {
-  assert_eq(
-    values_after(
-      [
-        "--suite", "aggregate", "--reports", "a.json", "b.json", "--report", "out.json",
-      ],
-      "--reports",
-    ),
-    ["a.json", "b.json"],
-  )
 }
 
 ///|

@@ -1,11 +1,12 @@
 ///|
 /// Typed failures produced by grammar and parser-owned literal validation.
+#derive(Eq, Debug)
 pub(all) suberror ParserError {
   LexerFailure(@lexer.LexerError)
   UnexpectedToken(
     expected~ : String,
     found~ : @lexer.TokenKind,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   UnexpectedConstruct(expected~ : String, found~ : String, span~ : @source.Span)
   InvalidEscapeSequence(character~ : String, span~ : @source.Span)
@@ -23,7 +24,7 @@ pub(all) suberror ParserError {
   RecursionLimitExceeded(limit~ : Int32, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int32, span~ : @source.Span)
   ExtraneousInput(span~ : @source.Span)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ParserError::code(self : ParserError) -> String {

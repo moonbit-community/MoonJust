@@ -1,5 +1,5 @@
 ///|
-test "upstream global::not_macos" {
+async test "upstream global::not_macos" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let config = try! @path.PathValue::new("/config", Unix)
   let global_dir = try! config.join(try! @path.PathValue::new("just", Unix))
@@ -8,7 +8,7 @@ test "upstream global::not_macos" {
   )
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   host.put_directory(config)
   host.put_directory(global_dir)

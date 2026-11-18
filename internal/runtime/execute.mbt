@@ -1,7 +1,7 @@
 ///|
 pub async fn[
-  P : @host.HostAsyncProcess,
-  S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  P : @host.HostProcess,
+  S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_plan(
   process : P,
@@ -27,11 +27,11 @@ pub async fn[
     Some(value) => value
     None => raise invalid_plan("invalid execution task graph")
   }
-  let outcomes = try
+  let outcomes : Array[TaskOutcome] = []
+  try
     @async.with_task_group() <| group => {
-      let result : Array[TaskOutcome] = []
       for _ in plan.tasks() {
-        result.push(Blocked)
+        outcomes.push(Blocked)
       }
       for _ in 0..<jobs {
         group.spawn(() => {
@@ -48,7 +48,7 @@ pub async fn[
                 report => Completed(report)
               }
             }
-            result[id] = outcome
+            outcomes[id] = outcome
             coordinator.finish(
               id,
               match outcome {
@@ -60,13 +60,10 @@ pub async fn[
         })
         |> ignore
       }
-      result
     }
   catch {
     Execution(..) as failure => raise failure
     _ => raise invalid_plan("execution task group failed")
-  } noraise {
-    value => value
   }
   let stdout : Array[Byte] = []
   let stderr : Array[Byte] = []

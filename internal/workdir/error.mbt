@@ -1,9 +1,10 @@
 ///|
 /// Failures while composing explicit working-directory state.
+#derive(Eq, Debug)
 pub(all) suberror WorkingDirectoryError {
   Path(@path.PathError)
   JustfileWithoutParent(@path.PathValue)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn WorkingDirectoryError::code(self : WorkingDirectoryError) -> String {

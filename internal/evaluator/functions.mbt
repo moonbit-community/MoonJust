@@ -2,9 +2,10 @@
 /// User-defined functions visible to one expression evaluation. Standalone
 /// expression APIs default to an empty table; compilation evaluation installs
 /// the table owned by that compilation into its resulting environment.
+#derive(Debug)
 pub struct FunctionEnvironment {
   definitions : Map[String, @syntax.FunctionDefinition]
-} derive(Debug)
+}
 
 ///|
 pub fn FunctionEnvironment::new() -> FunctionEnvironment {

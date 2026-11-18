@@ -14,6 +14,7 @@ pub const MAX_INPUTS : Int32 = 1024
 pub const MAX_OUTPUTS : Int32 = 1024
 
 ///|
+#derive(Eq, Debug)
 pub(all) suberror CacheError {
   InvalidDigest(String)
   InvalidPath(String)
@@ -27,13 +28,14 @@ pub(all) suberror CacheError {
   KeyMismatch
   RecipeMismatch
   OutputMismatch
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub struct InputDigest {
   path : String
   digest : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn InputDigest::new(
@@ -56,6 +58,7 @@ pub fn InputDigest::digest(self : InputDigest) -> String {
 }
 
 ///|
+#derive(Eq)
 pub struct CacheKey {
   recipe : String
   body : String
@@ -68,7 +71,7 @@ pub struct CacheKey {
   extra : String
   inputs : Array[InputDigest]
   outputs : Array[String]
-} derive(Eq)
+}
 
 ///|
 /// Cache key material can contain commands, arguments, and secret environment
@@ -410,13 +413,14 @@ pub fn ContentHasher::finalize(self : ContentHasher) -> String {
 }
 
 ///|
+#derive(Eq, Debug)
 pub struct CacheManifest {
   version : Int32
   algorithm : String
   key : String
   recipe : String
   outputs : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CacheManifest::new(

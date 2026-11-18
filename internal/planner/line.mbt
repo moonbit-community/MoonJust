@@ -123,7 +123,7 @@ fn render_dry_line(
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] evaluate_async_line(
   process : P,
@@ -179,7 +179,7 @@ async fn[
 ///|
 /// Evaluate and construct an ordinary command at its exact execution point.
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] materialize_line_async(
   process : P,

@@ -22,11 +22,11 @@ async test "prepared command preserves executable prefix and subject" {
 ///|
 async test "bare Windows programs resolve from PATH without application-directory lookup" {
   let root = @fs.tmpdir(prefix="moonjust testkit resolution")
-  defer (@fs.rmdir(root, recursive=true) catch { _ => () })
+  defer (@fs.remove(root, recursive=true) catch { _ => () })
   let bin = @path.Path(root).join(Path("bin")).to_string()
   @fs.mkdir(bin, recursive=true)
   let executable = @path.Path(bin).join(Path("moonx.exe")).to_string()
-  @fs.write_file(executable, b"test executable"[:])
+  @fs.write_binary(executable, b"test executable"[:])
   let resolved = resolve_windows_program_with_context(
     "moonx",
     bin + "/",

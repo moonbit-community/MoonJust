@@ -1,26 +1,28 @@
 ///|
 /// A process failure retains all output emitted by completed steps so the CLI
 /// can report the same command echoes and child streams before the diagnostic.
+#derive(Debug)
 pub(all) suberror RuntimeError {
   Execution(
     error~ : @planner.ExecutionError,
     stdout~ : Bytes,
     stderr~ : Bytes,
-    commands~ : Int32
+    commands~ : Int32,
   )
-} derive(Debug)
+}
 
 ///|
 /// A process failure for live execution. Child output has already been sent to
 /// the configured `HostAsyncOutput` and is therefore intentionally not stored
 /// for replay.
+#derive(Debug)
 pub(all) suberror LiveRuntimeError {
   LiveExecution(
     error~ : @planner.ExecutionError,
     commands~ : Int32,
-    show_message~ : Bool
+    show_message~ : Bool,
   )
-} derive(Debug)
+}
 
 ///|
 fn process_error_detail(error : @host.HostError) -> String {
@@ -53,9 +55,10 @@ fn shell_launch_error(
 }
 
 ///|
+#derive(Eq, Debug)
 pub struct ExecutionSummary {
   commands : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ExecutionSummary::commands(self : ExecutionSummary) -> Int32 {

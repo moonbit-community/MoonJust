@@ -1,11 +1,12 @@
 ///|
 /// Search policy for a justfile lookup.
+#derive(Eq, Debug)
 pub(all) struct SearchOptions {
   filename : String
   ceiling : @path.PathValue?
   explicit : @path.PathValue?
   global : @path.PathValue?
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn SearchOptions::new(
@@ -40,13 +41,15 @@ pub fn SearchOptions::global(self : SearchOptions) -> @path.PathValue? {
 ///|
 /// How a source entered the load graph. Imports retain their containing
 /// module's working directory, while modules establish a new one.
+#derive(Eq, Debug)
 pub(all) enum SourceRelation {
   RootSource
   ImportedSource
   ModuleSource
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Debug)
 pub(all) struct LoadedSource {
   path : @path.PathValue
   canonical_path : @path.PathValue
@@ -57,13 +60,14 @@ pub(all) struct LoadedSource {
   relation : SourceRelation
   module_path : @modulepath.ModulePath
   module_directory : @path.PathValue
-} derive(Debug)
+}
 
 ///|
 /// A deterministic depth-first import/module load result.
+#derive(Debug)
 pub struct LoadedGraph {
   files : Array[LoadedSource]
-} derive(Debug)
+}
 
 ///|
 pub fn LoadedGraph::files(self : LoadedGraph) -> ArrayView[LoadedSource] {
@@ -71,9 +75,10 @@ pub fn LoadedGraph::files(self : LoadedGraph) -> ArrayView[LoadedSource] {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct GraphLimits {
   max_files : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn GraphLimits::default() -> GraphLimits {
@@ -275,7 +280,7 @@ fn source_from_file_bytes(
 }
 
 ///|
-fn[T : @host.HostFs] find_candidate(
+async fn[T : @host.HostFs] find_candidate(
   host : T,
   directory : @path.PathValue,
   filename : String,

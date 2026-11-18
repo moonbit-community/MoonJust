@@ -1,7 +1,13 @@
 import {
+  "moonbitlang/core/async",
   "ZSeanYves/MoonJust/internal/diagnostic",
   "ZSeanYves/MoonJust/internal/lexer",
   "ZSeanYves/MoonJust/internal/source",
   "ZSeanYves/MoonJust/internal/syntax",
-  "moonbitlang/core/env",
 }
+
+supported_targets = "wasm"
+
+options(
+  "allow-experimental-packages": true,
+)

@@ -1,11 +1,12 @@
 ///|
 /// Explicit variable and parameter scope for deterministic evaluation.
+#derive(Debug)
 pub struct Environment {
   values : Map[String, @value.Value]
   ordered : Array[String]
   exported : Set[String]
   mut functions : FunctionEnvironment
-} derive(Debug)
+}
 
 ///|
 pub fn Environment::new() -> Environment {

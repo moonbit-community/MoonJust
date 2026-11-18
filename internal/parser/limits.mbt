@@ -1,15 +1,15 @@
 ///|
 /// Resource limits applied independently of the lexer budgets.
+#derive(Eq, Debug)
 pub struct ParserLimits {
   max_depth : Int32
   max_nodes : Int32
   max_diagnostics : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 fn default_parser_depth() -> Int32 {
-  if @env.get_env_var("MOONJUST_OS") == Some("windows") ||
-    @env.get_env_var("OS") == Some("Windows_NT") {
+  if @async.platform is Windows {
     48
   } else {
     256
@@ -53,6 +53,7 @@ pub fn ParserLimits::max_diagnostics(self : ParserLimits) -> Int32 {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) suberror ParserConfigurationError {
   InvalidParserLimit
-} derive(Eq, Debug)
+}

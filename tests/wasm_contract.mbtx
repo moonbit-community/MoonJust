@@ -1,0 +1,100 @@
+----
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/async/process",
+}
+----
+
+///|
+async fn metadata(file : String) -> String {
+  let args = if @async.platform is MacOS {
+    ["-f", "%i:%Lp:%m", file]
+  } else {
+    ["-c", "%i:%a:%y", file]
+  }
+  @process.run("stat", args, stdout=Collect, accepted_exit_code=code => {
+    code == 0
+  }).stdout_text()
+}
+
+///|
+async fn main {
+  let wasm = @fs.realpath("_build/wasm/release/build/MoonJust.wasm")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonjust-contract"))
+  defer @fs.remove(root, recursive=true)
+  let policy = root + "/policy.toml"
+  @fs.write_text(
+    policy, "[fs]\nread = ['.']\nwrite = ['.']\n[process]\nspawn = false\n",
+  )
+  async fn cli(args : Array[String]) -> @process.ProcessResult {
+    @process.run(
+      "moonrun",
+      ["--policy", policy, wasm, "--", ..args],
+      cwd=root,
+      stdout=Collect,
+      stderr=Collect,
+    )
+  }
+  let file = root + "/justfile"
+  let executable = root + "/tool"
+  @fs.write_text(executable, "")
+  @fs.chmod(executable, 0o111)
+  @fs.symlink(target="tool", root + "/alias")
+  @fs.write_text(
+    file,
+    "set lists\nreal := canonicalize('alias')\nfound := require('" +
+    executable +
+    "')\nmaybe := which('" +
+    executable +
+    "')\n",
+  )
+  for binding in ["real", "found", "maybe"] {
+    let result = cli(["--unstable", "--evaluate", binding])
+    assert_eq(result.exit_code, 0, msg=result.stderr_text())
+    assert_eq(result.stdout_text().trim_end().to_owned(), executable)
+  }
+  @fs.symlink(target="justfile", root + "/loop")
+  @fs.write_text(file, "import 'loop'\n")
+  let cycle = cli(["--list"])
+  assert_eq(cycle.exit_code, 1)
+  assert_true(cycle.stderr_text().contains("is circular"))
+  for
+    (source, mode, dirty) in [
+      ("hello:\n echo hi\n", 0o751, true),
+      ("hello:\n    echo hi\n", 0o644, false),
+    ] {
+    @fs.write_text(file, source)
+    @fs.chmod(file, mode)
+    let before = metadata(file)
+    for check in [true, false] {
+      let args = ["--unstable", "--fmt"]
+      if check {
+        args.push("--check")
+      }
+      let result = cli(args)
+      assert_eq(
+        result.exit_code,
+        if dirty {
+          1
+        } else {
+          0
+        },
+        msg=result.stderr_text(),
+      )
+      if dirty && !check {
+        assert_true(result.stderr_text().contains("preserve its permissions"))
+      }
+      assert_eq(@fs.read_text(file), source)
+      assert_eq(metadata(file), before)
+    }
+  }
+  @fs.remove(file)
+  let created = cli(["--justfile", "justfile", "--init"])
+  assert_eq(created.exit_code, 0, msg=created.stderr_text())
+  let original = @fs.read_text(file)
+  let before = metadata(file)
+  assert_eq(cli(["--justfile", "justfile", "--init"]).exit_code, 1)
+  assert_eq(@fs.read_text(file), original)
+  assert_eq(metadata(file), before)
+}

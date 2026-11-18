@@ -78,10 +78,11 @@ fn validate_effect_arity(
 
 ///|
 /// Shell selected for effectful `shell()` calls and backticks.
+#derive(Eq, Debug)
 pub struct EffectShell {
   program : String
   arguments : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn EffectShell::new(
@@ -144,56 +145,7 @@ fn configure_effect_environment(
 }
 
 ///|
-pub fn[T : @host.HostProcess] call_shell_effect(
-  host : T,
-  arguments : Array[Value],
-  context : EvaluationContext,
-  shell : EffectShell,
-  span : @source.Span,
-  quiet~ : Bool = false,
-  shell_function~ : Bool = true,
-) -> Value raise EvaluationError {
-  let name = validate_effect_arity("shell", arguments, span)
-  let command = expect_string(name, arguments, 0, span)
-  let shell_arguments = shell.arguments().to_owned()
-  shell_arguments.push(command)
-  if shell_function && shell_takes_name(shell.program()) {
-    shell_arguments.push(command)
-    for argument in arguments[1:] {
-      shell_arguments.push(expect_string(name, [argument], 0, span))
-    }
-  }
-  let spec = @host.CommandSpec::new(shell.program(), shell_arguments) catch {
-    error => raise Host(error, span~)
-  }
-  let cwd = require_context_path("cwd", context.cwd, span)
-  spec.set_cwd(cwd)
-  configure_effect_environment(spec, context, span)
-  spec.set_inherit_stdin(true)
-  spec.set_stdout(Capture)
-  spec.set_stderr(if quiet { Discard } else { Inherit })
-  let output = @host.HostProcess::run_process(host, spec) catch {
-    error => raise Host(error, span~)
-  }
-  match output.termination() {
-    Exited(0) => ()
-    Exited(code) =>
-      if shell_function {
-        raise ProcessFailure(code~, span~)
-      } else {
-        raise BacktickFailure(code~, span~)
-      }
-    Signaled(signal) | Interrupted(signal) =>
-      raise ProcessSignaled(signal~, span~)
-  }
-  let text = bytes_text(output.stdout().to_owned(), span)
-  String(strip_one_line_ending(text))
-}
-
-///|
-/// Async counterpart used by native and wasm execution runtimes. It preserves
-/// the exact argv, cwd, stdio, trimming, and failure contract of the sync path.
-pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
+pub async fn[T : @host.HostProcess] call_shell_effect(
   host : T,
   arguments : Array[Value],
   context : EvaluationContext,
@@ -220,7 +172,7 @@ pub async fn[T : @host.HostAsyncProcess] call_shell_effect_async(
   spec.set_inherit_stdin(true)
   spec.set_stdout(Capture)
   spec.set_stderr(if quiet { Discard } else { Inherit })
-  let output = @host.HostAsyncProcess::run_process_async(host, spec) catch {
+  let output = @host.HostProcess::run_process(host, spec) catch {
     error =>
       if shell_function {
         raise Host(error, span~)

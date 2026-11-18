@@ -49,7 +49,7 @@ impl @host.HostFs for UpstreamDirectoryHost with fn read_dir(_self, _path) -> Ar
 ///|
 impl @host.HostFs for UpstreamDirectoryHost with fn metadata(self, path) -> @host.FileMetadata raise @host.HostError {
   if self.directories.contains(path) {
-    @host.FileMetadata::new(false, true, 0L)
+    @host.FileMetadata::new(false, true)
   } else {
     raise NotFound(path)
   }
@@ -58,16 +58,6 @@ impl @host.HostFs for UpstreamDirectoryHost with fn metadata(self, path) -> @hos
 ///|
 impl @host.HostFs for UpstreamDirectoryHost with fn canonicalize(_self, path) -> @path.PathValue raise @host.HostError {
   path
-}
-
-///|
-impl @host.HostFs for UpstreamDirectoryHost with fn persist_temp_file(
-  _self,
-  _temporary,
-  _destination,
-  _overwrite,
-) -> Unit raise @host.HostError {
-  raise InvalidInput("read-only upstream search host")
 }
 
 ///|
@@ -335,7 +325,7 @@ test "upstream config::tests::search_directory_conflict_working_directory" {
 }
 
 ///|
-test "upstream config::tests::subcommand_list_search_directory" {
+async test "upstream config::tests::subcommand_list_search_directory" {
   let input = upstream_project_input("/project/current")
   let host = UpstreamDirectoryHost::new([
     try! @path.PathValue::new("/project", Unix),
@@ -349,7 +339,7 @@ test "upstream config::tests::subcommand_list_search_directory" {
 }
 
 ///|
-test "upstream config::tests::subcommand_show_search_directory" {
+async test "upstream config::tests::subcommand_show_search_directory" {
   let input = upstream_project_input("/project/current")
   let host = UpstreamDirectoryHost::new([])
   let arguments = try! upstream_application_arguments(["--show", "../foo"])
@@ -358,4 +348,23 @@ test "upstream config::tests::subcommand_show_search_directory" {
   )
   assert_eq(selected_input.cwd().as_string(), "/project")
   assert_eq(selected.positional(), ["foo"])
+}
+
+///|
+impl @host.HostFs for UpstreamDirectoryHost with fn read_source(
+  _self,
+  path,
+  _limit,
+) -> Bytes raise @host.HostError {
+  raise NotFound(path)
+}
+
+///|
+impl @host.HostFs for UpstreamDirectoryHost with fn file_size(_self, path) -> Int64 raise @host.HostError {
+  raise NotFound(path)
+}
+
+///|
+impl @host.HostFs for UpstreamDirectoryHost with fn can_execute(_self, _path) -> Bool raise @host.HostError {
+  false
 }

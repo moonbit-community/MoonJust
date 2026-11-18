@@ -1,10 +1,11 @@
 ///|
 /// Fully composed process output. Streams are bytes to preserve recipe output.
+#derive(Eq, Debug)
 pub struct ApplicationResponse {
   stdout : Bytes
   stderr : Bytes
   exit_code : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ApplicationResponse::new(

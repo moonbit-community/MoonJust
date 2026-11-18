@@ -366,20 +366,20 @@ config::tests::overrides_override_sets	internal/cli/upstream_config_test.mbt:166
 config::tests::quiet_default	internal/cli/upstream_config_test.mbt:69	upstream config::tests::quiet_default	src/config.rs:681
 config::tests::quiet_long	internal/cli/upstream_config_test.mbt:75	upstream config::tests::quiet_long	src/config.rs:687
 config::tests::quiet_short	internal/cli/upstream_config_test.mbt:80	upstream config::tests::quiet_short	src/config.rs:693
-config::tests::search_config_default	internal/application/upstream_search_config_wbtest.mbt:220	upstream config::tests::search_config_default	src/config.rs:1103
-config::tests::search_config_from_working_directory_and_justfile	internal/application/upstream_search_config_wbtest.mbt:226	upstream config::tests::search_config_from_working_directory_and_justfile	src/config.rs:1109
+config::tests::search_config_default	internal/application/upstream_search_config_wbtest.mbt:210	upstream config::tests::search_config_default	src/config.rs:1103
+config::tests::search_config_from_working_directory_and_justfile	internal/application/upstream_search_config_wbtest.mbt:216	upstream config::tests::search_config_from_working_directory_and_justfile	src/config.rs:1109
 config::tests::search_config_justfile_long	internal/cli/upstream_config_test.mbt:422	upstream config::tests::search_config_justfile_long	src/config.rs:1118
 config::tests::search_config_justfile_short	internal/cli/upstream_config_test.mbt:428	upstream config::tests::search_config_justfile_short	src/config.rs:1126
-config::tests::search_config_justfile_stdin_long	internal/application/upstream_search_config_wbtest.mbt:243	upstream config::tests::search_config_justfile_stdin_long	src/config.rs:1134
-config::tests::search_config_justfile_stdin_short	internal/application/upstream_search_config_wbtest.mbt:250	upstream config::tests::search_config_justfile_stdin_short	src/config.rs:1140
-config::tests::search_config_justfile_stdin_with_working_directory	internal/application/upstream_search_config_wbtest.mbt:257	upstream config::tests::search_config_justfile_stdin_with_working_directory	src/config.rs:1146
-config::tests::search_directory_child	internal/application/upstream_search_config_wbtest.mbt:281	upstream config::tests::search_directory_child	src/config.rs:1171
-config::tests::search_directory_child_with_recipe	internal/application/upstream_search_config_wbtest.mbt:291	upstream config::tests::search_directory_child_with_recipe	src/config.rs:1187
-config::tests::search_directory_conflict_justfile	internal/application/upstream_search_config_wbtest.mbt:296	upstream config::tests::search_directory_conflict_justfile	src/config.rs:1196
-config::tests::search_directory_conflict_working_directory	internal/application/upstream_search_config_wbtest.mbt:317	upstream config::tests::search_directory_conflict_working_directory	src/config.rs:1202
-config::tests::search_directory_deep	internal/application/upstream_search_config_wbtest.mbt:286	upstream config::tests::search_directory_deep	src/config.rs:1179
-config::tests::search_directory_parent	internal/application/upstream_search_config_wbtest.mbt:271	upstream config::tests::search_directory_parent	src/config.rs:1154
-config::tests::search_directory_parent_with_recipe	internal/application/upstream_search_config_wbtest.mbt:276	upstream config::tests::search_directory_parent_with_recipe	src/config.rs:1162
+config::tests::search_config_justfile_stdin_long	internal/application/upstream_search_config_wbtest.mbt:233	upstream config::tests::search_config_justfile_stdin_long	src/config.rs:1134
+config::tests::search_config_justfile_stdin_short	internal/application/upstream_search_config_wbtest.mbt:240	upstream config::tests::search_config_justfile_stdin_short	src/config.rs:1140
+config::tests::search_config_justfile_stdin_with_working_directory	internal/application/upstream_search_config_wbtest.mbt:247	upstream config::tests::search_config_justfile_stdin_with_working_directory	src/config.rs:1146
+config::tests::search_directory_child	internal/application/upstream_search_config_wbtest.mbt:271	upstream config::tests::search_directory_child	src/config.rs:1171
+config::tests::search_directory_child_with_recipe	internal/application/upstream_search_config_wbtest.mbt:281	upstream config::tests::search_directory_child_with_recipe	src/config.rs:1187
+config::tests::search_directory_conflict_justfile	internal/application/upstream_search_config_wbtest.mbt:286	upstream config::tests::search_directory_conflict_justfile	src/config.rs:1196
+config::tests::search_directory_conflict_working_directory	internal/application/upstream_search_config_wbtest.mbt:307	upstream config::tests::search_directory_conflict_working_directory	src/config.rs:1202
+config::tests::search_directory_deep	internal/application/upstream_search_config_wbtest.mbt:276	upstream config::tests::search_directory_deep	src/config.rs:1179
+config::tests::search_directory_parent	internal/application/upstream_search_config_wbtest.mbt:261	upstream config::tests::search_directory_parent	src/config.rs:1154
+config::tests::search_directory_parent_with_recipe	internal/application/upstream_search_config_wbtest.mbt:266	upstream config::tests::search_directory_parent_with_recipe	src/config.rs:1162
 config::tests::set_bad	internal/cli/upstream_config_test.mbt:394	upstream config::tests::set_bad	src/config.rs:764
 config::tests::set_default	internal/cli/upstream_config_test.mbt:143	upstream config::tests::set_default	src/config.rs:719
 config::tests::set_empty	internal/cli/upstream_config_test.mbt:148	upstream config::tests::set_empty	src/config.rs:737
@@ -419,12 +419,12 @@ config::tests::subcommand_evaluate_overrides_with_argument	internal/cli/upstream
 config::tests::subcommand_json	internal/cli/upstream_config_test.mbt:271	upstream config::tests::subcommand_json	src/config.rs:901
 config::tests::subcommand_list_arguments	internal/cli/upstream_config_test.mbt:375	upstream config::tests::subcommand_list_arguments	src/config.rs:955
 config::tests::subcommand_list_long	internal/cli/upstream_config_test.mbt:276	upstream config::tests::subcommand_list_long	src/config.rs:943
-config::tests::subcommand_list_search_directory	internal/application/upstream_search_config_wbtest.mbt:338	upstream config::tests::subcommand_list_search_directory	src/config.rs:981
+config::tests::subcommand_list_search_directory	internal/application/upstream_search_config_wbtest.mbt:328	upstream config::tests::subcommand_list_search_directory	src/config.rs:981
 config::tests::subcommand_list_short	internal/cli/upstream_config_test.mbt:281	upstream config::tests::subcommand_list_short	src/config.rs:949
 config::tests::subcommand_overrides_and_arguments	internal/cli/upstream_config_test.mbt:449	upstream config::tests::subcommand_overrides_and_arguments	src/config.rs:1317
 config::tests::subcommand_show_long	internal/cli/upstream_config_test.mbt:286	upstream config::tests::subcommand_show_long	src/config.rs:961
 config::tests::subcommand_show_multiple_args	internal/cli/upstream_config_test.mbt:382	upstream config::tests::subcommand_show_multiple_args	src/config.rs:973
-config::tests::subcommand_show_search_directory	internal/application/upstream_search_config_wbtest.mbt:352	upstream config::tests::subcommand_show_search_directory	src/config.rs:990
+config::tests::subcommand_show_search_directory	internal/application/upstream_search_config_wbtest.mbt:342	upstream config::tests::subcommand_show_search_directory	src/config.rs:990
 config::tests::subcommand_show_short	internal/cli/upstream_config_test.mbt:291	upstream config::tests::subcommand_show_short	src/config.rs:967
 config::tests::subcommand_summary	internal/cli/upstream_config_test.mbt:296	upstream config::tests::subcommand_summary	src/config.rs:1008
 config::tests::subcommand_usage_search_directory	internal/cli/upstream_config_test.mbt:353	upstream config::tests::subcommand_usage_search_directory	src/config.rs:999
@@ -711,7 +711,7 @@ format::trailing_comment_unexport	internal/formatter/upstream_format_corpus_test
 format::trailing_comments_separated_by_blank_line	internal/formatter/upstream_format_corpus_test.mbt:710	upstream format::trailing_comments_separated_by_blank_line	tests/format.rs:1909
 format::unchanged_justfiles_are_not_written_to_disk	internal/formatter/upstream_format_remaining_test.mbt:17	upstream format::unchanged_justfiles_are_not_written_to_disk	tests/format.rs:1202
 format::undefined_variable	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:23473		tests/format.rs:1495
-format::write_error	internal/host/fs/upstream_format_wbtest.mbt:8	upstream format::write_error	tests/format.rs:121
+format::write_error	internal/host/wasm/io_wbtest.mbt:17	upstream format::write_error	tests/format.rs:121
 format_string::compound	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:23575		tests/format_string.rs:35
 format_string::conditional	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:23609		tests/format_string.rs:69
 format_string::conditional_no_whitespace	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:23645		tests/format_string.rs:86
@@ -1804,18 +1804,18 @@ parser::tests::unexpected_brace	internal/parser/upstream_parser_errors.mbt:308	u
 parser::tests::unknown_attribute	internal/parser/upstream_parser_errors.mbt:326	upstream parser::tests::unknown_attribute	src/parser.rs:3418
 parser::tests::variable	internal/parser/upstream_parser_simple.mbt:430	upstream parser::tests::variable	src/parser.rs:2144
 parser::tests::whitespace	internal/parser/upstream_parser_final.mbt:255	upstream parser::tests::whitespace	src/parser.rs:2026
-positional::tests::all_dot	internal/application/upstream_search_config_wbtest.mbt:170	upstream positional::tests::all_dot	src/positional.rs:162
-positional::tests::all_dot_dot	internal/application/upstream_search_config_wbtest.mbt:180	upstream positional::tests::all_dot_dot	src/positional.rs:170
-positional::tests::all_overrides	internal/application/upstream_search_config_wbtest.mbt:130	upstream positional::tests::all_overrides	src/positional.rs:130
-positional::tests::all_slash	internal/application/upstream_search_config_wbtest.mbt:190	upstream positional::tests::all_slash	src/positional.rs:178
-positional::tests::arguments_only	internal/application/upstream_search_config_wbtest.mbt:123	upstream positional::tests::arguments_only	src/positional.rs:122
-positional::tests::no_arguments	internal/application/upstream_search_config_wbtest.mbt:160	upstream positional::tests::no_arguments	src/positional.rs:154
-positional::tests::no_overrides	internal/application/upstream_search_config_wbtest.mbt:140	upstream positional::tests::no_overrides	src/positional.rs:138
-positional::tests::no_search_directory	internal/application/upstream_search_config_wbtest.mbt:150	upstream positional::tests::no_search_directory	src/positional.rs:146
-positional::tests::no_values	internal/application/upstream_search_config_wbtest.mbt:118	upstream positional::tests::no_values	src/positional.rs:114
-positional::tests::override_after_argument	internal/application/upstream_search_config_wbtest.mbt:215	upstream positional::tests::override_after_argument	src/positional.rs:202
-positional::tests::override_after_search_directory	internal/application/upstream_search_config_wbtest.mbt:210	upstream positional::tests::override_after_search_directory	src/positional.rs:194
-positional::tests::search_directory_after_argument	internal/application/upstream_search_config_wbtest.mbt:200	upstream positional::tests::search_directory_after_argument	src/positional.rs:186
+positional::tests::all_dot	internal/application/upstream_search_config_wbtest.mbt:160	upstream positional::tests::all_dot	src/positional.rs:162
+positional::tests::all_dot_dot	internal/application/upstream_search_config_wbtest.mbt:170	upstream positional::tests::all_dot_dot	src/positional.rs:170
+positional::tests::all_overrides	internal/application/upstream_search_config_wbtest.mbt:120	upstream positional::tests::all_overrides	src/positional.rs:130
+positional::tests::all_slash	internal/application/upstream_search_config_wbtest.mbt:180	upstream positional::tests::all_slash	src/positional.rs:178
+positional::tests::arguments_only	internal/application/upstream_search_config_wbtest.mbt:113	upstream positional::tests::arguments_only	src/positional.rs:122
+positional::tests::no_arguments	internal/application/upstream_search_config_wbtest.mbt:150	upstream positional::tests::no_arguments	src/positional.rs:154
+positional::tests::no_overrides	internal/application/upstream_search_config_wbtest.mbt:130	upstream positional::tests::no_overrides	src/positional.rs:138
+positional::tests::no_search_directory	internal/application/upstream_search_config_wbtest.mbt:140	upstream positional::tests::no_search_directory	src/positional.rs:146
+positional::tests::no_values	internal/application/upstream_search_config_wbtest.mbt:108	upstream positional::tests::no_values	src/positional.rs:114
+positional::tests::override_after_argument	internal/application/upstream_search_config_wbtest.mbt:205	upstream positional::tests::override_after_argument	src/positional.rs:202
+positional::tests::override_after_search_directory	internal/application/upstream_search_config_wbtest.mbt:200	upstream positional::tests::override_after_search_directory	src/positional.rs:194
+positional::tests::search_directory_after_argument	internal/application/upstream_search_config_wbtest.mbt:190	upstream positional::tests::search_directory_after_argument	src/positional.rs:186
 private::private_attribute_for_alias	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64161		tests/private.rs:22
 private::private_attribute_for_module	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64205		tests/private.rs:43
 private::private_attribute_for_recipe	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64251		tests/private.rs:4
@@ -1881,7 +1881,7 @@ script::script_and_shell_attribute_forbidden	tests/compatibility/upstream/just-1
 script::script_line_numbers	internal/planner/upstream_script_lines_wbtest.mbt:85	upstream script::script_line_numbers	tests/script.rs:73
 script::script_line_numbers_with_multi_line_recipe_signature	internal/planner/upstream_script_lines_wbtest.mbt:49	upstream script::script_line_numbers_with_multi_line_recipe_signature	tests/script.rs:97
 script::shebang_line_numbers	internal/planner/upstream_script_lines_wbtest.mbt:13	upstream script::shebang_line_numbers	tests/script.rs:135
-script::shebang_line_numbers_windows	internal/planner/upstream_script_lines_wbtest.mbt:127	upstream script::shebang_line_numbers_windows	tests/script.rs:250
+script::shebang_line_numbers_windows	internal/planner/upstream_script_lines_wbtest.mbt:130	upstream script::shebang_line_numbers_windows	tests/script.rs:250
 script::shebang_line_numbers_with_multiline_constructs	internal/planner/upstream_script_lines_wbtest.mbt:67	upstream script::shebang_line_numbers_with_multiline_constructs	tests/script.rs:170
 script::shell_attribute_overrides_shebang	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:66945		tests/script.rs:465
 script::use_final_path_component_of_script_interpreter_to_determine_shell_kind	internal/planner/upstream_script_lines_wbtest.mbt:94	upstream script::use_final_path_component_of_script_interpreter_to_determine_shell_kind	tests/script.rs:503
@@ -1944,15 +1944,15 @@ settings::variable_with_override	tests/compatibility/upstream/just-1.57.0/upstre
 shadowing_parameters::exporting_shadowing_parameters_does_change_environment	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69201		tests/shadowing_parameters.rs:26
 shadowing_parameters::parameter_may_shadow_variable	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69225		tests/shadowing_parameters.rs:4
 shadowing_parameters::shadowing_parameters_do_not_change_environment	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69249		tests/shadowing_parameters.rs:15
-shebang::cmd	internal/planner/upstream_script_lines_wbtest.mbt:134	upstream shebang::cmd	tests/shebang.rs:55
-shebang::cmd_exe	internal/planner/upstream_script_lines_wbtest.mbt:140	upstream shebang::cmd_exe	tests/shebang.rs:72
+shebang::cmd	internal/planner/upstream_script_lines_wbtest.mbt:137	upstream shebang::cmd	tests/shebang.rs:55
+shebang::cmd_exe	internal/planner/upstream_script_lines_wbtest.mbt:143	upstream shebang::cmd_exe	tests/shebang.rs:72
 shebang::echo	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69345		tests/shebang.rs:121
 shebang::echo_with_command_color	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69377		tests/shebang.rs:136
 shebang::invalid_shebang_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69423		tests/shebang.rs:174
-shebang::multi_line_cmd_shebangs_are_removed	internal/planner/upstream_script_lines_wbtest.mbt:146	upstream shebang::multi_line_cmd_shebangs_are_removed	tests/shebang.rs:89
-shebang::powershell	internal/planner/upstream_script_lines_wbtest.mbt:155	upstream shebang::powershell	tests/shebang.rs:4
-shebang::powershell_exe	internal/planner/upstream_script_lines_wbtest.mbt:161	upstream shebang::powershell_exe	tests/shebang.rs:21
-shebang::powershell_utf8	internal/planner/upstream_script_lines_wbtest.mbt:167	upstream shebang::powershell_utf8	tests/shebang.rs:38
+shebang::multi_line_cmd_shebangs_are_removed	internal/planner/upstream_script_lines_wbtest.mbt:149	upstream shebang::multi_line_cmd_shebangs_are_removed	tests/shebang.rs:89
+shebang::powershell	internal/planner/upstream_script_lines_wbtest.mbt:158	upstream shebang::powershell	tests/shebang.rs:4
+shebang::powershell_exe	internal/planner/upstream_script_lines_wbtest.mbt:164	upstream shebang::powershell_exe	tests/shebang.rs:21
+shebang::powershell_utf8	internal/planner/upstream_script_lines_wbtest.mbt:170	upstream shebang::powershell_utf8	tests/shebang.rs:38
 shebang::run_shebang	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69599		tests/shebang.rs:157
 shebang::simple	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:69635		tests/shebang.rs:107
 shebang::tests::dont_include_shebang_line_cmd	internal/planner/upstream_shebang_wbtest.mbt:81	upstream shebang::tests::dont_include_shebang_line_cmd	src/shebang.rs:126

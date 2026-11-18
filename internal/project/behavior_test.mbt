@@ -1,11 +1,14 @@
 ///|
 fn project_host() -> @host_testkit.FakeHost raise @path.PathError {
   let cwd = @path.PathValue::new("/workspace", Unix)
-  @host_testkit.FakeHost::new(cwd, @host.PlatformInfo::new(Linux, "test", Unix))
+  @host_testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
+  )
 }
 
 ///|
-test "project snapshot owns loading, compilation, and working directories" {
+async test "project snapshot owns loading, compilation, and working directories" {
   let host = project_host()
   let root = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(root, b"build:\n  echo ok\n")

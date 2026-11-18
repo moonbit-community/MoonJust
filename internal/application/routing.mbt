@@ -37,7 +37,7 @@ pub fn[E : @host.HostEnv] parse_environment(
 }
 
 ///|
-async fn request_response(
+fn request_response(
   argv : ArrayView[String],
   environment : Map[String, String],
   windows : Bool,
@@ -48,21 +48,10 @@ async fn request_response(
   let request = @json.parse(argv[1][:]) catch {
     _ => return Some(failure("error: invalid request", 2))
   }
-  match request {
-    String("signal") =>
-      return Some(
-        match @host_process.wait_for_signal_request() {
-          Some(signal) =>
-            @cli.ApplicationResponse::success(
-              stdout=@utf8.encode("{\"signal\":\"" + signal + "\"}"),
-            )
-          None =>
-            failure(
-              "error: signal observation is unavailable in async-only mode", 2,
-            )
-        },
-      )
-    _ => ()
+  if request is String("signal") {
+    return Some(
+      failure("error: signal observation is unavailable in async-only mode", 2),
+    )
   }
   guard request is Object(fields) &&
     fields.get("environment-variable") is Some(String(name)) else {
@@ -100,7 +89,7 @@ async fn request_response(
 }
 
 ///|
-pub async fn[E : @host.HostEnv + @host.HostPlatform] classify_request(
+pub fn[E : @host.HostEnv + @host.HostPlatform] classify_request(
   environment_host : E,
   argv : ArrayView[String],
 ) -> PreparedInvocation {
@@ -143,17 +132,17 @@ pub async fn[E : @host.HostEnv + @host.HostPlatform] classify_request(
 ///|
 pub async fn read_stdin_source_bounded(max_bytes : Int32) -> Bytes {
   let read_limit = max_bytes + 1
-  let result = Buffer(size_hint=Int32::min(read_limit, 64 * 1024))
+  let result = Buffer(capacity=Int32::min(read_limit, 64 * 1024))
+  let buffer = FixedArray::make(Int32::min(read_limit, 64 * 1024), b'\x00')
   while result.length() < read_limit {
-    let remaining = read_limit - result.length()
-    guard @stdio.stdin.read_some(max_len=Int32::min(remaining, 64 * 1024))
-      is Some(chunk) else {
+    let count = @stdio.stdin.read_into(
+      buffer,
+      max_len=Int32::min(buffer.length(), read_limit - result.length()),
+    )
+    if count == 0 {
       break
     }
-    if chunk.is_empty() {
-      break
-    }
-    result.write_bytes(chunk)
+    result.write_bytes(buffer.unsafe_reinterpret_as_bytes()[:count])
   }
   result.to_bytes()
 }
@@ -168,7 +157,7 @@ async fn confirm_execution(
     } noraise {
       _ => ()
     }
-    let answer = try @stdio.stdin.read_until("\n") catch {
+    let answer = try @stdio.stdin.text.read_until("\n") catch {
       _ =>
         return Some(failure("error: failed to read confirmation from stdin", 1))
     } noraise {
@@ -185,7 +174,7 @@ async fn confirm_execution(
 }
 
 ///|
-async fn[F : @host.HostFs + @host.HostSourceReader] application_failure(
+async fn[F : @host.HostFs] application_failure(
   host : F,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -206,23 +195,8 @@ async fn[F : @host.HostFs + @host.HostSourceReader] application_failure(
 }
 
 ///|
-#cfg(target="native")
-fn[
-  F : @host.HostFs,
-  T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
-] dispatch_default_list(
-  host : F,
-  terminal_host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-) -> @cli.ApplicationResponse? raise ApplicationError {
-  execute_default_list_command(host, terminal_host, arguments, context)
-}
-
-///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
+  F : @host.HostFs,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] dispatch_default_list(
   host : F,
@@ -234,19 +208,7 @@ async fn[
 }
 
 ///|
-#cfg(target="native")
-fn[F : @host.HostFs] dispatch_inspect(
-  host : F,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-  environment : ArrayView[(String, String)],
-) -> @cli.ApplicationResponse raise ApplicationError {
-  execute_inspect_command(host, arguments, context, environment~)
-}
-
-///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-async fn[F : @host.HostFs + @host.HostSourceReader] dispatch_inspect(
+async fn[F : @host.HostFs] dispatch_inspect(
   host : F,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -256,23 +218,8 @@ async fn[F : @host.HostFs + @host.HostSourceReader] dispatch_inspect(
 }
 
 ///|
-#cfg(target="native")
-fn[
-  F,
-  T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
-] dispatch_query(
-  _host : F,
-  terminal_host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-) -> @cli.ApplicationResponse raise ApplicationError {
-  execute_query_command(terminal_host, arguments, context)
-}
-
-///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
+  F : @host.HostFs,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] dispatch_query(
   host : F,
@@ -301,9 +248,9 @@ fn append_response(
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostSourceReader + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  F : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-  P : @host.HostAsyncProcess + @host.HostAsyncOutput,
+  P : @host.HostProcess + @host.HostAsyncOutput,
 ] execute_run(
   loading_host : F,
   execution_host : F,
@@ -361,7 +308,7 @@ async fn[
 ///|
 #warnings("-unused_trait_bound")
 pub async fn[
-  F : @host.HostFs + @host.HostSourceReader + @host.HostTemp + @host.HostAtomicFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  F : @host.HostFs + @host.HostAtomicFs + @host.HostScriptTemp + @host.HostCacheStore,
   E : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] run_prepared_cli(
   loading_host : F,
@@ -487,7 +434,7 @@ pub async fn[
         value => value
       }
     CheckCommand | FormatCommand | InitCommand =>
-      try execute_file_command_async(loading_host, arguments, context) catch {
+      try execute_file_command(loading_host, arguments, context) catch {
         error => application_failure(loading_host, arguments, context, error)
       } noraise {
         value => value

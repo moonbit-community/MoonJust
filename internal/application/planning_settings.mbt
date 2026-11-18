@@ -264,9 +264,9 @@ fn selected_shell_before_globals(
   flavor : @path.PathFlavor,
 ) -> @environment.ShellConfiguration raise ApplicationError {
   let info = if flavor == Windows {
-    @host.PlatformInfo::new(Windows, "unknown", Windows)
+    @host.PlatformInfo::new(Windows, Some("unknown"), Windows)
   } else {
-    @host.PlatformInfo::new(Other("unix"), "unknown", Unix)
+    @host.PlatformInfo::new(Other("unix"), Some("unknown"), Unix)
   }
   let platform = @environment.PlatformConfiguration::new(info)
   let setting_shell = evaluated_const_shell_setting(
@@ -295,9 +295,9 @@ fn selected_shell(
   flavor : @path.PathFlavor,
 ) -> @environment.ShellConfiguration raise ApplicationError {
   let info = if flavor == Windows {
-    @host.PlatformInfo::new(Windows, "unknown", Windows)
+    @host.PlatformInfo::new(Windows, Some("unknown"), Windows)
   } else {
-    @host.PlatformInfo::new(Other("unix"), "unknown", Unix)
+    @host.PlatformInfo::new(Other("unix"), Some("unknown"), Unix)
   }
   let platform = @environment.PlatformConfiguration::new(info)
   let setting_shell = evaluated_shell_setting(compilation, global, "shell")

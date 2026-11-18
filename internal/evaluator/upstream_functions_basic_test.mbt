@@ -24,16 +24,16 @@ fn assert_upstream_function_error(
 }
 
 ///|
-fn assert_shell_invocation(
+async fn assert_shell_invocation(
   command : String,
   arguments : Array[String],
   expected_arguments : Array[String],
   expected_output : String,
-) -> Unit raise {
+) -> Unit {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   let expected = try! @host.CommandSpec::new("sh", expected_arguments)
   expected.set_cwd(cwd)
@@ -105,7 +105,7 @@ test "upstream functions::path_functions2" {
 }
 
 ///|
-test "upstream functions::shell_minimal" {
+async test "upstream functions::shell_minimal" {
   assert_shell_invocation(
     "echo $1 $2",
     ["justice", "legs"],
@@ -115,7 +115,7 @@ test "upstream functions::shell_minimal" {
 }
 
 ///|
-test "upstream functions::shell_first_arg" {
+async test "upstream functions::shell_first_arg" {
   assert_shell_invocation(
     "echo $0",
     [],
@@ -125,7 +125,7 @@ test "upstream functions::shell_first_arg" {
 }
 
 ///|
-test "upstream functions::shell_args" {
+async test "upstream functions::shell_args" {
   assert_shell_invocation(
     "echo $@",
     ["justice", "legs"],
@@ -396,11 +396,11 @@ test "upstream functions::join_unix" {
 }
 
 ///|
-test "upstream functions::join_windows" {
+async test "upstream functions::join_windows" {
   let cwd = try! @path.PathValue::new("C:\\workspace", Windows)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Windows, "test", Windows),
+    @host.PlatformInfo::new(Windows, Some("test"), Windows),
   )
   let value = try! @evaluator.call_non_process_effect_with_context(
     host,
@@ -421,11 +421,11 @@ test "upstream functions::join_windows" {
 }
 
 ///|
-test "upstream functions::shell_with_powershell" {
+async test "upstream functions::shell_with_powershell" {
   let cwd = try! @path.PathValue::new("C:\\workspace", Windows)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Windows, "test", Windows),
+    @host.PlatformInfo::new(Windows, Some("test"), Windows),
   )
   let expected = try! @host.CommandSpec::new("pwsh.exe", [
     "-NoLogo", "-Command", "Write-Output bar",

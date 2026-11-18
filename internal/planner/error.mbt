@@ -1,5 +1,6 @@
 ///|
 /// Failures produced while rendering or running one recipe line.
+#derive(Debug)
 pub(all) suberror ExecutionError {
   Evaluation(@evaluator.EvaluationError)
   Invocation(@invocation.InvocationError)
@@ -15,7 +16,7 @@ pub(all) suberror ExecutionError {
   GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
   CacheFailure(message~ : String)
-} derive(Debug)
+}
 
 ///|
 pub fn ExecutionError::command_failed(

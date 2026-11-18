@@ -1,8 +1,9 @@
 ///|
+#derive(Eq, Debug)
 pub(all) suberror FormatterError {
   Parse(@parser.ParserError)
   InvalidInput(String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn FormatterError::code(self : FormatterError) -> String {

@@ -1,10 +1,11 @@
 ///|
 /// Human-facing position resolved from a UTF-8 byte offset.
+#derive(Eq, Debug)
 pub struct SourcePosition {
   line : Int32
   byte_column : Int32
   scalar_column : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Return the one-based line number.
@@ -26,12 +27,13 @@ pub fn SourcePosition::scalar_column(self : SourcePosition) -> Int32 {
 
 ///|
 /// Validated UTF-8 source text and its byte-based line index.
+#derive(Debug)
 pub struct Source {
   id : SourceId
   name : String
   bytes : Bytes
   line_starts : Array[Int32]
-} derive(Debug)
+}
 
 ///|
 fn build_line_index(bytes : Bytes) -> Array[Int32] {

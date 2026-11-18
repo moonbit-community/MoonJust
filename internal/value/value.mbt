@@ -1,10 +1,11 @@
 ///|
 /// Runtime values produced by MoonJust expressions.
+#derive(Eq, Debug)
 pub(all) enum Value {
   String(String)
   List(Array[Value])
   Bool(Bool)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Value::as_string(self : Value) -> String? {
@@ -112,6 +113,7 @@ pub fn Value::kind(self : Value) -> String {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) suberror ValueError {
   TypeMismatch(expected~ : String, actual~ : String)
-} derive(Eq, Debug)
+}

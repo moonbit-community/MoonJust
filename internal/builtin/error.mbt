@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) suberror BuiltinError {
   Unknown(name~ : String)
   Arity(name~ : String, expected~ : String, actual~ : Int32)
@@ -8,7 +9,7 @@ pub(all) suberror BuiltinError {
   InvalidPattern(value~ : String, detail~ : String)
   Unsupported(name~ : String)
   Failure(message~ : String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn BuiltinError::message(self : BuiltinError) -> String {

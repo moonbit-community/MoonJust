@@ -1,14 +1,16 @@
 ///|
+#derive(Eq, Debug)
 pub(all) suberror ModulePathError {
   InvalidModulePath(String)
-} derive(Eq, Debug)
+}
 
 ///|
 /// A normalized module path. Root is represented by an empty component list;
 /// non-root paths use the canonical `::` separator.
+#derive(Eq, Hash, Debug)
 pub struct ModulePath {
   components : Array[String]
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 fn valid_start(code : UInt16) -> Bool {

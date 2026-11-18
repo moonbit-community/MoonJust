@@ -2,6 +2,7 @@
 /// Explicit invocation facts used by context and effect builtins. Optional
 /// facts never fall back to fabricated values: requesting a missing fact
 /// produces `EvaluationError::MissingContext`.
+#derive(Eq, Debug)
 pub(all) struct EvaluationContext {
   cwd : @path.PathValue?
   recipe : String?
@@ -33,7 +34,7 @@ pub(all) struct EvaluationContext {
   command_color : String?
   environment : Array[(String, String)]?
   process_environment : Array[(String, String)]?
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn EvaluationContext::new(

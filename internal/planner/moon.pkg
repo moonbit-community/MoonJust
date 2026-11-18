@@ -12,6 +12,7 @@ import {
   "ZSeanYves/MoonJust/internal/value",
   "ZSeanYves/MoonJust/internal/builtin",
   "ZSeanYves/MoonJust/internal/cache",
+  "moonbitlang/core/async",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/x/time",
 }
@@ -24,4 +25,8 @@ import {
   "ZSeanYves/MoonJust/internal/parser",
 } for "wbtest"
 
-supported_targets = "-all+native+wasm"
+supported_targets = "wasm"
+
+options(
+  "allow-experimental-packages": true,
+)

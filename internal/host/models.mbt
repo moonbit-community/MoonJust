@@ -1,5 +1,6 @@
 ///|
 /// Host facilities that may be granted, denied, or unavailable independently.
+#derive(Eq, Hash, Debug)
 pub(all) enum HostCapability {
   FsRead
   FsWrite
@@ -10,35 +11,19 @@ pub(all) enum HostCapability {
   Terminal
   Signal
   Platform
-} derive(Eq, Hash, Debug)
-
-///|
-/// Filesystem facts exposed without leaking adapter-specific stat types.
-pub(all) struct FileMetadata {
-  is_file : Bool
-  is_directory : Bool
-  size : Int64
-  is_executable : Bool
-} derive(Eq, Debug)
-
-///|
-pub fn FileMetadata::new(
-  is_file : Bool,
-  is_directory : Bool,
-  size : Int64,
-) -> FileMetadata {
-  { is_file, is_directory, size, is_executable: is_file, }
 }
 
 ///|
-/// Construct metadata with an explicit executable bit.
-pub fn FileMetadata::new_with_executable(
-  is_file : Bool,
-  is_directory : Bool,
-  size : Int64,
-  is_executable : Bool,
-) -> FileMetadata {
-  { is_file, is_directory, size, is_executable, }
+/// Filesystem facts exposed without leaking adapter-specific stat types.
+#derive(Eq, Debug)
+pub(all) struct FileMetadata {
+  is_file : Bool
+  is_directory : Bool
+}
+
+///|
+pub fn FileMetadata::new(is_file : Bool, is_directory : Bool) -> FileMetadata {
+  { is_file, is_directory, }
 }
 
 ///|
@@ -52,54 +37,36 @@ pub fn FileMetadata::is_directory(self : FileMetadata) -> Bool {
 }
 
 ///|
-pub fn FileMetadata::size(self : FileMetadata) -> Int64 {
-  self.size
-}
-
-///|
-pub fn FileMetadata::is_executable(self : FileMetadata) -> Bool {
-  self.is_executable
-}
-
-///|
+#derive(Eq, Hash, Debug)
 pub(all) enum OperatingSystem {
   Linux
   Macos
   Windows
   Other(String)
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// Target facts provided by an adapter instead of compile-time conditionals.
+#derive(Eq, Debug)
 pub struct PlatformInfo {
   operating_system : OperatingSystem
-  architecture : String
+  architecture : String?
   path_flavor : @path.PathFlavor
-  portable_runtime : Bool
   pid : Int32?
   num_cpus : Int32?
   executable : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn PlatformInfo::new(
   operating_system : OperatingSystem,
-  architecture : String,
+  architecture : String?,
   path_flavor : @path.PathFlavor,
-  portable_runtime~ : Bool = false,
   pid? : Int32,
   num_cpus? : Int32,
   executable? : String,
 ) -> PlatformInfo {
-  {
-    operating_system,
-    architecture,
-    path_flavor,
-    portable_runtime,
-    pid,
-    num_cpus,
-    executable,
-  }
+  { operating_system, architecture, path_flavor, pid, num_cpus, executable, }
 }
 
 ///|
@@ -108,20 +75,13 @@ pub fn PlatformInfo::operating_system(self : PlatformInfo) -> OperatingSystem {
 }
 
 ///|
-pub fn PlatformInfo::architecture(self : PlatformInfo) -> String {
+pub fn PlatformInfo::architecture(self : PlatformInfo) -> String? {
   self.architecture
 }
 
 ///|
 pub fn PlatformInfo::path_flavor(self : PlatformInfo) -> @path.PathFlavor {
   self.path_flavor
-}
-
-///|
-/// Whether filesystem facts come from a portable runtime which cannot expose
-/// canonical paths and executable mode bits synchronously.
-pub fn PlatformInfo::portable_runtime(self : PlatformInfo) -> Bool {
-  self.portable_runtime
 }
 
 ///|
@@ -141,12 +101,13 @@ pub fn PlatformInfo::executable(self : PlatformInfo) -> String? {
 
 ///|
 /// Terminal observations supplied by the host adapter.
+#derive(Eq, Debug)
 pub struct TerminalInfo {
   stdin_is_terminal : Bool
   stdout_is_terminal : Bool
   stderr_is_terminal : Bool
   color_supported : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn TerminalInfo::new(
@@ -184,12 +145,13 @@ pub fn TerminalInfo::color_supported(self : TerminalInfo) -> Bool {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum SignalKind {
   Interrupt
   Terminate
   Hangup
   OtherSignal(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Return the conventional Unix signal number used by just's exit-status
@@ -221,6 +183,7 @@ pub fn SignalKind::name(self : SignalKind) -> String {
 
 ///|
 /// How a child stream is connected to the MoonJust process.
+#derive(Eq, Debug)
 pub(all) enum StdioBehavior {
   /// Capture the stream in the returned `ProcessResult`.
   Capture
@@ -228,14 +191,15 @@ pub(all) enum StdioBehavior {
   Inherit
   /// Connect the stream to the platform null device.
   Discard
-} derive(Eq, Debug)
+}
 
 ///|
 /// Parent stream selected for runtime-owned output such as command echoes.
+#derive(Eq, Debug)
 pub(all) enum OutputStream {
   Stdout
   Stderr
-} derive(Eq, Debug)
+}
 
 ///|
 /// A shell-independent process request.
@@ -243,6 +207,7 @@ pub(all) enum OutputStream {
 /// `Debug` is implemented manually and deliberately omits argument values,
 /// environment values, and stdin bytes. Process specifications may contain
 /// secrets and must never be exposed through structural diagnostics.
+#derive(Eq)
 pub struct CommandSpec {
   program : String
   arguments : Array[String]
@@ -253,7 +218,7 @@ pub struct CommandSpec {
   mut inherit_stdin : Bool
   mut stdout : StdioBehavior
   mut stderr : StdioBehavior
-} derive(Eq)
+}
 
 ///|
 pub fn CommandSpec::new(
@@ -424,22 +389,24 @@ pub impl Debug for CommandSpec with fn to_repr(self) {
 
 ///|
 /// How a child process terminated.
+#derive(Eq, Debug)
 pub(all) enum ProcessTermination {
   Exited(Int32)
   Signaled(SignalKind)
   Interrupted(SignalKind)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Captured result of one child process.
 ///
 /// Structural debug output reports byte counts instead of captured contents,
 /// since child output may contain credentials or other sensitive values.
+#derive(Eq)
 pub struct ProcessResult {
   termination : ProcessTermination
   stdout : Bytes
   stderr : Bytes
-} derive(Eq)
+}
 
 ///|
 pub fn ProcessResult::new(

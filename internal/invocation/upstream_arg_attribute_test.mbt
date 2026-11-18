@@ -45,7 +45,7 @@ test "upstream arg_attribute::patterns_are_regular_expressions" {
       recipe="foo",
       parameter="bar",
       argument="\\d+",
-      patterns=["\\d+"]
+      patterns=["\\d+"],
     ) => ()
     error => fail("unexpected invocation error: \{Repr(error)}")
   } noraise {

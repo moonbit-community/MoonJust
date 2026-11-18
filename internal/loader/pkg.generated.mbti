@@ -14,31 +14,26 @@ import {
 }
 
 // Values
-pub fn[T : @host.HostFs] discover(T, @path.PathValue, options? : SearchOptions) -> @path.PathValue raise LoaderError
+pub async fn[T : @host.HostFs] discover(T, @path.PathValue, options? : SearchOptions) -> @path.PathValue raise LoaderError
 
 pub fn is_markdown_path(@path.PathValue) -> Bool
 
-pub fn[T : @host.HostFs] load(T, @path.PathValue, @source.SourceId, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
-
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(T, @path.PathValue, @source.SourceId, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
+pub async fn[T : @host.HostFs] load(T, @path.PathValue, @source.SourceId, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
 
 pub fn load_bytes(Bytes, @source.SourceId, String, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
 
-pub fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(T, @source.SourceId, options? : SearchOptions) -> LoadedSource raise LoaderError
+pub async fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(T, @source.SourceId, options? : SearchOptions) -> LoadedSource raise LoaderError
 
-pub fn[T : @host.HostFs] load_graph(T, @path.PathValue, @source.SourceId, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
-
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(T, @path.PathValue, @source.SourceId, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
+pub async fn[T : @host.HostFs] load_graph(T, @path.PathValue, @source.SourceId, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
 
 pub fn load_markdown(Bytes, @source.SourceId, display_name? : String, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
 
 pub fn load_stdin(Bytes, @source.SourceId, display_name? : String, environment? : ArrayView[(String, String)]) -> LoadedSource raise LoaderError
 
-pub fn[T : @host.HostFs] load_stdin_graph(T, Bytes, @source.SourceId, @path.PathValue, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
-
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(T, Bytes, @source.SourceId, @path.PathValue, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
+pub async fn[T : @host.HostFs] load_stdin_graph(T, Bytes, @source.SourceId, @path.PathValue, limits? : GraphLimits, platform? : @semantic.TargetPlatform, environment? : ArrayView[(String, String)]) -> LoadedGraph raise LoaderError
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror LoaderError {
   InvalidLimit
   NoJustfileFound(start~ : @path.PathValue, filename~ : String)
@@ -53,7 +48,7 @@ pub(all) suberror LoaderError {
   ImportCycle(path~ : @path.PathValue, chain~ : Array[@path.PathValue], span~ : @source.Span?)
   ModuleFileMissing(module_name~ : String, span~ : @source.Span)
   AmbiguousModuleFile(module_name~ : String, found~ : Array[@path.PathValue], span~ : @source.Span)
-} derive(Eq, @debug.Debug)
+}
 pub fn LoaderError::code(Self) -> String
 pub fn LoaderError::diagnostic_source(Self) -> @source.Source?
 #deprecated
@@ -67,9 +62,10 @@ pub fn LoaderError::to_diagnostic(Self, @source.Span) -> @diagnostic.Diagnostic 
 pub fn LoaderError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct GraphLimits {
   max_files : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn GraphLimits::default() -> Self
 #deprecated
 pub fn GraphLimits::equal(Self, Self) -> Bool
@@ -79,13 +75,15 @@ pub fn GraphLimits::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn GraphLimits::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct LoadedGraph {
   files : Array[LoadedSource]
-} derive(@debug.Debug)
+}
 pub fn LoadedGraph::files(Self) -> ArrayView[LoadedSource]
 #deprecated
 pub fn LoadedGraph::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct LoadedSource {
   path : @path.PathValue
   canonical_path : @path.PathValue
@@ -96,7 +94,7 @@ pub(all) struct LoadedSource {
   relation : SourceRelation
   module_path : @modulepath.ModulePath
   module_directory : @path.PathValue
-} derive(@debug.Debug)
+}
 pub fn LoadedSource::ast(Self) -> @syntax.Ast
 pub fn LoadedSource::canonical_path(Self) -> @path.PathValue
 pub fn LoadedSource::import_span(Self) -> @source.Span?
@@ -109,12 +107,13 @@ pub fn LoadedSource::source(Self) -> @source.Source
 #deprecated
 pub fn LoadedSource::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SearchOptions {
   filename : String
   ceiling : @path.PathValue?
   explicit : @path.PathValue?
   global : @path.PathValue?
-} derive(Eq, @debug.Debug)
+}
 pub fn SearchOptions::ceiling(Self) -> @path.PathValue?
 #deprecated
 pub fn SearchOptions::equal(Self, Self) -> Bool
@@ -127,11 +126,12 @@ pub fn SearchOptions::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn SearchOptions::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SourceRelation {
   RootSource
   ImportedSource
   ModuleSource
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn SourceRelation::equal(Self, Self) -> Bool
 #deprecated

@@ -1,8 +1,8 @@
 ///|
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   O : @host.HostAsyncOutput,
-  S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_plan_live(
   process : P,
@@ -40,11 +40,11 @@ pub async fn[
     Some(value) => value
     None => raise live_cache_failure("invalid execution task graph")
   }
-  let outcomes = try
+  let outcomes : Array[LiveTaskOutcome] = []
+  try
     @async.with_task_group() <| group => {
-      let result : Array[LiveTaskOutcome] = []
       for _ in plan.tasks() {
-        result.push(LiveBlocked)
+        outcomes.push(LiveBlocked)
       }
       for _ in 0..<jobs {
         group.spawn(() => {
@@ -68,7 +68,7 @@ pub async fn[
                 summary => LiveCompleted(summary)
               }
             }
-            result[id] = outcome
+            outcomes[id] = outcome
             coordinator.finish(
               id,
               match outcome {
@@ -80,13 +80,10 @@ pub async fn[
         })
         |> ignore
       }
-      result
     }
   catch {
     LiveExecution(..) as failure => raise failure
     _ => raise live_cache_failure("execution task group failed")
-  } noraise {
-    value => value
   }
   let mut commands = 0
   for id in coordinator.output_order() {

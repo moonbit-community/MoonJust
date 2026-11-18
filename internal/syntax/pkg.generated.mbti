@@ -11,12 +11,13 @@ import {
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct Alias {
   name : String
   target : String
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Alias::attributes(Self) -> ArrayView[Attribute]
 #deprecated
 pub fn Alias::equal(Self, Self) -> Bool
@@ -29,6 +30,7 @@ pub fn Alias::target(Self) -> String
 #deprecated
 pub fn Alias::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Assignment {
   name : String
   value : Expression
@@ -36,7 +38,7 @@ pub(all) struct Assignment {
   eager : Bool
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Assignment::attributes(Self) -> ArrayView[Attribute]
 pub fn Assignment::eager(Self) -> Bool
 #deprecated
@@ -51,11 +53,12 @@ pub fn Assignment::span(Self) -> @source.Span
 pub fn Assignment::to_repr(Self) -> @debug.Repr
 pub fn Assignment::value(Self) -> Expression
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Ast {
   source_id : @source.SourceId
   items : Array[Item]
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Ast::equal(Self, Self) -> Bool
 pub fn Ast::items(Self) -> ArrayView[Item]
@@ -68,11 +71,12 @@ pub fn Ast::span(Self) -> @source.Span
 #deprecated
 pub fn Ast::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Attribute {
   name : String
   arguments : Array[AttributeArgument]
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Attribute::arguments(Self) -> ArrayView[AttributeArgument]
 #deprecated
 pub fn Attribute::equal(Self, Self) -> Bool
@@ -84,11 +88,12 @@ pub fn Attribute::span(Self) -> @source.Span
 #deprecated
 pub fn Attribute::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct AttributeArgument {
   key : String?
   value : Expression?
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn AttributeArgument::equal(Self, Self) -> Bool
 pub fn AttributeArgument::key(Self) -> String?
@@ -100,6 +105,7 @@ pub fn AttributeArgument::span(Self) -> @source.Span
 pub fn AttributeArgument::to_repr(Self) -> @debug.Repr
 pub fn AttributeArgument::value(Self) -> Expression?
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BinaryOperator {
   Or
   And
@@ -110,7 +116,7 @@ pub(all) enum BinaryOperator {
   ListConcat
   Concat
   Join
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn BinaryOperator::equal(Self, Self) -> Bool
 #deprecated
@@ -118,6 +124,7 @@ pub fn BinaryOperator::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn BinaryOperator::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Dependency {
   name : String
   name_span : @source.Span
@@ -125,7 +132,7 @@ pub(all) struct Dependency {
   starred : Bool
   starred_arguments : Array[Int32]
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Dependency::arguments(Self) -> ArrayView[Expression]
 #deprecated
 pub fn Dependency::equal(Self, Self) -> Bool
@@ -140,6 +147,7 @@ pub fn Dependency::starred_arguments(Self) -> ArrayView[Int32]
 #deprecated
 pub fn Dependency::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Expression {
   String(StringLiteral)
   Backtick(StringLiteral)
@@ -152,7 +160,7 @@ pub(all) enum Expression {
   Binary(operator~ : BinaryOperator, operator_span~ : @source.Span, lhs~ : Expression, rhs~ : Expression, span~ : @source.Span)
   Conditional(condition~ : Expression, then_branch~ : Expression, else_branch~ : Expression?, span~ : @source.Span)
   Format(start~ : StringLiteral, parts~ : Array[FormatPart], span~ : @source.Span)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Expression::equal(Self, Self) -> Bool
 pub fn Expression::kind(Self) -> String
@@ -163,10 +171,11 @@ pub fn Expression::span(Self) -> @source.Span
 #deprecated
 pub fn Expression::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FormatPart {
   expression : Expression
   literal : StringLiteral
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn FormatPart::equal(Self, Self) -> Bool
 pub fn FormatPart::expression(Self) -> Expression
@@ -177,13 +186,14 @@ pub fn FormatPart::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn FormatPart::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FunctionDefinition {
   name : String
   parameters : Array[FunctionParameter]
   body : Expression
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn FunctionDefinition::attributes(Self) -> ArrayView[Attribute]
 pub fn FunctionDefinition::body(Self) -> Expression
 #deprecated
@@ -197,10 +207,11 @@ pub fn FunctionDefinition::span(Self) -> @source.Span
 #deprecated
 pub fn FunctionDefinition::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FunctionParameter {
   name : String
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn FunctionParameter::equal(Self, Self) -> Bool
 pub fn FunctionParameter::name(Self) -> String
@@ -211,11 +222,12 @@ pub fn FunctionParameter::span(Self) -> @source.Span
 #deprecated
 pub fn FunctionParameter::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Import {
   path : StringLiteral
   optional : Bool
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Import::equal(Self, Self) -> Bool
 pub fn Import::new(StringLiteral, Bool, @source.Span) -> Self
@@ -227,6 +239,7 @@ pub fn Import::span(Self) -> @source.Span
 #deprecated
 pub fn Import::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Item {
   Assignment(Assignment)
   Function(FunctionDefinition)
@@ -240,7 +253,7 @@ pub(all) enum Item {
   Comment(text~ : String, span~ : @source.Span)
   TrailingComment(text~ : String, span~ : @source.Span)
   Blank(span~ : @source.Span)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Item::equal(Self, Self) -> Bool
 pub fn Item::name(Self) -> String?
@@ -251,6 +264,7 @@ pub fn Item::span(Self) -> @source.Span
 #deprecated
 pub fn Item::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Module {
   name : String
   name_span : @source.Span
@@ -258,7 +272,7 @@ pub(all) struct Module {
   optional : Bool
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Module::attributes(Self) -> ArrayView[Attribute]
 #deprecated
 pub fn Module::equal(Self, Self) -> Bool
@@ -273,6 +287,7 @@ pub fn Module::span(Self) -> @source.Span
 #deprecated
 pub fn Module::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Parameter {
   name : String
   default_value : Expression?
@@ -280,7 +295,7 @@ pub(all) struct Parameter {
   variadic_minimum : Int32
   exported : Bool
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Parameter::default_value(Self) -> Expression?
 #deprecated
 pub fn Parameter::equal(Self, Self) -> Bool
@@ -296,6 +311,7 @@ pub fn Parameter::to_repr(Self) -> @debug.Repr
 pub fn Parameter::variadic(Self) -> Bool
 pub fn Parameter::variadic_minimum(Self) -> Int32
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Recipe {
   name : String
   quiet : Bool
@@ -306,7 +322,7 @@ pub(all) struct Recipe {
   attributes : Array[Attribute]
   trailing_comment : String?
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Recipe::attributes(Self) -> ArrayView[Attribute]
 pub fn Recipe::dependencies(Self) -> ArrayView[Dependency]
 #deprecated
@@ -324,10 +340,11 @@ pub fn Recipe::subsequent_dependencies(Self) -> ArrayView[Dependency]
 pub fn Recipe::to_repr(Self) -> @debug.Repr
 pub fn Recipe::trailing_comment(Self) -> String?
 
+#derive(Eq, @debug.Debug)
 pub(all) enum RecipeFragment {
   Text(text~ : String, span~ : @source.Span)
   Interpolation(expression~ : Expression, span~ : @source.Span)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn RecipeFragment::equal(Self, Self) -> Bool
 #deprecated
@@ -335,12 +352,13 @@ pub fn RecipeFragment::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn RecipeFragment::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct RecipeLine {
   fragments : Array[RecipeFragment]
   span : @source.Span
   source_start_line : Int32
   source_end_line : Int32
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn RecipeLine::equal(Self, Self) -> Bool
 pub fn RecipeLine::fragments(Self) -> ArrayView[RecipeFragment]
@@ -353,11 +371,12 @@ pub fn RecipeLine::span(Self) -> @source.Span
 #deprecated
 pub fn RecipeLine::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Setting {
   name : String
   value : Expression?
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Setting::equal(Self, Self) -> Bool
 pub fn Setting::name(Self) -> String
@@ -369,13 +388,14 @@ pub fn Setting::span(Self) -> @source.Span
 pub fn Setting::to_repr(Self) -> @debug.Repr
 pub fn Setting::value(Self) -> Expression?
 
+#derive(Eq, @debug.Debug)
 pub(all) enum StringKind {
   Raw
   Cooked
   Backtick
   TripleRaw
   TripleCooked
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn StringKind::equal(Self, Self) -> Bool
 #deprecated
@@ -383,13 +403,14 @@ pub fn StringKind::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn StringKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct StringLiteral {
   raw : String
   cooked : String
   kind : StringKind
   span : @source.Span
   shell_expanded : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn StringLiteral::cooked(Self) -> String
 #deprecated
 pub fn StringLiteral::equal(Self, Self) -> Bool
@@ -403,9 +424,10 @@ pub fn StringLiteral::span(Self) -> @source.Span
 #deprecated
 pub fn StringLiteral::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum UnaryOperator {
   Not
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn UnaryOperator::equal(Self, Self) -> Bool
 #deprecated

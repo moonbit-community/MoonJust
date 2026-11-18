@@ -1,6 +1,7 @@
 ///|
 /// Dotenv failures never retain a source line or parsed value. This keeps both
 /// rendered and structural diagnostics safe for secret-bearing input.
+#derive(Eq, Debug)
 pub(all) suberror DotenvError {
   InvalidUtf8(path~ : @path.PathValue)
   Parse(line~ : Int32, column~ : Int32)
@@ -11,7 +12,7 @@ pub(all) suberror DotenvError {
     line~ : Int32,
     column~ : Int32,
     value~ : String,
-    index~ : Int32
+    index~ : Int32,
   )
   HostDenied(@host.HostCapability)
   HostUnavailable(@host.HostCapability)
@@ -21,7 +22,7 @@ pub(all) suberror DotenvError {
   ArgumentsRequireLists
   CommandUnavailable(index~ : Int32)
   CommandFailed(index~ : Int32, exit_code~ : Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn DotenvError::message(self : DotenvError) -> String {

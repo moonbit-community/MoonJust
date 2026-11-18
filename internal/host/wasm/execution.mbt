@@ -1,107 +1,8 @@
 ///|
-/// Wasm execution filesystem: ordinary project access remains read-only while
-/// runtime-owned temporary scripts use policy-checked async filesystem calls.
-pub struct ExecutionFs {
-  reads : ReadOnlyFs
-}
-
-///|
-pub fn ExecutionFs::new() -> ExecutionFs {
-  { reads: ReadOnlyFs::new(), }
-}
-
-///|
-pub impl @host.HostSourceReader for ExecutionFs with fn read_source(
-  self : ExecutionFs,
-  path : @path.PathValue,
-  max_bytes : Int32,
-) -> Bytes raise @host.HostError {
-  @host.HostSourceReader::read_source(self.reads, path, max_bytes)
-}
-
-///|
-pub impl @host.HostFs for ExecutionFs with fn read_file(
-  self : ExecutionFs,
-  path : @path.PathValue,
-) -> Bytes raise @host.HostError {
-  @host.HostFs::read_file(self.reads, path)
-}
-
-///|
-pub impl @host.HostFs for ExecutionFs with fn read_file_range(
-  self : ExecutionFs,
-  path : @path.PathValue,
-  offset : Int64,
-  length : Int32,
-) -> Bytes raise @host.HostError {
-  @host.HostFs::read_file_range(self.reads, path, offset, length)
-}
-
-///|
 pub impl @host.HostFs for ExecutionFs with fn write_file(
   _self : ExecutionFs,
   _path : @path.PathValue,
   _contents : Bytes,
-) -> Unit raise @host.HostError {
-  raise CapabilityDenied(FsWrite)
-}
-
-///|
-pub impl @host.HostFs for ExecutionFs with fn file_exists(
-  self : ExecutionFs,
-  path : @path.PathValue,
-) -> Bool raise @host.HostError {
-  @host.HostFs::file_exists(self.reads, path)
-}
-
-///|
-pub impl @host.HostFs for ExecutionFs with fn read_dir(
-  self : ExecutionFs,
-  path : @path.PathValue,
-) -> Array[String] raise @host.HostError {
-  @host.HostFs::read_dir(self.reads, path)
-}
-
-///|
-pub impl @host.HostFs for ExecutionFs with fn metadata(
-  self : ExecutionFs,
-  path : @path.PathValue,
-) -> @host.FileMetadata raise @host.HostError {
-  @host.HostFs::metadata(self.reads, path)
-}
-
-///|
-pub impl @host.HostFs for ExecutionFs with fn canonicalize(
-  self : ExecutionFs,
-  path : @path.PathValue,
-) -> @path.PathValue raise @host.HostError {
-  @host.HostFs::canonicalize(self.reads, path)
-}
-
-///|
-pub impl @host.HostFs for ExecutionFs with fn persist_temp_file(
-  _self : ExecutionFs,
-  _temporary : @path.PathValue,
-  _destination : @path.PathValue,
-  _overwrite : Bool,
-) -> Unit raise @host.HostError {
-  raise CapabilityDenied(FsWrite)
-}
-
-///|
-pub impl @host.HostTemp for ExecutionFs with fn create_temp_file(
-  _self : ExecutionFs,
-  _directory : @path.PathValue,
-  _prefix : String,
-  _contents : Bytes,
-) -> @path.PathValue raise @host.HostError {
-  raise CapabilityDenied(FsWrite)
-}
-
-///|
-pub impl @host.HostTemp for ExecutionFs with fn remove_temp_file(
-  _self : ExecutionFs,
-  _path : @path.PathValue,
 ) -> Unit raise @host.HostError {
   raise CapabilityDenied(FsWrite)
 }
@@ -123,9 +24,9 @@ fn execution_suffix() -> String raise @host.HostError {
 ///|
 fn execution_fs_error(error : Error) -> @host.HostError {
   match error {
-    @os_error.OSError(_) as os_error if os_error.is_EACCES() =>
+    @os_error.OsError(AccessDenied, ..) =>
       PermissionDenied(FsWrite, detail="filesystem permission denied")
-    @os_error.OSError(_) as os_error if os_error.is_ENOENT() =>
+    @os_error.OsError(NotFound, ..) =>
       InvalidInput("temporary script directory does not exist")
     _ => InvalidInput("temporary script filesystem operation failed")
   }
@@ -137,12 +38,11 @@ fn execution_atomic_error(
   path : @path.PathValue,
 ) -> @host.HostError {
   match error {
-    @os_error.OSError(_) as os_error if os_error.is_EEXIST() =>
-      AlreadyExists(path)
-    @os_error.OSError(_) as os_error if os_error.is_ENOENT() => NotFound(path)
-    @os_error.OSError(_) as os_error if os_error.is_EACCES() =>
+    @os_error.OsError(AlreadyExists, ..) => AlreadyExists(path)
+    @os_error.OsError(NotFound, ..) => NotFound(path)
+    @os_error.OsError(AccessDenied, ..) =>
       PermissionDenied(FsWrite, detail="filesystem permission denied")
-    @os_error.OSError(errno, ..) =>
+    @os_error.OsError(_, raw_code=errno, ..) =>
       InvalidInput("filesystem transaction failed with status \{errno}")
     _ => InvalidInput("filesystem transaction failed")
   }
@@ -166,13 +66,10 @@ pub impl @host.HostAtomicFs for ExecutionFs with fn write_file_atomic(
   contents : Bytes,
   overwrite : Bool,
 ) -> Unit raise @host.HostError {
-  if overwrite && @host.HostFs::file_exists(_self.reads, path) {
-    let target = try @async_fs.open(path.as_string(), mode=WriteOnly) catch {
-      error => raise execution_atomic_error(error, path)
-    } noraise {
-      file => file
-    }
-    target.close()
+  if overwrite {
+    raise InvalidInput(
+      "cannot atomically replace an existing file and preserve its permissions",
+    )
   }
   let directory = match path.parent() {
     Some(value) => value
@@ -190,7 +87,7 @@ pub impl @host.HostAtomicFs for ExecutionFs with fn write_file_atomic(
       _ => raise InvalidInput("temporary file path flavor mismatch")
     }
     try
-      @async_fs.write_file(
+      @async_fs.write_binary(
         temporary.as_string(),
         contents,
         create_mode=CreateNew,
@@ -198,7 +95,7 @@ pub impl @host.HostAtomicFs for ExecutionFs with fn write_file_atomic(
         sync=Full,
       )
     catch {
-      @os_error.OSError(_) as error if error.is_EEXIST() => continue
+      @os_error.OsError(AlreadyExists, ..) => continue
       error => {
         try execution_remove_after_failure(temporary) catch {
           _ => ()
@@ -226,19 +123,14 @@ pub impl @host.HostAtomicFs for ExecutionFs with fn write_file_atomic(
         raise execution_atomic_error(error, path)
       }
     } noraise {
-      _ => {
-        // Atomic writes bypass PortableHost::write_file, so invalidate the
-        // load snapshot after the rename becomes visible.
-        portable_clear_file_cache()
-        return
-      }
+      _ => return
     }
   }
   raise InvalidInput("temporary file namespace exhausted")
 }
 
 ///|
-pub impl @host.HostAsyncScriptTemp for ExecutionFs with fn create_script_temp_async(
+pub impl @host.HostScriptTemp for ExecutionFs with fn create_script_temp(
   _self : ExecutionFs,
   directory : @path.PathValue,
   stem : String,
@@ -270,7 +162,7 @@ pub impl @host.HostAsyncScriptTemp for ExecutionFs with fn create_script_temp_as
         recursive=false,
       )
     catch {
-      @os_error.OSError(_) as error if error.is_EEXIST() => continue
+      @os_error.OsError(AlreadyExists, ..) => continue
       error => raise execution_fs_error(error)
     } noraise {
       _ => ()
@@ -282,7 +174,7 @@ pub impl @host.HostAsyncScriptTemp for ExecutionFs with fn create_script_temp_as
       _ => raise InvalidInput("temporary script path flavor mismatch")
     }
     try
-      @async_fs.write_file(
+      @async_fs.write_binary(
         path.as_string(),
         contents,
         create_mode=CreateNew,
@@ -291,7 +183,7 @@ pub impl @host.HostAsyncScriptTemp for ExecutionFs with fn create_script_temp_as
       )
     catch {
       error => {
-        try @async_fs.rmdir(temporary_directory.as_string()) catch {
+        try @async_fs.remove(temporary_directory.as_string()) catch {
           _ => ()
         } noraise {
           _ => ()
@@ -306,19 +198,19 @@ pub impl @host.HostAsyncScriptTemp for ExecutionFs with fn create_script_temp_as
 }
 
 ///|
-pub impl @host.HostAsyncScriptTemp for ExecutionFs with fn remove_script_temp_async(
+pub impl @host.HostScriptTemp for ExecutionFs with fn remove_script_temp(
   _self : ExecutionFs,
   path : @path.PathValue,
 ) -> Unit raise @host.HostError {
   let parent = path.parent()
   @async_fs.remove(path.as_string()) catch {
-    @os_error.OSError(_) as error if error.is_ENOENT() => ()
+    @os_error.OsError(NotFound, ..) => ()
     error => raise execution_fs_error(error)
   }
   match parent {
     Some(directory) =>
-      @async_fs.rmdir(directory.as_string()) catch {
-        @os_error.OSError(_) as error if error.is_ENOENT() => ()
+      @async_fs.remove(directory.as_string()) catch {
+        @os_error.OsError(NotFound, ..) => ()
         error => raise execution_fs_error(error)
       }
     None => ()

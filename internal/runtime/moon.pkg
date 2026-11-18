@@ -4,7 +4,7 @@ import {
   "ZSeanYves/MoonJust/internal/host",
   "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
   "ZSeanYves/MoonJust/internal/path",
-  "moonbitlang/async",
+  "moonbitlang/core/async",
   "moonbitlang/core/encoding/utf8",
 }
 
@@ -18,4 +18,8 @@ import {
   "ZSeanYves/MoonJust/internal/source",
 } for "test"
 
-supported_targets = "-all+native+wasm"
+supported_targets = "wasm"
+
+options(
+  "allow-experimental-packages": true,
+)

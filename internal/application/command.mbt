@@ -35,11 +35,7 @@ fn command_display(arguments : ArrayView[String]) -> String {
 /// Execute `--command` with the selected project directory, dotenv entries,
 /// overrides, and exported assignments. Child streams remain live.
 #warnings("-unused_trait_bound")
-async fn[
-  F : @host.HostFs + @host.HostSourceReader,
-  P : @host.HostAsyncProcess,
-  H : @host.HostEnv,
-] execute_command_command_async(
+async fn[F : @host.HostFs, P : @host.HostProcess, H : @host.HostEnv] execute_command_command_async(
   filesystem : F,
   effects : H,
   process : P,
@@ -112,7 +108,7 @@ async fn[
   spec.set_stdout(output)
   spec.set_stderr(output)
   let display = command_display(arguments.positional())
-  let result = @host.HostAsyncProcess::run_process_async(process, spec) catch {
+  let result = @host.HostProcess::run_process(process, spec) catch {
     error => raise interactive_invocation_failure("command", display, error)
   }
   match result.termination() {

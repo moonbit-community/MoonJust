@@ -1,9 +1,16 @@
 import {
   "ZSeanYves/MoonJust/internal/cache",
   "ZSeanYves/MoonJust/internal/host",
-  "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
   "ZSeanYves/MoonJust/internal/path",
   "moonbitlang/core/encoding/utf8",
 }
 
-supported_targets = "-all+native+wasm"
+supported_targets = "wasm"
+
+options(
+  "allow-experimental-packages": true,
+)
+
+import {
+  "moonbitlang/core/async",
+} for "test"

@@ -31,9 +31,10 @@ pub fn setting_names() -> ArrayView[String]
 pub fn unindent_string(String) -> String
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror ParserConfigurationError {
   InvalidParserLimit
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn ParserConfigurationError::equal(Self, Self) -> Bool
 #deprecated
@@ -41,6 +42,7 @@ pub fn ParserConfigurationError::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn ParserConfigurationError::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror ParserError {
   LexerFailure(@lexer.LexerError)
   UnexpectedToken(expected~ : String, found~ : @lexer.TokenKind, span~ : @source.Span)
@@ -60,7 +62,7 @@ pub(all) suberror ParserError {
   RecursionLimitExceeded(limit~ : Int32, span~ : @source.Span)
   NodeLimitExceeded(limit~ : Int32, span~ : @source.Span)
   ExtraneousInput(span~ : @source.Span)
-} derive(Eq, @debug.Debug)
+}
 pub fn ParserError::code(Self) -> String
 #deprecated
 pub fn ParserError::equal(Self, Self) -> Bool
@@ -73,20 +75,22 @@ pub fn ParserError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagnos
 pub fn ParserError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(@debug.Debug)
 pub struct ParseReport {
   ast : @syntax.Ast
   errors : Array[ParserError]
-} derive(@debug.Debug)
+}
 pub fn ParseReport::ast(Self) -> @syntax.Ast
 pub fn ParseReport::errors(Self) -> ArrayView[ParserError]
 #deprecated
 pub fn ParseReport::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct ParserLimits {
   max_depth : Int32
   max_nodes : Int32
   max_diagnostics : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn ParserLimits::default() -> Self
 #deprecated
 pub fn ParserLimits::equal(Self, Self) -> Bool

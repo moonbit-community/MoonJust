@@ -3,6 +3,7 @@
 ///
 /// The lexer deliberately emits keywords as `Identifier`; parser clients may
 /// use `Keyword::from_lexeme` when grammar context requires a keyword.
+#derive(Eq, Compare, Hash, Debug)
 pub(all) enum Keyword {
   Alias
   AllowDuplicateRecipes
@@ -46,7 +47,7 @@ pub(all) enum Keyword {
   WindowsShell
   WorkingDirectory
   X
-} derive(Eq, Compare, Hash, Debug)
+}
 
 ///|
 /// Resolve a keyword from its exact source lexeme.

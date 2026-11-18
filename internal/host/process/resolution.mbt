@@ -79,7 +79,7 @@ async fn materialize_windows_command(
   } else {
     cwd + "\\" + filename
   }
-  @async_fs.write_file(
+  @async_fs.write_binary(
     path,
     @utf8.encode(script),
     create_mode=CreateNew,
@@ -133,17 +133,23 @@ async fn windows_native_program(
     return program
   }
   let cygpath = @env.get_env_var("JUST_CYGPATH").unwrap_or("cygpath")
-  let (status, stdout, _) = try
-    @async_process.collect_output(cygpath, ["--windows", program], cwd~)
+  let result = try
+    @async_process.run(
+      cygpath,
+      ["--windows", program],
+      cwd~,
+      stdout=Collect,
+      stderr=Discard,
+    )
   catch {
     _ => return program
   } noraise {
     value => value
   }
-  if status != 0 {
+  if result.exit_code != 0 {
     return program
   }
-  let translated = try stdout.text() catch {
+  let translated = try result.stdout_text() catch {
     _ => return program
   } noraise {
     value => value.trim_end().to_owned()
@@ -156,15 +162,8 @@ async fn windows_native_program(
 }
 
 ///|
-#cfg(platform="windows")
 fn windows_process_runtime() -> Bool {
-  true
-}
-
-///|
-#cfg(not(platform="windows"))
-fn windows_process_runtime() -> Bool {
-  @env.get_env_var("MOONJUST_OS") == Some("windows")
+  @async.platform is Windows
 }
 
 ///|
@@ -267,14 +266,7 @@ async fn resolve_process_program_cached(
     @env.get_env_var("JUST_CYGPATH").unwrap_or("cygpath"),
     shell_mode=windows_shell_mode(program, arguments),
   )
-  let acquired = try process_resolution_mutex.acquire() catch {
-    _ => false
-  } noraise {
-    _ => true
-  }
-  if !acquired {
-    return resolve_process_program(program, cwd)
-  }
+  process_resolution_mutex.acquire()
   defer process_resolution_mutex.release()
   match process_resolution_cache.get(key) {
     Some(value) => value
@@ -291,39 +283,16 @@ async fn resolve_process_program_cached(
 
 ///|
 async fn read_bounded_process_output(
-  output_mutex : @async.Mutex,
   reader : @async_process.ReadFromProcess,
   limit : Int32,
-  retain : Bool,
-  process : ObservedProcess,
-  forward : @host.OutputStream?,
+  process : @async_process.Process,
 ) -> (Bytes, Bool) {
   defer reader.close()
-  let output = Buffer(
-    size_hint=if retain { Int32::min(limit, 64 * 1024) } else { 0 },
-  )
-  while true {
-    let max_length = if retain {
-      Int32::min(64 * 1024, Int32::max(limit - output.length(), 0) + 1)
-    } else {
-      64 * 1024
-    }
-    guard reader.read_some(max_len=max_length) is Some(chunk) else { break }
-    match forward {
-      Some(stream) => {
-        ignore(write_stdio(output_mutex, stream, chunk))
-        continue
-      }
-      None => ()
-    }
-    if !retain {
-      continue
-    }
-    let remaining = Int32::max(limit - output.length(), 0)
+  let output = Buffer(capacity=Int32::min(limit, 64 * 1024))
+  while reader.read() is Some(chunk) {
+    let remaining = limit - output.length()
     if chunk.length() > remaining {
-      if remaining > 0 {
-        output.write_bytes(chunk[:remaining])
-      }
+      output.write_bytes(chunk[:remaining])
       process.cancel()
       return (output.to_bytes(), true)
     }

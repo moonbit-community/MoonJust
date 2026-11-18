@@ -1,10 +1,11 @@
 ///|
 /// Machine-readable diagnostic importance.
+#derive(Eq, Debug)
 pub(all) enum Severity {
   Error
   Warning
   Info
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Severity::as_string(self : Severity) -> String {
@@ -17,18 +18,20 @@ pub fn Severity::as_string(self : Severity) -> String {
 
 ///|
 /// The visual role of a source label.
+#derive(Eq, Debug)
 pub(all) enum LabelStyle {
   Primary
   Secondary
-} derive(Eq, Debug)
+}
 
 ///|
 /// A message attached to a validated UTF-8 byte span.
+#derive(Eq, Debug)
 pub struct DiagnosticLabel {
   span : @source.Span
   message : String
   style : LabelStyle
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn DiagnosticLabel::new(
@@ -57,10 +60,11 @@ pub fn DiagnosticLabel::style(self : DiagnosticLabel) -> LabelStyle {
 
 ///|
 /// One contextual step in a cross-source diagnostic chain.
+#derive(Eq, Debug)
 pub struct SourceTrace {
   source_id : @source.SourceId
   message : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn SourceTrace::new(
@@ -83,6 +87,7 @@ pub fn SourceTrace::message(self : SourceTrace) -> String {
 
 ///|
 /// Structured diagnostic data independent of presentation and terminal state.
+#derive(Debug)
 pub struct Diagnostic {
   code : String
   severity : Severity
@@ -94,7 +99,7 @@ pub struct Diagnostic {
   source_chain : Array[SourceTrace]
   related : Array[@source.Span]
   trailers : Array[String]
-} derive(Debug)
+}
 
 ///|
 pub fn Diagnostic::new(

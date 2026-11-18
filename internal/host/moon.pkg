@@ -2,3 +2,5 @@ import {
   "ZSeanYves/MoonJust/internal/path",
   "moonbitlang/core/debug",
 }
+
+supported_targets = "wasm"

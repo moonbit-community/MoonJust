@@ -1,5 +1,5 @@
 ///|
-fn[T : @host.HostFs] metadata_cached(
+async fn[T : @host.HostFs] metadata_cached(
   host : T,
   path : @path.PathValue,
   cache : Map[String, @host.FileMetadata],
@@ -18,7 +18,7 @@ fn[T : @host.HostFs] metadata_cached(
 }
 
 ///|
-fn[T : @host.HostFs] push_existing_module_candidate(
+async fn[T : @host.HostFs] push_existing_module_candidate(
   host : T,
   candidates : Array[@path.PathValue],
   path : @path.PathValue,
@@ -62,7 +62,7 @@ fn lowercase_ascii(value : String) -> String {
 }
 
 ///|
-fn[T : @host.HostFs] push_module_directory_candidates(
+async fn[T : @host.HostFs] push_module_directory_candidates(
   host : T,
   candidates : Array[@path.PathValue],
   directory : @path.PathValue,
@@ -110,7 +110,7 @@ fn[T : @host.HostFs] push_module_directory_candidates(
 }
 
 ///|
-fn[T : @host.HostFs] resolve_module_file(
+async fn[T : @host.HostFs] resolve_module_file(
   host : T,
   source_path : @path.PathValue,
   definition : @syntax.Module,

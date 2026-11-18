@@ -4,3 +4,5 @@ import {
   "ZSeanYves/MoonJust/internal/source",
   "ZSeanYves/MoonJust/internal/syntax",
 }
+
+supported_targets = "wasm"

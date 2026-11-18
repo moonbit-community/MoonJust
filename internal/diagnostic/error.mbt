@@ -1,14 +1,15 @@
 ///|
 /// Failures raised while constructing or rendering diagnostics.
+#derive(Eq, Debug)
 pub(all) suberror DiagnosticError {
   AnsiEscapeInField(field~ : String)
   MissingSource(@source.SourceId)
   InvalidLabelSpan(
     source_id~ : @source.SourceId,
     start_byte~ : Int32,
-    end_byte~ : Int32
+    end_byte~ : Int32,
   )
-} derive(Eq, Debug)
+}
 
 ///|
 fn reject_ansi(value : String, field : String) -> Unit raise DiagnosticError {

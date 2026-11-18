@@ -1,5 +1,5 @@
 ///|
-fn[T : @host.HostFs] locate_interactive_justfile(
+async fn[T : @host.HostFs] locate_interactive_justfile(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -92,7 +92,7 @@ fn interactive_invocation_failure(
 ///|
 /// Open the selected justfile without parsing it first. This is intentionally
 /// usable as a recovery path for malformed source files.
-async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostAsyncProcess] execute_edit_command_async(
+async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostProcess] execute_edit_command_async(
   filesystem : F,
   effects : E,
   process : P,
@@ -142,7 +142,7 @@ async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostAsyncProcess] execut
   spec.set_inherit_stdin(true)
   spec.set_stdout(Inherit)
   spec.set_stderr(Inherit)
-  let result = @host.HostAsyncProcess::run_process_async(process, spec) catch {
+  let result = @host.HostProcess::run_process(process, spec) catch {
     error => raise interactive_invocation_failure("editor", editor, error)
   }
   match result.termination() {
@@ -274,9 +274,9 @@ fn decode_chooser_selections(
 /// selected output line. Exit status 130 is the chooser cancellation contract.
 #warnings("-unused_trait_bound")
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
+  F : @host.HostFs,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
 ] execute_choose_command_async(
   filesystem : F,
   effects : H,
@@ -290,7 +290,7 @@ async fn[
   let loading_environment = @host.HostEnv::env_entries(effects) catch {
     error => raise Host(error)
   }
-  let (graph, directories) = load_graph_input_with_directories_async(
+  let (graph, directories) = load_graph_input_with_directories(
     filesystem,
     arguments,
     context,
@@ -366,7 +366,7 @@ async fn[
   spec.set_stdin(@utf8.encode(candidates.join("\n") + "\n"))
   spec.set_stdout(Capture)
   spec.set_stderr(Inherit)
-  let result = @host.HostAsyncProcess::run_process_async(process, spec) catch {
+  let result = @host.HostProcess::run_process(process, spec) catch {
     error =>
       raise interactive_invocation_failure(
         "chooser",

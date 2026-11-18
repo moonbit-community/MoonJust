@@ -1,11 +1,12 @@
 ///|
 /// Stable failures produced while composing execution environment settings.
 /// Override values and environment values are never retained in errors.
+#derive(Eq, Debug)
 pub(all) suberror EnvironmentConfigError {
   InvalidOverridePath(path~ : String)
   EmptyShell
   Path(@path.PathError)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn EnvironmentConfigError::message(self : EnvironmentConfigError) -> String {
@@ -144,9 +145,10 @@ pub fn OverrideTable::entries(self : OverrideTable) -> Array[VariableOverride] {
 ///|
 /// Host platform facts interpreted for environment composition. The wrapper
 /// prevents target conditionals from entering pure configuration code.
+#derive(Eq, Debug)
 pub struct PlatformConfiguration {
   info : @host.PlatformInfo
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn PlatformConfiguration::new(
@@ -187,10 +189,11 @@ pub fn PlatformConfiguration::environment_name_mode(
 
 ///|
 /// Fully selected recipe shell and arguments.
+#derive(Eq, Debug)
 pub struct ShellConfiguration {
   program : String
   arguments : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ShellConfiguration::new(
@@ -247,19 +250,21 @@ pub fn resolve_shell(
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum TemporaryDirectorySource {
   CommandLine
   Setting
   HostDefault
-} derive(Eq, Debug)
+}
 
 ///|
 /// Selected parent for per-recipe temporary directories. `None` delegates to
 /// the host runtime directory or operating-system default.
+#derive(Eq, Debug)
 pub struct TemporaryDirectoryConfiguration {
   source : TemporaryDirectorySource
   directory : @path.PathValue?
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn TemporaryDirectoryConfiguration::source(

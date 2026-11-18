@@ -1,5 +1,6 @@
 ///|
 /// Errors crossing the host boundary. Adapter-specific errors must be mapped here.
+#derive(Eq, Debug)
 pub(all) suberror HostError {
   CapabilityDenied(HostCapability)
   CapabilityUnavailable(HostCapability)
@@ -10,4 +11,4 @@ pub(all) suberror HostError {
   UnexpectedProcess(CommandSpec)
   ProcessMismatch(expected~ : CommandSpec, actual~ : CommandSpec)
   RandomExhausted(requested~ : Int32, remaining~ : Int32)
-} derive(Eq, Debug)
+}

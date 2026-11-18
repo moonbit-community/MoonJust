@@ -20,7 +20,7 @@ fn windows_drive_path_to_unix(path : @path.PathValue) -> @path.PathValue? {
 }
 
 ///|
-async fn[P : @host.HostAsyncProcess] shell_invocation_directory(
+async fn[P : @host.HostProcess] shell_invocation_directory(
   process : P,
   directories : @workdir.WorkingDirectoryModel,
   arguments : @cli.CliArguments,
@@ -44,9 +44,7 @@ async fn[P : @host.HostAsyncProcess] shell_invocation_directory(
   spec.set_cwd(native)
   spec.set_stdout(Capture)
   spec.set_stderr(Discard)
-  let output = try
-    @host.HostAsyncProcess::run_process_async(process, spec)
-  catch {
+  let output = try @host.HostProcess::run_process(process, spec) catch {
     _ => return native
   } noraise {
     value => value
@@ -255,7 +253,7 @@ fn setting_string_values(
 }
 
 ///|
-fn[F : @host.HostFs] compose_dotenv_environment(
+async fn[F : @host.HostFs] compose_dotenv_environment(
   filesystem : F,
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
@@ -298,7 +296,6 @@ fn[F : @host.HostFs] compose_dotenv_environment(
       override_environment=compilation.settings().bool("dotenv-override"),
       required=compilation.settings().bool("dotenv-required"),
       lists=compilation.settings().bool("lists"),
-      dry_run=arguments.flag("dry-run"),
       filenames~,
       paths~,
     ),
@@ -367,7 +364,7 @@ fn dotenv_command_specs(
 }
 
 ///|
-async fn[P : @host.HostAsyncProcess] load_dotenv_commands_async(
+async fn[P : @host.HostProcess] load_dotenv_commands_async(
   process : P,
   cwd : @path.PathValue,
   ambient : @environment.EnvTable,
@@ -382,7 +379,7 @@ async fn[P : @host.HostAsyncProcess] load_dotenv_commands_async(
   for index, command in commands {
     let command_text = command.arguments().last().unwrap_or("")
     command.set_cwd(cwd)
-    let output = @host.HostAsyncProcess::run_process_async(process, command) catch {
+    let output = @host.HostProcess::run_process(process, command) catch {
       _ => raise Dotenv(CommandUnavailable(index=index + 1))
     }
     match output.exit_code() {
@@ -406,150 +403,9 @@ async fn[P : @host.HostAsyncProcess] load_dotenv_commands_async(
 }
 
 ///|
-fn dotenv_runtime_path(
-  base : @path.PathValue,
-  value : String,
-) -> @path.PathValue raise ApplicationError {
-  let child = @path.PathValue::new(value, base.flavor()) catch {
-    _ => raise Dotenv(InvalidPath)
-  }
-  base.join(child) catch {
-    _ => raise Dotenv(InvalidPath)
-  }
-}
-
-///|
-async fn[F : @host.HostFs + @host.HostSourceReader] read_dotenv_runtime_file(
-  filesystem : F,
-  path : @path.PathValue,
-  ambient : @environment.EnvTable,
-) -> @environment.EnvTable? raise ApplicationError {
-  let metadata = @host.HostFs::metadata(filesystem, path) catch {
-    _ => raise Dotenv(SourceAccess)
-  }
-  if metadata.is_directory() {
-    return None
-  }
-  let bytes = @host.HostSourceReader::read_source(
-    filesystem,
-    path,
-    @lexer.LexerLimits::default().max_source_bytes(),
-  ) catch {
-    _ => raise Dotenv(SourceAccess)
-  }
-  let text = @utf8.decode(bytes) catch { _ => raise Dotenv(InvalidUtf8(path~)) }
-  Some(
-    @environment.parse_dotenv(text, ambient~) catch {
-      Parse(line~, column~) => raise Dotenv(ParseFile(path~, line~, column~))
-      ParseValue(line~, column~, value~, index~) =>
-        raise Dotenv(ParseFileValue(path~, line~, column~, value~, index~))
-      error => raise Dotenv(error)
-    },
-  )
-}
-
-///|
-async fn[F : @host.HostFs + @host.HostSourceReader] load_dotenv_files_for_runtime(
-  filesystem : F,
-  portable_runtime : Bool,
-  cwd : @path.PathValue,
-  ambient : @environment.EnvTable,
-  load : Bool,
-  override_environment : Bool,
-  required : Bool,
-  lists : Bool,
-  filenames : Array[String],
-  paths : Array[String],
-) -> @environment.EnvTable raise ApplicationError {
-  if !portable_runtime {
-    return @environment.load_dotenv_files(
-      filesystem,
-      cwd,
-      ambient,
-      @environment.DotenvOptions::new(
-        load~,
-        override_environment~,
-        required~,
-        lists~,
-        filenames~,
-        paths~,
-      ),
-    ) catch {
-      error => raise Dotenv(error)
-    }
-  }
-  if !lists && (filenames.length() > 1 || paths.length() > 1) {
-    raise Dotenv(ArgumentsRequireLists)
-  }
-  if !load && !override_environment && filenames.is_empty() && paths.is_empty() {
-    return @environment.EnvTable::new(name_mode=ambient.name_mode())
-  }
-  let result = @environment.EnvTable::new(name_mode=ambient.name_mode())
-  let mut found = false
-  fn merge(
-    result : @environment.EnvTable,
-    loaded : @environment.EnvTable,
-    ambient : @environment.EnvTable,
-    override_environment : Bool,
-  ) -> Unit {
-    for entry in loaded.entries() {
-      if override_environment || !ambient.contains(entry.0) {
-        result.set(entry.0, entry.1)
-      }
-    }
-  }
-  for value in paths {
-    let path = dotenv_runtime_path(cwd, value)
-    let exists = @host.HostFs::file_exists(filesystem, path) catch {
-      _ => raise Dotenv(SourceAccess)
-    }
-    if exists {
-      match read_dotenv_runtime_file(filesystem, path, ambient) {
-        Some(loaded) => {
-          merge(result, loaded, ambient, override_environment)
-          found = true
-        }
-        None => ()
-      }
-    }
-  }
-  if found {
-    return result
-  }
-  let names = if filenames.is_empty() { [".env"] } else { filenames }
-  let mut directory = Some(cwd)
-  while directory is Some(current) {
-    for filename in names {
-      let path = dotenv_runtime_path(current, filename)
-      let exists = @host.HostFs::file_exists(filesystem, path) catch {
-        _ => raise Dotenv(SourceAccess)
-      }
-      if exists {
-        match read_dotenv_runtime_file(filesystem, path, ambient) {
-          Some(loaded) => {
-            merge(result, loaded, ambient, override_environment)
-            found = true
-          }
-          None => ()
-        }
-      }
-    }
-    if found {
-      return result
-    }
-    directory = current.parent()
-  }
-  if required {
-    raise Dotenv(Required)
-  }
-  result
-}
-
-///|
-async fn[F : @host.HostFs + @host.HostSourceReader, P : @host.HostAsyncProcess] compose_dotenv_environment_async(
+async fn[F : @host.HostFs, P : @host.HostProcess] compose_dotenv_environment_async(
   filesystem : F,
   process : P,
-  portable_runtime : Bool,
   compilation : @semantic.Compilation,
   arguments : @cli.CliArguments,
   global : @evaluator.Environment,
@@ -588,18 +444,21 @@ async fn[F : @host.HostFs + @host.HostSourceReader, P : @host.HostAsyncProcess] 
         !filenames.is_empty() ||
         !paths.is_empty()
       )
-    load_dotenv_files_for_runtime(
+    @environment.load_dotenv_files(
       filesystem,
-      portable_runtime,
       cwd,
       ambient,
-      load,
-      compilation.settings().bool("dotenv-override"),
-      compilation.settings().bool("dotenv-required"),
-      compilation.settings().bool("lists"),
-      filenames,
-      paths,
-    )
+      @environment.DotenvOptions::new(
+        load~,
+        override_environment=compilation.settings().bool("dotenv-override"),
+        required=compilation.settings().bool("dotenv-required"),
+        lists=compilation.settings().bool("lists"),
+        filenames~,
+        paths~,
+      ),
+    ) catch {
+      error => raise Dotenv(error)
+    }
   } else {
     load_dotenv_commands_async(
       process,

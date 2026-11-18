@@ -1,5 +1,6 @@
 ///|
 /// Compiled recipe metadata, with platform selection separated from execution.
+#derive(Debug)
 pub struct RecipeAttributes {
   names : Array[String]
   platforms : Array[TargetOs]
@@ -26,7 +27,7 @@ pub struct RecipeAttributes {
   positional_arguments : Bool
   arg : Array[@syntax.AttributeArgument]
   cache : Array[@syntax.AttributeArgument]
-} derive(Debug)
+}
 
 ///|
 pub fn RecipeAttributes::names(self : RecipeAttributes) -> ArrayView[String] {

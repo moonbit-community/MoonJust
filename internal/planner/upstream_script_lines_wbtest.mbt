@@ -119,13 +119,16 @@ test "upstream interpolation::shebang_line_numbers_are_correct_with_multi_line_i
 test "upstream script::default_script_recipe_with_shebang_uses_shebang" {
   assert_eq(inferred_extension("cat"), "")
   assert_true(
-    include_shebang_line("cat", @host.PlatformInfo::new(Linux, "test", Unix)),
+    include_shebang_line(
+      "cat",
+      @host.PlatformInfo::new(Linux, Some("test"), Unix),
+    ),
   )
 }
 
 ///|
 test "upstream script::shebang_line_numbers_windows" {
-  let platform = @host.PlatformInfo::new(Windows, "test", Windows)
+  let platform = @host.PlatformInfo::new(Windows, Some("test"), Windows)
   assert_false(include_shebang_line("cat", platform))
   assert_eq(inferred_extension("cmd.exe"), ".bat")
 }

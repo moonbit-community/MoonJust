@@ -85,7 +85,7 @@ fn cache_path(
 }
 
 ///|
-fn[H : @host.HostFs] cache_key(
+async fn[H : @host.HostFs] cache_key(
   effects : H,
   directive : @planner.CacheDirective,
 ) -> @cache.CacheKey raise RuntimeError {
@@ -144,7 +144,7 @@ fn[H : @host.HostFs] cache_key(
 }
 
 ///|
-fn[H : @host.HostFs] cache_outputs_exist(
+async fn[H : @host.HostFs] cache_outputs_exist(
   effects : H,
   directive : @planner.CacheDirective,
 ) -> Bool raise RuntimeError {
@@ -163,8 +163,8 @@ fn[H : @host.HostFs] cache_outputs_exist(
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
-  S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  P : @host.HostProcess,
+  S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_cached_task(
   process : P,
@@ -200,122 +200,109 @@ async fn[
     error =>
       raise runtime_failure(@planner.ExecutionError::host(error), [], [], 0)
   }
-  try
-    @async.with_task_group() <| group => {
-      group.add_defer(() => {
-        try
-          @async.protect_from_cancel(() => {
-            @host.HostCacheStore::release_cache_lease(scripts, lease)
-          })
-        catch {
-          _ => ()
-        } noraise {
-          _ => ()
-        }
-      })
-      let stored = @host.HostCacheStore::read_cache_manifest(scripts, lease) catch {
-        error =>
-          raise runtime_failure(@planner.ExecutionError::host(error), [], [], 0)
+  defer (try
+    @async.protect_from_cancel(() => {
+      @host.HostCacheStore::release_cache_lease(scripts, lease)
+    })
+  catch {
+    _ => ()
+  } noraise {
+    _ => ()
+  })
+  let stored = @host.HostCacheStore::read_cache_manifest(scripts, lease) catch {
+    error =>
+      raise runtime_failure(@planner.ExecutionError::host(error), [], [], 0)
+  }
+  let hit = match stored {
+    Some(bytes) => {
+      let decoded = try @utf8.decode(bytes) catch {
+        _ => None
+      } noraise {
+        text => Some(text)
       }
-      let hit = match stored {
-        Some(bytes) => {
-          let decoded = try @utf8.decode(bytes) catch {
-            _ => None
-          } noraise {
-            text => Some(text)
+      match decoded {
+        Some(text) =>
+          try {
+            ignore(
+              @cache.validate_manifest(
+                text,
+                digest,
+                directive.recipe(),
+                directive.outputs(),
+              ),
+            )
+            cache_outputs_exist(scripts, directive)
+          } catch {
+            _ => false
           }
-          match decoded {
-            Some(text) =>
-              try {
-                ignore(
-                  @cache.validate_manifest(
-                    text,
-                    digest,
-                    directive.recipe(),
-                    directive.outputs(),
-                  ),
-                )
-                cache_outputs_exist(scripts, directive)
-              } catch {
-                _ => false
-              }
-            None => false
-          }
-        }
         None => false
       }
-      if hit {
-        if options.verbose() {
-          for byte in @utf8.encode("===> cache hit, skipping invocation\n") {
-            verbose.push(byte)
-          }
-        }
-        return @planner.ExecutionReport::new(
-          b"",
-          Bytes::from_array(verbose.copy()),
-          0,
-        )
-      }
-      @host.HostCacheStore::write_cache_manifest(scripts, lease, b"") catch {
-        error =>
-          raise runtime_failure(@planner.ExecutionError::host(error), [], [], 0)
-      }
-      let mut report = prepend_report_stderr(
-        Bytes::from_array(verbose.copy())[:],
-        execute_steps(process, scripts, effects, task.steps(), options, b""[:]),
-      )
-      if options.verbosity() >= 2 {
-        report = append_report_stderr(report, b"\n"[:])
-      }
-      if !cache_outputs_exist(scripts, directive) {
-        let output = directive.outputs().get(0).unwrap_or("")
-        raise failure_after_report(
-          CacheFailure(
-            message="recipe `\{directive.recipe()}` failed to create cache output `\{output}`",
-          ),
-          report,
-        )
-      }
-      let manifest = @cache.CacheManifest::new(
-        digest,
-        directive.recipe(),
-        directive.outputs(),
-      ) catch {
-        _ =>
-          raise failure_after_report(
-            @planner.ExecutionError::host(
-              InvalidInput("invalid cache manifest"),
-            ),
-            report,
-          )
-      }
-      @host.HostCacheStore::write_cache_manifest(
-        scripts,
-        lease,
-        @utf8.encode(manifest.encode()),
-      ) catch {
-        error =>
-          raise Execution(
-            error=@planner.ExecutionError::host(error),
-            stdout=report.stdout().to_owned(),
-            stderr=report.stderr().to_owned(),
-            commands=report.commands(),
-          )
-      }
-      report
     }
-  catch {
-    Execution(..) as failure => raise failure
-    _ => raise cache_failure("cache task failed")
-  } noraise {
-    value => value
+    None => false
   }
+  if hit {
+    if options.verbose() {
+      for byte in @utf8.encode("===> cache hit, skipping invocation\n") {
+        verbose.push(byte)
+      }
+    }
+    return @planner.ExecutionReport::new(
+      b"",
+      Bytes::from_array(verbose.copy()),
+      0,
+    )
+  }
+  @host.HostCacheStore::write_cache_manifest(scripts, lease, b"") catch {
+    error =>
+      raise runtime_failure(@planner.ExecutionError::host(error), [], [], 0)
+  }
+  let mut report = prepend_report_stderr(
+    Bytes::from_array(verbose.copy())[:],
+    execute_steps(process, scripts, effects, task.steps(), options, b""[:]),
+  )
+  if options.verbosity() >= 2 {
+    report = append_report_stderr(report, b"\n"[:])
+  }
+  if !cache_outputs_exist(scripts, directive) {
+    let output = directive.outputs().get(0).unwrap_or("")
+    raise failure_after_report(
+      CacheFailure(
+        message="recipe `\{directive.recipe()}` failed to create cache output `\{output}`",
+      ),
+      report,
+    )
+  }
+  let manifest = @cache.CacheManifest::new(
+    digest,
+    directive.recipe(),
+    directive.outputs(),
+  ) catch {
+    _ =>
+      raise failure_after_report(
+        @planner.ExecutionError::host(InvalidInput("invalid cache manifest")),
+        report,
+      )
+  }
+  @host.HostCacheStore::write_cache_manifest(
+    scripts,
+    lease,
+    @utf8.encode(manifest.encode()),
+  ) catch {
+    error =>
+      raise Execution(
+        error=@planner.ExecutionError::host(error),
+        stdout=report.stdout().to_owned(),
+        stderr=report.stderr().to_owned(),
+        commands=report.commands(),
+      )
+  }
+  report
 }
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
-  S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore,
+  P : @host.HostProcess,
+  S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_task(
   process : P,

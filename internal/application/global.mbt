@@ -36,7 +36,7 @@ fn[E : @host.HostEnv] global_environment_path(
 }
 
 ///|
-fn[F : @host.HostFs] find_global_candidate(
+async fn[F : @host.HostFs] find_global_candidate(
   filesystem : F,
   candidates : Array[(@path.PathValue, String)],
 ) -> @path.PathValue? raise ApplicationError {
@@ -58,7 +58,7 @@ fn[F : @host.HostFs] find_global_candidate(
 }
 
 ///|
-fn[F : @host.HostFs] global_project_root(
+async fn[F : @host.HostFs] global_project_root(
   filesystem : F,
   start : @path.PathValue,
   ceiling : @path.PathValue?,
@@ -89,7 +89,7 @@ fn[F : @host.HostFs] global_project_root(
 /// Resolve just 1.57.0's platform-specific global search before normal
 /// application loading. The returned context keeps the invocation project cwd
 /// separate from the user-configuration justfile path.
-pub fn[F : @host.HostFs, E : @host.HostEnv + @host.HostPlatform] resolve_global_context(
+pub async fn[F : @host.HostFs, E : @host.HostEnv + @host.HostPlatform] resolve_global_context(
   filesystem : F,
   environment : E,
   arguments : @cli.CliArguments,

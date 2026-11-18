@@ -1,10 +1,12 @@
 ///|
+#derive(Eq, Debug)
 pub(all) suberror ProjectCompilationError {
   MissingRootModule
   DuplicateModulePath(String)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Debug)
 pub struct ProjectModule {
   module_path : @modulepath.ModulePath
   compilation : Compilation
@@ -14,7 +16,7 @@ pub struct ProjectModule {
   declaration_attributes : Array[@syntax.Attribute]
   declaration_doc : String?
   default_recipe : String?
-} derive(Debug)
+}
 
 ///|
 pub fn ProjectModule::new(
@@ -88,6 +90,7 @@ pub fn ProjectModule::default_recipe(self : ProjectModule) -> String? {
 ///|
 /// Compilation model for a root module and its independently scoped submodules.
 /// Entries retain deterministic discovery order for list/dump operations.
+#derive(Debug)
 pub struct ProjectCompilation {
   module_order : Array[@modulepath.ModulePath]
   modules : Map[@modulepath.ModulePath, ProjectModule]
@@ -95,14 +98,15 @@ pub struct ProjectCompilation {
   disabled_recipes : Set[String]
   disabled_aliases : Set[String]
   disabled_reasons : Map[String, Array[@modulepath.ModulePath]]
-} derive(Debug)
+}
 
 ///|
 /// A recipe resolved in its owning module.
+#derive(Eq, Debug)
 pub struct ProjectRecipe {
   module_path : @modulepath.ModulePath
   recipe_name : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ProjectRecipe::module_path(

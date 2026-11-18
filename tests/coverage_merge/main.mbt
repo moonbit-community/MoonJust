@@ -4,6 +4,8 @@ priv struct CoverageRow {
   evidence_kind : String
   execution_state : String
   required_platform : String
+  status : String
+  reason : String
 }
 
 ///|
@@ -76,7 +78,32 @@ fn parse_row(
     errors.push(path + ": coverage row is missing a required field")
     return None
   }
-  Some({ upstream_id, evidence_kind, execution_state, required_platform, })
+  let status = string_field(fields, "status").unwrap_or("")
+  let reason = string_field(fields, "difference_reason").unwrap_or("")
+  if !["all", "unix", "linux", "macos", "windows"].contains(required_platform) {
+    errors.push(
+      upstream_id + ": unknown required platform " + required_platform,
+    )
+  }
+  if status == "differential-known-difference" {
+    let fixture = string_field(fields, "fixture").unwrap_or("")
+    let digest = string_field(fields, "candidate_digest")
+    if digest is None ||
+      @testkit.allowed_stderr_digest(
+        upstream_id, fixture, reason, required_platform,
+      ) !=
+      digest {
+      errors.push(upstream_id + ": difference is not on the reviewed allowlist")
+    }
+  }
+  Some({
+    upstream_id,
+    evidence_kind,
+    execution_state,
+    required_platform,
+    status,
+    reason,
+  })
 }
 
 ///|
@@ -135,21 +162,31 @@ fn json_string(value : String) -> String {
 }
 
 ///|
+async fn reject_invalid_evidence(errors : Array[String]) -> Unit {
+  if !errors.is_empty() {
+    for error in errors {
+      @stdio.stderr.text.write("FAIL  " + error + "\n")
+    }
+    @env.exit(1)
+  }
+}
+
+///|
 async fn main {
   let args = @env.args()[1:]
-  let target = option(args, "--target").unwrap_or("")
+  let target = option(args, "--target").unwrap_or("wasm")
   let output = option(args, "--output")
   let paths = report_paths(args)
   let errors : Array[String] = []
-  if target != "native" && target != "wasm" {
-    errors.push("--target must be `native` or `wasm`")
+  if target != "wasm" {
+    errors.push("--target must be `wasm`")
   }
   if paths.length() != 3 {
     errors.push("exactly three platform reports are required")
   }
   let reports : Array[CoverageReport] = []
   for path in paths {
-    let text = @fs.read_file(path).text() catch {
+    let text = @fs.read_text(path) catch {
       _ => {
         errors.push(path + ": cannot read report")
         continue
@@ -163,6 +200,9 @@ async fn main {
   let platforms : Set[String] = Set([])
   let rows_by_id : Map[String, Array[(String, CoverageRow)]] = Map([])
   for report in reports {
+    if platforms.contains(report.runner_os) {
+      errors.push("duplicate platform report: " + report.runner_os)
+    }
     platforms.add(report.runner_os)
     if report.target != target {
       errors.push(report.runner_os + ": report target does not match")
@@ -170,7 +210,14 @@ async fn main {
     if report.upstream_total != 2417 {
       errors.push(report.runner_os + ": upstream_total must be 2417")
     }
-    if report.failures != 0 || report.known_differences != 0 {
+    if report.failures != 0 ||
+      report.known_differences !=
+      report.rows
+      .filter(row => {
+        row.status == "differential-known-difference" &&
+        row.execution_state == "executed"
+      })
+      .length() {
       errors.push(report.runner_os + ": report contains compatibility failures")
     }
     if report.product_identity_differences != 2 {
@@ -196,6 +243,8 @@ async fn main {
       errors.push("missing platform report: " + required)
     }
   }
+  reject_invalid_evidence(errors)
+  let mut known = 0
   let mut differential = 0
   let mut specs = 0
   let mut completion = 0
@@ -205,6 +254,8 @@ async fn main {
     for observation in observations {
       let (_, row) = observation
       if row.evidence_kind != first.evidence_kind ||
+        row.status != first.status ||
+        row.reason != first.reason ||
         row.required_platform != first.required_platform {
         errors.push(upstream_id + ": platform reports disagree on evidence")
       }
@@ -215,22 +266,21 @@ async fn main {
     match first.evidence_kind {
       "differential" => {
         differential += 1
-        if first.required_platform == "all" {
-          if observations.length() != 3 ||
-            observations.any(fn(item) { item.1.execution_state != "executed" }) {
+        if first.status == "differential-known-difference" {
+          known += 1
+        }
+        for (platform, row) in observations {
+          let required = match first.required_platform {
+            "all" => true
+            "unix" => platform == "macos" || platform == "linux"
+            named => platform == named
+          }
+          let expected = if required { "executed" } else { "deferred-platform" }
+          if row.execution_state != expected {
             errors.push(
-              upstream_id + ": common differential did not run on all platforms",
+              upstream_id + ": unexpected execution state on " + platform,
             )
           }
-        } else if !observations.any(fn(item) {
-            let platform_matches = if first.required_platform == "unix" {
-              item.0 == "linux" || item.0 == "macos"
-            } else {
-              item.0 == first.required_platform
-            }
-            platform_matches && item.1.execution_state == "executed"
-          }) {
-          errors.push(upstream_id + ": platform differential was not executed")
         }
       }
       "moonbit-spec" => {
@@ -265,6 +315,7 @@ async fn main {
       "merged evidence category totals do not match the pinned inventory",
     )
   }
+  reject_invalid_evidence(errors)
   let report = "{\"schema_version\":3,\"target\":" +
     json_string(target) +
     ",\"platforms\":[\"linux\",\"macos\",\"windows\"],\"upstream_total\":" +
@@ -274,8 +325,10 @@ async fn main {
     ",\"differential_executed\":" +
     differential.to_string() +
     ",\"differential_exact\":" +
-    differential.to_string() +
-    ",\"differential_known_difference\":0,\"moonbit_spec_declared\":" +
+    (differential - known).to_string() +
+    ",\"differential_known_difference\":" +
+    known.to_string() +
+    ",\"moonbit_spec_declared\":" +
     specs.to_string() +
     ",\"moonbit_spec_executed\":" +
     specs.to_string() +
@@ -283,18 +336,9 @@ async fn main {
     completion.to_string() +
     ",\"excluded_signal\":" +
     signal.to_string() +
-    ",\"deferred_platform\":0,\"unclassified\":0" +
-    ",\"failures\":" +
-    errors.length().to_string() +
-    "}\n"
+    ",\"deferred_platform\":0,\"unclassified\":0,\"failures\":0}\n"
   match output {
-    Some(path) => @fs.write_file(path, @utf8.encode(report))
-    None => @stdio.stdout.write(report)
-  }
-  for error in errors {
-    @stdio.stderr.write("FAIL  " + error + "\n")
-  }
-  if !errors.is_empty() {
-    @sys.exit(1)
+    Some(path) => @fs.write_binary(path, @utf8.encode(report))
+    None => @stdio.stdout.text.write(report)
   }
 }

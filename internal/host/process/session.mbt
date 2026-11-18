@@ -1,5 +1,5 @@
 ///|
-/// Native/wasm1 process leaf backed by `moonbitlang/async/process`.
+/// Wasm child processes use the standard library process API.
 pub struct ProcessAdapter {
   output_mutex : @async.Mutex
 }
@@ -9,14 +9,6 @@ pub struct ProcessAdapter {
 /// deterministic invocation order. Bound each stream to keep one child from
 /// exhausting the runtime while its pipe is drained with backpressure.
 const MAX_CAPTURED_STREAM_BYTES : Int32 = 16 * 1024 * 1024
-
-///|
-fn[X] stdio_is_regular(fd : X) -> Bool {
-  // async keeps fd classification internal. Unknown inherited streams must
-  // remain direct streams rather than being reclassified by a MoonJust FFI.
-  ignore(fd)
-  false
-}
 
 ///|
 pub fn ProcessAdapter::new() -> ProcessAdapter {
@@ -30,73 +22,28 @@ let process_resolution_mutex : @async.Mutex = Mutex()
 let process_resolution_cache : Map[String, String] = Map([])
 
 ///|
-priv enum ObservedProcess {
-  Managed(@async_process.Process)
-}
-
-///|
 priv enum WaitOutcome {
   Completed(Int32)
   Cancelled
 }
 
 ///|
-async fn[X] spawn_observed_process(
-  group : @async.TaskGroup[X],
-  program : String,
-  arguments : ArrayView[String],
-  environment : Map[String, String],
-  inherit_environment : Bool,
-  stdin : &@async_process.ProcessInput,
-  stdout : &@async_process.ProcessOutput,
-  stderr : &@async_process.ProcessOutput,
-  cwd : String,
-) -> ObservedProcess {
-  let process = @async_process.spawn(
-    group,
-    program,
-    arguments,
-    extra_env=environment,
-    inherit_env=inherit_environment,
-    stdin~,
-    stdout~,
-    stderr~,
-    cwd~,
-    cancel_handler=@async_process.graceful_cancel(timeout=5000),
-    no_wait=true,
-  )
-  Managed(process)
-}
-
-///|
 #warnings("-fragile_catch_all")
-async fn ObservedProcess::wait(self : ObservedProcess) -> WaitOutcome {
-  let Managed(process) = self
-  let status = process.wait() catch {
-    error => {
-      if @async.is_cancellation_error(error) {
-        process.cancel()
-        ignore(
-          @async.protect_from_cancel(() => {
-            try process.wait() catch {
-              _ => 0
-            } noraise {
-              value => value
-            }
-          }),
-        )
-        return Cancelled
-      }
-      raise error
+async fn wait_for_child(process : @async_process.Process) -> WaitOutcome {
+  match @async.handle_cancellation(() => process.wait()) {
+    Some(status) => Completed(status)
+    None => {
+      process.cancel()
+      @async.protect_from_cancel(() => {
+        try process.wait() catch {
+          _ => ()
+        } noraise {
+          _ => ()
+        }
+      })
+      Cancelled
     }
   }
-  Completed(status)
-}
-
-///|
-fn ObservedProcess::cancel(self : ObservedProcess) -> Unit {
-  let Managed(process) = self
-  process.cancel()
 }
 
 ///|
@@ -105,27 +52,14 @@ async fn write_stdio(
   stream : @host.OutputStream,
   bytes : Bytes,
 ) -> Int32 raise @host.HostError {
-  try mutex.acquire() catch {
-    _ => raise InvalidInput("runtime output lock failed")
-  } noraise {
-    _ => ()
-  }
+  mutex.acquire()
   defer mutex.release()
   try {
-    let mut offset = 0
-    while offset < bytes.length() {
-      let written = match stream {
-        Stdout =>
-          @stdio.stdout.write_once(bytes, offset~, len=bytes.length() - offset)
-        Stderr =>
-          @stdio.stderr.write_once(bytes, offset~, len=bytes.length() - offset)
-      }
-      if written <= 0 {
-        raise @host.HostError::InvalidInput("failed to write runtime output")
-      }
-      offset += written
+    match stream {
+      Stdout => @stdio.stdout.write(bytes)
+      Stderr => @stdio.stderr.write(bytes)
     }
-    offset
+    bytes.length()
   } catch {
     _ => raise InvalidInput("failed to write runtime output")
   }

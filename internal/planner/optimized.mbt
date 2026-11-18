@@ -119,7 +119,7 @@ fn plan_plain_empty_fanout(
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] planned_cache_directive(
   process : P,

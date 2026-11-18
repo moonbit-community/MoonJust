@@ -1,0 +1,22 @@
+# .moonignore overrides .gitignore, so retain its exclusions here.
+.DS_Store
+_build/
+target/
+.mooncakes/
+.moonagent/
+.repos/
+.cache/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.key
+*.pem
+coverage.xml
+*.profraw
+
+AGENTS.md
+CONTRIBUTING.md
+docs/
+tests/

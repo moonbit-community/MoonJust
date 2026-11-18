@@ -8,10 +8,11 @@ import {
 // Values
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror PathError {
   NulByte
   FlavorMismatch(expected~ : PathFlavor, actual~ : PathFlavor)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn PathError::equal(Self, Self) -> Bool
 #deprecated
@@ -20,10 +21,11 @@ pub fn PathError::not_equal(Self, Self) -> Bool
 pub fn PathError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, Hash, @debug.Debug)
 pub(all) enum PathFlavor {
   Unix
   Windows
-} derive(Eq, Hash, @debug.Debug)
+}
 #deprecated
 pub fn PathFlavor::equal(Self, Self) -> Bool
 #deprecated
@@ -36,10 +38,11 @@ pub fn PathFlavor::separator(Self) -> Char
 #deprecated
 pub fn PathFlavor::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, Hash, @debug.Debug)
 pub struct PathValue {
   value : String
   flavor : PathFlavor
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn PathValue::as_string(Self) -> String
 pub fn PathValue::clean(Self) -> Self
 #deprecated

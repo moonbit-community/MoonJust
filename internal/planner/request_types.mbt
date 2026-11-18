@@ -1,8 +1,9 @@
 ///|
+#derive(Eq, Debug)
 pub struct RecipeRequest {
   recipe : String
   arguments : Array[@value.Value]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn RecipeRequest::new(
@@ -26,11 +27,12 @@ pub fn RecipeRequest::arguments(
 
 ///|
 /// One requested recipe in an independently compiled project module.
+#derive(Eq, Debug)
 pub struct ProjectRecipeRequest {
   module_path : @modulepath.ModulePath
   recipe : String
   arguments : Array[@value.Value]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ProjectRecipeRequest::new(
@@ -62,6 +64,7 @@ pub fn ProjectRecipeRequest::arguments(
 
 ///|
 /// Runtime values owned by one project module during execution planning.
+#derive(Debug)
 pub struct ProjectModuleRuntime {
   module_path : @modulepath.ModulePath
   global : @evaluator.Environment
@@ -70,7 +73,7 @@ pub struct ProjectModuleRuntime {
   cwd : @path.PathValue
   process_environment : Array[(String, String)]
   configuration : ScriptConfiguration
-} derive(Debug)
+}
 
 ///|
 pub fn ProjectModuleRuntime::new(
