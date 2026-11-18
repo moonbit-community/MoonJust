@@ -1,13 +1,14 @@
 ///|
 /// Immutable facts selected before loading a project. The project package owns
 /// these facts because every downstream phase consumes the same input snapshot.
+#derive(Debug)
 pub struct ProjectInput {
   cwd : @path.PathValue
   stdin : Bytes
   source_id : @source.SourceId
   global_justfile : @path.PathValue?
   global_project_directory : @path.PathValue?
-} derive(Debug)
+}
 
 ///|
 pub fn ProjectInput::new(

@@ -16,7 +16,7 @@ async test "runtime executes planned commands and returns child output" {
   let cwd = @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   let plan = try! @planner.plan_recipe_graph(
     compilation,

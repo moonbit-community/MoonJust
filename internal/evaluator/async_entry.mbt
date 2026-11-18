@@ -1,6 +1,6 @@
 ///|
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] evaluate_compilation_with_async_effects(
   process : P,
@@ -34,7 +34,7 @@ pub async fn[
 /// transitive assignment references are resolved on demand and each assignment
 /// is evaluated at most once.
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] evaluate_compilation_with_async_effects_selected(
   process : P,
@@ -92,7 +92,7 @@ pub async fn[
 
 ///|
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] bind_recipe_parameters_with_async_effects(
   process : P,

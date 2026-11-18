@@ -3,12 +3,14 @@
 type Value = @value.Value
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum BuiltinPurity {
   Pure
   Effect
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum BuiltinCapability {
   Context
   FsRead
@@ -18,15 +20,17 @@ pub(all) enum BuiltinCapability {
   Process
   Platform
   Terminal
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum BuiltinTarget {
   Native
   Wasm1
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct BuiltinSpec {
   name : String
   purity : BuiltinPurity
@@ -36,7 +40,7 @@ pub(all) struct BuiltinSpec {
   capabilities : Array[BuiltinCapability]
   targets : Array[BuiltinTarget]
   evidence : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn BuiltinSpec::name(self : BuiltinSpec) -> String {

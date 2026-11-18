@@ -15,11 +15,6 @@ preferred_target = "wasm"
 description = "A MoonBit implementation of the just command runner"
 
 import {
-  "moonbitlang/async@0.21.0",
-  "moonbitlang/x@0.5.1",
-  "moonbitlang/regexp@0.3.6",
+  "moonbitlang/x@0.5.7",
+  "moonbitlang/regexp@0.3.7",
 }
-
-options(
-  exclude: [ "AGENTS.md", "CONTRIBUTING.md", "docs/", "tests/" ],
-)

@@ -1,10 +1,11 @@
 ///|
 /// A deterministic environment snapshot. Values are deliberately excluded
 /// from `Debug` output so diagnostics cannot accidentally disclose secrets.
+#derive(Eq, Debug)
 pub(all) enum EnvNameMode {
   Sensitive
   AsciiInsensitive
-} derive(Eq, Debug)
+}
 
 ///|
 pub struct EnvTable {

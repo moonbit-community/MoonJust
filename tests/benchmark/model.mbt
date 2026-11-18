@@ -30,7 +30,7 @@ priv struct BenchmarkSettings {
 ///|
 priv struct Measurements {
   candidate : Array[Int64]
-  official : Array[Int64]
+  baseline : Array[Int64]
   batch_ratios : Array[Double]
   behavior_ms : Int64
 }

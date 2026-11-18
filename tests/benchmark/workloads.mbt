@@ -167,7 +167,7 @@ async fn write_fixture_files(
   directory : String,
 ) -> String? {
   if !workload.source.is_empty() {
-    @fs.write_file(
+    @fs.write_binary(
       @path.Path(directory).join(Path("justfile")).to_string(),
       @utf8.encode(workload.source),
     )
@@ -182,11 +182,11 @@ async fn write_fixture_files(
         @path.Path(directory).join(Path("work")).to_string(),
         recursive=true,
       )
-      @fs.write_file(
+      @fs.write_binary(
         @path.Path(directory).join(Path(".env")).to_string(),
         @utf8.encode("NAME=moonjust\n"),
       )
-      @fs.write_file(
+      @fs.write_binary(
         @path.Path(directory).join(Path("module/mod.just")).to_string(),
         @utf8.encode("sub:\n    @:\n"),
       )
@@ -201,19 +201,19 @@ async fn write_fixture_files(
         @path.Path(directory).join(Path("metadata")).to_string(),
         recursive=true,
       )
-      @fs.write_file(
+      @fs.write_binary(
         @path.Path(directory).join(Path(".env")).to_string(),
         @utf8.encode("HOST_VALUE=moonjust\n"),
       )
-      @fs.write_file(
+      @fs.write_binary(
         @path.Path(directory).join(Path("included.just")).to_string(),
         @utf8.encode("included := 'value'\n"),
       )
-      @fs.write_file(
+      @fs.write_binary(
         @path.Path(directory).join(Path("module/mod.just")).to_string(),
         @utf8.encode("sub:\n    @:\n"),
       )
-      @fs.write_file(
+      @fs.write_binary(
         @path.Path(directory).join(Path("metadata/entry")).to_string(),
         b"metadata\n",
       )
@@ -221,7 +221,7 @@ async fn write_fixture_files(
     }
     "stdin" => {
       let path = @path.Path(directory).join(Path("stdin.just")).to_string()
-      @fs.write_file(path, @utf8.encode(workload.stdin_source))
+      @fs.write_binary(path, @utf8.encode(workload.stdin_source))
       Some(path)
     }
     _ => None
@@ -238,7 +238,7 @@ async fn prepare_fixture(workload : Workload) -> Fixture {
 
 ///|
 async fn remove_fixture(fixture : Fixture) -> Unit {
-  @fs.rmdir(fixture.directory, recursive=true) catch {
+  @fs.remove(fixture.directory, recursive=true) catch {
     _ => ()
   }
 }

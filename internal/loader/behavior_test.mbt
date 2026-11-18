@@ -1,11 +1,14 @@
 ///|
 fn loader_host() -> @host_testkit.FakeHost raise @path.PathError {
   let cwd = @path.PathValue::new("/workspace/project", Unix)
-  @host_testkit.FakeHost::new(cwd, @host.PlatformInfo::new(Linux, "test", Unix))
+  @host_testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
+  )
 }
 
 ///|
-test "loader discovers and loads an explicit justfile" {
+async test "loader discovers and loads an explicit justfile" {
   let host = loader_host()
   let root = @path.PathValue::new("/workspace/justfile", Unix)
   host.put_file(root, b"build:\n  echo ok\n")
@@ -23,7 +26,7 @@ test "loader discovers and loads an explicit justfile" {
 }
 
 ///|
-test "loader preserves optional imports and reports cycles" {
+async test "loader preserves optional imports and reports cycles" {
   let host = loader_host()
   let root = @path.PathValue::new("/workspace/justfile", Unix)
   let child = @path.PathValue::new("/workspace/common.just", Unix)

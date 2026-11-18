@@ -272,7 +272,7 @@ pub fn plan_script_recipe(
 
 ///|
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] plan_script_recipe_async(
   process : P,
@@ -334,8 +334,7 @@ pub async fn[
 }
 
 ///|
-/// Create the runtime temporary and exact script process request.
-pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(
+pub async fn[T : @host.HostScriptTemp] materialize_script(
   host : T,
   planned : PlannedScript,
 ) -> MaterializedScript raise ExecutionError {
@@ -359,83 +358,15 @@ pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(
       })
       .unwrap_or(false),
     ),
-  ) catch {
-    error => raise Host(error)
-  }
-  if parsed is Some(_) {
-    try @host.HostExecutable::set_executable(host, path) catch {
-      error => {
-        try @host.HostScriptTemp::remove_script_temp(host, path) catch {
-          _ => ()
-        } noraise {
-          _ => ()
-        }
-        raise Host(error)
-      }
-    } noraise {
-      _ => ()
-    }
-  }
-  let spec = {
-    errdefer (try @host.HostScriptTemp::remove_script_temp(host, path) catch {
-      _ => ()
-    } noraise {
-      _ => ()
-    })
-    script_command(
-      path,
-      planned.cwd,
-      planned.environment,
-      configuration.interpreter(),
-      parsed,
-      configuration.platform(),
-      planned.quiet,
-      positional=planned.positional,
-    )
-  }
-  MaterializedScript::new(path, spec)
-}
-
-///|
-pub fn[T : @host.HostScriptTemp] cleanup_materialized_script(
-  host : T,
-  script : MaterializedScript,
-) -> Unit raise ExecutionError {
-  cleanup_script(host, script.path())
-}
-
-///|
-pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(
-  host : T,
-  planned : PlannedScript,
-) -> MaterializedScript raise ExecutionError {
-  let configuration = planned.configuration
-  let parsed = planned.shebang.map(fn(line) { parse_shebang(line).unwrap() })
-  let program = match parsed {
-    Some(value) => value.interpreter
-    None => configuration.interpreter().program()
-  }
-  let extension = selected_script_extension(configuration, program)
-  let path = @host.HostAsyncScriptTemp::create_script_temp_async(
-    host,
-    configuration.temporary_directory(),
-    planned.recipe,
-    extension,
-    execution_script_contents(
-      planned.contents,
-      parsed
-      .map(value => {
-        !include_shebang_line(value.interpreter, configuration.platform())
-      })
-      .unwrap_or(false),
-    ),
     parsed is Some(_),
   ) catch {
     error => raise Host(error)
   }
   let spec = {
     errdefer (try
-      @host.HostAsyncScriptTemp::remove_script_temp_async(host, path)
+      @async.protect_from_cancel(() => {
+        @host.HostScriptTemp::remove_script_temp(host, path)
+      })
     catch {
       _ => ()
     } noraise {
@@ -456,11 +387,11 @@ pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(
 }
 
 ///|
-pub async fn[T : @host.HostAsyncScriptTemp] cleanup_materialized_script_async(
+pub async fn[T : @host.HostScriptTemp] cleanup_materialized_script(
   host : T,
   script : MaterializedScript,
 ) -> Unit raise ExecutionError {
-  @host.HostAsyncScriptTemp::remove_script_temp_async(host, script.path()) catch {
+  @host.HostScriptTemp::remove_script_temp(host, script.path()) catch {
     error => raise Host(error)
   }
 }
@@ -511,14 +442,4 @@ fn script_command(
   spec.set_stdout(if discard_output { Discard } else { Capture })
   spec.set_stderr(if discard_output { Discard } else { Capture })
   spec
-}
-
-///|
-fn[T : @host.HostScriptTemp] cleanup_script(
-  host : T,
-  path : @path.PathValue,
-) -> Unit raise ExecutionError {
-  @host.HostScriptTemp::remove_script_temp(host, path) catch {
-    error => raise Host(error)
-  }
 }

@@ -15,77 +15,9 @@ fn default_list_module_path(
 }
 
 ///|
-/// Return a list response when `--default-list` or the selected module's
-/// `default-list` setting applies. Explicit recipe invocations return `None`.
-#cfg(target="native")
-fn[
-  F : @host.HostFs,
-  T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
-] execute_default_list_command(
-  host : F,
-  terminal_host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-) -> @cli.ApplicationResponse? raise ApplicationError {
-  guard arguments.command() == RunCommand else { return None }
-  let (arguments, context) = search_prefixed_invocation(arguments, context)
-  let platform = @host.HostPlatform::platform_info(terminal_host) catch {
-    error => raise Host(error)
-  }
-  let semantic_platform = semantic_target_platform(platform)
-  let loading_environment = @host.HostEnv::env_entries(terminal_host) catch {
-    error => raise Host(error)
-  }
-  let (graph, _) = load_graph_input_with_directories(
-    host,
-    arguments,
-    context,
-    platform=semantic_platform,
-    environment=loading_environment,
-  )
-  let project = compile_loaded_graph(
-    graph,
-    allow_unstable=arguments.flag("unstable"),
-    platform=semantic_platform,
-  )
-  guard default_list_module_path(project, arguments.positional()) is Some(path) else {
-    return None
-  }
-  let compilation = project.module_compilation(path).unwrap()
-  if !arguments.flag("default-list") &&
-    !compilation.settings().bool("default-list") {
-    return None
-  }
-  let color = match arguments.value("color").unwrap_or("auto") {
-    "always" => true
-    "never" => false
-    "auto" => {
-      let terminal = @host.HostTerminal::terminal_info(terminal_host) catch {
-        error => raise Host(error)
-      }
-      terminal.color_supported() && terminal.stdout_is_terminal()
-    }
-    _ => raise Query("invalid --color value")
-  }
-  let builder = StringBuilder()
-  builder.write_string(
-    arguments.value("list-heading").unwrap_or("Available recipes:\n"),
-  )
-  let globals = evaluate_project_globals(project, arguments)
-  append_project_list_module(
-    builder, graph, project, path, arguments, color, 0, globals,
-  )
-  Some(
-    @cli.ApplicationResponse::success(stdout=@utf8.encode(builder.to_string())),
-  )
-}
-
-///|
-/// Bounded-source variant used by the native and wasm CLI entry points.
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
 #warnings("-unused_async-unused_trait_bound")
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
+  F : @host.HostFs,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] execute_default_list_command_async(
   host : F,
@@ -226,7 +158,7 @@ fn query_text(
 }
 
 ///|
-fn[
+async fn[
   F : @host.HostFs,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] execute_query_command_with_terminal(
@@ -287,7 +219,7 @@ fn[
 }
 
 ///|
-pub fn[
+pub async fn[
   T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] execute_query_command(
   host : T,
@@ -298,10 +230,9 @@ pub fn[
 }
 
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
 #warnings("-unused_async-unused_trait_bound")
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
+  F : @host.HostFs,
   T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
 ] execute_query_command_with_terminal_async(
   host : F,
@@ -319,7 +250,7 @@ async fn[
     error => raise Host(error)
   }
   perf_detail_mark("query.environment")
-  let (graph, _) = load_graph_input_with_directories_async(
+  let (graph, _) = load_graph_input_with_directories(
     host,
     arguments,
     context,

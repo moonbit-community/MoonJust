@@ -1,9 +1,9 @@
 ///|
 fn shell_platform(windows : Bool) -> @environment.PlatformConfiguration {
   let info = if windows {
-    @host.PlatformInfo::new(Windows, "unknown", Windows)
+    @host.PlatformInfo::new(Windows, Some("unknown"), Windows)
   } else {
-    @host.PlatformInfo::new(Linux, "unknown", Unix)
+    @host.PlatformInfo::new(Linux, Some("unknown"), Unix)
   }
   @environment.PlatformConfiguration::new(info)
 }

@@ -9,11 +9,11 @@ MoonJust is a binary-only MoonBit project. Production implementation lives in
 moon update
 moon info
 moon fmt
-moon check --target native
-moon check --target wasm
-moon test --target native
+moon check --target wasm --deny-warn
 moon test --target wasm
-moon publish --dry-run
+moon build --release --target wasm .
+moon test --target native
+moon run tests/wasm_contract.mbtx   # Linux or macOS
 ```
 
 Behavior changes require focused MoonBit tests. Cross-platform or compatibility
@@ -30,11 +30,11 @@ unbounded regex when a deterministic byte comparison is possible. Date/time
 outputs must be normalized or regenerated deliberately; stale snapshots are
 not compatibility evidence.
 
-Benchmark JSON is diagnostic evidence, not a release claim. Pull requests use
-one interleaved batch of 15 samples, while main runs use three batches. Current
-CI records the reports but does not pass the optional benchmark `--enforce`
-flag, so performance conclusions must quote the artifact's target, runner,
-toolchain, sample counts, and ratios.
+Only two workflows run on PRs and pushes to main (and in the merge queue):
+- **Check, build and test** checks formatting, interfaces, the production source boundary and Wasm compilation on Linux. It runs the native test-tool tests and tests the release CLI with child processes denied: executable lookup, symlink cycles, permission-preserving format refusal and no-clobber initialization.
+- **Upstream differential** builds one release Wasm and runs it on Linux, macOS and Windows against just 1.57.0. The complete Wasm package test suite runs once per host inside the strict runner; its outline ties executed specifications to upstream identities. The required `just 1.57 differential` check fails if a host or its evidence is missing.
+
+Performance is local only: see the [paired Wasm benchmark instructions](docs/maintenance/WASM_MIGRATION.md). For published versions, manually run [MoonX verification](docs/release/MOONX_RELEASE_GATE.md).
 
 Keep the phase boundaries explicit: project loading returns a snapshot,
 planning returns an execution plan, and runtime executes only that plan.

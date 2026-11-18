@@ -7,7 +7,6 @@ pub struct FakeHost {
   non_executable_files : Set[@path.PathValue]
   directories : Set[@path.PathValue]
   mut temp_serial : Int32
-  mut fail_next_persist : Bool
   script_temp_creations : Array[(@path.PathValue, Bytes)]
   executable_calls : Array[@path.PathValue]
   canonical_paths : Map[@path.PathValue, @path.PathValue]
@@ -40,7 +39,6 @@ pub fn FakeHost::new(
     non_executable_files: Set([]),
     directories: Set([cwd]),
     temp_serial: 0,
-    fail_next_persist: false,
     script_temp_creations: [],
     executable_calls: [],
     canonical_paths: Map([]),
@@ -179,11 +177,6 @@ pub fn FakeHost::put_directory(self : FakeHost, path : @path.PathValue) -> Unit 
 }
 
 ///|
-pub fn FakeHost::fail_next_persist(self : FakeHost) -> Unit {
-  self.fail_next_persist = true
-}
-
-///|
 pub fn FakeHost::script_temp_creations(
   self : FakeHost,
 ) -> ArrayView[(@path.PathValue, Bytes)] {
@@ -318,7 +311,7 @@ pub impl @host.HostFs for FakeHost with fn read_file_range(
 }
 
 ///|
-pub impl @host.HostSourceReader for FakeHost with fn read_source(
+pub impl @host.HostFs for FakeHost with fn read_source(
   self : FakeHost,
   path : @path.PathValue,
   max_bytes : Int32,
@@ -396,15 +389,9 @@ pub impl @host.HostFs for FakeHost with fn metadata(
 ) -> @host.FileMetadata raise @host.HostError {
   self.require(FsRead)
   match self.files.get(path) {
-    Some(contents) =>
-      @host.FileMetadata::new_with_executable(
-        true,
-        false,
-        contents.length().to_int64(),
-        !self.non_executable_files.contains(path),
-      )
+    Some(_) => @host.FileMetadata::new(true, false)
     None if self.directories.contains(path) =>
-      @host.FileMetadata::new(false, true, 0L)
+      @host.FileMetadata::new(false, true)
     None => raise NotFound(path)
   }
 }
@@ -419,76 +406,13 @@ pub impl @host.HostFs for FakeHost with fn canonicalize(
 }
 
 ///|
-pub impl @host.HostFs for FakeHost with fn persist_temp_file(
-  self : FakeHost,
-  temporary : @path.PathValue,
-  destination : @path.PathValue,
-  overwrite : Bool,
-) -> Unit raise @host.HostError {
-  self.require(FsWrite)
-  if self.fail_next_persist {
-    self.fail_next_persist = false
-    raise InvalidInput("injected atomic persist failure")
-  }
-  guard self.files.get(temporary) is Some(contents) else {
-    raise NotFound(temporary)
-  }
-  if !overwrite && self.files.contains(destination) {
-    raise AlreadyExists(destination)
-  }
-  self.files[destination] = contents
-  self.files.remove(temporary)
-}
-
-///|
-pub impl @host.HostTemp for FakeHost with fn create_temp_file(
-  self : FakeHost,
-  directory : @path.PathValue,
-  prefix : String,
-  contents : Bytes,
-) -> @path.PathValue raise @host.HostError {
-  self.require(FsWrite)
-  if prefix == "" || prefix.contains("/") || prefix.contains("\\") {
-    raise InvalidInput("temporary file prefix must be a file name prefix")
-  }
-  for _ in 0..<1024 {
-    let name = @path.PathValue::new(
-      prefix + self.temp_serial.to_string(),
-      directory.flavor(),
-    ) catch {
-      _ => raise InvalidInput("invalid temporary file name")
-    }
-    self.temp_serial += 1
-    let candidate = directory.join(name) catch {
-      _ => raise InvalidInput("temporary file path flavor mismatch")
-    }
-    if !self.files.contains(candidate) {
-      self.files[candidate] = contents
-      return candidate
-    }
-  }
-  raise InvalidInput("temporary file namespace exhausted")
-}
-
-///|
-pub impl @host.HostTemp for FakeHost with fn remove_temp_file(
-  self : FakeHost,
-  path : @path.PathValue,
-) -> Unit raise @host.HostError {
-  self.require(FsWrite)
-  if !self.files.contains(path) {
-    raise NotFound(path)
-  }
-  self.files.remove(path)
-}
-
-///|
 pub impl @host.HostScriptTemp for FakeHost with fn create_script_temp(
   self : FakeHost,
   directory : @path.PathValue,
   stem : String,
   extension : String,
   contents : Bytes,
+  executable : Bool,
 ) -> @path.PathValue raise @host.HostError {
   self.require(FsWrite)
   if stem == "" ||
@@ -511,6 +435,9 @@ pub impl @host.HostScriptTemp for FakeHost with fn create_script_temp(
     }
     if !self.files.contains(candidate) {
       self.files[candidate] = contents
+      if executable {
+        self.executable_calls.push(candidate)
+      }
       self.script_temp_creations.push((candidate, contents))
       return candidate
     }
@@ -523,45 +450,8 @@ pub impl @host.HostScriptTemp for FakeHost with fn remove_script_temp(
   self : FakeHost,
   path : @path.PathValue,
 ) -> Unit raise @host.HostError {
-  @host.HostTemp::remove_temp_file(self, path)
-}
-
-///|
-pub impl @host.HostExecutable for FakeHost with fn set_executable(
-  self : FakeHost,
-  path : @path.PathValue,
-) -> Unit raise @host.HostError {
   self.require(FsWrite)
-  if !self.files.contains(path) {
-    raise NotFound(path)
-  }
-  self.executable_calls.push(path)
-}
-
-///|
-pub impl @host.HostAsyncScriptTemp for FakeHost with fn create_script_temp_async(
-  self : FakeHost,
-  directory : @path.PathValue,
-  stem : String,
-  extension : String,
-  contents : Bytes,
-  executable : Bool,
-) -> @path.PathValue raise @host.HostError {
-  let path = @host.HostScriptTemp::create_script_temp(
-    self, directory, stem, extension, contents,
-  )
-  if executable {
-    @host.HostExecutable::set_executable(self, path)
-  }
-  path
-}
-
-///|
-pub impl @host.HostAsyncScriptTemp for FakeHost with fn remove_script_temp_async(
-  self : FakeHost,
-  path : @path.PathValue,
-) -> Unit raise @host.HostError {
-  @host.HostScriptTemp::remove_script_temp(self, path)
+  self.files.remove(path)
 }
 
 ///|
@@ -571,7 +461,11 @@ pub impl @host.HostAtomicFs for FakeHost with fn write_file_atomic(
   contents : Bytes,
   overwrite : Bool,
 ) -> Unit raise @host.HostError {
-  @host_fs.write_file_atomic(self, path, contents, overwrite~)
+  self.require(FsWrite)
+  if !overwrite && self.files.contains(path) {
+    raise AlreadyExists(path)
+  }
+  self.files[path] = contents
 }
 
 ///|
@@ -748,36 +642,6 @@ pub impl @host.HostProcess for FakeHost with fn run_process(
 }
 
 ///|
-pub impl @host.HostAsyncProcess for FakeHost with fn run_process_async(
-  self : FakeHost,
-  command : @host.CommandSpec,
-) -> @host.ProcessResult raise @host.HostError {
-  self.require(Process)
-  if command.program() == "/bin/test" && command.arguments().length() == 2 {
-    let path = @path.PathValue::new(command.arguments()[1], self.cwd.flavor()) catch {
-      _ => raise InvalidInput("invalid fake test path")
-    }
-    let exists = self.files.contains(path)
-    let success = match command.arguments()[0] {
-      "-d" => !exists && !@host.HostFs::read_dir(self, path).is_empty()
-      "-x" => exists
-      _ => false
-    }
-    return @host.ProcessResult::new(if success { 0 } else { 1 }, b"", b"")
-  }
-  if command.program() == "/bin/cat" && command.arguments().length() == 1 {
-    let path = @path.PathValue::new(command.arguments()[0], self.cwd.flavor()) catch {
-      _ => raise InvalidInput("invalid fake cat path")
-    }
-    return match self.files.get(path) {
-      Some(contents) => @host.ProcessResult::new(0, contents, b"")
-      None => @host.ProcessResult::new(1, b"", b"")
-    }
-  }
-  @host.HostProcess::run_process(self, command)
-}
-
-///|
 pub impl @host.HostAsyncOutput for FakeHost with fn write_output(
   self : FakeHost,
   stream : @host.OutputStream,
@@ -833,4 +697,15 @@ pub impl @host.HostSignal for FakeHost with fn pending_signal(self : FakeHost) -
 pub impl @host.HostPlatform for FakeHost with fn platform_info(self : FakeHost) -> @host.PlatformInfo raise @host.HostError {
   self.require(Platform)
   self.platform
+}
+
+///|
+pub impl @host.HostFs for FakeHost with fn file_size(self, path) -> Int64 raise @host.HostError {
+  self.read_file(path).length().to_int64()
+}
+
+///|
+pub impl @host.HostFs for FakeHost with fn can_execute(self, path) -> Bool raise @host.HostError {
+  self.require(FsRead)
+  self.files.contains(path) && !self.non_executable_files.contains(path)
 }

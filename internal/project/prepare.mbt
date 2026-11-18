@@ -1,9 +1,10 @@
 ///|
+#derive(Debug)
 pub(all) enum SourceSelection {
   Search
   File(@path.PathValue)
   Stdin
-} derive(Debug)
+}
 
 ///|
 /// Inputs required to load one project. This type is independent of CLI
@@ -62,7 +63,7 @@ fn justfile_directories(
 }
 
 ///|
-fn[T : @host.HostFs] resolve_project_input(
+async fn[T : @host.HostFs] resolve_project_input(
   host : T,
   request : ProjectLoadRequest,
 ) -> ResolvedProjectInput raise ProjectError {
@@ -120,7 +121,9 @@ fn[T : @host.HostFs] resolve_project_input(
 }
 
 ///|
-pub fn[T : @host.HostFs] load_sources(
+/// Portable hosts retain bounded asynchronous reads while sharing all path and
+/// working-directory resolution with the synchronous loader.
+pub async fn[T : @host.HostFs] load_sources(
   host : T,
   request : ProjectLoadRequest,
 ) -> ProjectSources raise ProjectError {
@@ -152,7 +155,7 @@ pub fn[T : @host.HostFs] load_sources(
 }
 
 ///|
-pub fn[T : @host.HostFs] load_snapshot(
+pub async fn[T : @host.HostFs] load_snapshot(
   host : T,
   request : ProjectLoadRequest,
   allow_unstable~ : Bool = false,
@@ -164,74 +167,4 @@ pub fn[T : @host.HostFs] load_snapshot(
     platform=request.platform,
   )
   ProjectSnapshot::new(sources.graph(), compilation, sources.directories())
-}
-
-///|
-/// Portable hosts retain bounded asynchronous reads while sharing all path and
-/// working-directory resolution with the synchronous loader.
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_sources_async(
-  host : T,
-  request : ProjectLoadRequest,
-) -> ProjectSources raise ProjectError {
-  let resolved = resolve_project_input(host, request)
-  let graph = match resolved.path {
-    Some(path) =>
-      @loader.load_graph_async(
-        host,
-        path,
-        resolved.input.source_id(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-    None =>
-      @loader.load_stdin_graph_async(
-        host,
-        resolved.input.stdin().to_owned(),
-        resolved.input.source_id(),
-        resolved.directories.project_directory(),
-        platform=request.platform,
-        environment=request.environment,
-      ) catch {
-        error => raise Load(error)
-      }
-  }
-  ProjectSources::new(graph, resolved.directories)
-}
-
-///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_snapshot_async(
-  host : T,
-  request : ProjectLoadRequest,
-  allow_unstable~ : Bool = false,
-) -> ProjectSnapshot raise ProjectError {
-  let sources = load_sources_async(host, request)
-  let compilation = compile_loaded_graph(
-    sources.graph(),
-    allow_unstable~,
-    platform=request.platform,
-  )
-  ProjectSnapshot::new(sources.graph(), compilation, sources.directories())
-}
-
-///|
-#cfg(target="native")
-pub fn[T : @host.HostFs] load_sources_async(
-  host : T,
-  request : ProjectLoadRequest,
-) -> ProjectSources raise ProjectError {
-  load_sources(host, request)
-}
-
-///|
-#cfg(target="native")
-pub fn[T : @host.HostFs] load_snapshot_async(
-  host : T,
-  request : ProjectLoadRequest,
-  allow_unstable~ : Bool = false,
-) -> ProjectSnapshot raise ProjectError {
-  load_snapshot(host, request, allow_unstable~)
 }

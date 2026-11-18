@@ -22,15 +22,7 @@ async fn[O : @host.HostAsyncOutput] emit_live(
     return 0
   }
   let written = try
-    @async.with_task_group() <| group => {
-      let write = group.spawn(() => {
-        @host.HostAsyncOutput::write_output(output, stream, bytes.to_owned())
-      })
-      write.wait() catch {
-        _ =>
-          raise @host.HostError::InvalidInput("failed to write runtime output")
-      }
-    }
+    @host.HostAsyncOutput::write_output(output, stream, bytes.to_owned())
   catch {
     _ =>
       raise live_failure(
@@ -55,9 +47,9 @@ async fn[O : @host.HostAsyncOutput] emit_live(
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   O : @host.HostAsyncOutput,
-  S : @host.HostAsyncScriptTemp,
+  S : @host.HostScriptTemp,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_live_steps(
   process : P,
@@ -80,7 +72,7 @@ async fn[
       step {
       Command(command, echo) => {
         ignore(emit_live(output, Stderr, echo, commands))
-        let result = @host.HostAsyncProcess::run_process_async(
+        let result = @host.HostProcess::run_process(
           process,
           live_spec(command.spec()),
         ) catch {
@@ -108,46 +100,26 @@ async fn[
         if initial_stderr.is_empty() && script.contents().is_empty() {
           continue
         }
-        let result = try
-          @async.with_task_group() <| group => {
-            let materialized = @planner.materialize_script_async(
-              scripts, script,
-            ) catch {
-              error => raise live_failure(error, commands)
-            }
-            group.add_defer(() => {
-              try
-                @async.protect_from_cancel(() => {
-                  @planner.cleanup_materialized_script_async(
-                    scripts, materialized,
-                  )
-                })
-              catch {
-                _ => ()
-              } noraise {
-                _ => ()
-              }
-            })
-            @host.HostAsyncProcess::run_process_async(
-              process,
-              live_spec(materialized.spec()),
-            ) catch {
-              error =>
-                raise live_failure(
-                  @planner.ExecutionError::host(error),
-                  commands,
-                )
-            }
+        let result = {
+          let materialized = @planner.materialize_script(scripts, script) catch {
+            error => raise live_failure(error, commands)
           }
-        catch {
-          LiveExecution(..) as failure => raise failure
-          _ =>
-            raise live_failure(
-              @planner.ExecutionError::host(InvalidInput("script task failed")),
-              commands,
-            )
-        } noraise {
-          value => value
+          defer (try
+            @async.protect_from_cancel(() => {
+              @planner.cleanup_materialized_script(scripts, materialized)
+            })
+          catch {
+            _ => ()
+          } noraise {
+            _ => ()
+          })
+          @host.HostProcess::run_process(
+            process,
+            live_spec(materialized.spec()),
+          ) catch {
+            error =>
+              raise live_failure(@planner.ExecutionError::host(error), commands)
+          }
         }
         (script.recipe(), 0, false, false, script.continue_signals(), result)
       }
@@ -158,7 +130,7 @@ async fn[
           error => raise live_failure(error, commands)
         }
         ignore(emit_live(output, Stderr, echo, commands))
-        let result = @host.HostAsyncProcess::run_process_async(
+        let result = @host.HostProcess::run_process(
           process,
           live_spec(command.spec()),
         ) catch {

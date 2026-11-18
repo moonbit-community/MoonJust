@@ -1,6 +1,6 @@
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] plan_graph_recipe_async(
   process : P,
@@ -514,7 +514,7 @@ async fn[
 /// Async planning variant used by the process runtime. Backticks and
 /// effectful builtins are evaluated through the same async process adapter.
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] plan_recipe_graph_async(
   process : P,
@@ -599,7 +599,7 @@ pub async fn[
 ///|
 /// Plan roots and dependencies across independently scoped project modules.
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] plan_project_recipe_graph_async(
   process : P,

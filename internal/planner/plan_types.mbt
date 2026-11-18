@@ -1,4 +1,5 @@
 ///|
+#derive(Eq)
 pub struct CacheDirective {
   recipe : String
   body : String
@@ -11,7 +12,7 @@ pub struct CacheDirective {
   extra : String
   inputs : Array[String]
   outputs : Array[String]
-} derive(Eq)
+}
 
 ///|
 /// Script bodies, arguments, and environment values may contain secrets.
@@ -160,11 +161,12 @@ pub struct ExecutionPlan {
 ///|
 /// A fully evaluated confirmation that must be accepted before any process is
 /// started. Requests preserve upstream pre-order recipe traversal.
+#derive(Eq, Debug)
 pub struct ConfirmationRequest {
   recipe : String
   prompt : String
   is_dependency : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ConfirmationRequest::new(

@@ -4,10 +4,8 @@ pub struct DotenvOptions {
   override_environment : Bool
   required : Bool
   lists : Bool
-  dry_run : Bool
   filenames : Array[String]
   paths : Array[String]
-  commands : Array[@host.CommandSpec]
 }
 
 ///|
@@ -16,31 +14,17 @@ pub fn DotenvOptions::new(
   override_environment~ : Bool = false,
   required~ : Bool = false,
   lists~ : Bool = false,
-  dry_run~ : Bool = false,
   filenames~ : Array[String] = [],
   paths~ : Array[String] = [],
-  commands~ : Array[@host.CommandSpec] = [],
 ) -> DotenvOptions {
   {
     load,
     override_environment,
     required,
     lists,
-    dry_run,
     filenames: filenames.copy(),
     paths: paths.copy(),
-    commands: commands.copy(),
   }
-}
-
-///|
-fn command_in_directory(
-  command : @host.CommandSpec,
-  working_directory : @path.PathValue,
-) -> @host.CommandSpec {
-  let copy = command.copy()
-  copy.set_cwd(working_directory)
-  copy
 }
 
 ///|
@@ -57,7 +41,7 @@ fn resolved(
 }
 
 ///|
-fn[T : @host.HostFs] load_file(
+async fn[T : @host.HostFs] load_file(
   host : T,
   path : @path.PathValue,
   ambient : EnvTable,
@@ -75,8 +59,12 @@ fn[T : @host.HostFs] load_file(
   if metadata.is_directory() {
     return None
   }
-  let bytes = @host.HostFs::read_file(host, path) catch {
+  let limit = @lexer.LexerLimits::default().max_source_bytes()
+  let bytes = @host.HostFs::read_source(host, path, limit) catch {
     error => raise redacted_host_error(error)
+  }
+  if bytes.length() > limit {
+    raise SourceAccess
   }
   let text = @utf8.decode(bytes) catch { _ => raise InvalidUtf8(path~) }
   Some(
@@ -104,7 +92,7 @@ fn merge_loaded(
 }
 
 ///|
-pub fn[T : @host.HostFs] load_dotenv_files(
+pub async fn[T : @host.HostFs] load_dotenv_files(
   host : T,
   working_directory : @path.PathValue,
   ambient : EnvTable,
@@ -119,9 +107,9 @@ pub fn[T : @host.HostFs] load_dotenv_files(
     !options.required &&
     options.filenames.is_empty() &&
     options.paths.is_empty() {
-    return EnvTable::new()
+    return EnvTable::new(name_mode=ambient.name_mode())
   }
-  let result = EnvTable::new()
+  let result = EnvTable::new(name_mode=ambient.name_mode())
   let mut found = false
   for value in options.paths {
     let path = resolved(working_directory, value)
@@ -162,48 +150,4 @@ pub fn[T : @host.HostFs] load_dotenv_files(
     raise Required
   }
   result
-}
-
-///|
-pub fn[T : @host.HostProcess] load_dotenv_commands(
-  host : T,
-  working_directory : @path.PathValue,
-  ambient : EnvTable,
-  options : DotenvOptions,
-) -> EnvTable raise DotenvError {
-  let result = EnvTable::new()
-  if options.dry_run {
-    return result
-  }
-  for index, command in options.commands {
-    let request = command_in_directory(command, working_directory)
-    let output = @host.HostProcess::run_process(host, request) catch {
-      _ => raise CommandUnavailable(index=index + 1)
-    }
-    match output.exit_code() {
-      Some(0) => ()
-      Some(code) => raise CommandFailed(index=index + 1, exit_code=code)
-      None => raise CommandUnavailable(index=index + 1)
-    }
-    let text = @utf8.decode(output.stdout()) catch {
-      _ => raise Parse(line=1, column=1)
-    }
-    let loaded = parse_dotenv(text, ambient~)
-    merge_loaded(result, loaded, ambient, options.override_environment)
-  }
-  result
-}
-
-///|
-pub fn[T : @host.HostFs + @host.HostProcess] load_dotenv(
-  host : T,
-  working_directory : @path.PathValue,
-  ambient : EnvTable,
-  options : DotenvOptions,
-) -> EnvTable raise DotenvError {
-  if !options.commands.is_empty() {
-    load_dotenv_commands(host, working_directory, ambient, options)
-  } else {
-    load_dotenv_files(host, working_directory, ambient, options)
-  }
 }

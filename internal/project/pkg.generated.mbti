@@ -14,32 +14,30 @@ import {
 // Values
 pub fn compile_loaded_graph(@loader.LoadedGraph, allow_unstable? : Bool, platform? : @semantic.TargetPlatform) -> @semantic.ProjectCompilation raise ProjectError
 
-pub fn[T : @host.HostFs] load_snapshot(T, ProjectLoadRequest, allow_unstable? : Bool) -> ProjectSnapshot raise ProjectError
+pub async fn[T : @host.HostFs] load_snapshot(T, ProjectLoadRequest, allow_unstable? : Bool) -> ProjectSnapshot raise ProjectError
 
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_snapshot_async(T, ProjectLoadRequest, allow_unstable? : Bool) -> ProjectSnapshot raise ProjectError
-
-pub fn[T : @host.HostFs] load_sources(T, ProjectLoadRequest) -> ProjectSources raise ProjectError
-
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_sources_async(T, ProjectLoadRequest) -> ProjectSources raise ProjectError
+pub async fn[T : @host.HostFs] load_sources(T, ProjectLoadRequest) -> ProjectSources raise ProjectError
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror ProjectError {
   Load(@loader.LoaderError)
   Path(@path.PathError)
   WorkingDirectory(@workdir.WorkingDirectoryError)
   Semantic(@semantic.SemanticError)
   Compilation(@semantic.ProjectCompilationError)
-} derive(@debug.Debug)
+}
 pub fn ProjectError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(@debug.Debug)
 pub struct ProjectInput {
   cwd : @path.PathValue
   stdin : Bytes
   source_id : @source.SourceId
   global_justfile : @path.PathValue?
   global_project_directory : @path.PathValue?
-} derive(@debug.Debug)
+}
 pub fn ProjectInput::cwd(Self) -> @path.PathValue
 pub fn ProjectInput::global_justfile(Self) -> @path.PathValue?
 pub fn ProjectInput::global_project_directory(Self) -> @path.PathValue?
@@ -79,11 +77,12 @@ pub fn ProjectSources::directories(Self) -> @workdir.WorkingDirectoryModel
 pub fn ProjectSources::graph(Self) -> @loader.LoadedGraph
 pub fn ProjectSources::new(@loader.LoadedGraph, @workdir.WorkingDirectoryModel) -> Self
 
+#derive(@debug.Debug)
 pub(all) enum SourceSelection {
   Search
   File(@path.PathValue)
   Stdin
-} derive(@debug.Debug)
+}
 pub fn SourceSelection::to_repr(Self) -> @debug.Repr
 
 // Type aliases

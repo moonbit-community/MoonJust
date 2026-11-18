@@ -1,9 +1,10 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum LazyState {
   Unevaluated
   Evaluating
   Evaluated(@value.Value)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Assignment evaluator with explicit lazy states and a redacted name-only

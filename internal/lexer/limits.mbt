@@ -1,10 +1,11 @@
 ///|
 /// Resource budgets applied by lexical analysis.
+#derive(Eq, Debug)
 pub struct LexerLimits {
   max_source_bytes : Int32
   max_tokens : Int32
   max_nesting : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Construct explicit non-negative lexer budgets.
@@ -55,6 +56,7 @@ pub fn LexerLimits::max_nesting(self : LexerLimits) -> Int32 {
 
 ///|
 /// Invalid lexer configuration supplied by an embedding host.
+#derive(Eq, Debug)
 pub(all) suberror LexerConfigurationError {
   InvalidLexerLimit(name~ : String, value~ : Int32)
-} derive(Eq, Debug)
+}

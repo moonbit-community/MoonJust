@@ -25,8 +25,10 @@ async fn sample(
   let started = @async.now()
   let result = run_workload(program, fixture, workload.command)
   if result.status != 0 {
-    @stdio.stderr.write("benchmark command failed: " + workload.name + "\n")
-    @sys.exit(1)
+    @stdio.stderr.text.write(
+      "benchmark command failed: " + workload.name + "\n",
+    )
+    @env.exit(1)
   }
   @async.now() - started
 }
@@ -51,67 +53,69 @@ async fn behavior_matches(
 ///|
 async fn warmup(
   candidate : @testkit.PreparedProgram,
-  official : @testkit.PreparedProgram,
+  baseline : @testkit.PreparedProgram,
   fixture : Fixture,
   workload : Workload,
   count : Int32,
 ) -> Unit {
   for _ in 0..<count {
     ignore(sample(candidate, fixture, workload))
-    ignore(sample(official, fixture, workload))
+    ignore(sample(baseline, fixture, workload))
   }
 }
 
 ///|
 async fn measure(
   candidate : @testkit.PreparedProgram,
+  baseline : @testkit.PreparedProgram,
   official : @testkit.PreparedProgram,
   fixture : Fixture,
   workload : Workload,
   settings : BenchmarkSettings,
 ) -> Measurements {
   let behavior_started = @async.now()
-  let behavior_ok = behavior_matches(candidate, official, fixture, workload)
+  let behavior_ok = behavior_matches(candidate, official, fixture, workload) &&
+    behavior_matches(baseline, official, fixture, workload)
   let behavior_ms = @async.now() - behavior_started
   if !behavior_ok {
-    @stdio.stderr.write(
+    @stdio.stderr.text.write(
       "benchmark workload behavior differs from official: " +
       workload.name +
       "\n",
     )
-    @sys.exit(1)
+    @env.exit(1)
   }
   // Profiles do not use warmups. The custom option remains available when
   // investigating a local measurement problem.
-  warmup(candidate, official, fixture, workload, settings.warmups)
+  warmup(candidate, baseline, fixture, workload, settings.warmups)
   let candidate_samples : Array[Int64] = []
-  let official_samples : Array[Int64] = []
+  let baseline_samples : Array[Int64] = []
   let batch_ratios : Array[Double] = []
   for _ in 0..<settings.batches {
     let batch_candidate : Array[Int64] = []
-    let batch_official : Array[Int64] = []
+    let batch_baseline : Array[Int64] = []
     for index = 0; index < settings.rounds; index = index + 1 {
       if index % 2 == 0 {
         let candidate_time = sample(candidate, fixture, workload)
-        let official_time = sample(official, fixture, workload)
+        let baseline_time = sample(baseline, fixture, workload)
         candidate_samples.push(candidate_time)
-        official_samples.push(official_time)
+        baseline_samples.push(baseline_time)
         batch_candidate.push(candidate_time)
-        batch_official.push(official_time)
+        batch_baseline.push(baseline_time)
       } else {
-        let official_time = sample(official, fixture, workload)
+        let baseline_time = sample(baseline, fixture, workload)
         let candidate_time = sample(candidate, fixture, workload)
-        official_samples.push(official_time)
+        baseline_samples.push(baseline_time)
         candidate_samples.push(candidate_time)
         batch_candidate.push(candidate_time)
-        batch_official.push(official_time)
+        batch_baseline.push(baseline_time)
       }
     }
-    batch_ratios.push(ratio(median(batch_candidate), median(batch_official)))
+    batch_ratios.push(ratio(median(batch_candidate), median(batch_baseline)))
   }
   {
     candidate: candidate_samples,
-    official: official_samples,
+    baseline: baseline_samples,
     batch_ratios,
     behavior_ms,
   }

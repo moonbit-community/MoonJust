@@ -1,14 +1,16 @@
 ///|
 /// Delimiter categories tracked by the lexer.
+#derive(Eq, Debug)
 pub(all) enum DelimiterKind {
   Brace
   Bracket
   Paren
   FormatString
-} derive(Eq, Debug)
+}
 
 ///|
 /// Typed failures emitted by lexical analysis.
+#derive(Eq, Debug)
 pub(all) suberror LexerError {
   UnknownStartOfToken(start~ : String, span~ : @source.Span)
   UnexpectedEndOfToken(expected~ : String, span~ : @source.Span)
@@ -21,7 +23,7 @@ pub(all) suberror LexerError {
     open~ : DelimiterKind,
     close~ : DelimiterKind,
     open_line~ : Int32,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   UnterminatedString(span~ : @source.Span)
   UnterminatedBacktick(span~ : @source.Span)
@@ -30,12 +32,12 @@ pub(all) suberror LexerError {
   InconsistentLeadingWhitespace(
     expected~ : String,
     found~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   SourceLimitExceeded(length~ : Int32, limit~ : Int32, span~ : @source.Span)
   TokenLimitExceeded(limit~ : Int32, span~ : @source.Span)
   NestingLimitExceeded(limit~ : Int32, span~ : @source.Span)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Return the stable diagnostic code for a lexical failure.

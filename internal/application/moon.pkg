@@ -6,11 +6,9 @@ import {
   "ZSeanYves/MoonJust/internal/environment",
   "ZSeanYves/MoonJust/internal/planner",
   "ZSeanYves/MoonJust/internal/host",
-  "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
   "ZSeanYves/MoonJust/internal/host/process" @host_process,
   "ZSeanYves/MoonJust/internal/runtime",
   "ZSeanYves/MoonJust/internal/invocation",
-  "ZSeanYves/MoonJust/internal/lexer",
   "ZSeanYves/MoonJust/internal/loader",
   "ZSeanYves/MoonJust/internal/modulepath",
   "ZSeanYves/MoonJust/internal/path",
@@ -25,8 +23,8 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
   "moonbitlang/core/string",
-  "moonbitlang/async",
-  "moonbitlang/async/stdio",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/stdio",
 }
 
 import {
@@ -38,11 +36,8 @@ import {
   "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
 } for "wbtest"
 
-supported_targets = "-all+native+wasm"
+supported_targets = "wasm"
 
 options(
-  targets: {
-    "perf_trace.mbt": [ "native", "wasm" ],
-    "perf_trace_stub.mbt": [ "wasm-gc", "js" ],
-  },
+  "allow-experimental-packages": true,
 )

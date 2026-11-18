@@ -1,18 +1,20 @@
 ///|
 /// The kind of a named definition in a compiled justfile.
+#derive(Eq, Debug)
 pub(all) enum SymbolKind {
   Variable
   Function
   Recipe
   Alias
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Symbol {
   name : String
   kind : SymbolKind
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Symbol::new(

@@ -231,8 +231,8 @@ fn evaluation_path(
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
-  P : @host.HostAsyncProcess,
+  F : @host.HostFs,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_evaluate_command_async(
   filesystem : F,
@@ -247,7 +247,7 @@ async fn[
   let loading_environment = @host.HostEnv::env_entries(effects) catch {
     error => raise Host(error)
   }
-  let (graph, directories) = load_graph_input_with_directories_async(
+  let (graph, directories) = load_graph_input_with_directories(
     filesystem,
     arguments,
     context,

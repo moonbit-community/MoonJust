@@ -1,9 +1,9 @@
 ///|
-fn backtick_failure_code(command : String, code : Int32) -> Int32? {
+async fn backtick_failure_code(command : String, code : Int32) -> Int32? {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   let expected = try! @host.CommandSpec::new("sh", ["-cu", command])
   expected.set_cwd(cwd)
@@ -30,12 +30,12 @@ fn backtick_failure_code(command : String, code : Int32) -> Int32? {
 }
 
 ///|
-test "upstream evaluator::tests::backtick_code" {
+async test "upstream evaluator::tests::backtick_code" {
   assert_eq(backtick_failure_code("f() { return 100; }; f", 100), Some(100))
 }
 
 ///|
-test "upstream evaluator::tests::export_assignment_backtick" {
+async test "upstream evaluator::tests::export_assignment_backtick" {
   assert_eq(backtick_failure_code("echo $exported_variable", 1), Some(1))
 }
 

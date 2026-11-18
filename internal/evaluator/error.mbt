@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) suberror EvaluationError {
   Parse(@parser.ParserError)
   UndefinedVariable(name~ : String, span~ : @source.Span)
@@ -20,17 +21,17 @@ pub(all) suberror EvaluationError {
     recipe~ : String,
     expected~ : String,
     actual~ : Int32,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   UnknownOverrides(names~ : Array[String], span~ : @source.Span)
   FunctionArgumentCount(
     name~ : String,
     expected~ : Int32,
     actual~ : Int32,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   EmptyParameter(recipe~ : String, parameter~ : String, span~ : @source.Span)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn EvaluationError::code(self : EvaluationError) -> String {

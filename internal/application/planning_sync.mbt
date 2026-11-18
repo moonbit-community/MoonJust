@@ -267,7 +267,10 @@ fn project_evaluation_context(
     color_mode=arguments.value("color").unwrap_or("auto"),
     command_color?=arguments.value("command-color"),
     lists=project.module_compilation(path).unwrap().settings().bool("lists"),
-    utc_offset_seconds=0,
+    utc_offset_seconds?=match environment_value(entries, "TZ") {
+      Some("UTC") | Some("GMT") | Some("Etc/UTC") | Some("UTC0") => Some(0)
+      _ => None
+    },
     environment?,
     process_environment?=environment,
   )

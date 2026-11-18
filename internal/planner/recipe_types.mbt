@@ -1,10 +1,11 @@
 ///|
+#derive(Eq, Debug)
 pub struct ScriptConfiguration {
   interpreter : @environment.ShellConfiguration
   temporary_directory : @path.PathValue
   extension : String?
   platform : @host.PlatformInfo
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ScriptConfiguration::new(
@@ -44,11 +45,12 @@ pub fn ScriptConfiguration::platform(
 
 ///|
 /// Captured bytes are kept separate by stream and retain process order.
+#derive(Eq)
 pub struct ExecutionReport {
   stdout : Bytes
   stderr : Bytes
   commands : Int32
-} derive(Eq)
+}
 
 ///|
 pub fn ExecutionReport::new(
@@ -61,6 +63,7 @@ pub fn ExecutionReport::new(
 
 ///|
 /// One process step produced entirely before process capability is used.
+#derive(Eq)
 pub struct PlannedCommand {
   spec : @host.CommandSpec
   recipe : String
@@ -69,7 +72,7 @@ pub struct PlannedCommand {
   echo : Bytes
   is_guard : Bool
   continue_signals : Array[@host.SignalKind]
-} derive(Eq)
+}
 
 ///|
 fn PlannedCommand::new(
@@ -226,6 +229,7 @@ pub fn PlannedLine::continue_signals(
 ///|
 /// Script contents are planned without filesystem effects. The runtime creates
 /// the temporary file only when this step is reached.
+#derive(Eq)
 pub struct PlannedScript {
   recipe : String
   contents : Bytes
@@ -236,7 +240,7 @@ pub struct PlannedScript {
   positional : Array[String]
   quiet : Bool
   continue_signals : Array[@host.SignalKind]
-} derive(Eq)
+}
 
 ///|
 fn PlannedScript::new(
@@ -324,11 +328,12 @@ pub impl Debug for PlannedScript with fn to_repr(self) {
 }
 
 ///|
+#derive(Debug)
 pub(all) enum PlannedStep {
   Command(PlannedCommand, Bytes)
   Script(PlannedScript, Bytes)
   Line(PlannedLine)
-} derive(Debug)
+}
 
 ///|
 /// Evaluated cache contract attached only to script recipe tasks. Input file

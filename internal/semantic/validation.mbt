@@ -1,4 +1,5 @@
 ///|
+#derive(Debug)
 pub struct Compilation {
   source_id : @source.SourceId
   settings : CompiledSettings
@@ -17,7 +18,7 @@ pub struct Compilation {
   unexports : Array[String]
   attributes : Map[String, RecipeAttributes]
   recipe_docs : Map[String, String]
-} derive(Debug)
+}
 
 ///|
 pub fn Compilation::source_id(self : Compilation) -> @source.SourceId {

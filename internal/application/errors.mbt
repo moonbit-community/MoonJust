@@ -1,5 +1,6 @@
 ///|
 /// Failures raised while composing pure packages with explicit host input.
+#derive(Debug)
 pub(all) suberror ApplicationError {
   Cli(@cli.CliParseError)
   Load(@loader.LoaderError)
@@ -16,26 +17,25 @@ pub(all) suberror ApplicationError {
   ContextualSemantic(
     error~ : @semantic.SemanticError,
     source~ : @source.Source,
-    cwd~ : @path.PathValue
+    cwd~ : @path.PathValue,
   )
   WorkingDirectory(@workdir.WorkingDirectoryError)
   InteractiveInvocation(kind~ : String, command~ : String, detail~ : String)
   InteractiveProcess(
     kind~ : String,
     command~ : String,
-    termination~ : @host.ProcessTermination
+    termination~ : @host.ProcessTermination,
   )
   DotenvCommand(command~ : String, exit_code~ : Int32)
   WriteJustfile(path~ : @path.PathValue, detail~ : String)
   AlreadyExists(@path.PathValue)
   Query(String)
   UnsupportedCommand(String)
-} derive(Debug)
+}
 
 ///|
 fn process_exit_label() -> String {
-  if @env.get_env_var("MOONJUST_OS") == Some("windows") ||
-    @env.get_env_var("OS") == Some("Windows_NT") {
+  if @async.platform is Windows {
     "exit code"
   } else {
     "exit status"
@@ -227,7 +227,7 @@ fn diagnostic_load_cwd(
 /// Async counterpart used by production command paths. Source recovery for a
 /// diagnostic observes the same bounded-read contract as the initial load.
 #warnings("-unused_async-unused_trait_bound")
-async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_async(
+async fn[T : @host.HostFs] render_application_error_async(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -306,11 +306,11 @@ async fn[T : @host.HostFs + @host.HostSourceReader] render_application_error_asy
       }
     None => {
       let graph = try
-        load_graph_input_with_directories_async(host, arguments, context).0
+        load_graph_input_with_directories(host, arguments, context).0
       catch {
         _ => {
           let loaded = try
-            load_input_with_directories_async(host, arguments, context).0
+            load_input_with_directories(host, arguments, context).0
           catch {
             _ => return stable_application_error_message(error)
           } noraise {

@@ -166,8 +166,8 @@ test "byte contract detects status output error tail and tree changes" {
     compare: ["status", "stdout", "stderr", "tree"],
     allowed_difference: None,
     candidate_stdout_sha256: None,
-    candidate_stderr_sha256: None,
     upstream_tests: [],
+    host_inputs: [],
     upstream_anchors: [],
   }
   let expected : CaseResult = {
@@ -196,18 +196,59 @@ test "byte contract detects status output error tail and tree changes" {
 ///|
 async test "fixture audit rejects missing input and regex expectations" {
   let root = @fs.tmpdir(prefix="moonjust-contract-test")
-  defer (@fs.rmdir(root, recursive=true) catch { _ => () })
+  defer (@fs.remove(root, recursive=true) catch { _ => () })
   for
     file in [
       "compat-id", "expectation", "expected.status", "expected.stdout", "expected.stderr",
       "expected.tree",
     ] {
-    @fs.write_file(join(root, file), b"")
+    @fs.write_binary(join(root, file), b"")
   }
   let missing = fixture_structure_errors("case", root)
   assert_true(missing.any(fn(error) { error.contains("no explicit argv") }))
-  @fs.write_file(join(root, "argv.txt"), b"")
-  @fs.write_file(join(root, "stdout.regex"), b".*")
+  @fs.write_binary(join(root, "argv.txt"), b"")
+  @fs.write_binary(join(root, "stdout.regex"), b".*")
   let regex = fixture_structure_errors("case", root)
   assert_true(regex.any(fn(error) { error.contains("regex expectations") }))
+}
+
+///|
+test "allowlisted formatting must refuse unchanged, not just return a known code" {
+  let fixture = "148-indentation-setting-format"
+  let manifest =
+    #|[[case]]
+    #|id = "MJ-COMPAT-0148"
+    #|directory = "148-indentation-setting-format"
+    #|allowed_difference = "atomic-format-permissions"
+    #|upstream_tests = ["format::indentation_setting_format"]
+  let details = parse_manifest(manifest).cases[fixture]
+  let oracle : CaseResult = {
+    status: 0,
+    stdout: b"",
+    stderr: b"",
+    merged: None,
+    tree: b"new",
+    live: true,
+    steps: [],
+  }
+  let refusal = {
+    ..oracle,
+    status: 1,
+    tree: b"old",
+    stderr: b"error: host operation failed: InvalidInput(\"cannot atomically replace an existing file and preserve its permissions\")\n",
+  }
+  let fields = ["status", "stderr", "tree"]
+  fn allowed(result : CaseResult) -> Bool {
+    expected_difference_allowed(
+      fixture, fields, result, oracle, b"old", details,
+    )
+  }
+  assert_true(allowed(refusal))
+  assert_false(allowed({ ..refusal, tree: b"changed", }))
+  assert_false(allowed({ ..refusal, stderr: b"different failure", }))
+  assert_false(allowed(oracle))
+  assert_true(refusal_digest("unrelated", details) is None)
+  assert_true(
+    refusal_digest(fixture, { ..details, platform: Some("unix"), }) is None,
+  )
 }

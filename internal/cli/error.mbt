@@ -1,12 +1,14 @@
 ///|
 /// Invalid states rejected by the CLI composition contract.
+#derive(Eq, Debug)
 pub(all) suberror CliContractError {
   InvalidRecipeExitCode(Int32)
   InvalidSignalNumber(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Error stages retained until the application composition root.
+#derive(Eq, Debug)
 pub(all) enum FailureKind {
   Usage
   Load
@@ -21,7 +23,7 @@ pub(all) enum FailureKind {
   RecipeExit(Int32)
   SignalExit(Int32)
   Internal
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn FailureKind::as_string(self : FailureKind) -> String {
@@ -44,10 +46,11 @@ pub fn FailureKind::as_string(self : FailureKind) -> String {
 
 ///|
 /// A typed application failure paired with its structured diagnostic.
+#derive(Debug)
 pub struct ApplicationFailure {
   kind : FailureKind
   diagnostic : @diagnostic.Diagnostic
-} derive(Debug)
+}
 
 ///|
 pub fn ApplicationFailure::new(

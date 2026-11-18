@@ -1,6 +1,7 @@
 ///|
 /// Stable identity for one loaded source.
-pub struct SourceId(Int32) derive(Eq, Compare, Hash, Debug)
+#derive(Eq, Compare, Hash, Debug)
+pub struct SourceId(Int32)
 
 ///|
 /// Create a source identity from an application-assigned integer.
@@ -16,11 +17,12 @@ pub fn SourceId::value(self : SourceId) -> Int32 {
 
 ///|
 /// A half-open UTF-8 byte range within one source.
+#derive(Eq, Hash, Debug)
 pub struct Span {
   source_id : SourceId
   start_byte : Int32
   end_byte : Int32
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// Create a half-open byte span.

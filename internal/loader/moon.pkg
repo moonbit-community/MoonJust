@@ -4,6 +4,7 @@ import {
   "ZSeanYves/MoonJust/internal/host",
   "ZSeanYves/MoonJust/internal/modulepath",
   "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/lexer",
   "ZSeanYves/MoonJust/internal/path",
   "ZSeanYves/MoonJust/internal/source",
   "ZSeanYves/MoonJust/internal/semantic",
@@ -11,11 +12,17 @@ import {
 }
 
 import {
+  "moonbitlang/core/async",
   "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
 } for "test"
 
 import {
+  "moonbitlang/core/async",
   "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
 } for "wbtest"
 
-supported_targets = "-all+native+wasm"
+supported_targets = "wasm"
+
+options(
+  "allow-experimental-packages": true,
+)

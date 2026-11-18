@@ -8,7 +8,7 @@ live-output observations byte-for-byte where the case declares them.
 Each case must have a manifest entry, a matching `compat-id`, and an explicit
 `match` or `difference` expectation. The two product-identity cases (`--version`
 and `--help`) use exact local snapshots and are outside functional upstream
-differences. Functional differences are not accepted. Every upstream anchor is
+differences. [The functional allowlist](../testkit/functional_allowlist.mbt) is shared by the runner and report merger. Its only entries are the three format-in-place cases: the public Wasm API cannot atomically replace an existing file and preserve its mode. Each entry is scoped to one upstream identity, fixture, platform set and reason. The oracle must succeed and the candidate must exit 1 with empty stdout, the pinned refusal diagnostic and the original tree intact. An unexpected match also fails: remove the entry and change the fixture to an exact match when the limitation is fixed. No wildcard or skip is accepted. Every upstream anchor is
 checked against the pinned just 1.57.0 source tree.
 
 The files under `upstream/` are provenance and oracle metadata. They do not
@@ -65,3 +65,17 @@ For Wasm runs, pass `--candidate-runner moonrun` and build the native
 `tests/wasm_reentry` helper. The helper is supplied with `--wasm-reentry` so
 recipes that call `just_executable()` can re-enter the Wasm artifact through
 `moonrun`; without it, those child-process cases are reported as failures.
+
+## Run locally
+
+~~~sh
+moon build --release --target wasm .
+moon build --release --target native ./tests/wasm_reentry
+moon run --target native ./tests/compat -- \
+  --candidate _build/wasm/release/build/MoonJust.wasm --candidate-runner moonrun \
+  --wasm-reentry _build/native/release/build/tests/wasm_reentry/wasm_reentry.exe \
+  --official just --execution-target wasm --strict-coverage --allow-deferred-platform \
+  --coverage-report _build/coverage-wasm.json
+~~~
+
+Use official just **1.57.0**. The runner and re-entry launcher may be Native; the CLI, outline and spec tests are Wasm. The report labels explicitly supplied host facts and re-entry. A local defer is not an aggregate pass.

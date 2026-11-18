@@ -1,5 +1,6 @@
 ///|
 /// Top-level commands exposed by the query-oriented CLI.
+#derive(Eq, Debug)
 pub(all) enum CommandKind {
   RunCommand
   CheckCommand
@@ -20,7 +21,7 @@ pub(all) enum CommandKind {
   CommandCommand
   ChangelogCommand
   ManCommand
-} derive(Eq, Debug)
+}
 
 ///|
 /// Declarative CLI state after argparse has validated argv relationships.
@@ -110,8 +111,9 @@ pub fn CliArguments::with_positionals(
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) suberror CliParseError {
   Invalid(String)
   Config(String)
   Unsupported(String)
-} derive(Eq, Debug)
+}

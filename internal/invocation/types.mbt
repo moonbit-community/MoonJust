@@ -1,10 +1,11 @@
 ///|
 /// Values supplied for one recipe parameter. Variadic and repeatable
 /// parameters preserve one element per command-line occurrence.
+#derive(Eq, Debug)
 pub struct ArgumentValue {
   elements : Array[String]
   list : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ArgumentValue::elements(self : ArgumentValue) -> ArrayView[String] {
@@ -19,10 +20,11 @@ pub fn ArgumentValue::list(self : ArgumentValue) -> Bool {
 
 ///|
 /// One parsed recipe invocation with values in recipe parameter order.
+#derive(Eq, Debug)
 pub struct Invocation {
   recipe : String
   arguments : Array[ArgumentValue]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Invocation::recipe(self : Invocation) -> String {
@@ -37,10 +39,11 @@ pub fn Invocation::arguments(self : Invocation) -> ArrayView[ArgumentValue] {
 ///|
 /// One invocation resolved against a concrete project module. The contained
 /// recipe name is local to that module; `module_path` carries its full scope.
+#derive(Eq, Debug)
 pub struct ProjectInvocation {
   module_path : @modulepath.ModulePath
   invocation : Invocation
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ProjectInvocation::module_path(

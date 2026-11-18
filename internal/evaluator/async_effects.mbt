@@ -1,6 +1,6 @@
 ///|
 pub async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] evaluate_with_async_effects(
   process : P,
@@ -33,7 +33,7 @@ pub async fn[
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] resolve_async_assignment(
   process : P,

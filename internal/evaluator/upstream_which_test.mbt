@@ -1,5 +1,5 @@
 ///|
-fn which_case(
+async fn which_case(
   executable : String,
   platform : @host.OperatingSystem,
   path_value : String,
@@ -9,7 +9,7 @@ fn which_case(
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(platform, "test", Unix),
+    @host.PlatformInfo::new(platform, Some("test"), Unix),
   )
   host.set_env("PATH", path_value)
   match pathext {
@@ -30,11 +30,11 @@ fn which_case(
 }
 
 ///|
-fn require_case() -> @value.Value raise @evaluator.EvaluationError {
+async fn require_case() -> @value.Value raise @evaluator.EvaluationError {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   host.set_env("PATH", "/workspace")
   host.put_file(try! cwd.join(@path.PathValue::new("hello.exe", Unix)), b"")
@@ -48,7 +48,7 @@ fn require_case() -> @value.Value raise @evaluator.EvaluationError {
 }
 
 ///|
-test "upstream which_function::finds_executable" {
+async test "upstream which_function::finds_executable" {
   let value = try! which_case("hello.exe", Linux, "/workspace", None, [
     "hello.exe",
   ])
@@ -56,7 +56,7 @@ test "upstream which_function::finds_executable" {
 }
 
 ///|
-test "upstream which_function::finds_executable_via_pathext" {
+async test "upstream which_function::finds_executable_via_pathext" {
   let value = try! which_case("foo", Windows, "/workspace", Some(".exe"), [
     "foo.exe",
   ])
@@ -64,7 +64,7 @@ test "upstream which_function::finds_executable_via_pathext" {
 }
 
 ///|
-test "upstream which_function::supports_multiple_paths" {
+async test "upstream which_function::supports_multiple_paths" {
   let value = try! which_case("hello.exe", Linux, "/missing:/workspace", None, [
     "hello.exe",
   ])
@@ -72,17 +72,17 @@ test "upstream which_function::supports_multiple_paths" {
 }
 
 ///|
-test "upstream which_function::returns_empty_list_for_missing_executable" {
+async test "upstream which_function::returns_empty_list_for_missing_executable" {
   let value = try! which_case("missing", Linux, "/workspace", None, [])
   assert_true(value.elements().is_empty())
 }
 
 ///|
-test "upstream which_function::requires_lists_setting" {
+async test "upstream which_function::requires_lists_setting" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   let context = @evaluator.EvaluationContext::new(cwd~, lists=false)
   try
@@ -103,12 +103,12 @@ test "upstream which_function::requires_lists_setting" {
 }
 
 ///|
-test "upstream which_function::require_success" {
+async test "upstream which_function::require_success" {
   assert_eq(try! require_case(), String("/workspace/hello.exe"))
 }
 
 ///|
-test "upstream which_function::pathext_ignored_on_non_windows" {
+async test "upstream which_function::pathext_ignored_on_non_windows" {
   let value = try! which_case("foo", Linux, "/workspace", Some(".EXE"), [
     "foo.exe",
   ])
@@ -116,7 +116,7 @@ test "upstream which_function::pathext_ignored_on_non_windows" {
 }
 
 ///|
-test "upstream which_function::pathext_not_applied_when_candidate_has_extension" {
+async test "upstream which_function::pathext_not_applied_when_candidate_has_extension" {
   let value = try! which_case("foo.bat", Windows, "/workspace", Some(".EXE"), [
     "foo.bat.exe",
   ])
@@ -124,11 +124,11 @@ test "upstream which_function::pathext_not_applied_when_candidate_has_extension"
 }
 
 ///|
-test "upstream which_function::ignores_nonexecutable_candidates" {
+async test "upstream which_function::ignores_nonexecutable_candidates" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   host.set_env("PATH", "/workspace/dummy:/workspace/subdir")
   host.put_non_executable_file(
@@ -150,11 +150,11 @@ test "upstream which_function::ignores_nonexecutable_candidates" {
 }
 
 ///|
-test "upstream which_function::skips_non_executable_files" {
+async test "upstream which_function::skips_non_executable_files" {
   let cwd = try! @path.PathValue::new("/workspace", Unix)
   let host = @host_testkit.FakeHost::new(
     cwd,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   host.set_env("PATH", "/workspace")
   host.put_non_executable_file(
@@ -172,7 +172,7 @@ test "upstream which_function::skips_non_executable_files" {
 }
 
 ///|
-test "upstream which_function::handles_absolute_path" {
+async test "upstream which_function::handles_absolute_path" {
   let value = try! which_case(
     "/workspace/subdir/foo.exe",
     Linux,
@@ -184,7 +184,7 @@ test "upstream which_function::handles_absolute_path" {
 }
 
 ///|
-test "upstream which_function::handles_dir_slash" {
+async test "upstream which_function::handles_dir_slash" {
   let value = try! which_case(
     "subdir/foo.exe",
     Linux,
@@ -196,7 +196,7 @@ test "upstream which_function::handles_dir_slash" {
 }
 
 ///|
-test "upstream which_function::handles_dotslash" {
+async test "upstream which_function::handles_dotslash" {
   let value = try! which_case("./foo.exe", Linux, "/workspace/pathdir", None, [
     "/workspace/foo.exe",
   ])
@@ -204,7 +204,7 @@ test "upstream which_function::handles_dotslash" {
 }
 
 ///|
-test "upstream which_function::supports_shadowed_executables" {
+async test "upstream which_function::supports_shadowed_executables" {
   let first = try! which_case(
     "shadowed.exe",
     Linux,
@@ -224,7 +224,7 @@ test "upstream which_function::supports_shadowed_executables" {
 }
 
 ///|
-test "upstream which_function::pathext_custom_extension" {
+async test "upstream which_function::pathext_custom_extension" {
   let value = try! which_case("foo", Windows, "/workspace", Some(".BAR"), [
     "foo.BAR",
   ])
@@ -232,7 +232,7 @@ test "upstream which_function::pathext_custom_extension" {
 }
 
 ///|
-test "upstream which_function::pathext_entry_missing_dot_is_error" {
+async test "upstream which_function::pathext_entry_missing_dot_is_error" {
   try which_case("foo", Windows, "/workspace", Some("EXE"), ["foo.exe"]) catch {
     Builtin(Failure(message~), ..) =>
       assert_eq(message, "`PATHEXT` entry `EXE` does not start with `.`")

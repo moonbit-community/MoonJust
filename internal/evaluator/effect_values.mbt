@@ -431,13 +431,10 @@ fn which_candidates(
 ///|
 fn windows_candidate_is_executable(
   candidate : @path.PathValue,
-  metadata : @host.FileMetadata,
-  pathext : String?,
+  pathext : String,
 ) -> Bool {
-  guard metadata.is_file() else { return false }
   guard candidate.extension() is Some(extension) else { return false }
-  guard pathext is Some(value) else { return metadata.is_executable() }
-  for raw_extension in value.split(";") {
+  for raw_extension in pathext.split(";") {
     if raw_extension.length() > 1 &&
       extension.to_lower() == raw_extension[1:].to_owned().to_lower() {
       return true

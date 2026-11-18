@@ -4,6 +4,6 @@ pub extend ProcessAdapter with @ZSeanYves/MoonJust/internal/host.HostAsyncOutput
 }
 
 ///|
-pub extend ProcessAdapter with @ZSeanYves/MoonJust/internal/host.HostAsyncProcess::{
-  run_process_async,
+pub extend ProcessAdapter with @ZSeanYves/MoonJust/internal/host.HostProcess::{
+  run_process,
 }

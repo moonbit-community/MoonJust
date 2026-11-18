@@ -13,10 +13,8 @@
 ## Verification
 
 - [ ] `moon fmt --check`
-- [ ] `moon check --target native`
-- [ ] `moon check --target wasm`
-- [ ] `moon test --target native`
-- [ ] `moon test --target wasm`
+- [ ] `moon check --target wasm --deny-warn`
+- [ ] `moon test --target wasm` and `moon test --target native` (test tools only)
 - [ ] Relevant differential tests
 - [ ] `moon info` reviewed
 - [ ] Relevant differential cases updated only when behavior is intentionally changed

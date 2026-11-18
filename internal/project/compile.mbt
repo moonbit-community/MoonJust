@@ -1,11 +1,12 @@
 ///|
+#derive(Debug)
 pub(all) suberror ProjectError {
   Load(@loader.LoaderError)
   Path(@path.PathError)
   WorkingDirectory(@workdir.WorkingDirectoryError)
   Semantic(@semantic.SemanticError)
   Compilation(@semantic.ProjectCompilationError)
-} derive(Debug)
+}
 
 ///|
 fn append_sources(

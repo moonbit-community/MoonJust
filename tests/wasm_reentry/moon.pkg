@@ -1,11 +1,14 @@
 import {
-  "moonbitlang/async",
-  "moonbitlang/async/process",
-  "moonbitlang/async/stdio",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/process",
+  "moonbitlang/core/async/stdio",
   "moonbitlang/core/env",
-  "moonbitlang/x/sys",
 }
 
 pkgtype(kind: "executable")
 
 supported_targets = "native"
+
+options(
+  "allow-experimental-packages": true,
+)

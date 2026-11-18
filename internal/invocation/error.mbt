@@ -1,5 +1,6 @@
 ///|
 /// Failures raised while compiling recipe argument metadata or grouping argv.
+#derive(Eq, Debug)
 pub(all) suberror InvocationError {
   NoRecipes
   NoDefaultRecipe
@@ -8,7 +9,7 @@ pub(all) suberror InvocationError {
   UnknownRecipeSuggested(
     recipe~ : String,
     suggestion~ : String,
-    alias_target~ : String?
+    alias_target~ : String?,
   )
   UnknownSubmodule(name~ : String, suggestion~ : String?)
   ExpectedSubmoduleFoundRecipe(path~ : String)
@@ -18,23 +19,23 @@ pub(all) suberror InvocationError {
   InvalidArgumentAttribute(
     recipe~ : String,
     detail~ : String,
-    span~ : @source.Span?
+    span~ : @source.Span?,
   )
   InvalidArgumentPattern(
     recipe~ : String,
     detail~ : String,
     cause~ : String,
-    span~ : @source.Span?
+    span~ : @source.Span?,
   )
   DuplicateArgumentAttribute(
     name~ : String,
     first~ : @source.Span,
-    second~ : @source.Span
+    second~ : @source.Span,
   )
   DuplicateDefinitionOption(
     recipe~ : String,
     option~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   InvalidOption(argument~ : String)
   UnknownOption(recipe~ : String, option~ : String)
@@ -48,27 +49,27 @@ pub(all) suberror InvocationError {
     found~ : Int32,
     minimum~ : Int32,
     maximum~ : Int32?,
-    usage~ : String
+    usage~ : String,
   )
   ArgumentTooFewValues(
     recipe~ : String,
     parameter~ : String,
     found~ : Int32,
-    minimum~ : Int32
+    minimum~ : Int32,
   )
   ArgumentTooManyValues(
     recipe~ : String,
     parameter~ : String,
     found~ : Int32,
-    maximum~ : Int32
+    maximum~ : Int32,
   )
   ArgumentPatternMismatch(
     recipe~ : String,
     parameter~ : String,
     argument~ : String,
-    patterns~ : Array[String]
+    patterns~ : Array[String],
   )
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn InvocationError::code(self : InvocationError) -> String {

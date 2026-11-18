@@ -2,7 +2,6 @@
 async fn run_process_with_output_limit(
   command : @host.CommandSpec,
   output_limit : Int32,
-  output_mutex~ : @async.Mutex = Mutex(),
 ) -> @host.ProcessResult raise @host.HostError {
   if output_limit < 0 {
     raise InvalidInput("captured process output limit must be non-negative")
@@ -18,148 +17,86 @@ async fn run_process_with_output_limit(
   if windows_known_shell_noop(resolved_program, command.arguments()) {
     return process_result(command, Completed(0), b"", b"")
   }
-  let collected = try
-    @async.with_task_group() <| reader_group => {
-      let (wrapped_program, wrapped_arguments, temporary_script) = materialize_windows_command(
+  let mut outcome = Cancelled
+  let mut stdout = b""
+  let mut stderr = b""
+  let mut stdout_limited = false
+  let mut stderr_limited = false
+  try
+    @async.with_task_group() <| group => {
+      let (program, arguments, temporary) = materialize_windows_command(
         resolved_program,
         command.arguments(),
         cwd,
         command.environment(),
         command.inherits_environment(),
       )
-      let program = wrapped_program
-      let arguments = wrapped_arguments
-      let (stdout_reader, stdout_target) = @async_process.read_from_process()
-      let (stderr_reader, stderr_target) = @async_process.read_from_process()
-      let stdout_regular = if command.stdout() == Inherit {
-        stdio_is_regular(@stdio.stdout.fd())
+      if temporary is Some(path) {
+        group.add_defer(() => {
+          @async.protect_from_cancel(() => remove_windows_command_script(path))
+        })
+      }
+      let input = if command.inherits_stdin() {
+        @async_process.ProcessInput::Inherit
+      } else if command.stdin().is_empty() {
+        Empty
       } else {
-        false
+        FeedFromParent
       }
-      let stderr_regular = if command.stderr() == Inherit {
-        stdio_is_regular(@stdio.stderr.fd())
-      } else {
-        false
+      let stdout_mode = match command.stdout() {
+        Inherit => @async_process.ProcessOutput::Inherit
+        Capture => Collect
+        Discard => Discard
       }
-      let pipe_stdout = command.stdout() != Inherit || stdout_regular
-      let pipe_stderr = command.stderr() != Inherit || stderr_regular
-      let merge_regular = stdout_regular &&
-        stderr_regular &&
-        @stdio.stdout.fd() == @stdio.stderr.fd()
-      let (outcome, stdout_task, stderr_task) = @async.with_task_group() <| child_group => {
-        match temporary_script {
-          Some(path) =>
-            child_group.add_defer(() => remove_windows_command_script(path))
-          None => ()
-        }
-        let child_stdin = if command.inherits_stdin() {
-          None
-        } else {
-          let (child_stdin, writer) = @async_process.write_to_process()
-          child_group.spawn_bg(() => {
-            defer writer.close()
-            if !command.stdin().is_empty() {
-              try writer.write(command.stdin()) catch {
-                _ => ()
-              } noraise {
-                _ => ()
-              }
-            }
-          })
-          Some(child_stdin)
-        }
-        let child_stdout = if pipe_stdout {
-          stdout_target
-        } else {
-          @stdio.stdout
-        }
-        let child_stderr = if merge_regular {
-          stdout_target
-        } else if pipe_stderr {
-          stderr_target
-        } else {
-          @stdio.stderr
-        }
-        let environment = environment_map(command)
-        let process = if command.inherits_stdin() {
-          spawn_observed_process(
-            child_group,
-            program,
-            arguments,
-            environment,
-            command.inherits_environment(),
-            @stdio.stdin,
-            child_stdout,
-            child_stderr,
-            cwd,
+      let stderr_mode = match command.stderr() {
+        Inherit => @async_process.ProcessOutput::Inherit
+        Capture => Collect
+        Discard => Discard
+      }
+      let child = @async_process.spawn(
+        group,
+        program,
+        arguments,
+        extra_env=environment_map(command),
+        inherit_env=command.inherits_environment(),
+        stdin=input,
+        stdout=stdout_mode,
+        stderr=stderr_mode,
+        cwd~,
+        cancel_handler=@async_process.graceful_cancel(timeout=5000),
+        no_wait=true,
+      )
+      if input is FeedFromParent {
+        group.spawn_bg(() => {
+          defer child.stdin.close()
+          child.stdin.write(command.stdin()) catch {
+            _ => ()
+          }
+        })
+      }
+      if stdout_mode is Collect {
+        group.spawn_bg(() => {
+          let (bytes, limited) = read_bounded_process_output(
+            child.stdout,
+            output_limit,
+            child,
           )
-        } else {
-          spawn_observed_process(
-            child_group,
-            program,
-            arguments,
-            environment,
-            command.inherits_environment(),
-            child_stdin.unwrap(),
-            child_stdout,
-            child_stderr,
-            cwd,
-          )
-        }
-        let stdout_task = if !pipe_stdout {
-          stdout_reader.close()
-          None
-        } else {
-          Some(
-            reader_group.spawn(() => {
-              read_bounded_process_output(
-                output_mutex,
-                stdout_reader,
-                output_limit,
-                command.stdout() == Capture,
-                process,
-                if command.stdout() == Inherit {
-                  Some(Stdout)
-                } else {
-                  None
-                },
-              )
-            }),
-          )
-        }
-        let stderr_task = if merge_regular || !pipe_stderr {
-          stderr_reader.close()
-          None
-        } else {
-          Some(
-            reader_group.spawn(() => {
-              read_bounded_process_output(
-                output_mutex,
-                stderr_reader,
-                output_limit,
-                command.stderr() == Capture,
-                process,
-                if command.stderr() == Inherit {
-                  Some(Stderr)
-                } else {
-                  None
-                },
-              )
-            }),
-          )
-        }
-        let outcome = process.wait()
-        (outcome, stdout_task, stderr_task)
+          stdout = bytes
+          stdout_limited = limited
+        })
       }
-      let (stdout, stdout_limited) = match stdout_task {
-        Some(reader) => reader.wait()
-        None => (b"", false)
+      if stderr_mode is Collect {
+        group.spawn_bg(() => {
+          let (bytes, limited) = read_bounded_process_output(
+            child.stderr,
+            output_limit,
+            child,
+          )
+          stderr = bytes
+          stderr_limited = limited
+        })
       }
-      let (stderr, stderr_limited) = match stderr_task {
-        Some(reader) => reader.wait()
-        None => (b"", false)
-      }
-      (outcome, stdout, stderr, stdout_limited, stderr_limited)
+      outcome = wait_for_child(child)
     }
   catch {
     @host.HostError::InvalidInput(message) => raise InvalidInput(message)
@@ -167,8 +104,7 @@ async fn run_process_with_output_limit(
       raise PermissionDenied(capability, detail~)
     error => {
       let detail = error.to_string()
-      let windows = @env.get_env_var("MOONJUST_OS") == Some("windows") ||
-        @env.get_env_var("OS") == Some("Windows_NT")
+      let windows = windows_process_runtime()
       if detail.contains("Permission denied") {
         raise PermissionDenied(
           Process,
@@ -186,10 +122,7 @@ async fn run_process_with_output_limit(
       }
       raise InvalidInput(detail)
     }
-  } noraise {
-    value => value
   }
-  let (outcome, stdout, stderr, stdout_limited, stderr_limited) = collected
   if stdout_limited || stderr_limited {
     raise InvalidInput(
       "process captured output exceeded the \{output_limit}-byte per-stream limit",
@@ -199,13 +132,9 @@ async fn run_process_with_output_limit(
 }
 
 ///|
-pub impl @host.HostAsyncProcess for ProcessAdapter with fn run_process_async(
-  self : ProcessAdapter,
+pub impl @host.HostProcess for ProcessAdapter with fn run_process(
+  _self : ProcessAdapter,
   command : @host.CommandSpec,
 ) -> @host.ProcessResult raise @host.HostError {
-  run_process_with_output_limit(
-    command,
-    MAX_CAPTURED_STREAM_BYTES,
-    output_mutex=self.output_mutex,
-  )
+  run_process_with_output_limit(command, MAX_CAPTURED_STREAM_BYTES)
 }

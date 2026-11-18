@@ -1,21 +1,23 @@
 ///|
 /// A string literal after parser-owned escape validation.
+#derive(Eq, Debug)
 pub(all) enum StringKind {
   Raw
   Cooked
   Backtick
   TripleRaw
   TripleCooked
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct StringLiteral {
   raw : String
   cooked : String
   kind : StringKind
   span : @source.Span
   shell_expanded : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn StringLiteral::new(
@@ -54,11 +56,13 @@ pub fn StringLiteral::shell_expanded(self : StringLiteral) -> Bool {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum UnaryOperator {
   Not
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum BinaryOperator {
   Or
   And
@@ -69,13 +73,14 @@ pub(all) enum BinaryOperator {
   ListConcat
   Concat
   Join
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct FormatPart {
   expression : Expression
   literal : StringLiteral
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn FormatPart::new(
@@ -98,6 +103,7 @@ pub fn FormatPart::literal(self : FormatPart) -> StringLiteral {
 ///|
 /// Expressions retained by the parser. Every node carries the source span that
 /// produced it so later diagnostics never have to reconstruct byte offsets.
+#derive(Eq, Debug)
 pub(all) enum Expression {
   String(StringLiteral)
   Backtick(StringLiteral)
@@ -112,20 +118,20 @@ pub(all) enum Expression {
     operator_span~ : @source.Span,
     lhs~ : Expression,
     rhs~ : Expression,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   Conditional(
     condition~ : Expression,
     then_branch~ : Expression,
     else_branch~ : Expression?,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   Format(
     start~ : StringLiteral,
     parts~ : Array[FormatPart],
-    span~ : @source.Span
+    span~ : @source.Span,
   )
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Expression::span(self : Expression) -> @source.Span {

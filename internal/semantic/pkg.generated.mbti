@@ -26,10 +26,11 @@ pub fn setting_specs() -> ArrayView[SettingSpec]
 pub fn validate_project_compilation(ProjectCompilation) -> Unit raise SemanticError
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror ProjectCompilationError {
   MissingRootModule
   DuplicateModulePath(String)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn ProjectCompilationError::equal(Self, Self) -> Bool
 #deprecated
@@ -37,6 +38,7 @@ pub fn ProjectCompilationError::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn ProjectCompilationError::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror SemanticError {
   Parse(@parser.ParserError)
   DuplicateRecipe(name~ : String, first~ : @source.Span, second~ : @source.Span)
@@ -84,7 +86,7 @@ pub(all) suberror SemanticError {
   InvalidItemAttribute(item_kind~ : String, item_name~ : String, attribute~ : String, span~ : @source.Span)
   ListsFeature(message~ : String, span~ : @source.Span)
   UnsupportedPlatform(name~ : String, span~ : @source.Span)
-} derive(Eq, @debug.Debug)
+}
 pub fn SemanticError::code(Self) -> String
 #deprecated
 pub fn SemanticError::equal(Self, Self) -> Bool
@@ -97,6 +99,7 @@ pub fn SemanticError::to_diagnostic(Self) -> @diagnostic.Diagnostic raise @diagn
 pub fn SemanticError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(@debug.Debug)
 pub struct Compilation {
   source_id : @source.SourceId
   settings : CompiledSettings
@@ -115,7 +118,7 @@ pub struct Compilation {
   unexports : Array[String]
   attributes : Map[String, RecipeAttributes]
   recipe_docs : Map[String, String]
-} derive(@debug.Debug)
+}
 pub fn Compilation::alias_private(Self, String) -> Bool
 pub fn Compilation::alias_target(Self, String) -> String?
 pub fn Compilation::function(Self, String) -> @syntax.FunctionDefinition?
@@ -133,11 +136,12 @@ pub fn Compilation::unexports(Self) -> ArrayView[String]
 pub fn Compilation::variable(Self, String) -> @syntax.Assignment?
 pub fn Compilation::variable_names(Self) -> ArrayView[String]
 
+#derive(@debug.Debug)
 pub struct CompiledSettings {
   values : Map[String, SettingValue]
   ordered : Array[String]
   spans : Map[String, @source.Span]
-} derive(@debug.Debug)
+}
 pub fn CompiledSettings::bool(Self, String) -> Bool
 pub fn CompiledSettings::get(Self, String) -> SettingValue?
 pub fn CompiledSettings::has(Self, String) -> Bool
@@ -147,6 +151,7 @@ pub fn CompiledSettings::span(Self, String) -> @source.Span?
 #deprecated
 pub fn CompiledSettings::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct ProjectCompilation {
   module_order : Array[@modulepath.ModulePath]
   modules : Map[@modulepath.ModulePath, ProjectModule]
@@ -154,7 +159,7 @@ pub struct ProjectCompilation {
   disabled_recipes : @set.Set[String]
   disabled_aliases : @set.Set[String]
   disabled_reasons : Map[String, Array[@modulepath.ModulePath]]
-} derive(@debug.Debug)
+}
 pub fn ProjectCompilation::absent_module_for_reference(Self, @modulepath.ModulePath, String) -> @modulepath.ModulePath?
 pub fn ProjectCompilation::alias_absent_modules(Self, @modulepath.ModulePath, String) -> ArrayView[@modulepath.ModulePath]
 pub fn ProjectCompilation::alias_disabled(Self, @modulepath.ModulePath, String) -> Bool
@@ -178,6 +183,7 @@ pub fn ProjectCompilation::source_files(Self, @modulepath.ModulePath) -> ArrayVi
 #deprecated
 pub fn ProjectCompilation::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct ProjectModule {
   module_path : @modulepath.ModulePath
   compilation : Compilation
@@ -187,7 +193,7 @@ pub struct ProjectModule {
   declaration_attributes : Array[@syntax.Attribute]
   declaration_doc : String?
   default_recipe : String?
-} derive(@debug.Debug)
+}
 pub fn ProjectModule::compilation(Self) -> Compilation
 pub fn ProjectModule::declaration_attributes(Self) -> ArrayView[@syntax.Attribute]
 pub fn ProjectModule::declaration_doc(Self) -> String?
@@ -200,10 +206,11 @@ pub fn ProjectModule::source_files(Self) -> ArrayView[(@source.SourceId, @path.P
 #deprecated
 pub fn ProjectModule::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct ProjectRecipe {
   module_path : @modulepath.ModulePath
   recipe_name : String
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn ProjectRecipe::equal(Self, Self) -> Bool
 pub fn ProjectRecipe::module_path(Self) -> @modulepath.ModulePath
@@ -213,6 +220,7 @@ pub fn ProjectRecipe::recipe_name(Self) -> String
 #deprecated
 pub fn ProjectRecipe::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct RecipeAttributes {
   names : Array[String]
   platforms : Array[TargetOs]
@@ -239,7 +247,7 @@ pub struct RecipeAttributes {
   positional_arguments : Bool
   arg : Array[@syntax.AttributeArgument]
   cache : Array[@syntax.AttributeArgument]
-} derive(@debug.Debug)
+}
 pub fn RecipeAttributes::args(Self) -> ArrayView[@syntax.AttributeArgument]
 pub fn RecipeAttributes::cache(Self) -> ArrayView[@syntax.AttributeArgument]
 pub fn RecipeAttributes::confirm(Self) -> Bool
@@ -271,11 +279,12 @@ pub fn RecipeAttributes::shell(Self) -> ArrayView[@syntax.Expression]
 pub fn RecipeAttributes::to_repr(Self) -> @debug.Repr
 pub fn RecipeAttributes::working_directory(Self) -> @syntax.Expression?
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SettingKind {
   Boolean
   Text
   Expression
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn SettingKind::equal(Self, Self) -> Bool
 #deprecated
@@ -283,11 +292,12 @@ pub fn SettingKind::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn SettingKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SettingSpec {
   name : String
   kind : SettingKind
   required : Bool
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn SettingSpec::equal(Self, Self) -> Bool
 pub fn SettingSpec::kind(Self) -> SettingKind
@@ -299,12 +309,13 @@ pub fn SettingSpec::required(Self) -> Bool
 #deprecated
 pub fn SettingSpec::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SettingValue {
   Flag
   Boolean(Bool)
   Text(String)
   Expression(@syntax.Expression)
-} derive(Eq, @debug.Debug)
+}
 pub fn SettingValue::as_bool(Self) -> Bool?
 pub fn SettingValue::as_text(Self) -> String?
 #deprecated
@@ -314,11 +325,12 @@ pub fn SettingValue::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn SettingValue::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Symbol {
   name : String
   kind : SymbolKind
   span : @source.Span
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Symbol::equal(Self, Self) -> Bool
 pub fn Symbol::kind(Self) -> SymbolKind
@@ -330,12 +342,13 @@ pub fn Symbol::span(Self) -> @source.Span
 #deprecated
 pub fn Symbol::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SymbolKind {
   Variable
   Function
   Recipe
   Alias
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn SymbolKind::equal(Self, Self) -> Bool
 #deprecated
@@ -343,6 +356,7 @@ pub fn SymbolKind::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn SymbolKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) enum TargetOs {
   Linux
   Macos
@@ -354,7 +368,7 @@ pub(all) enum TargetOs {
   Openbsd
   Unix
   Other(String)
-} derive(Eq, Hash, @debug.Debug)
+}
 #deprecated
 pub fn TargetOs::equal(Self, Self) -> Bool
 #deprecated
@@ -366,10 +380,11 @@ pub fn TargetOs::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn TargetOs::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TargetPlatform {
   operating_system : TargetOs
   is_unix : Bool
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn TargetPlatform::equal(Self, Self) -> Bool
 pub fn TargetPlatform::is_unix(Self) -> Bool

@@ -1,23 +1,15 @@
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-fn source_read_limit() -> Int32 {
-  // Keep this aligned with LexerLimits::default().max_source_bytes().
-  16 * 1024 * 1024
-}
-
-///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
 /// Read one source through the bounded production host capability.
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
+pub async fn[T : @host.HostFs] load(
   host : T,
   path : @path.PathValue,
   source_id : @source.SourceId,
   environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
-  let bytes = @host.HostSourceReader::read_source(
+  let bytes = @host.HostFs::read_source(
     host,
     path,
-    source_read_limit(),
+    @lexer.LexerLimits::default().max_source_bytes(),
   ) catch {
     error => raise Host(error)
   }
@@ -42,8 +34,7 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_async(
 ///|
 /// Reuse bytes during one async graph load while preserving the bounded host
 /// read and Markdown tangle semantics.
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-async fn[T : @host.HostFs + @host.HostSourceReader] load_async_cached(
+async fn[T : @host.HostFs] load_cached(
   host : T,
   path : @path.PathValue,
   canonical : @path.PathValue,
@@ -52,7 +43,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_async_cached(
   environment : ArrayView[(String, String)],
 ) -> LoadedSource raise LoaderError {
   if is_markdown_path(path) {
-    return load_async(host, path, source_id, environment~)
+    return load(host, path, source_id, environment~)
   }
   let key = canonical.as_string()
   match cache.get(key) {
@@ -72,10 +63,10 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_async_cached(
       }
     }
     None => {
-      let bytes = @host.HostSourceReader::read_source(
+      let bytes = @host.HostFs::read_source(
         host,
         path,
-        source_read_limit(),
+        @lexer.LexerLimits::default().max_source_bytes(),
       ) catch {
         error => raise Host(error)
       }
@@ -99,8 +90,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_async_cached(
 }
 
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
+async fn[T : @host.HostFs] build_graph(
   host : T,
   root_source : LoadedSource,
   source_id : @source.SourceId,
@@ -176,7 +166,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
       } else {
         canonical
       }
-      load_async_cached(
+      load_cached(
         host, source_path, canonical, next_id, source_cache, environment,
       ).with_context(
         parent, import_span, relation, module_path, module_directory,
@@ -266,7 +256,6 @@ async fn[T : @host.HostFs + @host.HostSourceReader] build_graph_async(
 }
 
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
 fn async_graph_expansion_required(source : LoadedSource) -> Bool {
   for item in source.ast().items() {
     match item {
@@ -278,10 +267,9 @@ fn async_graph_expansion_required(source : LoadedSource) -> Bool {
 }
 
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
 /// Recursively load a filesystem graph without reading any source past the
 /// lexer byte limit plus one.
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
+pub async fn[T : @host.HostFs] load_graph(
   host : T,
   root : @path.PathValue,
   source_id : @source.SourceId,
@@ -292,16 +280,15 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_async(
   ),
   environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedGraph raise LoaderError {
-  let root_source = load_async(host, root, source_id, environment~)
+  let root_source = load(host, root, source_id, environment~)
   if limits.max_files > 0 && !async_graph_expansion_required(root_source) {
     return { files: [root_source], }
   }
-  build_graph_async(host, root_source, source_id, limits, platform, environment)
+  build_graph(host, root_source, source_id, limits, platform, environment)
 }
 
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
+pub async fn[T : @host.HostFs] load_stdin_graph(
   host : T,
   bytes : Bytes,
   source_id : @source.SourceId,
@@ -331,57 +318,5 @@ pub async fn[T : @host.HostFs + @host.HostSourceReader] load_stdin_graph_async(
     module_path: @modulepath.ModulePath::root(),
     module_directory: base,
   }
-  build_graph_async(host, root, source_id, limits, platform, environment)
-}
-
-///|
-#cfg(target="native")
-pub fn[T : @host.HostFs] load_async(
-  host : T,
-  path : @path.PathValue,
-  source_id : @source.SourceId,
-  environment~ : ArrayView[(String, String)] = [],
-) -> LoadedSource raise LoaderError {
-  load(host, path, source_id, environment~)
-}
-
-///|
-#cfg(target="native")
-pub fn[T : @host.HostFs] load_graph_async(
-  host : T,
-  root : @path.PathValue,
-  source_id : @source.SourceId,
-  limits~ : GraphLimits = GraphLimits::default(),
-  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
-    Other("unknown"),
-    false,
-  ),
-  environment~ : ArrayView[(String, String)] = [],
-) -> LoadedGraph raise LoaderError {
-  load_graph(host, root, source_id, limits~, platform~, environment~)
-}
-
-///|
-#cfg(target="native")
-pub fn[T : @host.HostFs] load_stdin_graph_async(
-  host : T,
-  bytes : Bytes,
-  source_id : @source.SourceId,
-  base : @path.PathValue,
-  limits~ : GraphLimits = GraphLimits::default(),
-  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
-    Other("unknown"),
-    false,
-  ),
-  environment~ : ArrayView[(String, String)] = [],
-) -> LoadedGraph raise LoaderError {
-  load_stdin_graph(
-    host,
-    bytes,
-    source_id,
-    base,
-    limits~,
-    platform~,
-    environment~,
-  )
+  build_graph(host, root, source_id, limits, platform, environment)
 }

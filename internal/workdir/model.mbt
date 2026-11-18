@@ -23,12 +23,13 @@ fn child_path(
 /// All directories that influence evaluation and eventual recipe execution.
 /// Paths remain lexical so a justfile reached through a symlink keeps the
 /// directory through which the user reached it.
+#derive(Eq, Debug)
 pub struct WorkingDirectoryModel {
   invocation : @path.PathValue
   project : @path.PathValue
   module_base : @path.PathValue
   justfile : @path.PathValue?
-} derive(Eq, Debug)
+}
 
 ///|
 /// Resolve an explicit justfile and optional CLI working directory relative to

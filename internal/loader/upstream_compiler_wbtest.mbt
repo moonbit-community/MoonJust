@@ -12,12 +12,12 @@ fn upstream_module(
 }
 
 ///|
-test "upstream compiler::tests::find_module_file" {
+async test "upstream compiler::tests::find_module_file" {
   let root = try! @path.PathValue::new("/workspace", Unix)
   let source = try! root.join(@path.PathValue::new("justfile", Unix))
   let host = @host_testkit.FakeHost::new(
     root,
-    @host.PlatformInfo::new(Linux, "test", Unix),
+    @host.PlatformInfo::new(Linux, Some("test"), Unix),
   )
   let direct = try! root.join(@path.PathValue::new("foo.just", Unix))
   host.put_file(direct, b"")

@@ -1,13 +1,15 @@
 ///|
 /// How a command obtains its justfile input.
+#derive(Eq, Debug)
 pub(all) enum InputSelection {
   Search
   Stdin
   File(@path.PathValue)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Query operations that do not execute recipes.
+#derive(Eq, Debug)
 pub(all) enum QueryKind {
   List
   Show(String)
@@ -15,10 +17,11 @@ pub(all) enum QueryKind {
   Variables
   Dump
   Json
-} derive(Eq, Debug)
+}
 
 ///|
 /// Parsed application intent, independent of terminal and process adapters.
+#derive(Eq, Debug)
 pub(all) enum ApplicationRequest {
   Version
   Help
@@ -26,7 +29,7 @@ pub(all) enum ApplicationRequest {
   Format(InputSelection, check_only~ : Bool)
   Query(InputSelection, QueryKind)
   Run(InputSelection, ReadOnlyArray[String])
-} derive(Eq, Debug)
+}
 
 ///|
 /// Build a run request while taking an immutable snapshot of recipe arguments.

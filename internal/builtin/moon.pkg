@@ -5,3 +5,5 @@ import {
   "moonbitlang/regexp",
   "moonbitlang/x/crypto",
 }
+
+supported_targets = "wasm"

@@ -1,4 +1,5 @@
 ///|
+#derive(Eq)
 priv enum QuoteState {
   Plain
   Single
@@ -7,7 +8,7 @@ priv enum QuoteState {
   EscapedSingle
   EscapedDouble
   Comment
-} derive(Eq)
+}
 
 ///|
 fn logical_lines(text : String) -> Array[(Int32, String)] raise DotenvError {

@@ -14,201 +14,6 @@ priv struct AsyncEvaluator[P, H] {
 }
 
 ///|
-async fn[
-  P : @host.HostAsyncProcess,
-  H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-] canonicalize_effect_async(
-  process : P,
-  host : H,
-  arguments : Array[Value],
-  context : EvaluationContext,
-  span : @source.Span,
-) -> Value raise EvaluationError {
-  let platform = @host.HostPlatform::platform_info(host) catch {
-    error => raise Host(error, span~)
-  }
-  if !platform.portable_runtime() {
-    return call_non_process_effect_with_context(
-      host, "canonicalize", arguments, context, span,
-    )
-  }
-  let name = validate_effect_arity("canonicalize", arguments, span)
-  let raw = expect_string(name, arguments, 0, span)
-  let path = resolve_context_path(context, raw, span)
-  ignore(
-    @host.HostFs::metadata(host, path) catch {
-      error =>
-        raise effect_failure(
-          "call to function `canonicalize` failed: I/O error canonicalizing `" +
-          raw +
-          "`: " +
-          canonicalize_host_error_detail(error, path),
-          span,
-        )
-    },
-  )
-  let spec = @host.CommandSpec::new("/usr/bin/env", [
-    "realpath",
-    path.as_string(),
-  ]) catch {
-    error => raise Host(error, span~)
-  }
-  spec.set_cwd(require_context_path("cwd", context.cwd, span))
-  configure_effect_environment(spec, context, span)
-  spec.set_stdout(Capture)
-  spec.set_stderr(Discard)
-  let output = @host.HostAsyncProcess::run_process_async(process, spec) catch {
-    error =>
-      raise effect_failure(
-        "call to function `canonicalize` failed: I/O error canonicalizing `" +
-        raw +
-        "`: " +
-        canonicalize_host_error_detail(error, path),
-        span,
-      )
-  }
-  match output.termination() {
-    Exited(0) => ()
-    _ =>
-      raise effect_failure(
-        "call to function `canonicalize` failed: I/O error canonicalizing `" +
-        raw +
-        "`: realpath failed",
-        span,
-      )
-  }
-  String(strip_one_line_ending(bytes_text(output.stdout().to_owned(), span)))
-}
-
-///|
-async fn[
-  P : @host.HostAsyncProcess,
-  H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-] which_effect_async(
-  process : P,
-  host : H,
-  requested : String,
-  arguments : Array[Value],
-  context : EvaluationContext,
-  span : @source.Span,
-) -> Value raise EvaluationError {
-  let platform = @host.HostPlatform::platform_info(host) catch {
-    error => raise Host(error, span~)
-  }
-  if !platform.portable_runtime() {
-    return call_non_process_effect_with_context(
-      host, requested, arguments, context, span,
-    )
-  }
-  let name = validate_effect_arity(requested, arguments, span)
-  if name == "which" && !context.lists() {
-    raise effect_failure("the `which()` function requires `set lists`", span)
-  }
-  let executable = expect_string(name, arguments, 0, span)
-  let path = which_value_async(process, host, executable, context, span)
-  if name == "which" {
-    if path == "" {
-      List([])
-    } else {
-      List([String(path)])
-    }
-  } else if path == "" {
-    raise effect_failure(
-      "call to function `require` failed: could not find executable `" +
-      executable +
-      "`",
-      span,
-    )
-  } else {
-    String(path)
-  }
-}
-
-///|
-async fn[P : @host.HostAsyncProcess] wasm_path_is_executable(
-  process : P,
-  candidate : @path.PathValue,
-  metadata : @host.FileMetadata,
-  platform : @host.PlatformInfo,
-  pathext : String?,
-  context : EvaluationContext,
-  span : @source.Span,
-) -> Bool raise EvaluationError {
-  if platform.operating_system() == Windows {
-    return windows_candidate_is_executable(candidate, metadata, pathext)
-  }
-  let spec = @host.CommandSpec::new("/bin/test", ["-x", candidate.as_string()]) catch {
-    error => raise Host(error, span~)
-  }
-  spec.set_cwd(require_context_path("cwd", context.cwd, span))
-  configure_effect_environment(spec, context, span)
-  spec.set_stdout(Discard)
-  spec.set_stderr(Discard)
-  let result = @host.HostAsyncProcess::run_process_async(process, spec) catch {
-    error => raise Host(error, span~)
-  }
-  result.termination() == Exited(0)
-}
-
-///|
-async fn[
-  P : @host.HostAsyncProcess,
-  H : @host.HostFs + @host.HostEnv + @host.HostPlatform,
-] which_value_async(
-  process : P,
-  host : H,
-  executable : String,
-  context : EvaluationContext,
-  span : @source.Span,
-) -> String raise EvaluationError {
-  if executable == "" {
-    return ""
-  }
-  let path = @host.HostEnv::env_get(host, "PATH") catch {
-    error => raise Host(error, span~)
-  }
-  let platform = @host.HostPlatform::platform_info(host) catch {
-    error => raise Host(error, span~)
-  }
-  let pathext = if platform.operating_system() == Windows {
-    @host.HostEnv::env_get(host, "PATHEXT") catch {
-      error => raise Host(error, span~)
-    }
-  } else {
-    None
-  }
-  for
-    candidate in which_candidates(
-      executable,
-      context,
-      path.unwrap_or(""),
-      platform,
-      pathext,
-      span,
-    ) {
-    let exists = @host.HostFs::file_exists(host, candidate) catch {
-      error => raise Host(error, span~)
-    }
-    if !exists {
-      continue
-    }
-    let metadata = try @host.HostFs::metadata(host, candidate) catch {
-      NotFound(_) => continue
-      error => raise Host(error, span~)
-    } noraise {
-      value => value
-    }
-    if metadata.is_file() &&
-      wasm_path_is_executable(
-        process, candidate, metadata, platform, pathext, context, span,
-      ) {
-      return candidate.as_string()
-    }
-  }
-  ""
-}
-
-///|
 fn[P, H] AsyncEvaluator::enter(
   self : AsyncEvaluator[P, H],
   span : @source.Span,
@@ -242,7 +47,7 @@ fn[P, H] AsyncEvaluator::check_output(
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] AsyncEvaluator::eval_binary(
   self : AsyncEvaluator[P, H],
@@ -298,7 +103,7 @@ async fn[
 
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] AsyncEvaluator::eval_defined_function(
   self : AsyncEvaluator[P, H],
@@ -324,10 +129,7 @@ async fn[
     scope.set(parameter.name(), values[index])
   }
   if self.depth > 0 && self.depth % 32 == 0 {
-    @async.sleep(0) catch {
-      _ =>
-        raise Host(InvalidInput("asynchronous evaluation was cancelled"), span~)
-    }
+    @async.sleep(0)
   }
   let nested : AsyncEvaluator[P, H] = {
     process: self.process,

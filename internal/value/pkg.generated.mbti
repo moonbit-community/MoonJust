@@ -8,9 +8,10 @@ import {
 // Values
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror ValueError {
   TypeMismatch(expected~ : String, actual~ : String)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn ValueError::equal(Self, Self) -> Bool
 #deprecated
@@ -19,11 +20,12 @@ pub fn ValueError::not_equal(Self, Self) -> Bool
 pub fn ValueError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum Value {
   String(String)
   List(Array[Value])
   Bool(Bool)
-} derive(Eq, @debug.Debug)
+}
 pub fn Value::as_bool(Self) -> Bool?
 pub fn Value::as_list(Self) -> ArrayView[Self]?
 pub fn Value::as_string(Self) -> String?

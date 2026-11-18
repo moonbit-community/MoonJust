@@ -19,9 +19,7 @@ import {
 // Values
 pub fn build_schedule(ArrayView[TaskSpec], Int32) -> Schedule raise SchedulerError
 
-pub fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScript) -> Unit raise ExecutionError
-
-pub async fn[T : @host.HostAsyncScriptTemp] cleanup_materialized_script_async(T, MaterializedScript) -> Unit raise ExecutionError
+pub async fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScript) -> Unit raise ExecutionError
 
 pub fn combine_execution_plans(ArrayView[ExecutionPlan]) -> ExecutionPlan
 
@@ -31,21 +29,19 @@ pub fn deterministic_failure(Schedule, ArrayView[Int32]) -> Int32?
 
 pub fn format_timestamp(Int64, String) -> String
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] materialize_line_async(P, H, PlannedLine) -> (PlannedCommand, Bytes) raise ExecutionError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] materialize_line_async(P, H, PlannedLine) -> (PlannedCommand, Bytes) raise ExecutionError
 
-pub fn[T : @host.HostScriptTemp + @host.HostExecutable] materialize_script(T, PlannedScript) -> MaterializedScript raise ExecutionError
+pub async fn[T : @host.HostScriptTemp] materialize_script(T, PlannedScript) -> MaterializedScript raise ExecutionError
 
-pub async fn[T : @host.HostAsyncScriptTemp] materialize_script_async(T, PlannedScript) -> MaterializedScript raise ExecutionError
-
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_project_recipe_graph_async(P, H, @semantic.ProjectCompilation, ArrayView[ProjectRecipeRequest], ArrayView[ProjectModuleRuntime], options? : ExecutionOptions, cache_directory? : @path.PathValue) -> ExecutionPlan raise ExecutionError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_project_recipe_graph_async(P, H, @semantic.ProjectCompilation, ArrayView[ProjectRecipeRequest], ArrayView[ProjectModuleRuntime], options? : ExecutionOptions, cache_directory? : @path.PathValue) -> ExecutionPlan raise ExecutionError
 
 pub fn plan_recipe_graph(@semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @environment.ShellConfiguration, @path.PathValue, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions) -> ExecutionPlan raise ExecutionError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_recipe_graph_async(P, H, @semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions, cache_directory? : @path.PathValue) -> ExecutionPlan raise ExecutionError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_recipe_graph_async(P, H, @semantic.Compilation, ArrayView[RecipeRequest], @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], options? : ExecutionOptions, cache_directory? : @path.PathValue) -> ExecutionPlan raise ExecutionError
 
 pub fn plan_script_recipe(@syntax.Recipe, @evaluator.Environment, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], positional? : ArrayView[String], quiet? : Bool, continue_signals? : ArrayView[@host.SignalKind]) -> PlannedScript raise ExecutionError
 
-pub async fn[P : @host.HostAsyncProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_script_recipe_async(P, H, @syntax.Recipe, @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], positional? : ArrayView[String], quiet? : Bool, dry_run? : Bool, continue_signals? : ArrayView[@host.SignalKind]) -> PlannedScript raise ExecutionError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] plan_script_recipe_async(P, H, @syntax.Recipe, @evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ScriptConfiguration, process_environment? : ArrayView[(String, String)], positional? : ArrayView[String], quiet? : Bool, dry_run? : Bool, continue_signals? : ArrayView[@host.SignalKind]) -> PlannedScript raise ExecutionError
 
 pub fn render_command_echo(String, timestamp? : String?, color? : CommandColor?) -> Bytes
 
@@ -58,6 +54,7 @@ pub fn supports_sync_dry_run(@semantic.ProjectCompilation) -> Bool
 pub fn valid_timestamp_format(String) -> Bool
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror ExecutionError {
   Evaluation(@evaluator.EvaluationError)
   Invocation(@invocation.InvocationError)
@@ -73,7 +70,7 @@ pub(all) suberror ExecutionError {
   GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
   CacheFailure(message~ : String)
-} derive(@debug.Debug)
+}
 pub fn ExecutionError::command_failed(String, Int32, Int32) -> Self
 pub fn ExecutionError::command_signaled(String, Int32, @host.SignalKind) -> Self
 pub fn ExecutionError::exit_code(Self) -> Int32
@@ -83,13 +80,14 @@ pub fn ExecutionError::to_diagnostic(Self) -> @diagnostic.Diagnostic? raise @dia
 #deprecated
 pub fn ExecutionError::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror SchedulerError {
   InvalidJobs(Int32)
   DuplicateTask(Int32)
   UnknownDependency(task~ : Int32, dependency~ : Int32)
   SelfDependency(Int32)
   DependencyCycle(Array[Int32])
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn SchedulerError::equal(Self, Self) -> Bool
 #deprecated
@@ -98,6 +96,7 @@ pub fn SchedulerError::not_equal(Self, Self) -> Bool
 pub fn SchedulerError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq)
 pub struct CacheDirective {
   recipe : String
   body : String
@@ -110,7 +109,7 @@ pub struct CacheDirective {
   extra : String
   inputs : Array[String]
   outputs : Array[String]
-} derive(Eq)
+}
 pub fn CacheDirective::body(Self) -> String
 pub fn CacheDirective::environment(Self) -> ArrayView[(String, String)]
 #deprecated
@@ -130,6 +129,7 @@ pub fn CacheDirective::to_repr(Self) -> @debug.Repr
 pub fn CacheDirective::working_directory(Self) -> @path.PathValue
 pub impl @debug.Debug for CacheDirective
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CommandColor {
   Bold
   Black
@@ -140,7 +140,7 @@ pub(all) enum CommandColor {
   Magenta
   Cyan
   White
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn CommandColor::equal(Self, Self) -> Bool
 #deprecated
@@ -148,11 +148,12 @@ pub fn CommandColor::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn CommandColor::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct ConfirmationRequest {
   recipe : String
   prompt : String
   is_dependency : Bool
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn ConfirmationRequest::equal(Self, Self) -> Bool
 pub fn ConfirmationRequest::is_dependency(Self) -> Bool
@@ -164,6 +165,7 @@ pub fn ConfirmationRequest::recipe(Self) -> String
 #deprecated
 pub fn ConfirmationRequest::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
@@ -180,7 +182,7 @@ pub struct ExecutionOptions {
   explain : Bool
   color_enabled : Bool
   guards : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn ExecutionOptions::cache_enabled(Self) -> Bool
 pub fn ExecutionOptions::color_enabled(Self) -> Bool
 pub fn ExecutionOptions::command_color(Self) -> CommandColor?
@@ -236,11 +238,12 @@ pub fn ExecutionPlan::to_repr(Self) -> @debug.Repr
 pub fn ExecutionPlan::with_stderr_prefix(Self, BytesView) -> Self
 pub impl @debug.Debug for ExecutionPlan
 
+#derive(Eq)
 pub struct ExecutionReport {
   stdout : Bytes
   stderr : Bytes
   commands : Int32
-} derive(Eq)
+}
 pub fn ExecutionReport::commands(Self) -> Int32
 #deprecated
 pub fn ExecutionReport::equal(Self, Self) -> Bool
@@ -282,6 +285,7 @@ pub struct MaterializedScript {
 pub fn MaterializedScript::path(Self) -> @path.PathValue
 pub fn MaterializedScript::spec(Self) -> @host.CommandSpec
 
+#derive(Eq)
 pub struct PlannedCommand {
   spec : @host.CommandSpec
   recipe : String
@@ -290,7 +294,7 @@ pub struct PlannedCommand {
   echo : Bytes
   is_guard : Bool
   continue_signals : Array[@host.SignalKind]
-} derive(Eq)
+}
 pub fn PlannedCommand::continue_signals(Self) -> ArrayView[@host.SignalKind]
 pub fn PlannedCommand::echo(Self) -> BytesView
 #deprecated
@@ -328,6 +332,7 @@ pub fn PlannedLine::recipe(Self) -> String
 pub fn PlannedLine::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for PlannedLine
 
+#derive(Eq)
 pub struct PlannedScript {
   recipe : String
   contents : Bytes
@@ -338,7 +343,7 @@ pub struct PlannedScript {
   positional : Array[String]
   quiet : Bool
   continue_signals : Array[@host.SignalKind]
-} derive(Eq)
+}
 pub fn PlannedScript::configuration(Self) -> ScriptConfiguration
 pub fn PlannedScript::contents(Self) -> BytesView
 pub fn PlannedScript::continue_signals(Self) -> ArrayView[@host.SignalKind]
@@ -355,14 +360,16 @@ pub fn PlannedScript::recipe(Self) -> String
 pub fn PlannedScript::to_repr(Self) -> @debug.Repr
 pub impl @debug.Debug for PlannedScript
 
+#derive(@debug.Debug)
 pub(all) enum PlannedStep {
   Command(PlannedCommand, Bytes)
   Script(PlannedScript, Bytes)
   Line(PlannedLine)
-} derive(@debug.Debug)
+}
 #deprecated
 pub fn PlannedStep::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct ProjectModuleRuntime {
   module_path : @modulepath.ModulePath
   global : @evaluator.Environment
@@ -371,7 +378,7 @@ pub struct ProjectModuleRuntime {
   cwd : @path.PathValue
   process_environment : Array[(String, String)]
   configuration : ScriptConfiguration
-} derive(@debug.Debug)
+}
 pub fn ProjectModuleRuntime::configuration(Self) -> ScriptConfiguration
 pub fn ProjectModuleRuntime::context(Self) -> @evaluator.EvaluationContext
 pub fn ProjectModuleRuntime::cwd(Self) -> @path.PathValue
@@ -383,11 +390,12 @@ pub fn ProjectModuleRuntime::shell(Self) -> @environment.ShellConfiguration
 #deprecated
 pub fn ProjectModuleRuntime::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct ProjectRecipeRequest {
   module_path : @modulepath.ModulePath
   recipe : String
   arguments : Array[@value.Value]
-} derive(Eq, @debug.Debug)
+}
 pub fn ProjectRecipeRequest::arguments(Self) -> ArrayView[@value.Value]
 #deprecated
 pub fn ProjectRecipeRequest::equal(Self, Self) -> Bool
@@ -399,10 +407,11 @@ pub fn ProjectRecipeRequest::recipe(Self) -> String
 #deprecated
 pub fn ProjectRecipeRequest::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct RecipeRequest {
   recipe : String
   arguments : Array[@value.Value]
-} derive(Eq, @debug.Debug)
+}
 pub fn RecipeRequest::arguments(Self) -> ArrayView[@value.Value]
 #deprecated
 pub fn RecipeRequest::equal(Self, Self) -> Bool
@@ -413,11 +422,12 @@ pub fn RecipeRequest::recipe(Self) -> String
 #deprecated
 pub fn RecipeRequest::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct Schedule {
   jobs : Int32
   waves : Array[Array[Int32]]
   order : Array[Int32]
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Schedule::equal(Self, Self) -> Bool
 pub fn Schedule::jobs(Self) -> Int32
@@ -429,12 +439,13 @@ pub fn Schedule::peak(Self) -> Int32
 pub fn Schedule::to_repr(Self) -> @debug.Repr
 pub fn Schedule::waves(Self) -> ArrayView[Array[Int32]]
 
+#derive(Eq, @debug.Debug)
 pub struct ScriptConfiguration {
   interpreter : @environment.ShellConfiguration
   temporary_directory : @path.PathValue
   extension : String?
   platform : @host.PlatformInfo
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn ScriptConfiguration::equal(Self, Self) -> Bool
 pub fn ScriptConfiguration::extension(Self) -> String?
@@ -447,11 +458,12 @@ pub fn ScriptConfiguration::temporary_directory(Self) -> @path.PathValue
 #deprecated
 pub fn ScriptConfiguration::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct TaskSpec {
   id : Int32
   order : Int32
   dependencies : Array[Int32]
-} derive(Eq, @debug.Debug)
+}
 pub fn TaskSpec::dependencies(Self) -> ArrayView[Int32]
 #deprecated
 pub fn TaskSpec::equal(Self, Self) -> Bool

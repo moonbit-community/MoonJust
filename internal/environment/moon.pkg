@@ -1,5 +1,8 @@
 import {
   "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/lexer",
   "ZSeanYves/MoonJust/internal/path",
   "moonbitlang/core/encoding/utf8",
 }
+
+supported_targets = "wasm"

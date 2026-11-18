@@ -8,14 +8,15 @@ import {
 }
 
 // Values
-pub async fn[P : @host.HostAsyncProcess, S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan(P, S, H, @planner.ExecutionPlan) -> @planner.ExecutionReport raise RuntimeError
+pub async fn[P : @host.HostProcess, S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan(P, S, H, @planner.ExecutionPlan) -> @planner.ExecutionReport raise RuntimeError
 
-pub async fn[P : @host.HostAsyncProcess, O : @host.HostAsyncOutput, S : @host.HostFs + @host.HostAsyncScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan_live(P, O, S, H, @planner.ExecutionPlan) -> ExecutionSummary raise LiveRuntimeError
+pub async fn[P : @host.HostProcess, O : @host.HostAsyncOutput, S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan_live(P, O, S, H, @planner.ExecutionPlan) -> ExecutionSummary raise LiveRuntimeError
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror LiveRuntimeError {
   LiveExecution(error~ : @planner.ExecutionError, commands~ : Int32, show_message~ : Bool)
-} derive(@debug.Debug)
+}
 pub fn LiveRuntimeError::commands(Self) -> Int32
 pub fn LiveRuntimeError::error(Self) -> @planner.ExecutionError
 pub fn LiveRuntimeError::exit_code(Self) -> Int32
@@ -24,9 +25,10 @@ pub fn LiveRuntimeError::show_message(Self) -> Bool
 #deprecated
 pub fn LiveRuntimeError::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) suberror RuntimeError {
   Execution(error~ : @planner.ExecutionError, stdout~ : Bytes, stderr~ : Bytes, commands~ : Int32)
-} derive(@debug.Debug)
+}
 pub fn RuntimeError::commands(Self) -> Int32
 pub fn RuntimeError::error(Self) -> @planner.ExecutionError
 pub fn RuntimeError::exit_code(Self) -> Int32
@@ -37,9 +39,10 @@ pub fn RuntimeError::stdout(Self) -> BytesView
 pub fn RuntimeError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct ExecutionSummary {
   commands : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn ExecutionSummary::commands(Self) -> Int32
 #deprecated
 pub fn ExecutionSummary::equal(Self, Self) -> Bool

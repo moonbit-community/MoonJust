@@ -54,7 +54,7 @@ async fn clean_execution_cache_temporary(
 ) -> Unit raise @host.HostError {
   let path = execution_cache_child(directory, "." + digest + ".tmp")
   try @async_fs.remove(path.as_string()) catch {
-    @os_error.OSError(_) as error if error.is_ENOENT() => ()
+    @os_error.OsError(NotFound, ..) => ()
     error => raise execution_cache_error(error)
   } noraise {
     _ => ()
@@ -82,10 +82,9 @@ fn execution_cache_storage_key(
 ///|
 fn execution_cache_error(error : Error) -> @host.HostError {
   match error {
-    @os_error.OSError(_) as value if value.is_EACCES() =>
+    @os_error.OsError(AccessDenied, ..) =>
       PermissionDenied(FsWrite, detail="cache filesystem permission denied")
-    @os_error.OSError(_) as value if value.is_ENOENT() =>
-      InvalidInput("cache path does not exist")
+    @os_error.OsError(NotFound, ..) => InvalidInput("cache path does not exist")
     _ => InvalidInput("cache filesystem operation failed: " + error.to_string())
   }
 }
@@ -100,7 +99,7 @@ pub impl @host.HostCacheStore for ExecutionFs with fn acquire_cache_lease(
     raise InvalidInput("invalid cache digest")
   }
   @async_fs.mkdir(directory.as_string(), permission=0o700, recursive=true) catch {
-    @os_error.OSError(_) as error if error.is_EEXIST() => ()
+    @os_error.OsError(AlreadyExists, ..) => ()
     error => raise execution_cache_error(error)
   }
   let lock_path = execution_cache_child(directory, digest + ".json")
@@ -159,11 +158,11 @@ pub impl @host.HostCacheStore for ExecutionFs with fn read_cache_manifest(
     return None
   }
   let length = Int64::min(size, (@cache.MAX_MANIFEST_BYTES + 1).to_int64()).to_int()
-  let buffer = FixedArray::make(length, b'\x00')
-  let count = file.read_at(buffer, position=0) catch {
-    error => raise execution_cache_error(error)
-  }
-  Some(buffer.unsafe_reinterpret_as_bytes()[:count].to_owned())
+  Some(
+    file.at(0L).read_exactly(length) catch {
+      error => raise execution_cache_error(error)
+    },
+  )
 }
 
 ///|
@@ -180,7 +179,7 @@ pub impl @host.HostCacheStore for ExecutionFs with fn write_cache_manifest(
     lease.directory(),
     lease.digest() + ".json",
   )
-  @async_fs.write_file(
+  @async_fs.write_binary(
     destination.as_string(),
     contents,
     create_mode=CreateOrTruncate,
@@ -225,41 +224,39 @@ async fn clean_execution_cache_entry(
   recipe_prefix : String?,
 ) -> Bool raise @host.HostError {
   let lease = @host.HostCacheStore::acquire_cache_lease(host, directory, digest)
-  try
-    @async.with_task_group() <| group => {
-      group.add_defer(() => {
-        try @host.HostCacheStore::release_cache_lease(host, lease) catch {
-          _ => ()
-        } noraise {
-          _ => ()
-        }
-      })
-      if recipe_prefix is Some(prefix) {
-        match @host.HostCacheStore::read_cache_manifest(host, lease) {
-          Some(bytes) => {
-            let text = @utf8.decode(bytes) catch {
-              _ => raise @host.InvalidInput("failed to decode cache manifest")
-            }
-            let manifest = @cache.decode_manifest(text) catch {
-              _ => raise @host.InvalidInput("failed to parse cache manifest")
-            }
-            if manifest.recipe() != prefix &&
-              !manifest.recipe().has_prefix(prefix + "::") {
-              return false
-            }
-          }
-          None => ()
-        }
-      }
-      let path = execution_cache_child(directory, name)
-      try @async_fs.remove(path.as_string()) catch {
-        @os_error.OSError(_) as error if error.is_ENOENT() => false
-        error => raise execution_cache_error(error)
+  try {
+    defer @async.protect_from_cancel(() => {
+      try @host.HostCacheStore::release_cache_lease(host, lease) catch {
+        _ => ()
       } noraise {
-        _ => true
+        _ => ()
+      }
+    })
+    if recipe_prefix is Some(prefix) {
+      match @host.HostCacheStore::read_cache_manifest(host, lease) {
+        Some(bytes) => {
+          let text = @utf8.decode(bytes) catch {
+            _ => raise @host.InvalidInput("failed to decode cache manifest")
+          }
+          let manifest = @cache.decode_manifest(text) catch {
+            _ => raise @host.InvalidInput("failed to parse cache manifest")
+          }
+          if manifest.recipe() != prefix &&
+            !manifest.recipe().has_prefix(prefix + "::") {
+            return false
+          }
+        }
+        None => ()
       }
     }
-  catch {
+    let path = execution_cache_child(directory, name)
+    try @async_fs.remove(path.as_string()) catch {
+      @os_error.OsError(NotFound, ..) => false
+      error => raise execution_cache_error(error)
+    } noraise {
+      _ => true
+    }
+  } catch {
     error => raise execution_cache_error(error)
   }
 }
@@ -281,7 +278,7 @@ pub impl @host.HostCacheStore for ExecutionFs with fn clean_cache(
   recipe_prefix : String?,
 ) -> Int32 raise @host.HostError {
   let names = try @async_fs.readdir(directory.as_string(), sort=true) catch {
-    @os_error.OSError(_) as error if error.is_ENOENT() => return 0
+    @os_error.OsError(NotFound, ..) => return 0
     error => raise execution_cache_error(error)
   } noraise {
     value => value
@@ -302,8 +299,8 @@ pub impl @host.HostCacheStore for ExecutionFs with fn clean_cache(
     error => raise execution_cache_error(error)
   }
   if remaining.is_empty() {
-    try @async_fs.rmdir(directory.as_string()) catch {
-      @os_error.OSError(_) as error if error.is_ENOENT() => ()
+    try @async_fs.remove(directory.as_string()) catch {
+      @os_error.OsError(NotFound, ..) => ()
       error => raise execution_cache_error(error)
     } noraise {
       _ => ()

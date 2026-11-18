@@ -1,7 +1,7 @@
 ///|
 /// Pull a file through a bounded buffer. The callback observes chunks in file
 /// order and never receives more than `chunk_size` bytes.
-pub fn[T : @host.HostFs] stream_file(
+pub async fn[T : @host.HostFs] stream_file(
   host : T,
   path : @path.PathValue,
   consume : (Bytes) -> Unit,
@@ -14,9 +14,10 @@ pub fn[T : @host.HostFs] stream_file(
   if !metadata.is_file() {
     raise InvalidInput("stream source must be a file")
   }
+  let size = @host.HostFs::file_size(host, path)
   let mut offset = 0L
-  while offset < metadata.size() {
-    let remaining = metadata.size() - offset
+  while offset < size {
+    let remaining = size - offset
     let length = if remaining < chunk_size.to_int64() {
       remaining.to_int()
     } else {
@@ -29,14 +30,14 @@ pub fn[T : @host.HostFs] stream_file(
     consume(bytes)
     offset += bytes.length().to_int64()
   }
-  if metadata.size() == 0L {
+  if size == 0L {
     consume(b"")
   }
 }
 
 ///|
 /// Compatibility collector for callers that explicitly need all chunks.
-pub fn[T : @host.HostFs] read_file_chunks(
+pub async fn[T : @host.HostFs] read_file_chunks(
   host : T,
   path : @path.PathValue,
   chunk_size~ : Int32 = 64 * 1024,

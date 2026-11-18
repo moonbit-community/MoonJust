@@ -1,5 +1,6 @@
 ///|
 /// Token categories emitted by the `just` 1.57.0-compatible lexer.
+#derive(Eq, Compare, Hash, Debug)
 pub(all) enum TokenKind {
   AmpersandAmpersand
   Asterisk
@@ -43,7 +44,7 @@ pub(all) enum TokenKind {
   Text
   Unspecified
   Whitespace
-} derive(Eq, Compare, Hash, Debug)
+}
 
 ///|
 /// Return the stable source spelling used in diagnostics and snapshots.
@@ -96,10 +97,11 @@ pub fn TokenKind::as_string(self : TokenKind) -> String {
 
 ///|
 /// A token paired with its half-open UTF-8 byte span.
+#derive(Eq, Debug)
 pub struct Token {
   kind : TokenKind
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 /// Construct a token. This is public for parser fixtures and tooling adapters.
@@ -136,10 +138,11 @@ pub fn Token::lexeme(
 
 ///|
 /// Immutable result of lexing one source.
+#derive(Debug)
 pub struct TokenStream {
   source_id : @source.SourceId
   tokens : Array[Token]
-} derive(Debug)
+}
 
 ///|
 /// Return the source identity associated with this stream.

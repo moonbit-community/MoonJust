@@ -1,9 +1,10 @@
 ///|
 /// Path rules to apply independently of the current host platform.
+#derive(Eq, Hash, Debug)
 pub(all) enum PathFlavor {
   Unix
   Windows
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 pub fn PathFlavor::separator(self : PathFlavor) -> Char {
@@ -30,10 +31,11 @@ priv struct ParsedPath {
 
 ///|
 /// A normalized lexical path with explicit Unix or Windows semantics.
+#derive(Eq, Hash, Debug)
 pub struct PathValue {
   value : String
   flavor : PathFlavor
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 fn canonical_separators(raw : String, flavor : PathFlavor) -> String {

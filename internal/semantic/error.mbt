@@ -1,36 +1,37 @@
 ///|
 /// Static errors found while compiling a syntax tree.
+#derive(Eq, Debug)
 pub(all) suberror SemanticError {
   Parse(@parser.ParserError)
   DuplicateRecipe(name~ : String, first~ : @source.Span, second~ : @source.Span)
   DuplicateVariable(
     name~ : String,
     first~ : @source.Span,
-    second~ : @source.Span
+    second~ : @source.Span,
   )
   DuplicateFunction(
     name~ : String,
     first~ : @source.Span,
-    second~ : @source.Span
+    second~ : @source.Span,
   )
   SymbolRedefinition(
     name~ : String,
     first_kind~ : String,
     second_kind~ : String,
     first~ : @source.Span,
-    second~ : @source.Span
+    second~ : @source.Span,
   )
   DuplicateFunctionParameter(
     function_name~ : String,
     parameter~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   UndefinedFunction(name~ : String, span~ : @source.Span)
   FunctionArgumentCount(
     name~ : String,
     expected~ : String,
     actual~ : Int32,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   UserFunctionsUnstable(span~ : @source.Span)
   ListsUnstable(span~ : @source.Span)
@@ -40,7 +41,7 @@ pub(all) suberror SemanticError {
   UnknownAliasTarget(
     alias_name~ : String,
     target~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   UnknownDependency(recipe~ : String, target~ : String, span~ : @source.Span)
   UndefinedVariable(name~ : String, span~ : @source.Span)
@@ -51,13 +52,13 @@ pub(all) suberror SemanticError {
   RecipeDependencyCycle(
     recipe~ : String,
     chain~ : Array[String],
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   InvalidParameters(name~ : String, span~ : @source.Span)
   DuplicateRecipeParameter(
     recipe~ : String,
     parameter~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   ParameterFollowsDefault(parameter~ : String, span~ : @source.Span)
   ParameterFollowsVariadic(parameter~ : String, span~ : @source.Span)
@@ -65,27 +66,27 @@ pub(all) suberror SemanticError {
     name~ : String,
     expected~ : String,
     actual~ : Int32,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   SettingConflict(
     first~ : String,
     second~ : String,
     first_span~ : @source.Span,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   InvalidSettingValue(name~ : String, span~ : @source.Span)
   EmptySetting(name~ : String, span~ : @source.Span)
   MinimumVersionUnsatisfied(
     required~ : String,
     current~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   InvalidMinimumVersion(value~ : String, span~ : @source.Span)
   AttributeConflict(first~ : String, second~ : String, span~ : @source.Span)
   DuplicateAttribute(
     name~ : String,
     first~ : @source.Span,
-    second~ : @source.Span
+    second~ : @source.Span,
   )
   DuplicateGroup(name~ : String, first~ : @source.Span, second~ : @source.Span)
   NoCdWorkingDirectoryAttributes(recipe~ : String, span~ : @source.Span)
@@ -95,7 +96,7 @@ pub(all) suberror SemanticError {
   ScriptAttributeOnShellRecipe(
     recipe~ : String,
     attribute~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   DuplicateDefaultAttribute(recipe~ : String, span~ : @source.Span)
   DuplicateUnexport(variable~ : String, span~ : @source.Span)
@@ -105,11 +106,11 @@ pub(all) suberror SemanticError {
     item_kind~ : String,
     item_name~ : String,
     attribute~ : String,
-    span~ : @source.Span
+    span~ : @source.Span,
   )
   ListsFeature(message~ : String, span~ : @source.Span)
   UnsupportedPlatform(name~ : String, span~ : @source.Span)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn SemanticError::code(self : SemanticError) -> String {

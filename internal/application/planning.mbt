@@ -1,6 +1,6 @@
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] invocation_values_async(
   process : P,
@@ -97,8 +97,8 @@ async fn[
 
 ///|
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
-  P : @host.HostAsyncProcess,
+  F : @host.HostFs,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] evaluate_project_globals_async(
   filesystem : F,
@@ -162,7 +162,6 @@ async fn[
     let (_, dotenv) = compose_dotenv_environment_async(
       filesystem,
       process,
-      platform.portable_runtime(),
       compilation,
       arguments,
       seed,
@@ -285,8 +284,8 @@ async fn[
 /// validation, and effectful interpolation are complete before runtime steps
 /// are handed to the process adapter.
 async fn[
-  F : @host.HostFs + @host.HostSourceReader,
-  P : @host.HostAsyncProcess,
+  F : @host.HostFs,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] plan_run_command_async(
   filesystem : F,
@@ -324,7 +323,7 @@ async fn[
         (snapshot.directories(), snapshot.compilation())
       }
       None => {
-        let (graph, directories) = load_graph_input_with_directories_async(
+        let (graph, directories) = load_graph_input_with_directories(
           filesystem,
           arguments,
           current_context,

@@ -32,6 +32,7 @@ pub fn sha256_bytes(Bytes) -> String
 pub fn sha256_chunks(ArrayView[Bytes]) -> String
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror BuiltinError {
   Unknown(name~ : String)
   Arity(name~ : String, expected~ : String, actual~ : Int32)
@@ -41,7 +42,7 @@ pub(all) suberror BuiltinError {
   InvalidPattern(value~ : String, detail~ : String)
   Unsupported(name~ : String)
   Failure(message~ : String)
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn BuiltinError::equal(Self, Self) -> Bool
 pub fn BuiltinError::message(Self) -> String
@@ -65,6 +66,7 @@ pub struct Blake3StackEntry {
   chaining_value : Array[UInt32]
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BuiltinCapability {
   Context
   FsRead
@@ -74,7 +76,7 @@ pub(all) enum BuiltinCapability {
   Process
   Platform
   Terminal
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn BuiltinCapability::equal(Self, Self) -> Bool
 #deprecated
@@ -82,10 +84,11 @@ pub fn BuiltinCapability::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn BuiltinCapability::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BuiltinPurity {
   Pure
   Effect
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn BuiltinPurity::equal(Self, Self) -> Bool
 #deprecated
@@ -93,6 +96,7 @@ pub fn BuiltinPurity::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn BuiltinPurity::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct BuiltinSpec {
   name : String
   purity : BuiltinPurity
@@ -102,7 +106,7 @@ pub(all) struct BuiltinSpec {
   capabilities : Array[BuiltinCapability]
   targets : Array[BuiltinTarget]
   evidence : String
-} derive(Eq, @debug.Debug)
+}
 pub fn BuiltinSpec::accepts_arity(Self, Int32) -> Bool
 pub fn BuiltinSpec::aliases(Self) -> ArrayView[String]
 pub fn BuiltinSpec::arity_description(Self) -> String
@@ -120,10 +124,11 @@ pub fn BuiltinSpec::targets(Self) -> ArrayView[BuiltinTarget]
 #deprecated
 pub fn BuiltinSpec::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BuiltinTarget {
   Native
   Wasm1
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn BuiltinTarget::equal(Self, Self) -> Bool
 #deprecated

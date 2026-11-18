@@ -1,11 +1,12 @@
 ///|
 /// A deterministic scheduler task. `order` is the stable source-order tie
 /// breaker used whenever multiple tasks become runnable together.
+#derive(Eq, Debug)
 pub struct TaskSpec {
   id : Int32
   order : Int32
   dependencies : Array[Int32]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn TaskSpec::new(
@@ -32,20 +33,22 @@ pub fn TaskSpec::dependencies(self : TaskSpec) -> ArrayView[Int32] {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) suberror SchedulerError {
   InvalidJobs(Int32)
   DuplicateTask(Int32)
   UnknownDependency(task~ : Int32, dependency~ : Int32)
   SelfDependency(Int32)
   DependencyCycle(Array[Int32])
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub struct Schedule {
   jobs : Int32
   waves : Array[Array[Int32]]
   order : Array[Int32]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Schedule::jobs(self : Schedule) -> Int32 {

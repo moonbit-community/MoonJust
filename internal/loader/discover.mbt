@@ -1,6 +1,6 @@
 ///|
 /// Discover a justfile without consulting global process state.
-pub fn[T : @host.HostFs] discover(
+pub async fn[T : @host.HostFs] discover(
   host : T,
   start : @path.PathValue,
   options~ : SearchOptions = SearchOptions::new(),
@@ -49,77 +49,6 @@ pub fn[T : @host.HostFs] discover(
     None => ()
   }
   raise NoJustfileFound(start~, filename=options.filename())
-}
-
-///|
-/// Read and parse an already-discovered justfile through HostFs only.
-pub fn[T : @host.HostFs] load(
-  host : T,
-  path : @path.PathValue,
-  source_id : @source.SourceId,
-  environment~ : ArrayView[(String, String)] = [],
-) -> LoadedSource raise LoaderError {
-  let bytes = @host.HostFs::read_file(host, path) catch {
-    error => raise Host(error)
-  }
-  let source = source_from_file_bytes(bytes, source_id, path)
-  let ast = parse_loaded_source(source, environment~)
-  let canonical_path = @host.HostFs::canonicalize(host, path) catch {
-    error => raise Host(error)
-  }
-  {
-    path,
-    canonical_path,
-    source,
-    ast,
-    parent: None,
-    import_span: None,
-    relation: RootSource,
-    module_path: @modulepath.ModulePath::root(),
-    module_directory: source_directory(path),
-  }
-}
-
-///|
-/// Reuse bytes during one graph load. Markdown is intentionally excluded: its
-/// loaded source is the tangled representation rather than the raw file.
-fn[T : @host.HostFs] load_cached(
-  host : T,
-  path : @path.PathValue,
-  canonical : @path.PathValue,
-  source_id : @source.SourceId,
-  cache : Map[String, Bytes],
-  environment : ArrayView[(String, String)],
-) -> LoadedSource raise LoaderError {
-  if is_markdown_path(path) {
-    return load(host, path, source_id, environment~)
-  }
-  let key = canonical.as_string()
-  match cache.get(key) {
-    Some(bytes) => {
-      let source = source_from_file_bytes(bytes, source_id, path)
-      let ast = parse_loaded_source(source, environment~)
-      {
-        path,
-        canonical_path: canonical,
-        source,
-        ast,
-        parent: None,
-        import_span: None,
-        relation: RootSource,
-        module_path: @modulepath.ModulePath::root(),
-        module_directory: source_directory(path),
-      }
-    }
-    None => {
-      // Keep the first read on the established loader path. Besides retaining
-      // exact error ordering, this avoids changing host behavior for module
-      // candidates whose canonical path is only a planning hint.
-      let loaded = load(host, path, source_id, environment~)
-      cache[key] = loaded.source().bytes().to_owned()
-      loaded
-    }
-  }
 }
 
 ///|
@@ -182,7 +111,7 @@ pub fn load_markdown(
 
 ///|
 /// Discover and load using the caller's current directory.
-pub fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(
+pub async fn[T : @host.HostFs + @host.HostEnv] load_from_current_dir(
   host : T,
   source_id : @source.SourceId,
   options~ : SearchOptions = SearchOptions::new(),

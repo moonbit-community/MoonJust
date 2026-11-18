@@ -1,7 +1,7 @@
 ///|
 async fn[
-  P : @host.HostAsyncProcess,
-  S : @host.HostAsyncScriptTemp,
+  P : @host.HostProcess,
+  S : @host.HostScriptTemp,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] execute_steps(
   process : P,
@@ -29,10 +29,7 @@ async fn[
         for byte in echo {
           stderr.push(byte)
         }
-        let result = @host.HostAsyncProcess::run_process_async(
-          process,
-          command.spec(),
-        ) catch {
+        let result = @host.HostProcess::run_process(process, command.spec()) catch {
           error =>
             raise runtime_failure(
               shell_launch_error(
@@ -61,50 +58,28 @@ async fn[
         if initial_stderr.is_empty() && script.contents().is_empty() {
           continue
         }
-        let result = try
-          @async.with_task_group() <| group => {
-            let materialized = @planner.materialize_script_async(
-              scripts, script,
-            ) catch {
-              error => raise runtime_failure(error, stdout, stderr, commands)
-            }
-            group.add_defer(() => {
-              try
-                @async.protect_from_cancel(() => {
-                  @planner.cleanup_materialized_script_async(
-                    scripts, materialized,
-                  )
-                })
-              catch {
-                _ => ()
-              } noraise {
-                _ => ()
-              }
-            })
-            @host.HostAsyncProcess::run_process_async(
-              process,
-              materialized.spec(),
-            ) catch {
-              error =>
-                raise runtime_failure(
-                  @planner.ExecutionError::host(error),
-                  stdout,
-                  stderr,
-                  commands,
-                )
-            }
+        let result = {
+          let materialized = @planner.materialize_script(scripts, script) catch {
+            error => raise runtime_failure(error, stdout, stderr, commands)
           }
-        catch {
-          Execution(..) as failure => raise failure
-          _ =>
-            raise runtime_failure(
-              @planner.ExecutionError::host(InvalidInput("script task failed")),
-              stdout,
-              stderr,
-              commands,
-            )
-        } noraise {
-          value => value
+          defer (try
+            @async.protect_from_cancel(() => {
+              @planner.cleanup_materialized_script(scripts, materialized)
+            })
+          catch {
+            _ => ()
+          } noraise {
+            _ => ()
+          })
+          @host.HostProcess::run_process(process, materialized.spec()) catch {
+            error =>
+              raise runtime_failure(
+                @planner.ExecutionError::host(error),
+                stdout,
+                stderr,
+                commands,
+              )
+          }
         }
         (script.recipe(), 0, false, false, script.continue_signals(), result)
       }
@@ -117,10 +92,7 @@ async fn[
         for byte in echo {
           stderr.push(byte)
         }
-        let result = @host.HostAsyncProcess::run_process_async(
-          process,
-          command.spec(),
-        ) catch {
+        let result = @host.HostProcess::run_process(process, command.spec()) catch {
           error =>
             raise runtime_failure(
               shell_launch_error(

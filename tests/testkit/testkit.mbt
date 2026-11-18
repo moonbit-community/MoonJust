@@ -1,4 +1,14 @@
 ///|
+pub fn runner_os() -> String {
+  match @async.platform {
+    Linux => "linux"
+    MacOS => "macos"
+    Windows => "windows"
+    @types.Platform::.. => "unknown"
+  }
+}
+
+///|
 pub(all) struct RunResult {
   status : Int32
   stdout : Bytes
@@ -198,48 +208,25 @@ async fn collect(
   no_console_window : Bool,
 ) -> RunResult {
   let input = match stdin_path {
-    Some(path) => Some(@process.redirect_from_file(path))
-    None => None
+    Some(path) => @process.ProcessInput::FromFile(path)
+    None => Empty
   }
-  let output = match (input, cwd) {
-    (Some(source), Some(directory)) =>
-      @process.collect_output(
-        program,
-        args,
-        extra_env~,
-        inherit_env~,
-        stdin=source,
-        cwd=directory,
-        no_console_window~,
-      )
-    (Some(source), None) =>
-      @process.collect_output(
-        program,
-        args,
-        extra_env~,
-        inherit_env~,
-        stdin=source,
-        no_console_window~,
-      )
-    (None, Some(directory)) =>
-      @process.collect_output(
-        program,
-        args,
-        extra_env~,
-        inherit_env~,
-        cwd=directory,
-        no_console_window~,
-      )
-    (None, None) =>
-      @process.collect_output(
-        program,
-        args,
-        extra_env~,
-        inherit_env~,
-        no_console_window~,
-      )
+  let output = @process.run(
+    program,
+    args,
+    stdin=input,
+    stdout=Collect,
+    stderr=Collect,
+    cwd?=cwd.map(s => s[:]),
+    extra_env~,
+    inherit_env~,
+    no_console_window~,
+  )
+  {
+    status: output.exit_code,
+    stdout: output.stdout_binary(),
+    stderr: output.stderr_binary(),
   }
-  { status: output.0, stdout: output.1.binary(), stderr: output.2.binary(), }
 }
 
 ///|
@@ -276,14 +263,14 @@ pub async fn run_prepared_bytes(
     None => None
   }
   defer (if input_dir is Some(path) {
-    @fs.rmdir(path, recursive=true) catch {
+    @fs.remove(path, recursive=true) catch {
       _ => ()
     }
   })
   let input = match (input_dir, stdin) {
     (Some(dir), Some(data)) => {
       let path = @path.Path(dir).join(Path("stdin.bin")).to_string()
-      @fs.write_file(path, data)
+      @fs.write_binary(path, data)
       Some(path)
     }
     _ => None
@@ -306,14 +293,14 @@ pub async fn run(
     None => None
   }
   defer (if input_dir is Some(path) {
-    @fs.rmdir(path, recursive=true) catch {
+    @fs.remove(path, recursive=true) catch {
       _ => ()
     }
   })
   let input = match (input_dir, stdin) {
     (Some(dir), Some(data)) => {
       let path = @path.Path(dir).join(Path("stdin.bin")).to_string()
-      @fs.write_file(path, data)
+      @fs.write_binary(path, data)
       Some(path)
     }
     _ => None
@@ -340,20 +327,22 @@ pub async fn run_merged(
 ) -> (Int32, Bytes) {
   let program = resolve_program(program)
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
-  defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
+  defer (@fs.remove(input_dir, recursive=true) catch { _ => () })
   let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
-  @fs.write_file(input_path, stdin)
+  @fs.write_binary(input_path, stdin)
   let input = @process.redirect_from_file(input_path)
-  let output = @process.collect_output_merged(
+  let output = @process.run(
     program,
     args,
     extra_env~,
     inherit_env~,
-    stdin=input,
+    stdin=Shared(input),
+    stdout=Collect,
+    stderr=DuplicateStdout,
     cwd~,
     no_console_window=true,
   )
-  (output.0, output.1.binary())
+  (output.exit_code, output.stdout_binary())
 }
 
 ///|
@@ -366,20 +355,22 @@ pub async fn run_merged_prepared(
   inherit_env~ : Bool = false,
 ) -> (Int32, Bytes) {
   let input_dir = @fs.tmpdir(prefix="moonjust-input")
-  defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
+  defer (@fs.remove(input_dir, recursive=true) catch { _ => () })
   let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
-  @fs.write_file(input_path, stdin)
+  @fs.write_binary(input_path, stdin)
   let input = @process.redirect_from_file(input_path)
-  let output = @process.collect_output_merged(
+  let output = @process.run(
     program.executable,
     program.arguments(args),
     extra_env~,
     inherit_env~,
-    stdin=input,
+    stdin=Shared(input),
+    stdout=Collect,
+    stderr=DuplicateStdout,
     cwd~,
     no_console_window=true,
   )
-  (output.0, output.1.binary())
+  (output.exit_code, output.stdout_binary())
 }
 
 ///|
@@ -416,56 +407,16 @@ pub async fn run_live_stdout(
   timeout_ms : Int32,
   inherit_env~ : Bool = false,
 ) -> LiveRunResult {
-  let program = resolve_program(program)
-  let input_dir = @fs.tmpdir(prefix="moonjust-input")
-  defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
-  let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
-  @fs.write_file(input_path, stdin)
-  let input = @process.redirect_from_file(input_path)
-  let (stdout_reader, stdout_writer) = @process.read_from_process()
-  let (stderr_reader, stderr_writer) = @process.read_from_process()
-  @async.with_task_group() <| group => {
-    let started = @async.now()
-    let child = @process.spawn(
-      group,
-      program,
-      args,
-      extra_env~,
-      inherit_env~,
-      stdin=input,
-      stdout=stdout_writer,
-      stderr=stderr_writer,
-      cwd~,
-      no_console_window=true,
-    )
-    let stdout_task = group.spawn(() => {
-      defer stdout_reader.close()
-      let output : Array[Byte] = []
-      let mut observed = false
-      while stdout_reader.read_some(max_len=64 * 1024) is Some(chunk) {
-        for byte in chunk {
-          output.push(byte)
-        }
-        if !observed &&
-          @async.now() - started <= timeout_ms.to_int64() &&
-          array_contains_bytes(output, prefix[:]) {
-          observed = true
-        }
-      }
-      (Bytes::from_array(output), observed)
-    })
-    let stderr_task = group.spawn(() => {
-      defer stderr_reader.close()
-      stderr_reader.read_all().binary()
-    })
-    let stdout_result = stdout_task.wait()
-    {
-      status: child.wait(),
-      stdout: stdout_result.0,
-      stderr: stderr_task.wait(),
-      observed: stdout_result.1,
-    }
-  }
+  run_live_stdout_prepared(
+    prepare_program(program),
+    args,
+    stdin,
+    cwd,
+    extra_env,
+    prefix,
+    timeout_ms,
+    inherit_env~,
+  )
 }
 
 ///|
@@ -479,55 +430,55 @@ pub async fn run_live_stdout_prepared(
   timeout_ms : Int32,
   inherit_env~ : Bool = false,
 ) -> LiveRunResult {
-  let input_dir = @fs.tmpdir(prefix="moonjust-input")
-  defer (@fs.rmdir(input_dir, recursive=true) catch { _ => () })
-  let input_path = @path.Path(input_dir).join(Path("stdin.bin")).to_string()
-  @fs.write_file(input_path, stdin)
-  let input = @process.redirect_from_file(input_path)
-  let (stdout_reader, stdout_writer) = @process.read_from_process()
-  let (stderr_reader, stderr_writer) = @process.read_from_process()
+  let mut result : LiveRunResult = {
+    status: 0,
+    stdout: b"",
+    stderr: b"",
+    observed: false,
+  }
   @async.with_task_group() <| group => {
     let started = @async.now()
     let child = @process.spawn(
       group,
       program.executable,
       program.arguments(args),
+      stdin=FeedFromParent,
+      stdout=Collect,
+      stderr=Collect,
+      cwd~,
       extra_env~,
       inherit_env~,
-      stdin=input,
-      stdout=stdout_writer,
-      stderr=stderr_writer,
-      cwd~,
-      no_console_window=true,
+      no_console_window=program.no_console_window,
     )
-    let stdout_task = group.spawn(() => {
-      defer stdout_reader.close()
-      let output : Array[Byte] = []
-      let mut observed = false
-      while stdout_reader.read_some(max_len=64 * 1024) is Some(chunk) {
-        for byte in chunk {
-          output.push(byte)
-        }
-        if !observed &&
-          @async.now() - started <= timeout_ms.to_int64() &&
-          array_contains_bytes(output, prefix[:]) {
-          observed = true
-        }
-      }
-      (Bytes::from_array(output), observed)
+    group.spawn_bg(() => {
+      defer child.stdin.close()
+      child.stdin.write(stdin)
     })
     let stderr_task = group.spawn(() => {
-      defer stderr_reader.close()
-      stderr_reader.read_all().binary()
+      defer child.stderr.close()
+      child.stderr.read_all()
     })
-    let stdout_result = stdout_task.wait()
-    {
+    let output : Array[Byte] = []
+    let mut observed = false
+    defer child.stdout.close()
+    while child.stdout.read() is Some(chunk) {
+      for byte in chunk {
+        output.push(byte)
+      }
+      if !observed &&
+        @async.now() - started <= timeout_ms.to_int64() &&
+        array_contains_bytes(output, prefix[:]) {
+        observed = true
+      }
+    }
+    result = {
       status: child.wait(),
-      stdout: stdout_result.0,
+      stdout: Bytes::from_array(output),
       stderr: stderr_task.wait(),
-      observed: stdout_result.1,
+      observed,
     }
   }
+  result
 }
 
 ///|

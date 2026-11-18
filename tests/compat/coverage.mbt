@@ -175,7 +175,7 @@ async fn validate_spec_anchor(
     return Some(upstream_test + ": local spec file is missing: " + fixture_path)
   }
   let (_, line) = location_parts(spec.fixture).unwrap()
-  let lines = @fs.read_file(fixture_path).text().split("\n").collect()
+  let lines = @fs.read_text(fixture_path).split("\n").collect()
   if line > lines.length() {
     return Some(
       upstream_test + ": local spec line is out of range: " + spec.fixture,
@@ -230,7 +230,7 @@ async fn validate_upstream_anchor(
   guard @fs.exists(source) else {
     return Some(upstream_test + ": upstream source file is missing: " + source)
   }
-  let lines = @fs.read_file(source).text().split("\n").collect()
+  let lines = @fs.read_text(source).split("\n").collect()
   guard line_number <= lines.length() else {
     return Some(upstream_test + ": upstream source line is out of range")
   }
@@ -316,7 +316,7 @@ async fn audited_fixture(
   let text = match cache.get(fixture_file) {
     Some(value) => value
     None => {
-      let value = @fs.read_file(fixture_file).text() catch { _ => "" }
+      let value = @fs.read_text(fixture_file) catch { _ => "" }
       cache[fixture_file] = value
       value
     }
@@ -345,6 +345,7 @@ fn coverage_json(
   failures : Int32,
   execution_platform : String,
   execution_target : String,
+  reentry : String,
 ) -> String {
   let rows : Array[String] = []
   let mut differential_declared = 0
@@ -387,18 +388,11 @@ fn coverage_json(
       deferred_count += 1
     }
     let candidate_digest = match status {
-      "differential-known-difference" => {
-        let mut digest = ""
-        for _, details in metadata {
-          if details.upstream_tests.contains(upstream_test) {
-            digest = details.candidate_stdout_sha256.unwrap_or(
-              details.candidate_stderr_sha256.unwrap_or(""),
-            )
-            break
-          }
-        }
-        digest
-      }
+      "differential-known-difference" =>
+        metadata
+        .get(fixture)
+        .map(details => refusal_digest(fixture, details).unwrap_or(""))
+        .unwrap_or("")
       _ => ""
     }
     let evidence_kind = match status {
@@ -420,10 +414,12 @@ fn coverage_json(
     } else {
       "unexecuted"
     }
+    let mut host_inputs : Array[String] = []
     let required_platform = {
       let mut required = "all"
       for _, details in metadata {
         if details.upstream_tests.contains(upstream_test) {
+          host_inputs = details.host_inputs
           required = details.platform.unwrap_or("all")
           break
         }
@@ -458,6 +454,9 @@ fn coverage_json(
       json_string(required_platform) +
       ",\"fixture\":" +
       json_string(fixture) +
+      ",\"host_inputs\":[" +
+      host_inputs.map(json_string).join(",") +
+      "]" +
       ",\"local_test\":" +
       json_string(local_test) +
       ",\"upstream_source_anchor\":" +
@@ -479,6 +478,8 @@ fn coverage_json(
   json_string(execution_platform) +
   ",\"target\":" +
   json_string(execution_target) +
+  ",\"reentry\":" +
+  json_string(reentry) +
   ",\"upstream_total\":" +
   upstream_names.length().to_string() +
   ",\"differential_declared\":" +

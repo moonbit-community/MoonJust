@@ -92,10 +92,11 @@ pub fn is_formatted(source : @source.Source) -> Bool raise FormatterError {
 
 ///|
 /// Format-check result with the canonical replacement, suitable for CLI diff.
+#derive(Eq, Debug)
 pub struct CheckResult {
   formatted : String
   changed : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CheckResult::formatted(self : CheckResult) -> String {

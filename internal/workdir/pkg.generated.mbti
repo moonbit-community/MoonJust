@@ -9,10 +9,11 @@ import {
 // Values
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror WorkingDirectoryError {
   Path(@path.PathError)
   JustfileWithoutParent(@path.PathValue)
-} derive(Eq, @debug.Debug)
+}
 pub fn WorkingDirectoryError::code(Self) -> String
 #deprecated
 pub fn WorkingDirectoryError::equal(Self, Self) -> Bool
@@ -23,12 +24,13 @@ pub fn WorkingDirectoryError::not_equal(Self, Self) -> Bool
 pub fn WorkingDirectoryError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct WorkingDirectoryModel {
   invocation : @path.PathValue
   project : @path.PathValue
   module_base : @path.PathValue
   justfile : @path.PathValue?
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn WorkingDirectoryModel::equal(Self, Self) -> Bool
 pub fn WorkingDirectoryModel::evaluation_directory(Self, module_setting? : String?) -> @path.PathValue raise WorkingDirectoryError

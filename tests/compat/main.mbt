@@ -11,7 +11,7 @@ priv struct CaseMetadata {
   compare : Array[String]
   allowed_difference : String?
   candidate_stdout_sha256 : String?
-  candidate_stderr_sha256 : String?
+  host_inputs : Array[String]
   upstream_tests : Array[String]
   upstream_anchors : Array[String]
 }
@@ -44,9 +44,8 @@ priv struct StepResult {
 ///|
 fn usage() -> String {
   "Usage: moonjust-compat --candidate PATH --official PATH " +
-  "[--candidate-runner PATH|moonx] " +
+  "[--candidate-runner PATH] " +
   "[--cases PATH] [--manifest PATH] [--upstream-list PATH] " +
-  "[--shard-count N --shard-index N] " +
   "[--record-expected] [--verify-snapshots] [--strict-coverage] " +
   "[--allow-deferred-platform] [--wasm-reentry PATH]"
 }
@@ -69,35 +68,6 @@ fn has_flag(args : ArrayView[String], name : String) -> Bool {
     }
   }
   false
-}
-
-///|
-fn parsed_int(
-  args : ArrayView[String],
-  name : String,
-  fallback : Int32,
-) -> Int32 {
-  @string.parse_int(option(args, name).unwrap_or(fallback.to_string())[:]) catch {
-    _ => 0
-  }
-}
-
-///|
-async fn prepare_candidate(
-  candidate : String,
-  runner : String,
-  target : String,
-) -> @testkit.PreparedProgram {
-  if runner == "moonx" {
-    @testkit.prepare_command(
-      "moonx",
-      ["--target", target, candidate],
-      subject_path=candidate,
-      no_console_window=false,
-    )
-  } else {
-    @testkit.prepare_program(candidate, runner~)
-  }
 }
 
 ///|
@@ -192,7 +162,7 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
   let mut compare : Array[String] = ["status", "stdout", "stderr", "tree"]
   let mut allowed_difference : String? = None
   let mut candidate_stdout_sha256 : String? = None
-  let mut candidate_stderr_sha256 : String? = None
+  let mut host_inputs : Array[String] = []
   let mut upstream_tests : Array[String] = []
   let mut upstream_anchors : Array[String] = []
   fn flush() -> Unit {
@@ -210,7 +180,7 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
           compare,
           allowed_difference,
           candidate_stdout_sha256,
-          candidate_stderr_sha256,
+          host_inputs,
           upstream_tests,
           upstream_anchors,
         }
@@ -233,7 +203,7 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
       compare = ["status", "stdout", "stderr", "tree"]
       allowed_difference = None
       candidate_stdout_sha256 = None
-      candidate_stderr_sha256 = None
+      host_inputs = []
       upstream_tests = []
       upstream_anchors = []
     } else if line.has_prefix("schema_version =") {
@@ -265,8 +235,8 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
       allowed_difference = quoted_value(line)
     } else if line.has_prefix("candidate_stdout_sha256 =") {
       candidate_stdout_sha256 = quoted_value(line)
-    } else if line.has_prefix("candidate_stderr_sha256 =") {
-      candidate_stderr_sha256 = quoted_value(line)
+    } else if line.has_prefix("host_inputs =") {
+      host_inputs = quoted_values(line)
     } else if line.has_prefix("upstream_tests =") {
       upstream_tests = quoted_values(line)
     } else if line.has_prefix("upstream_anchors =") {
@@ -283,36 +253,6 @@ fn expand(value : String, root : String) -> String {
   .replace_all(old="<CASE_ROOT>", new=root)
   .replace_all(old="<TAB>", new="\t")
   .replace_all(old="<TWO_SPACES>", new="  ")
-}
-
-///|
-fn normalize_runner_platform(value : String) -> String {
-  let value = value.to_lower()
-  if value.contains("windows") || value == "windows_nt" {
-    "windows"
-  } else if value.contains("mac") || value.contains("darwin") {
-    "macos"
-  } else {
-    "linux"
-  }
-}
-
-///|
-async fn runner_platform() -> String {
-  let configured = @env.get_env_var("RUNNER_OS").unwrap_or(
-    @env.get_env_var("OS").unwrap_or(@env.get_env_var("OSTYPE").unwrap_or("")),
-  )
-  if !configured.is_empty() {
-    return normalize_runner_platform(configured)
-  }
-  let process = @testkit.run("uname", ["-s"])
-  if process.status == 0 {
-    let value = @utf8.decode(process.stdout) catch { _ => "" }
-    if !value.trim().is_empty() {
-      return normalize_runner_platform(value.trim().to_owned())
-    }
-  }
-  "linux"
 }
 
 ///|
@@ -333,13 +273,13 @@ fn target_environment(
   architecture : String,
   cpu_count : String,
   wasm_reentry : String,
+  inputs : ArrayView[String],
   platform : String,
 ) -> Map[String, String] {
   let environment = base.copy()
-  if platform == "windows" {
+  if platform == "windows" && !architecture.is_empty() {
     // The isolated fixture environment must retain the platform facts that
     // native just obtains from the Windows process environment/API.
-    environment["MOONJUST_OS"] = "windows"
     environment["PROCESSOR_ARCHITECTURE"] = match architecture {
       "X64" | "x64" | "x86_64" | "amd64" | "AMD64" => "AMD64"
       "ARM64" | "arm64" => "ARM64"
@@ -349,60 +289,33 @@ fn target_environment(
     }
   }
   if program.is_wrapped() {
-    environment["MOONJUST_OS"] = platform
-    environment["MOONJUST_ARCH"] = match architecture {
-      "X64" | "x64" => "x86_64"
-      "ARM64" | "arm64" => "aarch64"
-      value => value
+    if inputs.contains("MOONJUST_ARCH") && !architecture.is_empty() {
+      environment["MOONJUST_ARCH"] = match architecture {
+        "X64" | "x64" | "AMD64" | "amd64" => "x86_64"
+        "ARM64" | "arm64" => "aarch64"
+        value => value
+      }
     }
-    environment["MOONJUST_NUM_CPUS"] = cpu_count
-    if !wasm_reentry.is_empty() {
+    if inputs.contains("MOONJUST_NUM_CPUS") && !cpu_count.is_empty() {
+      environment["MOONJUST_NUM_CPUS"] = cpu_count
+    }
+    if inputs.contains("MOONJUST_EXECUTABLE") && !wasm_reentry.is_empty() {
       environment["MOONJUST_EXECUTABLE"] = wasm_reentry
       environment["MOONJUST_WASM_CANDIDATE"] = program.subject()
       environment["MOONJUST_MOONRUN"] = @env.get_env_var("MOONJUST_MOONRUN").unwrap_or(
         "moonrun",
       )
-      match @env.get_env_var("MOONJUST_MOONX") {
-        Some(path) => environment["MOONJUST_MOONX"] = path
-        None => ()
-      }
-      match @env.get_env_var("MOONJUST_MOONX_TARGET") {
-        Some(target) => environment["MOONJUST_MOONX_TARGET"] = target
-        None => ()
-      }
-    }
-    match @env.get_env_var("MOONJUST_MOON_HOME") {
-      Some(path) => environment["MOON_HOME"] = path
-      None => ()
     }
   }
   environment
 }
 
 ///|
-async fn host_architecture() -> String {
-  let process = @testkit.run("uname", ["-m"])
-  if process.status == 0 {
-    let value = @utf8.decode(process.stdout) catch { _ => "" }
-    if !value.trim().is_empty() {
-      return value.trim().to_owned()
-    }
-  }
-  @env.get_env_var("RUNNER_ARCH").unwrap_or(
-    @env.get_env_var("PROCESSOR_ARCHITECTURE").unwrap_or("x86_64"),
-  )
-}
-
-///|
-async fn host_cpu_count() -> String {
-  let process = @testkit.run("getconf", ["_NPROCESSORS_ONLN"])
-  if process.status == 0 {
-    let value = @utf8.decode(process.stdout) catch { _ => "" }
-    if !value.trim().is_empty() {
-      return value.trim().to_owned()
-    }
-  }
-  @env.get_env_var("NUMBER_OF_PROCESSORS").unwrap_or("1")
+async fn unix_host_fact(program : String, argument : String) -> String {
+  let result = @testkit.run(program, [argument]) catch { _ => return "" }
+  guard result.status == 0 else { return "" }
+  let text = @utf8.decode(result.stdout) catch { _ => return "" }
+  text.trim().to_owned()
 }
 
 ///|
@@ -412,7 +325,7 @@ fn strip_cr(line : StringView) -> StringView {
 
 ///|
 async fn read_text(path : String) -> String {
-  @fs.read_file(path).text() catch {
+  @fs.read_text(path) catch {
     _ => ""
   }
 }
@@ -420,7 +333,7 @@ async fn read_text(path : String) -> String {
 ///|
 async fn read_optional_bytes(path : String) -> Bytes {
   if @fs.exists(path) {
-    @fs.read_file(path).binary()
+    @fs.read_binary(path)
   } else {
     b""
   }
@@ -447,15 +360,15 @@ fn concatenate_step_stream(
 
 ///|
 async fn write_expected(case_dir : String, result : CaseResult) -> Unit {
-  @fs.write_file(
+  @fs.write_binary(
     join(case_dir, "expected.status"),
     @utf8.encode(result.status.to_string() + "\n"),
   )
-  @fs.write_file(join(case_dir, "expected.stdout"), result.stdout)
-  @fs.write_file(join(case_dir, "expected.stderr"), result.stderr)
-  @fs.write_file(join(case_dir, "expected.tree"), result.tree)
+  @fs.write_binary(join(case_dir, "expected.stdout"), result.stdout)
+  @fs.write_binary(join(case_dir, "expected.stderr"), result.stderr)
+  @fs.write_binary(join(case_dir, "expected.tree"), result.tree)
   match result.merged {
-    Some(bytes) => @fs.write_file(join(case_dir, "expected.merged"), bytes)
+    Some(bytes) => @fs.write_binary(join(case_dir, "expected.merged"), bytes)
     None => ()
   }
   let steps_root = join(case_dir, "steps")
@@ -464,12 +377,12 @@ async fn write_expected(case_dir : String, result : CaseResult) -> Unit {
     for index, name in names {
       guard result.steps.get(index) is Some(step) else { continue }
       let directory = join(steps_root, name)
-      @fs.write_file(
+      @fs.write_binary(
         join(directory, "expected.status"),
         @utf8.encode(step.status.to_string() + "\n"),
       )
-      @fs.write_file(join(directory, "expected.stdout"), step.stdout)
-      @fs.write_file(join(directory, "expected.stderr"), step.stderr)
+      @fs.write_binary(join(directory, "expected.stdout"), step.stdout)
+      @fs.write_binary(join(directory, "expected.stderr"), step.stderr)
     }
   }
 }
@@ -490,8 +403,8 @@ async fn expected_snapshot(case_dir : String) -> CaseResult? {
       }
       steps.push({
         status,
-        stdout: @fs.read_file(join(directory, "expected.stdout")).binary(),
-        stderr: @fs.read_file(join(directory, "expected.stderr")).binary(),
+        stdout: @fs.read_binary(join(directory, "expected.stdout")),
+        stderr: @fs.read_binary(join(directory, "expected.stderr")),
       })
     }
     guard !steps.is_empty() else { return None }
@@ -500,7 +413,7 @@ async fn expected_snapshot(case_dir : String) -> CaseResult? {
       stdout: concatenate_step_stream(steps, true),
       stderr: concatenate_step_stream(steps, false),
       merged: None,
-      tree: @fs.read_file(join(case_dir, "expected.tree")).binary(),
+      tree: @fs.read_binary(join(case_dir, "expected.tree")),
       live: true,
       steps,
     })
@@ -512,18 +425,18 @@ async fn expected_snapshot(case_dir : String) -> CaseResult? {
     _ => return None
   }
   let merged = if @fs.exists(join(case_dir, "expected.merged")) {
-    Some(@fs.read_file(join(case_dir, "expected.merged")).binary())
+    Some(@fs.read_binary(join(case_dir, "expected.merged")))
   } else {
     None
   }
-  let stdout = @fs.read_file(join(case_dir, "expected.stdout")).binary()
-  let stderr = @fs.read_file(join(case_dir, "expected.stderr")).binary()
+  let stdout = @fs.read_binary(join(case_dir, "expected.stdout"))
+  let stderr = @fs.read_binary(join(case_dir, "expected.stderr"))
   Some({
     status,
     stdout,
     stderr,
     merged,
-    tree: @fs.read_file(join(case_dir, "expected.tree")).binary(),
+    tree: @fs.read_binary(join(case_dir, "expected.tree")),
     live: true,
     steps: [{ status, stdout, stderr, }],
   })
@@ -583,7 +496,7 @@ async fn copy_tree(source : String, destination : String) -> Unit {
     let to = join(destination, name)
     match @fs.kind(from) {
       Directory => copy_tree(from, to)
-      Regular => @fs.write_file(to, @fs.read_file(from))
+      Regular => @fs.write_binary(to, @fs.read_binary(from))
       _ => ()
     }
   }
@@ -613,19 +526,19 @@ async fn apply_symlinks(
       platform,
     )
     @fs.symlink(
-      join(root, fields[0].to_owned()).view(),
-      target=target.view(),
+      join(root, fields[0].to_owned())[:],
+      target=target[:],
       force_symlink=true,
     )
     // A fixture may mark a host executable symlink as a tree link. Recording
     // the target keeps snapshots portable without copying ELF/Mach-O bytes.
     if fields.length() >= 3 && fields[2] == "link" {
       let existing = if @fs.exists(link_metadata) {
-        @fs.read_file(link_metadata).text()
+        @fs.read_text(link_metadata)
       } else {
         ""
       }
-      @fs.write_file(
+      @fs.write_binary(
         link_metadata,
         @utf8.encode(
           existing + fields[0].to_owned() + "\t" + fields[1].to_owned() + "\n",
@@ -647,8 +560,8 @@ async fn apply_expanded_files(directory : String, root : String) -> Unit {
       continue
     }
     let path = join(root, relative)
-    let text = @fs.read_file(path).text()
-    @fs.write_file(path, @utf8.encode(expand(text, root)))
+    let text = @fs.read_text(path)
+    @fs.write_binary(path, @utf8.encode(expand(text, root)))
   }
 }
 
@@ -681,9 +594,9 @@ async fn apply_trimmed_files(directory : String, root : String) -> Unit {
       continue
     }
     let path = join(root, relative)
-    let bytes = @fs.read_file(path).binary()
+    let bytes = @fs.read_binary(path)
     if bytes.length() > 0 && bytes[bytes.length() - 1] == b'\n' {
-      @fs.write_file(path, bytes[:bytes.length() - 1].to_owned())
+      @fs.write_binary(path, bytes[:bytes.length() - 1].to_owned())
     }
   }
 }
@@ -727,8 +640,8 @@ async fn apply_step_changes(
         continue
       }
       let path = join(root, relative)
-      @fs.rmdir(path, recursive=true) catch {
-        _ => @fs.remove(path.view()) catch { _ => () }
+      @fs.remove(path, recursive=true) catch {
+        _ => @fs.remove(path[:]) catch { _ => () }
       }
     }
   }
@@ -744,6 +657,7 @@ async fn run_steps(
   architecture : String,
   cpu_count : String,
   wasm_reentry : String,
+  inputs : ArrayView[String],
   platform : String,
 ) -> Array[StepResult] {
   let result : Array[StepResult] = []
@@ -760,6 +674,7 @@ async fn run_steps(
       architecture,
       cpu_count,
       wasm_reentry,
+      inputs,
       platform,
     )
     let execution = @testkit.run_prepared_bytes(
@@ -830,7 +745,7 @@ async fn append_tree_snapshot(
     for name in @fs.readdir(current, include_hidden=true, sort=true) {
       let full = join(current, name)
       if @fs.kind(full) == Regular {
-        entries.push((name, @fs.read_file(full).binary()))
+        entries.push((name, @fs.read_binary(full)))
       }
     }
     entries.sort_by(fn(left, right) {
@@ -877,7 +792,7 @@ async fn append_tree_snapshot(
         append_tree_snapshot(full, raw_path, output, root, links)
       }
       Regular => {
-        let bytes = normalize(@fs.read_file(full).binary(), root)
+        let bytes = normalize(@fs.read_binary(full), root)
         let path = normalized_tree_path(raw_path, bytes[:])
         append_bytes(
           output,
@@ -899,7 +814,7 @@ async fn tree_snapshot(root : String) -> Bytes {
   let links : Map[String, String] = Map([])
   let metadata = link_metadata_path(root)
   if @fs.exists(metadata) {
-    for line in @fs.read_file(metadata).text().split("\n") {
+    for line in @fs.read_text(metadata).split("\n") {
       let fields = line.split("\t").collect()
       if fields.length() == 2 && !fields[0].is_empty() {
         links[fields[0].to_owned()] = fields[1].to_owned()
@@ -1206,11 +1121,15 @@ async fn run_side(
   cpu_count : String,
   wasm_reentry : String,
   platform : String,
+  initial_tree? : Ref[Bytes],
 ) -> CaseResult {
   let root = @fs.tmpdir(prefix="moonjust-compat-" + side)
-  defer (@fs.rmdir(root, recursive=true) catch { _ => () })
-  defer (@fs.remove(link_metadata_path(root).view()) catch { _ => () })
+  defer (@fs.remove(root, recursive=true) catch { _ => () })
+  defer (@fs.remove(link_metadata_path(root)[:]) catch { _ => () })
   prepare_root(case_dir, root, metadata.cwd, platform)
+  if initial_tree is Some(tree) {
+    tree.val = normalize(tree_snapshot(root), root)
+  }
   let cwd = if metadata.cwd.is_empty() {
     root
   } else {
@@ -1227,6 +1146,7 @@ async fn run_side(
       architecture,
       cpu_count,
       wasm_reentry,
+      metadata.host_inputs,
       platform,
     )
     let last = steps[steps.length() - 1]
@@ -1258,6 +1178,7 @@ async fn run_side(
     architecture,
     cpu_count,
     wasm_reentry,
+    metadata.host_inputs,
     platform,
   )
   let (status, stdout, stderr, live) = match metadata.live_prefix {
@@ -1287,7 +1208,7 @@ async fn run_side(
   }
   let merged = if metadata.merged {
     let merged_root = @fs.tmpdir(prefix="moonjust-compat-" + side + "-merged")
-    defer (@fs.rmdir(merged_root, recursive=true) catch { _ => () })
+    defer (@fs.remove(merged_root, recursive=true) catch { _ => () })
     prepare_root(case_dir, merged_root, metadata.cwd, platform)
     let merged_cwd = if metadata.cwd.is_empty() {
       merged_root
@@ -1301,6 +1222,7 @@ async fn run_side(
       architecture,
       cpu_count,
       wasm_reentry,
+      metadata.host_inputs,
       platform,
     )
     let result = @testkit.run_merged_prepared(
@@ -1431,7 +1353,7 @@ async fn write_difference_bytes(
   let limit = 4096
   let displayed = if bytes.length() > limit { bytes[:limit] } else { bytes[:] }
   let text = @utf8.decode(displayed) catch { _ => "<non-UTF-8>" }
-  @stdio.stderr.write(
+  @stdio.stderr.text.write(
     "DIFF  " +
     case_name +
     " " +
@@ -1457,7 +1379,7 @@ async fn write_difference_details(
   candidate : CaseResult,
 ) -> Unit {
   if fields.contains("status") {
-    @stdio.stderr.write(
+    @stdio.stderr.text.write(
       "DIFF  " +
       name +
       " status official=" +
@@ -1492,15 +1414,34 @@ async fn write_difference_details(
 }
 
 ///|
+fn refusal_digest(fixture : String, metadata : CaseMetadata) -> String? {
+  guard metadata.upstream_tests[:] is [upstream] else { return None }
+  @testkit.allowed_stderr_digest(
+    upstream,
+    fixture,
+    metadata.allowed_difference.unwrap_or(""),
+    metadata.platform.unwrap_or("all"),
+  )
+}
+
+///|
 fn expected_difference_allowed(
-  reason : String?,
+  fixture : String,
   fields : ArrayView[String],
   actual : CaseResult,
+  expected : CaseResult,
+  initial_tree : Bytes,
   metadata : CaseMetadata,
 ) -> Bool {
-  let expected_digest = match reason {
+  let expected_digest = match metadata.allowed_difference {
     Some("product-identity") if fields.length() == 1 && fields[0] == "stdout" =>
       metadata.candidate_stdout_sha256.map(digest => (digest, actual.stdout))
+    Some("atomic-format-permissions") if expected.status == 0 &&
+      actual.status == 1 &&
+      actual.stdout.is_empty() &&
+      fields == ["status", "stderr", "tree"] &&
+      @testkit.bytes_equal(actual.tree, initial_tree) =>
+      refusal_digest(fixture, metadata).map(digest => (digest, actual.stderr))
     _ => None
   }
   match expected_digest {
@@ -1587,13 +1528,13 @@ async fn execute_moonbit_specs(
 ) -> Set[String] {
   let executed : Set[String] = Set([])
   let test_result = @testkit.run("moon", [
-    "test", "--target", "native", "--no-parallelize",
+    "test", "--target", "wasm", "--no-parallelize",
   ])
   if test_result.status != 0 {
     failures.push("MoonBit spec test execution failed")
     return executed
   }
-  let outline = @testkit.run("moon", ["test", "--target", "native", "--outline"])
+  let outline = @testkit.run("moon", ["test", "--target", "wasm", "--outline"])
   if outline.status != 0 {
     failures.push("MoonBit spec test outline failed")
     return executed
@@ -1624,14 +1565,12 @@ async fn main {
   let args = @env.args()[1:]
   guard option(args, "--candidate") is Some(candidate_value) &&
     option(args, "--official") is Some(official_value) else {
-    @stdio.stderr.write(usage() + "\n")
-    @sys.exit(2)
+    @stdio.stderr.text.write(usage() + "\n")
+    @env.exit(2)
     return
   }
   let cases_root = option(args, "--cases").unwrap_or("tests/differential/cases")
   let selected_case = option(args, "--case")
-  let shard_count = parsed_int(args, "--shard-count", 1)
-  let shard_index = parsed_int(args, "--shard-index", 0)
   let record_expected = has_flag(args, "--record-expected")
   let verify_snapshots = has_flag(args, "--verify-snapshots")
   let manifest = option(args, "--manifest").unwrap_or(
@@ -1641,7 +1580,7 @@ async fn main {
     "tests/compatibility/upstream/just-1.57.0/test-list.txt",
   )
   let coverage_report = option(args, "--coverage-report")
-  let execution_target = option(args, "--execution-target").unwrap_or("native")
+  let execution_target = option(args, "--execution-target").unwrap_or("wasm")
   let spec_index = parse_spec_index(
     read_text(
       option(args, "--spec-index").unwrap_or(
@@ -1650,8 +1589,9 @@ async fn main {
     ),
   )
   let candidate_runner = option(args, "--candidate-runner").unwrap_or("")
-  let candidate = prepare_candidate(
-    candidate_value, candidate_runner, execution_target,
+  let candidate = @testkit.prepare_program(
+    candidate_value,
+    runner=candidate_runner,
   )
   let official = @testkit.prepare_program(official_value)
   let parsed_manifest = parse_manifest(read_text(manifest))
@@ -1675,21 +1615,27 @@ async fn main {
   } else {
     Set([])
   }
-  let architecture = host_architecture()
-  let cpu_count = host_cpu_count()
-  let platform = runner_platform()
+  let platform = @testkit.runner_os()
+  let (architecture, cpu_count) = if platform == "windows" {
+    (
+      @env.get_env_var("PROCESSOR_ARCHITECTURE").unwrap_or(""),
+      @env.get_env_var("NUMBER_OF_PROCESSORS").unwrap_or(""),
+    )
+  } else {
+    (
+      unix_host_fact("uname", "-m"),
+      unix_host_fact("getconf", "_NPROCESSORS_ONLN"),
+    )
+  }
   let wasm_reentry = match option(args, "--wasm-reentry") {
     Some(path) if !path.is_empty() => @fs.realpath(path)
     _ => ""
   }
-  if execution_target != "native" && execution_target != "wasm" {
-    failures.push("execution target must be `native` or `wasm`")
+  if execution_target != "wasm" {
+    failures.push("execution target must be `wasm`")
   }
-  if execution_target == "wasm" && option(args, "--candidate-runner") is None {
+  if option(args, "--candidate-runner") is None {
     failures.push("Wasm compatibility requires --candidate-runner")
-  }
-  if shard_count < 1 || shard_index < 0 || shard_index >= shard_count {
-    failures.push("shard index must satisfy 0 <= index < count and count > 0")
   }
   let expected_version = module_version(read_text("moon.mod"))
   match expected_version {
@@ -1750,18 +1696,14 @@ async fn main {
         failures.push(name + ": unknown output normalization " + rule)
       }
     }
-    if details.status == "expected-difference" &&
-      details.allowed_difference is None {
-      failures.push(name + ": expected difference has no named reason")
-    }
-    if details.status == "expected-difference" &&
-      details.allowed_difference != Some("product-identity") {
-      failures.push(name + ": functional expected differences are forbidden")
-    }
-    if details.status == "expected-difference" &&
-      details.candidate_stdout_sha256 is None &&
-      details.candidate_stderr_sha256 is None {
-      failures.push(name + ": expected difference has no candidate digest")
+    if details.status == "expected-difference" {
+      let identity = ["01-version", "02-help"].contains(name) &&
+        details.upstream_tests.is_empty() &&
+        details.allowed_difference == Some("product-identity") &&
+        details.candidate_stdout_sha256 is Some(_)
+      if !identity && refusal_digest(name, details) is None {
+        failures.push(name + ": difference is not on the reviewed allowlist")
+      }
     }
     for upstream_test in details.upstream_tests {
       if manifest_upstream.contains(upstream_test) {
@@ -1834,11 +1776,8 @@ async fn main {
       None => ()
     }
   }
-  for index, name in @fs.readdir(cases_root, include_hidden=false, sort=true) {
+  for name in @fs.readdir(cases_root, include_hidden=false, sort=true) {
     if selected_case is Some(selected) && name != selected {
-      continue
-    }
-    if shard_count > 1 && index % shard_count != shard_index {
       continue
     }
     selected_found = true
@@ -1859,7 +1798,7 @@ async fn main {
         compare: ["status", "stdout", "stderr", "tree"],
         allowed_difference: None,
         candidate_stdout_sha256: None,
-        candidate_stderr_sha256: None,
+        host_inputs: [],
         upstream_tests: [],
         upstream_anchors: [],
         normalizations: [],
@@ -1883,7 +1822,7 @@ async fn main {
       for upstream_test in details.upstream_tests {
         deferred.add(upstream_test)
       }
-      @stdio.stdout.write(
+      @stdio.stdout.text.write(
         "SKIP  " + name + " (platform=" + details.platform.unwrap_or("") + ")\n",
       )
       continue
@@ -1934,9 +1873,22 @@ async fn main {
     // snapshots document the fixture and are optionally audited on the same
     // platform with --verify-snapshots.
     let expected = official_result
+    let initial_tree = Ref(b"")
     let actual = run_side(
-      candidate, case_dir, details, "candidate", architecture, cpu_count, wasm_reentry,
+      candidate,
+      case_dir,
+      details,
+      "candidate",
+      architecture,
+      cpu_count,
+      wasm_reentry,
       platform,
+      initial_tree?=if details.allowed_difference ==
+        Some("atomic-format-permissions") {
+        Some(initial_tree)
+      } else {
+        None
+      },
     )
     let differences = difference_fields(expected, actual, details)
     let expectation = read_text(join(case_dir, "expectation")).trim().to_owned()
@@ -1958,12 +1910,14 @@ async fn main {
       for upstream_test in details.upstream_tests {
         exact.add(upstream_test)
       }
-      @stdio.stdout.write("PASS  " + name + "\n")
+      @stdio.stdout.text.write("PASS  " + name + "\n")
     } else if expectation == "difference" &&
       expected_difference_allowed(
-        details.allowed_difference,
+        name,
         differences,
         actual,
+        expected,
+        initial_tree.val,
         details,
       ) {
       if details.allowed_difference == Some("product-identity") {
@@ -1974,7 +1928,7 @@ async fn main {
           known_upstream.add(upstream_test)
         }
       }
-      @stdio.stdout.write(
+      @stdio.stdout.text.write(
         "XDIFF " + name + " [" + differences.join(", ") + "]\n",
       )
     } else {
@@ -2039,22 +1993,15 @@ async fn main {
       deferred_count += 1
     }
   }
-  let coverage_incomplete = if shard_count > 1 {
-    differential_known != 0 ||
-    (deferred_count != 0 && !has_flag(args, "--allow-deferred-platform")) ||
-    unclassified != 0 ||
-    spec_done != spec_declared
-  } else {
-    upstream_names.length() !=
+  let coverage_incomplete = upstream_names.length() !=
     differential_executed + spec_done + completion + signal + deferred_count ||
-    differential_known != 0 ||
+    differential_executed != differential_exact + differential_known ||
     (deferred_count != 0 && !has_flag(args, "--allow-deferred-platform")) ||
     unclassified != 0 ||
     spec_done != spec_declared
-  }
   match coverage_report {
     Some(path) =>
-      @fs.write_file(
+      @fs.write_binary(
         path,
         @utf8.encode(
           coverage_json(
@@ -2070,15 +2017,20 @@ async fn main {
             failures.length() + (if coverage_incomplete { 1 } else { 0 }),
             platform,
             execution_target,
+            if wasm_reentry.is_empty() {
+              "not provided"
+            } else {
+              "test launcher"
+            },
           ),
         ),
       )
     None => ()
   }
   for failure in failures {
-    @stdio.stderr.write("FAIL  " + failure + "\n")
+    @stdio.stderr.text.write("FAIL  " + failure + "\n")
   }
-  @stdio.stdout.write(
+  @stdio.stdout.text.write(
     "matched=" +
     matched.to_string() +
     " known_differences=" +
@@ -2114,10 +2066,10 @@ async fn main {
     "\n",
   )
   if has_flag(args, "--strict-coverage") && coverage_incomplete {
-    @stdio.stderr.write("FAIL  upstream coverage is incomplete\n")
-    @sys.exit(1)
+    @stdio.stderr.text.write("FAIL  upstream coverage is incomplete\n")
+    @env.exit(1)
   }
   if !failures.is_empty() {
-    @sys.exit(1)
+    @env.exit(1)
   }
 }

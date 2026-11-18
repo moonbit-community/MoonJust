@@ -1,13 +1,12 @@
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_async(
+async fn[T : @host.HostFs] load_input_with_directories(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
 ) -> (@loader.LoadedSource, @workdir.WorkingDirectoryModel) raise ApplicationError {
   if arguments.flag("global-justfile") {
     let (path, directories) = global_input_directories(context)
-    let loaded = @loader.load_async(host, path, context.source_id()) catch {
+    let loaded = @loader.load(host, path, context.source_id()) catch {
       error => raise Load(error)
     }
     return (loaded, directories)
@@ -41,7 +40,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_
         error => raise WorkingDirectory(error)
       }
       let resolved = directories.justfile().unwrap()
-      let loaded = @loader.load_async(host, resolved, context.source_id()) catch {
+      let loaded = @loader.load(host, resolved, context.source_id()) catch {
         error => raise Load(error)
       }
       (loaded, directories)
@@ -60,7 +59,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_
       ) catch {
         error => raise WorkingDirectory(error)
       }
-      let loaded = @loader.load_async(host, path, context.source_id()) catch {
+      let loaded = @loader.load(host, path, context.source_id()) catch {
         error => raise Load(error)
       }
       (loaded, directories)
@@ -69,18 +68,16 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_input_with_directories_
 }
 
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-async fn[T : @host.HostFs + @host.HostSourceReader] load_input_async(
+async fn[T : @host.HostFs] load_input(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
 ) -> @loader.LoadedSource raise ApplicationError {
-  load_input_with_directories_async(host, arguments, context).0
+  load_input_with_directories(host, arguments, context).0
 }
 
 ///|
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_directories_async(
+async fn[T : @host.HostFs] load_graph_input_with_directories(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -91,7 +88,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_direct
   environment~ : ArrayView[(String, String)] = [],
 ) -> (@loader.LoadedGraph, @workdir.WorkingDirectoryModel) raise ApplicationError {
   let request = project_load_request(arguments, context, platform, environment)
-  let sources = @project.load_sources_async(host, request) catch {
+  let sources = @project.load_sources(host, request) catch {
     Load(error) => raise Load(error)
     Path(error) => raise Path(error)
     WorkingDirectory(error) => raise WorkingDirectory(error)
@@ -105,8 +102,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_graph_input_with_direct
 /// Keep asynchronous project preparation behind the project boundary. The
 /// application layer only translates CLI arguments into a load request and
 /// maps the project-owned errors into its response vocabulary.
-#cfg(any(target="wasm", target="wasm-gc", target="js"))
-async fn[T : @host.HostFs + @host.HostSourceReader] load_project_snapshot_async(
+async fn[T : @host.HostFs] load_project_snapshot_async(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -114,7 +110,7 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_project_snapshot_async(
   environment : ArrayView[(String, String)],
 ) -> @project.ProjectSnapshot raise ApplicationError {
   let request = project_load_request(arguments, context, platform, environment)
-  @project.load_snapshot_async(
+  @project.load_snapshot(
     host,
     request,
     allow_unstable=arguments.flag("unstable"),
@@ -125,47 +121,4 @@ async fn[T : @host.HostFs + @host.HostSourceReader] load_project_snapshot_async(
     Semantic(error) => raise Semantic(error)
     Compilation(error) => raise Project(error)
   }
-}
-
-///|
-#cfg(target="native")
-fn[T : @host.HostFs] load_project_snapshot_async(
-  host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-  platform : @semantic.TargetPlatform,
-  environment : ArrayView[(String, String)],
-) -> @project.ProjectSnapshot raise ApplicationError {
-  load_project_snapshot(host, arguments, context, platform, environment)
-}
-
-///|
-#cfg(target="native")
-fn[T : @host.HostFs] load_input_with_directories_async(
-  host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-) -> (@loader.LoadedSource, @workdir.WorkingDirectoryModel) raise ApplicationError {
-  load_input_with_directories(host, arguments, context)
-}
-
-///|
-#cfg(target="native")
-fn[T : @host.HostFs] load_graph_input_with_directories_async(
-  host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-  platform~ : @semantic.TargetPlatform = @semantic.TargetPlatform::new(
-    Other("unknown"),
-    false,
-  ),
-  environment~ : ArrayView[(String, String)] = [],
-) -> (@loader.LoadedGraph, @workdir.WorkingDirectoryModel) raise ApplicationError {
-  load_graph_input_with_directories(
-    host,
-    arguments,
-    context,
-    platform~,
-    environment~,
-  )
 }

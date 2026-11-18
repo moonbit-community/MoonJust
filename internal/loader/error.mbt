@@ -1,5 +1,6 @@
 ///|
 /// Failures raised while discovering or reading justfiles.
+#derive(Eq, Debug)
 pub(all) suberror LoaderError {
   InvalidLimit
   NoJustfileFound(start~ : @path.PathValue, filename~ : String)
@@ -14,15 +15,15 @@ pub(all) suberror LoaderError {
   ImportCycle(
     path~ : @path.PathValue,
     chain~ : Array[@path.PathValue],
-    span~ : @source.Span?
+    span~ : @source.Span?,
   )
   ModuleFileMissing(module_name~ : String, span~ : @source.Span)
   AmbiguousModuleFile(
     module_name~ : String,
     found~ : Array[@path.PathValue],
-    span~ : @source.Span
+    span~ : @source.Span,
   )
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn LoaderError::code(self : LoaderError) -> String {

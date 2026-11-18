@@ -1,5 +1,5 @@
 ///|
-fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
+async fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
   host : T,
   executable : String,
   context : EvaluationContext,
@@ -42,10 +42,17 @@ fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
     } noraise {
       value => value
     }
-    let executable = if platform.operating_system() == Windows {
-      windows_candidate_is_executable(candidate, metadata, pathext)
-    } else {
-      metadata.is_file() && metadata.is_executable()
+    if !metadata.is_file() {
+      continue
+    }
+    let executable = match (platform.operating_system(), pathext) {
+      (Windows, Some(extensions)) =>
+        windows_candidate_is_executable(candidate, extensions)
+      _ =>
+        @host.HostFs::can_execute(host, candidate) catch {
+          NotFound(_) => continue
+          error => raise Host(error, span~)
+        }
     }
     if executable {
       return candidate.as_string()
@@ -56,7 +63,7 @@ fn[T : @host.HostFs + @host.HostEnv + @host.HostPlatform] which_value(
 
 ///|
 /// Invoke a builtin using explicit invocation facts and host capabilities.
-pub fn[
+pub async fn[
   T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] call_non_process_effect_with_context(
   host : T,
@@ -75,7 +82,10 @@ pub fn[
       let platform = @host.HostPlatform::platform_info(host) catch {
         error => raise Host(error, span~)
       }
-      String(platform.architecture())
+      match platform.architecture() {
+        Some(value) => String(value)
+        None => raise effect_failure("host architecture is unavailable", span)
+      }
     }
     "os" | "os_family" => {
       let platform = @host.HostPlatform::platform_info(host) catch {
@@ -259,8 +269,7 @@ pub fn[
 }
 
 ///|
-/// Invoke an effectful builtin using a synchronous process capability.
-pub fn[
+pub async fn[
   T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal,
 ] call_effect_with_context(
   host : T,
@@ -287,7 +296,7 @@ pub fn[
 ///|
 /// Backwards-compatible cwd-only effect entry point. Context-only facts not
 /// derivable from cwd remain explicit `MissingContext` errors.
-pub fn[
+pub async fn[
   T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal,
 ] call_effect(
   host : T,
@@ -310,7 +319,7 @@ pub fn[
 }
 
 ///|
-pub fn[
+pub async fn[
   T : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostProcess + @host.HostPlatform + @host.HostTerminal,
 ] evaluate_backtick(
   host : T,
@@ -322,7 +331,7 @@ pub fn[
 }
 
 ///|
-pub fn[T : @host.HostProcess] evaluate_backtick_with_shell(
+pub async fn[T : @host.HostProcess] evaluate_backtick_with_shell(
   host : T,
   command : String,
   context : EvaluationContext,

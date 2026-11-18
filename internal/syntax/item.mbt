@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) struct Parameter {
   name : String
   default_value : Expression?
@@ -6,7 +7,7 @@ pub(all) struct Parameter {
   variadic_minimum : Int32
   exported : Bool
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Parameter::new(
@@ -72,6 +73,7 @@ pub fn Parameter::span(self : Parameter) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Dependency {
   name : String
   name_span : @source.Span
@@ -79,7 +81,7 @@ pub(all) struct Dependency {
   starred : Bool
   starred_arguments : Array[Int32]
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Dependency::new(
@@ -131,18 +133,20 @@ pub fn Dependency::span(self : Dependency) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum RecipeFragment {
   Text(text~ : String, span~ : @source.Span)
   Interpolation(expression~ : Expression, span~ : @source.Span)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct RecipeLine {
   fragments : Array[RecipeFragment]
   span : @source.Span
   source_start_line : Int32
   source_end_line : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn RecipeLine::new(
@@ -175,11 +179,12 @@ pub fn RecipeLine::source_end_line(self : RecipeLine) -> Int32 {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct AttributeArgument {
   key : String?
   value : Expression?
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn AttributeArgument::new(
@@ -206,11 +211,12 @@ pub fn AttributeArgument::span(self : AttributeArgument) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Attribute {
   name : String
   arguments : Array[AttributeArgument]
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Attribute::new(
@@ -237,6 +243,7 @@ pub fn Attribute::span(self : Attribute) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Assignment {
   name : String
   value : Expression
@@ -244,7 +251,7 @@ pub(all) struct Assignment {
   eager : Bool
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Assignment::new(
@@ -289,10 +296,11 @@ pub fn Assignment::span(self : Assignment) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct FunctionParameter {
   name : String
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn FunctionParameter::new(
@@ -313,13 +321,14 @@ pub fn FunctionParameter::span(self : FunctionParameter) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct FunctionDefinition {
   name : String
   parameters : Array[FunctionParameter]
   body : Expression
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn FunctionDefinition::new(
@@ -362,12 +371,13 @@ pub fn FunctionDefinition::span(self : FunctionDefinition) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Alias {
   name : String
   target : String
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Alias::new(
@@ -400,11 +410,12 @@ pub fn Alias::span(self : Alias) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Setting {
   name : String
   value : Expression?
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Setting::new(
@@ -431,11 +442,12 @@ pub fn Setting::span(self : Setting) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Import {
   path : StringLiteral
   optional : Bool
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Import::new(
@@ -462,6 +474,7 @@ pub fn Import::span(self : Import) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Module {
   name : String
   name_span : @source.Span
@@ -469,7 +482,7 @@ pub(all) struct Module {
   optional : Bool
   attributes : Array[Attribute]
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Module::new(
@@ -514,6 +527,7 @@ pub fn Module::span(self : Module) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Recipe {
   name : String
   quiet : Bool
@@ -524,7 +538,7 @@ pub(all) struct Recipe {
   attributes : Array[Attribute]
   trailing_comment : String?
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Recipe::new(
@@ -597,6 +611,7 @@ pub fn Recipe::span(self : Recipe) -> @source.Span {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Item {
   Assignment(Assignment)
   Function(FunctionDefinition)
@@ -610,7 +625,7 @@ pub(all) enum Item {
   Comment(text~ : String, span~ : @source.Span)
   TrailingComment(text~ : String, span~ : @source.Span)
   Blank(span~ : @source.Span)
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Item::span(self : Item) -> @source.Span {
@@ -645,11 +660,12 @@ pub fn Item::name(self : Item) -> String? {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Ast {
   source_id : @source.SourceId
   items : Array[Item]
   span : @source.Span
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Ast::new(

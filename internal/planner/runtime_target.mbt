@@ -3,7 +3,7 @@
 /// ordinary and subsequent dependencies. Keeping this traversal in one async
 /// state machine avoids emitting two copies of the dependency scheduling logic.
 async fn[
-  P : @host.HostAsyncProcess,
+  P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
 ] plan_dependency_group_async(
   process : P,

@@ -1,7 +1,8 @@
 import {
-  "moonbitlang/async",
-  "moonbitlang/async/fs",
-  "moonbitlang/async/process",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/async/process",
+  "moonbitlang/core/async/types",
   "moonbitlang/core/env",
   "moonbitlang/x/path",
 }
@@ -9,3 +10,7 @@ import {
 pkgtype(kind: "library")
 
 supported_targets = "native"
+
+options(
+  "allow-experimental-packages": true,
+)

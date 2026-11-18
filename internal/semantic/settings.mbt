@@ -1,5 +1,6 @@
 ///|
 /// Operating systems used by platform attributes in the pure semantic layer.
+#derive(Eq, Hash, Debug)
 pub(all) enum TargetOs {
   Linux
   Macos
@@ -11,14 +12,15 @@ pub(all) enum TargetOs {
   Openbsd
   Unix
   Other(String)
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// Target facts supplied by the caller; no host or FFI dependency is needed.
+#derive(Eq, Debug)
 pub(all) struct TargetPlatform {
   operating_system : TargetOs
   is_unix : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn TargetPlatform::new(
@@ -40,27 +42,30 @@ pub fn TargetPlatform::is_unix(self : TargetPlatform) -> Bool {
 
 ///|
 /// A setting retains its expression while exposing a typed category to users.
+#derive(Eq, Debug)
 pub(all) enum SettingValue {
   Flag
   Boolean(Bool)
   Text(String)
   Expression(@syntax.Expression)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Static value category required by one registered setting.
+#derive(Eq, Debug)
 pub(all) enum SettingKind {
   Boolean
   Text
   Expression
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct SettingSpec {
   name : String
   kind : SettingKind
   required : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn SettingSpec::new(
@@ -149,11 +154,12 @@ pub fn SettingValue::as_text(self : SettingValue) -> String? {
 }
 
 ///|
+#derive(Debug)
 pub struct CompiledSettings {
   values : Map[String, SettingValue]
   ordered : Array[String]
   spans : Map[String, @source.Span]
-} derive(Debug)
+}
 
 ///|
 let shared_empty_compiled_settings : CompiledSettings = {

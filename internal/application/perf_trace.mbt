@@ -39,7 +39,6 @@ fn perf_detail_mark(name : String) -> Unit {
 }
 
 ///|
-#cfg(any(target="native", target="wasm"))
 async fn perf_detail_emit() -> Unit {
   if !perf_detail_is_enabled() || perf_detail_events.is_empty() {
     return
