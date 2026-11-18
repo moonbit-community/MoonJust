@@ -1,4 +1,5 @@
 import {
+  "moonbit-community/unicode-data" @unicode,
   "ZSeanYves/MoonJust/internal/path",
   "ZSeanYves/MoonJust/internal/value",
   "moonbitlang/core/encoding/utf8",

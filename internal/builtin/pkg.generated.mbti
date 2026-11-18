@@ -23,6 +23,8 @@ pub fn is_effectful(String) -> Bool
 
 pub fn names() -> ArrayView[String]
 
+pub fn regex_matches(String, String) -> Bool raise BuiltinError
+
 pub fn regex_parse_failure(String, @regexp.RegexpError) -> String
 
 pub fn registry() -> ArrayView[BuiltinSpec]

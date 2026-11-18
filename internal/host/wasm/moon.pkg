@@ -3,12 +3,14 @@ import {
   "ZSeanYves/MoonJust/internal/host",
   "ZSeanYves/MoonJust/internal/path",
   "moonbitlang/core/async",
+  "moonbitlang/core/async/process",
   "moonbitlang/core/async/types",
   "moonbitlang/core/async/fs" @async_fs,
   "moonbitlang/core/async/os_error",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
   "moonbitlang/core/string",
+  "moonbitlang/x/time",
 }
 
 supported_targets = "wasm"

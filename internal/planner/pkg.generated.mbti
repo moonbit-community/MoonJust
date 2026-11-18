@@ -21,11 +21,11 @@ pub fn build_schedule(ArrayView[TaskSpec], Int32) -> Schedule raise SchedulerErr
 
 pub async fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScript) -> Unit raise ExecutionError
 
+pub async fn[H : @host.HostClock] command_timestamp(H, ExecutionOptions) -> String? raise ExecutionError
+
 pub fn confirmation_answer_is_yes(String) -> Bool
 
 pub fn deterministic_failure(Schedule, ArrayView[Int32]) -> Int32?
-
-pub fn format_timestamp(Int64, String) -> String
 
 pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] materialize_line_async(P, H, PlannedLine) -> (PlannedCommand, Bytes) raise ExecutionError
 
@@ -46,6 +46,8 @@ pub fn render_command_echo(String, timestamp? : String?, color? : CommandColor?)
 pub fn render_elapsed_message(String, Int64) -> Bytes
 
 pub fn render_failure_message(ExecutionError, Bool) -> Bytes
+
+pub async fn[H : @host.HostClock] script_timestamp(H, ExecutionOptions, String) -> Bytes raise ExecutionError
 
 pub fn supports_sync_dry_run(@semantic.ProjectCompilation) -> Bool
 

@@ -266,20 +266,13 @@ pub fn is_effectful(name : String) -> Bool {
 
 ///|
 pub fn canonical_name(name : String) -> String {
-  let compatibility = match name {
-    "path_join" => "join"
-    "stem" => "file_stem"
-    "regex_matches" => "replace_regex"
-    _ => name
-  }
-  if compatibility.has_suffix("_dir_native") {
-    compatibility[:compatibility.length() - "_dir_native".length()].to_owned() +
+  if name.has_suffix("_dir_native") {
+    name[:name.length() - "_dir_native".length()].to_owned() +
     "_directory_native"
-  } else if compatibility.has_suffix("_dir") {
-    compatibility[:compatibility.length() - "_dir".length()].to_owned() +
-    "_directory"
+  } else if name.has_suffix("_dir") {
+    name[:name.length() - "_dir".length()].to_owned() + "_directory"
   } else {
-    compatibility
+    name
   }
 }
 
@@ -315,31 +308,3 @@ fn string_argument(name : String, value : Value) -> String raise BuiltinError {
     None => raise Type(name~, expected="string", actual=value)
   }
 }
-
-///|
-fn lower_ascii(value : String) -> String {
-  let builder = StringBuilder()
-  for character in value {
-    if character.is_ascii_uppercase() {
-      builder.write_char((character.to_int() + 32).to_char().unwrap())
-    } else {
-      builder.write_char(character)
-    }
-  }
-  builder.to_string()
-}
-
-///|
-fn upper_ascii(value : String) -> String {
-  let builder = StringBuilder()
-  for character in value {
-    if character.is_ascii_lowercase() {
-      builder.write_char((character.to_int() - 32).to_char().unwrap())
-    } else {
-      builder.write_char(character)
-    }
-  }
-  builder.to_string()
-}
-
-///|

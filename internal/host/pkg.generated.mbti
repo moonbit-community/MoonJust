@@ -238,6 +238,7 @@ pub(open) trait HostCacheStore {
 
 pub(open) trait HostClock {
   fn now_millis(Self) -> Int64 raise HostError
+  async fn local_offset_seconds(Self, Int64) -> Int32 raise HostError
 }
 
 pub(open) trait HostEnv {
@@ -281,5 +282,5 @@ pub(open) trait HostSignal {
 }
 
 pub(open) trait HostTerminal {
-  fn terminal_info(Self) -> TerminalInfo raise HostError
+  async fn terminal_info(Self) -> TerminalInfo raise HostError
 }

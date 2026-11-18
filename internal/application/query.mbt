@@ -58,17 +58,7 @@ async fn[
     )
     return None
   }
-  let color = match arguments.value("color").unwrap_or("auto") {
-    "always" => true
-    "never" => false
-    "auto" => {
-      let terminal = @host.HostTerminal::terminal_info(terminal_host) catch {
-        error => raise Host(error)
-      }
-      terminal.color_supported() && terminal.stdout_is_terminal()
-    }
-    _ => raise Query("invalid --color value")
-  }
+  let color = selected_color_active(terminal_host, arguments, Stdout)
   let builder = StringBuilder()
   builder.write_string(
     arguments.value("list-heading").unwrap_or("Available recipes:\n"),
@@ -196,17 +186,7 @@ async fn[
     platform=semantic_platform,
   )
   validate_project_variable_overrides(project, arguments)
-  let color = match arguments.value("color").unwrap_or("auto") {
-    "always" => true
-    "never" => false
-    "auto" => {
-      let terminal = @host.HostTerminal::terminal_info(terminal_host) catch {
-        error => raise Host(error)
-      }
-      terminal.color_supported() && terminal.stdout_is_terminal()
-    }
-    _ => raise Query("invalid --color value")
-  }
+  let color = selected_color_active(terminal_host, arguments, Stdout)
   let output = query_project_text(graph, project, arguments, color)
   let stderr = if arguments.command() == SummaryCommand &&
     !arguments.flag("quiet") &&
@@ -275,17 +255,7 @@ async fn[
   )
   perf_detail_mark("query.compile")
   validate_project_variable_overrides(project, arguments)
-  let color = match arguments.value("color").unwrap_or("auto") {
-    "always" => true
-    "never" => false
-    "auto" => {
-      let terminal = @host.HostTerminal::terminal_info(terminal_host) catch {
-        error => raise Host(error)
-      }
-      terminal.color_supported() && terminal.stdout_is_terminal()
-    }
-    _ => raise Query("invalid --color value")
-  }
+  let color = selected_color_active(terminal_host, arguments, Stdout)
   let output = query_project_text(graph, project, arguments, color)
   perf_detail_mark("query.render")
   ignore(perf_detail_emit() catch { _ => () })

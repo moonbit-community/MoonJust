@@ -339,16 +339,9 @@ fn enabled_unstable_environment(value : String) -> Bool {
 fn check_unsupported_environment(
   env : Map[String, String],
 ) -> Unit raise CliParseError {
-  for
-    entry in [
-      ("JUST_COMPLETE_ALIASES", "--complete-aliases", true),
-      ("JUST_CYGPATH", "--cygpath", false),
-    ] {
-    let (name, option_name, is_flag) = entry
-    guard env.get(name) is Some(value) else { continue }
-    if !is_flag || enabled_environment_flag(value) {
-      raise Unsupported(option_name)
-    }
+  if env.get("JUST_COMPLETE_ALIASES") is Some(value) &&
+    enabled_environment_flag(value) {
+    raise Unsupported("--complete-aliases")
   }
 }
 

@@ -77,9 +77,11 @@ test "upstream examples::examples" {
 test "upstream changelog::print_changelog" {
   let response = @application.static_invocation_response(["--changelog"]).unwrap()
   assert_eq(response.exit_code(), 0)
-  let text = try! @utf8.decode(response.stdout().to_owned())
-  assert_true(text.contains("MoonJust"))
-  assert_true(text.contains("just 1.57.0"))
+  assert_eq(response.stdout().length(), 209131)
+  assert_eq(
+    @crypto.bytes_to_hex_string(@crypto.sha256(response.stdout())),
+    "f904802597ddf0e88788a07882ca69b693e1e941caec508e8817bd5f22ae1f38",
+  )
 }
 
 ///|

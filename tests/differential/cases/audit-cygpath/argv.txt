@@ -1,0 +1,4 @@
+--cygpath
+cygpath.exe
+--evaluate
+answer

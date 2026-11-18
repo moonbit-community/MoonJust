@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	165
+set unstable
+set lists
+answer := uppercase('straße') + '/' + lowercase('ÉCOLE ΟΣ') + '/' + snakecase('XMLHttpRequest') + '/' + join_list(split('a b c'), ',')
+

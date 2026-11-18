@@ -13,9 +13,10 @@ pub fn configure_cancellation_signals() -> Unit
 
 // Types and methods
 pub struct ProcessAdapter {
+  cygpath : String
   output_mutex : @async.Mutex
 }
-pub fn ProcessAdapter::new() -> Self
+pub fn ProcessAdapter::new(cygpath? : String) -> Self
 pub async fn ProcessAdapter::run_process(Self, @host.CommandSpec) -> @host.ProcessResult raise @host.HostError
 pub async fn ProcessAdapter::write_output(Self, @host.OutputStream, Bytes) -> Int32 raise @host.HostError
 pub impl @host.HostAsyncOutput for ProcessAdapter

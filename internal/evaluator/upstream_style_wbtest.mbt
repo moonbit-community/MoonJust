@@ -7,7 +7,7 @@ impl @host.HostTerminal for UpstreamStyleHost with fn terminal_info(_self) -> @h
 }
 
 ///|
-fn upstream_style(
+async fn upstream_style(
   styles : Array[String],
   text? : String,
   color_mode? : String,
@@ -31,7 +31,7 @@ fn upstream_style(
 }
 
 ///|
-test "upstream style::style_single" {
+async test "upstream style::style_single" {
   for
     pair in [
       ("black", "30"),
@@ -63,7 +63,7 @@ test "upstream style::style_single" {
 }
 
 ///|
-test "upstream style::style_fixed" {
+async test "upstream style::style_fixed" {
   for
     pair in [
       ("0", "38;5;0"),
@@ -79,7 +79,7 @@ test "upstream style::style_fixed" {
 }
 
 ///|
-test "upstream style::style_rgb" {
+async test "upstream style::style_rgb" {
   for
     pair in [
       ("#ff8800", "38;2;255;136;0"),
@@ -97,7 +97,7 @@ test "upstream style::style_rgb" {
 }
 
 ///|
-test "upstream style::style_stream" {
+async test "upstream style::style_stream" {
   assert_eq(
     try! upstream_style(["red", "stdout"], text="foo", color_mode="always"),
     "\u{001b}[31mfoo\u{001b}[0m",
@@ -109,12 +109,12 @@ test "upstream style::style_stream" {
 }
 
 ///|
-test "upstream style::style_prefix_without_text" {
+async test "upstream style::style_prefix_without_text" {
   assert_eq(try! upstream_style(["red"]), "\u{001b}[31m")
 }
 
 ///|
-test "upstream style::style_with_text" {
+async test "upstream style::style_with_text" {
   assert_eq(
     try! upstream_style(["error"], text="foo"),
     "\u{001b}[1;31mfoo\u{001b}[0m",

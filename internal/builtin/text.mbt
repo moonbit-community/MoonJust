@@ -1,4 +1,31 @@
 ///|
+fn compile_regex(pattern : String) -> @regexp.Regexp raise BuiltinError {
+  if pattern.contains("\\1") ||
+    pattern.contains("(?<=") ||
+    pattern.contains("(?<!") {
+    raise InvalidPattern(
+      value=pattern,
+      detail="invalid regular expression `" + pattern + "`",
+    )
+  }
+  @regexp.compile(pattern[:]) catch {
+    error =>
+      raise InvalidPattern(
+        value=pattern,
+        detail=regex_parse_failure(pattern, error),
+      )
+  }
+}
+
+///|
+pub fn regex_matches(
+  value : String,
+  pattern : String,
+) -> Bool raise BuiltinError {
+  compile_regex(pattern).execute(value[:]).matched()
+}
+
+///|
 fn replacement_name_character(character : Char) -> Bool {
   character.is_ascii_lowercase() ||
   character.is_ascii_uppercase() ||
@@ -166,9 +193,9 @@ fn capitalize(value : String) -> String {
   let builder = StringBuilder()
   for index, character in value {
     if index == 0 {
-      builder.write_string(upper_ascii(character.to_string()))
+      builder.write_string(@unicode.to_uppercase(character))
     } else {
-      builder.write_string(lower_ascii(character.to_string()))
+      builder.write_string(@unicode.to_lowercase(character))
     }
   }
   builder.to_string()
@@ -176,28 +203,53 @@ fn capitalize(value : String) -> String {
 
 ///|
 fn case_words(value : String) -> Array[String] {
-  let words : Array[String] = []
-  let mut current = StringBuilder()
-  let mut previous_lower = false
-  for character in value {
-    let separator = character == '_' || character == '-' || character == ' '
-    let camel_boundary = character.is_ascii_uppercase() && previous_lower
-    if separator || camel_boundary {
-      if !current.to_string().is_empty() {
-        words.push(current.to_string())
-        current = StringBuilder()
+  let chars = value.to_array()
+  let words = []
+  let mut start = 0
+  let mut last_upper : Bool? = None
+  for index, c in chars {
+    if !@unicode.is_alphabetic(c) &&
+      !(@unicode.general_category(c) is (Nd | Nl | No)) {
+      if start < index {
+        words.push(String::from_array(chars[start:index]))
       }
+      start = index + 1
+      last_upper = None
+    } else if @unicode.is_uppercase(c) {
+      let ends_acronym = last_upper == Some(true) &&
+        index + 1 < chars.length() &&
+        @unicode.is_lowercase(chars[index + 1])
+      if last_upper == Some(false) || ends_acronym {
+        words.push(String::from_array(chars[start:index]))
+        start = index
+      }
+      last_upper = Some(true)
+    } else if @unicode.is_lowercase(c) {
+      last_upper = Some(false)
     }
-    if !separator {
-      current.write_char(character)
-    }
-    previous_lower = character.is_ascii_lowercase() ||
-      character.is_ascii_digit()
   }
-  if !current.to_string().is_empty() {
-    words.push(current.to_string())
+  if start < chars.length() {
+    words.push(String::from_array(chars[start:]))
   }
   words
+}
+
+///|
+fn case_word(word : String, capitalized~ : Bool = false) -> String {
+  let output = StringBuilder()
+  let chars = word.to_array()
+  for i, c in chars {
+    output.write_string(
+      if capitalized && i == 0 {
+        @unicode.to_uppercase(c)
+      } else if c == 'Σ' && i + 1 == chars.length() {
+        "ς"
+      } else {
+        @unicode.to_lowercase(c)
+      },
+    )
+  }
+  output.to_string()
 }
 
 ///|
@@ -205,7 +257,7 @@ fn separated_case(value : String, separator : Char, upper : Bool) -> String {
   let words = case_words(value)
   let result : Array[String] = []
   for word in words {
-    result.push(if upper { upper_ascii(word) } else { lower_ascii(word) })
+    result.push(if upper { @unicode.uppercase(word) } else { case_word(word) })
   }
   result.join(separator.to_string())
 }
@@ -215,7 +267,7 @@ fn whitespace_words(value : String) -> Array[String] {
   let words : Array[String] = []
   let mut current = StringBuilder()
   for character in value {
-    if character.is_ascii_whitespace() {
+    if @unicode.is_white_space(character) {
       if !current.is_empty() {
         words.push(current.to_string())
         current = StringBuilder()

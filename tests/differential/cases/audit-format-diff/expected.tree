@@ -1,0 +1,13 @@
+dir	./home
+file	./justfile	58
+a:
+    echo first
+
+
+
+b:
+    echo second
+
+c:
+   echo third
+

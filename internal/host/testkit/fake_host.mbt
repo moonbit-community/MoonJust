@@ -653,6 +653,12 @@ pub impl @host.HostAsyncOutput for FakeHost with fn write_output(
 }
 
 ///|
+pub impl @host.HostClock for FakeHost with fn local_offset_seconds(self, _) -> Int32 raise @host.HostError {
+  self.require(Clock)
+  0
+}
+
+///|
 pub impl @host.HostClock for FakeHost with fn now_millis(self : FakeHost) -> Int64 raise @host.HostError {
   self.require(Clock)
   self.clock_millis

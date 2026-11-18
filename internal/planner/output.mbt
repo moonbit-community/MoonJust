@@ -30,102 +30,49 @@ fn paint_command(text : String, color : CommandColor?) -> String {
 /// Return whether a command timestamp format only contains supported
 /// strftime directives.
 pub fn valid_timestamp_format(format : String) -> Bool {
-  let values = format.to_array()
-  let mut index = 0
-  while index < values.length() {
-    if values[index] != '%' {
-      index += 1
-      continue
-    }
-    index += 1
-    if index >= values.length() {
-      return false
-    }
-    if values[index] >= '1' && values[index] <= '9' {
-      index += 1
-      if index >= values.length() || values[index] != 'f' {
-        return false
-      }
-    } else {
-      match values[index] {
-        '%' | 'Y' | 'm' | 'd' | 'H' | 'M' | 'S' | 'f' | 's' => ()
-        _ => return false
-      }
-    }
-    index += 1
+  try @datetime.format(0L, 0, format) catch {
+    _ => false
+  } noraise {
+    _ => true
   }
-  true
 }
 
 ///|
-/// Format a UTC command timestamp without exposing host-specific time types.
-/// Callers validate the format before this pure formatting boundary.
-pub fn format_timestamp(millis : Int64, format : String) -> String {
-  let mut seconds = millis / 1000L
-  let mut remainder = (millis % 1000L).to_int()
-  if remainder < 0 {
-    seconds -= 1L
-    remainder += 1000
+pub async fn[H : @host.HostClock] command_timestamp(
+  host : H,
+  options : ExecutionOptions,
+) -> String? raise ExecutionError {
+  guard options.timestamp() is Some(format) else { return None }
+  let millis = @host.HostClock::now_millis(host) catch {
+    error => raise Host(error)
   }
-  let datetime = @time.PlainDateTime::from_unix_second(
-    seconds,
-    remainder * 1_000_000,
-    @time.utc_offset,
-  ) catch {
-    _ => return millis.to_string()
+  let offset = @host.HostClock::local_offset_seconds(host, millis) catch {
+    error => raise Host(error)
   }
-  let values = format.to_array()
-  let output = StringBuilder()
-  let mut index = 0
-  while index < values.length() {
-    if values[index] != '%' || index + 1 >= values.length() {
-      output.write_char(values[index])
-      index += 1
-      continue
-    }
-    let mut directive_index = index + 1
-    let precision = if values[directive_index] >= '1' &&
-      values[directive_index] <= '9' {
-      let value = values[directive_index].to_int() - '0'.to_int()
-      directive_index += 1
-      Some(value)
-    } else {
-      None
-    }
-    if directive_index >= values.length() {
-      output.write_char('%')
-      index += 1
-      continue
-    }
-    let directive = values[directive_index]
-    match directive {
-      '%' => output.write_char('%')
-      'Y' => output.write_string(datetime.year().to_string().pad_start(4, '0'))
-      'm' => output.write_string(datetime.month().to_string().pad_start(2, '0'))
-      'd' => output.write_string(datetime.day().to_string().pad_start(2, '0'))
-      'H' => output.write_string(datetime.hour().to_string().pad_start(2, '0'))
-      'M' =>
-        output.write_string(datetime.minute().to_string().pad_start(2, '0'))
-      'S' =>
-        output.write_string(datetime.second().to_string().pad_start(2, '0'))
-      'f' => {
-        let fraction = datetime.nanosecond().to_string().pad_start(9, '0')
-        output.write_string(
-          match precision {
-            Some(length) => fraction[:length].to_owned()
-            None => fraction
-          },
-        )
-      }
-      's' => output.write_string(seconds.to_string())
-      _ => {
-        output.write_char('%')
-        output.write_char(directive)
-      }
-    }
-    index = directive_index + 1
+  Some(
+    @datetime.format(millis, offset, format) catch {
+      _ => raise Host(InvalidInput("failed to format timestamp"))
+    },
+  )
+}
+
+///|
+pub async fn[H : @host.HostClock] script_timestamp(
+  host : H,
+  options : ExecutionOptions,
+  recipe : String,
+) -> Bytes raise ExecutionError {
+  match command_timestamp(host, options) {
+    Some(value) =>
+      @utf8.encode(
+        "[" +
+        paint_command(value, options.command_color()) +
+        "] " +
+        recipe +
+        "\n",
+      )
+    None => b""
   }
-  output.to_string()
 }
 
 ///|

@@ -21,7 +21,7 @@ import {
 // Values
 pub fn[E : @host.HostEnv + @host.HostPlatform] classify_request(E, ArrayView[String]) -> PreparedInvocation
 
-pub async fn[T : @host.HostFs + @host.HostAtomicFs] execute_file_command(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
+pub async fn[T : @host.HostFs + @host.HostAtomicFs, H : @host.HostTerminal] execute_file_command(T, H, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
 
 pub async fn[T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_query_command(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
 

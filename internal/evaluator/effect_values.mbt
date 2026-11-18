@@ -242,7 +242,7 @@ fn style_code(style : String) -> String? {
 }
 
 ///|
-fn[T : @host.HostTerminal] style_value(
+async fn[T : @host.HostTerminal] style_value(
   host : T,
   arguments : Array[Value],
   context : EvaluationContext,
@@ -254,12 +254,10 @@ fn[T : @host.HostTerminal] style_value(
   } else {
     ""
   }
-  let terminal = @host.HostTerminal::terminal_info(host) catch {
-    error => raise Host(error, span~)
-  }
   let mode = context.color_mode().unwrap_or("auto")
   let mut active = true
-  let mut stream_selected = false
+  let mut stdout = false
+  let mut stderr = false
   let properties : Array[String] = []
   let mut foreground : String? = None
   let mut background : String? = None
@@ -270,14 +268,8 @@ fn[T : @host.HostTerminal] style_value(
   }
   for style in styles {
     match style {
-      "stdout" => {
-        stream_selected = true
-        active = active && terminal.stdout_is_terminal()
-      }
-      "stderr" => {
-        stream_selected = true
-        active = active && terminal.stderr_is_terminal()
-      }
+      "stdout" => stdout = true
+      "stderr" => stderr = true
       "command" => {
         add_property(properties, "1")
         match context.command_color() {
@@ -314,11 +306,18 @@ fn[T : @host.HostTerminal] style_value(
         }
     }
   }
-  if stream_selected {
+  if stdout || stderr {
     active = match mode {
       "always" => true
       "never" => false
-      _ => active && terminal.color_supported()
+      _ => {
+        let terminal = @host.HostTerminal::terminal_info(host) catch {
+          error => raise Host(error, span~)
+        }
+        terminal.color_supported() &&
+        (!stdout || terminal.stdout_is_terminal()) &&
+        (!stderr || terminal.stderr_is_terminal())
+      }
     }
   }
   let codes = properties.copy()

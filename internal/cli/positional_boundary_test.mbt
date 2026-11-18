@@ -13,3 +13,16 @@ test "global option aliases and highlight switches are opaque after recipe bound
   )
   assert_eq(external.positional(), ["echo", "--format", "--set", "x", "y"])
 }
+
+///|
+test "cygpath selects the CLI value before the environment and default" {
+  let env = { "JUST_CYGPATH": "from-env" }
+  for
+    (args, expected) in [
+      (["--summary"], "from-env"),
+      (["--cygpath", "from-cli", "--summary"], "from-cli"),
+    ] {
+    let parsed = try! @cli.parse_arguments(args, env)
+    assert_eq(parsed.value("cygpath"), Some(expected))
+  }
+}

@@ -36,7 +36,7 @@ pub async fn ExecutionFs::read_file_range(Self, @path.PathValue, Int64, Int32) -
 pub async fn ExecutionFs::read_source(Self, @path.PathValue, Int32) -> Bytes raise @host.HostError
 pub async fn ExecutionFs::release_cache_lease(Self, @host.CacheLease) -> Unit raise @host.HostError
 pub async fn ExecutionFs::remove_script_temp(Self, @path.PathValue) -> Unit raise @host.HostError
-pub fn ExecutionFs::terminal_info(Self) -> @host.TerminalInfo raise @host.HostError
+pub async fn ExecutionFs::terminal_info(Self) -> @host.TerminalInfo raise @host.HostError
 pub async fn ExecutionFs::write_cache_manifest(Self, @host.CacheLease, Bytes) -> Unit raise @host.HostError
 pub fn ExecutionFs::write_file(Self, @path.PathValue, Bytes) -> Unit raise @host.HostError
 pub async fn ExecutionFs::write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise @host.HostError
