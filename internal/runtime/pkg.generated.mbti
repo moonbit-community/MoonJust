@@ -10,7 +10,7 @@ import {
 // Values
 pub async fn[P : @host.HostProcess, S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan(P, S, H, @planner.ExecutionPlan) -> @planner.ExecutionReport raise RuntimeError
 
-pub async fn[P : @host.HostProcess, O : @host.HostAsyncOutput, S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan_live(P, O, S, H, @planner.ExecutionPlan) -> ExecutionSummary raise LiveRuntimeError
+pub async fn[P : @host.HostProcess, O : @host.HostAsyncOutput, S : @host.HostFs + @host.HostScriptTemp + @host.HostCacheStore, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] execute_plan_live(P, O, S, H, @planner.ExecutionPlan, async (String, String) -> Unit raise @planner.ExecutionError) -> ExecutionSummary raise LiveRuntimeError
 
 // Errors
 #derive(@debug.Debug)

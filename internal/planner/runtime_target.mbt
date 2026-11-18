@@ -26,8 +26,6 @@ async fn[
   stack : Array[String],
   entry_dependencies : ArrayView[Int32],
   tasks : Array[ExecutionTask],
-  stderr : Array[Byte],
-  confirmations : Array[ConfirmationRequest],
   parallel : Bool,
 ) -> (Array[Int32], Array[Int32]) raise ExecutionError {
   let terminals : Array[Int32] = []
@@ -98,8 +96,6 @@ async fn[
           serial_fence.copy()
         },
         tasks,
-        stderr,
-        confirmations,
         true,
         project?,
         module_path=target.module_path,
@@ -108,7 +104,11 @@ async fn[
       if !terminals.contains(terminal) {
         terminals.push(terminal)
       }
-      if !parallel {
+      if !parallel &&
+        (
+          serial_fence.is_empty() ||
+          terminal > serial_fence[serial_fence.length() - 1]
+        ) {
         serial_fence = [terminal]
       }
     } else {
@@ -136,8 +136,6 @@ async fn[
             serial_fence.copy()
           },
           tasks,
-          stderr,
-          confirmations,
           true,
           project?,
           module_path=target.module_path,
@@ -146,7 +144,11 @@ async fn[
         if !terminals.contains(terminal) {
           terminals.push(terminal)
         }
-        if !parallel {
+        if !parallel &&
+          (
+            serial_fence.is_empty() ||
+            terminal > serial_fence[serial_fence.length() - 1]
+          ) {
           serial_fence = [terminal]
         }
       }

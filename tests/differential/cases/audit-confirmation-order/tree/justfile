@@ -1,0 +1,8 @@
+first:
+    @echo FIRST > marker
+    @echo FIRST
+[confirm(if path_exists('marker') == 'true' { 'First finished. Continue?' } else { 'First still pending. Continue?' })]
+second: denied
+    @echo SECOND
+denied:
+    @echo SHOULD-NOT-RUN

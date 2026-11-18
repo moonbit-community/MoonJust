@@ -1,0 +1,2 @@
+say arg:
+    @echo {{arg}}

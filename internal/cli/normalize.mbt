@@ -59,34 +59,6 @@ fn check_supported(argv : ArrayView[String]) -> Unit raise CliParseError {
 }
 
 ///|
-fn normalize_argv(argv : ArrayView[String]) -> Array[String] {
-  let mapped = argv.map(fn(token) {
-    match token {
-      "--format" => "--fmt"
-      "--initialize" => "--init"
-      "--eval" => "--evaluate"
-      "--no-dependencies" => "--no-deps"
-      _ => token
-    }
-  })
-  let mut last_highlight : Int32? = None
-  for index, token in mapped {
-    if token == "--highlight" || token == "--no-highlight" {
-      last_highlight = Some(index)
-    }
-  }
-  let result : Array[String] = []
-  for index, token in mapped {
-    if (token == "--highlight" || token == "--no-highlight") &&
-      last_highlight != Some(index) {
-      continue
-    }
-    result.push(token)
-  }
-  result
-}
-
-///|
 priv struct EnvironmentArgv {
   argv : Array[String]
   variable_overrides : Array[(String, String)]
@@ -149,7 +121,7 @@ fn normalize_environment_argv(
         }
       }
       normalized.push(token)
-      if !command_mode {
+      if !command_mode || raw_command_mode {
         global = false
       }
       index += 1
@@ -226,7 +198,11 @@ fn normalize_environment_argv(
 }
 
 ///|
-fn parser_argv(argv : ArrayView[String]) -> Array[String] {
+fn parser_argv(
+  argv : ArrayView[String],
+  env : Map[String, String],
+) -> Array[String] {
+  let mut highlight_index : Int32? = None
   let result : Array[String] = []
   let query_mode = has_interspersed_query_command(argv)
   let mut consumes_value = false
@@ -248,7 +224,19 @@ fn parser_argv(argv : ArrayView[String]) -> Array[String] {
     }
     let name = option_name(token)
     if token.has_prefix("-") && token != "-" && supported_option(name) {
-      result.push(token)
+      if name == "--highlight" || name == "--no-highlight" {
+        if highlight_index is Some(previous) {
+          ignore(result.remove(previous))
+        }
+        highlight_index = Some(result.length())
+      }
+      result.push(
+        if token.has_prefix("--") && !token.contains("=") {
+          name
+        } else {
+          token
+        },
+      )
       if supported_value_option(name) && !token.contains("=") {
         consumes_value = true
       }
@@ -261,6 +249,15 @@ fn parser_argv(argv : ArrayView[String]) -> Array[String] {
     result.push("--")
     result.push(token)
     separated = true
+  }
+  if highlight_index is Some(index) {
+    env.remove(
+      if result[index] == "--highlight" {
+        "JUST_NO_HIGHLIGHT"
+      } else {
+        "JUST_HIGHLIGHT"
+      },
+    )
   }
   result
 }

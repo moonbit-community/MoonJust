@@ -10,6 +10,7 @@ pub async fn[
   scripts : S,
   effects : H,
   plan : @planner.ExecutionPlan,
+  confirm : async (String, String) -> Unit raise @planner.ExecutionError,
 ) -> ExecutionSummary raise LiveRuntimeError {
   ignore(emit_live(output, Stderr, plan.stderr(), 0))
   if plan.tasks().is_empty() {
@@ -23,14 +24,19 @@ pub async fn[
       b""[:],
     )
   }
-  // Dry-run planning already materializes every command echo into plan.stderr
-  // and deliberately leaves task steps empty. Skip the coordinator and worker
-  // pool for this common path while preserving explain preambles.
-  if plan.options().dry_run() && plan.steps().is_empty() {
-    for task in plan.tasks() {
-      ignore(emit_live(output, Stderr, task.preamble(), 0))
+  let prompt_lock = @async.Mutex()
+  async fn run_task(
+    task : @planner.ExecutionTask,
+  ) -> ExecutionSummary raise LiveRuntimeError {
+    if task.confirmation is Some(prompt) {
+      prompt_lock.acquire()
+      defer prompt_lock.release()
+      confirm(task.recipe(), prompt()) catch {
+        error => raise live_failure(error, 0)
+      }
+      return { commands: 0, }
     }
-    return { commands: 0, }
+    execute_live_task(process, output, scripts, effects, task, plan)
   }
   let jobs = plan.options().jobs()
   if jobs <= 0 {
@@ -46,23 +52,14 @@ pub async fn[
       for _ in plan.tasks() {
         outcomes.push(LiveBlocked)
       }
-      for _ in 0..<jobs {
+      for _ in 0..<jobs.min(plan.tasks().length()) {
         group.spawn(() => {
           while true {
             guard coordinator.next() is Some((id, is_blocked)) else { break }
             let outcome = if is_blocked {
               LiveBlocked
             } else {
-              try
-                execute_live_task(
-                  process,
-                  output,
-                  scripts,
-                  effects,
-                  plan.tasks()[id],
-                  plan,
-                )
-              catch {
+              try run_task(plan.tasks()[id]) catch {
                 error => LiveFailed(error)
               } noraise {
                 summary => LiveCompleted(summary)

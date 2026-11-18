@@ -21,8 +21,6 @@ pub fn build_schedule(ArrayView[TaskSpec], Int32) -> Schedule raise SchedulerErr
 
 pub async fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScript) -> Unit raise ExecutionError
 
-pub fn combine_execution_plans(ArrayView[ExecutionPlan]) -> ExecutionPlan
-
 pub fn confirmation_answer_is_yes(String) -> Bool
 
 pub fn deterministic_failure(Schedule, ArrayView[Int32]) -> Int32?
@@ -69,6 +67,7 @@ pub(all) suberror ExecutionError {
   Interrupted(signal~ : @host.SignalKind)
   GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
+  ConfirmationFailure(message~ : String)
   CacheFailure(message~ : String)
 }
 pub fn ExecutionError::command_failed(String, Int32, Int32) -> Self
@@ -149,26 +148,10 @@ pub fn CommandColor::not_equal(Self, Self) -> Bool
 pub fn CommandColor::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
-pub struct ConfirmationRequest {
-  recipe : String
-  prompt : String
-  is_dependency : Bool
-}
-#deprecated
-pub fn ConfirmationRequest::equal(Self, Self) -> Bool
-pub fn ConfirmationRequest::is_dependency(Self) -> Bool
-pub fn ConfirmationRequest::new(String, String, Bool) -> Self
-#deprecated
-pub fn ConfirmationRequest::not_equal(Self, Self) -> Bool
-pub fn ConfirmationRequest::prompt(Self) -> String
-pub fn ConfirmationRequest::recipe(Self) -> String
-#deprecated
-pub fn ConfirmationRequest::to_repr(Self) -> @debug.Repr
-
-#derive(Eq, @debug.Debug)
 pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
+  assume_yes : Bool
   echo_quiet : Bool
   verbose : Bool
   verbosity : Int32
@@ -206,6 +189,7 @@ pub fn ExecutionOptions::to_repr(Self) -> @debug.Repr
 pub fn ExecutionOptions::unstable(Self) -> Bool
 pub fn ExecutionOptions::verbose(Self) -> Bool
 pub fn ExecutionOptions::verbosity(Self) -> Int32
+pub fn ExecutionOptions::with_assume_yes(Self, Bool) -> Self
 pub fn ExecutionOptions::with_cache(Self, Bool) -> Self
 pub fn ExecutionOptions::with_color_enabled(Self, Bool) -> Self
 pub fn ExecutionOptions::with_echo_quiet(Self, Bool) -> Self
@@ -224,11 +208,9 @@ pub struct ExecutionPlan {
   options : ExecutionOptions
   tasks : Array[ExecutionTask]
   cache_directory : @path.PathValue?
-  confirmations : Array[ConfirmationRequest]
 }
 pub fn ExecutionPlan::cache_directory(Self) -> @path.PathValue?
 pub fn ExecutionPlan::commands(Self) -> ArrayView[PlannedCommand]
-pub fn ExecutionPlan::confirmations(Self) -> ArrayView[ConfirmationRequest]
 pub fn ExecutionPlan::options(Self) -> ExecutionOptions
 pub fn ExecutionPlan::stderr(Self) -> BytesView
 pub fn ExecutionPlan::steps(Self) -> ArrayView[PlannedStep]
@@ -263,6 +245,7 @@ pub struct ExecutionTask {
   steps : Array[PlannedStep]
   dependencies : Array[Int32]
   cache : CacheDirective?
+  confirmation : (async () -> String raise ExecutionError)?
   print_exit_message : Bool
   preamble : Bytes
 }

@@ -20,14 +20,6 @@ pub extend CommandColor with Eq::{not_equal, equal}
 
 ///|
 #deprecated
-pub extend ConfirmationRequest with Debug::{to_repr}
-
-///|
-#deprecated
-pub extend ConfirmationRequest with Eq::{not_equal, equal}
-
-///|
-#deprecated
 pub extend ExecutionOptions with Debug::{to_repr}
 
 ///|

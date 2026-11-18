@@ -388,6 +388,7 @@ fn execution_options(
     timestamp,
     command_color,
   )
+  .with_assume_yes(arguments.flag("yes"))
   .with_jobs(selected_jobs(arguments))
   .with_cache(!arguments.flag("no-cache"))
   .with_unstable(arguments.flag("unstable"))

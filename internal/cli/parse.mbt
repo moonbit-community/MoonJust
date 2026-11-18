@@ -151,15 +151,7 @@ pub fn parse_arguments(
     }
   }
   check_supported(environment_argv.argv)
-  let normalized = normalize_argv(environment_argv.argv)
-  for token in normalized {
-    if token == "--highlight" {
-      normalized_env.remove("JUST_NO_HIGHLIGHT")
-    } else if token == "--no-highlight" {
-      normalized_env.remove("JUST_HIGHLIGHT")
-    }
-  }
-  let parser_input = parser_argv(normalized)
+  let parser_input = parser_argv(environment_argv.argv, normalized_env)
   let matches = @argparse.Command::parse(
     parser_command(),
     argv=parser_input[:],
@@ -250,7 +242,7 @@ pub fn parse_arguments(
     counts: matches.flag_counts,
     values,
     positional: if command is RunCommand {
-      invocation_arguments(normalized)
+      invocation_arguments(environment_argv.argv)
     } else {
       matches.values.get("arguments").unwrap_or([])
     },

@@ -575,7 +575,7 @@ fn context_builtin(
     }
     "semver_matches" => {
       let result = @builtin.call(name, arguments) catch {
-        error => raise Builtin(error, span~)
+        error => builtin_call_failure(name, error, span)
       }
       context_boolean(context, result.truthy())
     }

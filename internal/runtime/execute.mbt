@@ -9,6 +9,9 @@ pub async fn[
   effects : H,
   plan : @planner.ExecutionPlan,
 ) -> @planner.ExecutionReport raise RuntimeError {
+  if plan.tasks().any(fn(task) { task.confirmation is Some(_) }) {
+    raise invalid_plan("interactive confirmations require live execution")
+  }
   if plan.tasks().is_empty() {
     return execute_steps(
       process,

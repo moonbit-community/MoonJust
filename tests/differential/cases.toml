@@ -2,6 +2,48 @@ schema_version = 3
 upstream = "just 1.57.0"
 
 [[case]]
+id = "MJ-AUDIT-B01"
+directory = "audit-shell-quote"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
+id = "MJ-AUDIT-B02"
+directory = "audit-recipe-argv"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
+id = "MJ-AUDIT-B03"
+directory = "audit-dry-run-shared"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
+id = "MJ-AUDIT-B04"
+directory = "audit-confirmation-order"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
+id = "MJ-AUDIT-B05"
+directory = "audit-regex-iteration"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
+id = "MJ-AUDIT-B06"
+directory = "audit-semver-prerelease"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
 id = "MJ-UPSTREAM-REMAINING-JUSTFILE-RUNTIME"
 directory = "upstream-remaining-justfile-runtime"
 owner_area = "upstream-blackbox"

@@ -287,14 +287,11 @@ pub fn call(
             detail=regex_parse_failure(pattern, error),
           )
       }
-      let result = regexp.execute(value[:])
       if arguments.length() == 2 {
-        Bool(result.matched())
-      } else if !result.matched() {
-        String(value)
+        Bool(regexp.execute(value[:]).matched())
       } else {
         let replacement = string_argument(name, arguments[2])
-        String(replace_regex_all(regexp, value, replacement))
+        String(replace_regex_all(regexp, pattern, value, replacement))
       }
     }
     "semver_matches" => {

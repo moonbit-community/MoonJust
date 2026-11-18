@@ -15,6 +15,7 @@ pub(all) suberror ExecutionError {
   Interrupted(signal~ : @host.SignalKind)
   GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
+  ConfirmationFailure(message~ : String)
   CacheFailure(message~ : String)
 }
 
@@ -60,6 +61,7 @@ pub fn ExecutionError::exit_code(self : ExecutionError) -> Int32 {
     | UnknownRecipe(_)
     | DependencyCycle(_)
     | InvalidAttributeValue(_)
+    | ConfirmationFailure(_)
     | CacheFailure(_) => 1
   }
 }
@@ -105,7 +107,8 @@ pub fn ExecutionError::message(self : ExecutionError) -> String {
     GuardCode(recipe~, line~, code~) =>
       "error: guard line in recipe `\{recipe}` on line \{line} returned reserved exit code \{code}"
     InvalidAttributeValue(message~, ..) => "error: " + message
-    CacheFailure(message~) => "error: " + message
+    ConfirmationFailure(message~) | CacheFailure(message~) =>
+      "error: " + message
   }
 }
 

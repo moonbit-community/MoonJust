@@ -148,29 +148,25 @@ pub async fn read_stdin_source_bounded(max_bytes : Int32) -> Bytes {
 }
 
 ///|
-async fn confirm_execution(
-  plan : @planner.ExecutionPlan,
-) -> @cli.ApplicationResponse? {
-  for request in plan.confirmations() {
-    try @stdio.stderr.write(@utf8.encode(request.prompt() + " ")) catch {
-      _ => return Some(failure("error: failed to write confirmation prompt", 1))
-    } noraise {
-      _ => ()
-    }
-    let answer = try @stdio.stdin.text.read_until("\n") catch {
-      _ =>
-        return Some(failure("error: failed to read confirmation from stdin", 1))
-    } noraise {
-      value => value
-    }
-    if answer is None ||
-      !@planner.confirmation_answer_is_yes(answer.unwrap_or("")) {
-      return Some(
-        failure("error: recipe `" + request.recipe() + "` was not confirmed", 1),
-      )
-    }
+async fn confirm_recipe(
+  recipe : String,
+  prompt : String,
+) -> Unit raise @planner.ExecutionError {
+  @stdio.stderr.write(@utf8.encode(prompt + " ")) catch {
+    _ =>
+      raise ConfirmationFailure(message="failed to write confirmation prompt")
   }
-  None
+  let answer = @stdio.stdin.text.read_until("\n") catch {
+    _ =>
+      raise ConfirmationFailure(
+        message="failed to read confirmation from stdin",
+      )
+  }
+  if !@planner.confirmation_answer_is_yes(answer.unwrap_or("")) {
+    raise ConfirmationFailure(
+      message="recipe `" + recipe + "` was not confirmed",
+    )
+  }
 }
 
 ///|
@@ -268,19 +264,16 @@ async fn[
   } noraise {
     value => value
   }
-  if !arguments.flag("yes") {
-    match confirm_execution(plan) {
-      Some(response) => return response
-      None => ()
-    }
-  }
   let summary = try
     @runtime.execute_plan_live(
-      process, process, execution_host, environment_host, plan,
+      process, process, execution_host, environment_host, plan, confirm_recipe,
     )
   catch {
     error =>
-      return if arguments.flag("quiet") || !error.show_message() {
+      return if (
+          arguments.flag("quiet") && !(error.error() is ConfirmationFailure(_))
+        ) ||
+        !error.show_message() {
         @cli.ApplicationResponse::new(b"", b"", error.exit_code())
       } else {
         let message = match error.error() {

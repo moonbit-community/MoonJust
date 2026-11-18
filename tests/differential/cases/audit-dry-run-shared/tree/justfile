@@ -1,0 +1,6 @@
+base name:
+    echo {{name}}
+a: (base 'same')
+    echo A
+b: (base 'same') (base 'different')
+    echo B
