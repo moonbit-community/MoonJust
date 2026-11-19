@@ -24,6 +24,7 @@ pub fn ExecutionFs::new() -> ExecutionFs {
   portable_current_dir_cache.val = None
   portable_platform_cache.val = None
   portable_terminal_cache.val = None
+  unix_zone_cache.val = None
   { marker: (), }
 }
 
@@ -276,15 +277,46 @@ fn portable_platform() -> @host.PlatformInfo {
 }
 
 ///|
-fn portable_terminal() -> @host.TerminalInfo {
-  match portable_terminal_cache.val {
-    Some(value) => value
-    None => {
-      let value = @host.TerminalInfo::new(false, false, false, false)
-      portable_terminal_cache.val = Some(value)
-      value
-    }
+fn windows_powershell() -> String {
+  @env.get_env_var("SystemRoot").unwrap_or("C:\\Windows") +
+  "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+}
+
+///|
+async fn portable_terminal() -> @host.TerminalInfo noraise {
+  if portable_terminal_cache.val is Some(value) {
+    return value
   }
+  let mask = try {
+    let (program, args) = if @async.platform is Windows {
+      (
+        windows_powershell(),
+        [
+          "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "exit (([int](![Console]::IsInputRedirected)) + 2*([int](![Console]::IsOutputRedirected)) + 4*([int](![Console]::IsErrorRedirected)))",
+        ],
+      )
+    } else {
+      (
+        "/bin/sh",
+        [
+          "-c", "n=0; test -t 0 && n=1; test -t 1 && n=$((n+2)); test -t 2 && n=$((n+4)); exit $n",
+        ],
+      )
+    }
+    @process.run(program, args, stdin=Inherit, stdout=Inherit, stderr=Inherit, accepted_exit_code=code => {
+      code >= 0 && code <= 7
+    }).exit_code
+  } catch {
+    _ => 0
+  }
+  let value = @host.TerminalInfo::new(
+    (mask & 1) != 0,
+    (mask & 2) != 0,
+    (mask & 4) != 0,
+    (mask & 6) != 0,
+  )
+  portable_terminal_cache.val = Some(value)
+  value
 }
 
 ///|
@@ -295,6 +327,38 @@ pub impl @host.HostEnv for ExecutionFs with fn current_dir(_self : ExecutionFs) 
 ///|
 pub impl @host.HostClock for ExecutionFs with fn now_millis(_self : ExecutionFs) -> Int64 raise @host.HostError {
   @env.now().reinterpret_as_int64()
+}
+
+///|
+pub impl @host.HostClock for ExecutionFs with fn local_offset_seconds(_, millis) -> Int32 raise @host.HostError {
+  let tz = @env.get_env_var("TZ")
+  let name = tz.unwrap_or("")
+  if name is ("UTC" | "Etc/UTC" | "GMT" | "UTC0" | "GMT0") {
+    return 0
+  }
+  try {
+    if @async.platform is Windows {
+      let cmd = "[TimeZoneInfo]::Local.GetUtcOffset([DateTimeOffset]::FromUnixTimeMilliseconds(" +
+        millis.to_string() +
+        ")).TotalSeconds"
+      let output = @process.run(
+        windows_powershell(),
+        ["-NoProfile", "-NonInteractive", "-Command", cmd],
+        stdout=Collect,
+        stderr=Discard,
+      )
+      return @string.parse_int(output.stdout_text().trim())
+    }
+    if tz == Some("") {
+      return 0
+    }
+    let zone = unix_local_zone(name)
+    @time.ZonedDateTime::from_unix_second(millis / 1000L, zone~)
+    .offset()
+    .seconds()
+  } catch {
+    _ => raise CapabilityUnavailable(Clock)
+  }
 }
 
 ///|

@@ -12,6 +12,16 @@ test "quote escapes every single quote" {
 }
 
 ///|
+test "builtin aliases follow just and regex comparison keeps its own contract" {
+  for name in ["stem", "path_join", "regex_matches"] {
+    assert_true(find(name) is None)
+  }
+  assert_true(find("justfile_dir") is Some(_))
+  assert_true(try! regex_matches("abc", "^a"))
+  assert_false(try! regex_matches("abc", "^b"))
+}
+
+///|
 test "replace_regex resumes with left context and advances on Unicode boundaries" {
   for
     (value, pattern, replacement, expected) in [

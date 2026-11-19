@@ -14,7 +14,7 @@ import {
   "ZSeanYves/MoonJust/internal/cache",
   "moonbitlang/core/async",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/x/time",
+  "ZSeanYves/MoonJust/internal/datetime",
 }
 
 import {

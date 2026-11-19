@@ -1,6 +1,7 @@
 ///|
 /// Wasm child processes use the standard library process API.
 pub struct ProcessAdapter {
+  cygpath : String
   output_mutex : @async.Mutex
 }
 
@@ -11,8 +12,8 @@ pub struct ProcessAdapter {
 const MAX_CAPTURED_STREAM_BYTES : Int32 = 16 * 1024 * 1024
 
 ///|
-pub fn ProcessAdapter::new() -> ProcessAdapter {
-  { output_mutex: Mutex(), }
+pub fn ProcessAdapter::new(cygpath~ : String = "cygpath") -> ProcessAdapter {
+  { cygpath, output_mutex: Mutex(), }
 }
 
 ///|

@@ -19,6 +19,7 @@ import {
   "ZSeanYves/MoonJust/internal/syntax",
   "ZSeanYves/MoonJust/internal/value",
   "ZSeanYves/MoonJust/internal/workdir",
+  "moonbitlang/core/diff",
   "moonbitlang/core/env",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",

@@ -1,0 +1,12 @@
+ a:
+     echo first
+ 
+[31m-
+[0m[31m-
+[0m b:
+     echo second
+ 
+ c:
+[31m-   echo third
+[0m[32m+    echo third
+[0m

@@ -323,7 +323,7 @@ pub async fn[
   }
   if arguments.command() == ChangelogCommand {
     return @cli.ApplicationResponse::success(
-      stdout=@utf8.encode(MOONJUST_CHANGELOG + "\n"),
+      stdout=@utf8.encode(just_changelog),
     )
   }
   if arguments.command() == ManCommand {
@@ -365,13 +365,17 @@ pub async fn[
         Some(response) => return response
         None => ()
       }
-      let process = @host_process.ProcessAdapter::new()
+      let process = @host_process.ProcessAdapter::new(
+        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+      )
       execute_run(
         loading_host, execution_host, environment_host, process, arguments, context,
       )
     }
     ChooseCommand => {
-      let process = @host_process.ProcessAdapter::new()
+      let process = @host_process.ProcessAdapter::new(
+        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+      )
       let selections = try
         execute_choose_command_async(
           loading_host, environment_host, process, arguments, context,
@@ -409,7 +413,9 @@ pub async fn[
       )
     }
     EditCommand => {
-      let process = @host_process.ProcessAdapter::new()
+      let process = @host_process.ProcessAdapter::new(
+        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+      )
       try
         execute_edit_command_async(
           loading_host, environment_host, process, arguments, context,
@@ -427,13 +433,17 @@ pub async fn[
         value => value
       }
     CheckCommand | FormatCommand | InitCommand =>
-      try execute_file_command(loading_host, arguments, context) catch {
+      try
+        execute_file_command(loading_host, environment_host, arguments, context)
+      catch {
         error => application_failure(loading_host, arguments, context, error)
       } noraise {
         value => value
       }
     EvaluateCommand => {
-      let process = @host_process.ProcessAdapter::new()
+      let process = @host_process.ProcessAdapter::new(
+        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+      )
       try
         execute_evaluate_command_async(
           loading_host, environment_host, process, arguments, context,
@@ -445,7 +455,9 @@ pub async fn[
       }
     }
     CommandCommand => {
-      let process = @host_process.ProcessAdapter::new()
+      let process = @host_process.ProcessAdapter::new(
+        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+      )
       try
         execute_command_command_async(
           loading_host, environment_host, process, arguments, context,

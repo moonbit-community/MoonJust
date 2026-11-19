@@ -208,11 +208,13 @@ pub async fn[
           if name == "datetime_utc" {
             0
           } else {
-            require_context_int(
-              "utc_offset_seconds",
-              context.utc_offset_seconds,
-              span,
-            )
+            match context.utc_offset_seconds {
+              Some(offset) => offset
+              None =>
+                @host.HostClock::local_offset_seconds(host, value) catch {
+                  error => raise Host(error, span~)
+                }
+            }
           },
           format,
           name,

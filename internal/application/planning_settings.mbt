@@ -317,9 +317,10 @@ fn selected_shell(
 }
 
 ///|
-fn[T : @host.HostTerminal] selected_color_active(
+async fn[T : @host.HostTerminal] selected_color_active(
   effects : T,
   arguments : @cli.CliArguments,
+  stream : @host.OutputStream,
 ) -> Bool raise ApplicationError {
   let mode = arguments.value("color").unwrap_or("auto")
   match mode {
@@ -329,7 +330,11 @@ fn[T : @host.HostTerminal] selected_color_active(
       let terminal = @host.HostTerminal::terminal_info(effects) catch {
         error => raise Host(error)
       }
-      terminal.color_supported() && terminal.stderr_is_terminal()
+      terminal.color_supported() &&
+      (match stream {
+        Stdout => terminal.stdout_is_terminal()
+        Stderr => terminal.stderr_is_terminal()
+      })
     }
     _ => raise Query("invalid --color value")
   }

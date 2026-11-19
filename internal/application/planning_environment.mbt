@@ -30,14 +30,11 @@ async fn[P : @host.HostProcess] shell_invocation_directory(
   if platform.operating_system() != Windows {
     return native
   }
-  // cygpath is only needed for UNC/MSYS mount paths. Ordinary drive paths
-  // have a deterministic conversion that avoids a helper process during
-  // every dry-run plan while preserving the Unix-facing builtin value.
-  match windows_drive_path_to_unix(native) {
-    Some(value) => return value
-    None => ()
-  }
+  // Custom converters may use a different mount prefix even for drive paths.
   let program = arguments.value("cygpath").unwrap_or("cygpath")
+  if program == "cygpath" && windows_drive_path_to_unix(native) is Some(path) {
+    return path
+  }
   let spec = @host.CommandSpec::new(program, ["--unix", native.as_string()]) catch {
     _ => return native
   }
@@ -119,8 +116,7 @@ fn evaluate_project_globals(
 }
 
 ///|
-fn[H : @host.HostClock] selected_timestamp(
-  effects : H,
+fn selected_timestamp(
   arguments : @cli.CliArguments,
 ) -> String? raise ApplicationError {
   if !arguments.flag("timestamp") {
@@ -132,10 +128,7 @@ fn[H : @host.HostClock] selected_timestamp(
       "failed to parse time format string `\{format}`: bad or unsupported format string",
     )
   }
-  let millis = @host.HostClock::now_millis(effects) catch {
-    error => raise Host(error)
-  }
-  Some(@planner.format_timestamp(millis, format))
+  Some(format)
 }
 
 ///|

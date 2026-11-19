@@ -68,6 +68,12 @@ not application routing or process creation.
 
 The root `main.mbt` selects the host, forwards standard streams and exits with the application status. `host/wasm` owns filesystem and host facts; `host/process` owns child lifetime and stdio. Both use standard MoonBit APIs; production packages target linear-memory Wasm only. Native test drivers do not supply filesystem or process implementations to the product.
 
+Automatic color uses the terminal state of the selected output stream. The Wasm host probes inherited standard handles on first use, using `test -t` on Unix and the console redirection properties on Windows. When the host denies the probe, automatic color is disabled. Explicit color modes work in either environment.
+
+Command timestamps use the wall clock at command echo. On Unix the Wasm host evaluates POSIX `TZ` offsets and transition rules at that instant. It also accepts named and absolute TZif files and reads the system zone from `/etc/localtime` when `TZ` is unset. An empty `TZ` selects UTC. On Windows it queries the system time zone for the instant being formatted. UTC formatting requires only the clock.
+
+The embedded changelog is the output of `just --changelog` for the pinned 1.57.0 release (CC0, upstream commit `e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f`). Its contract test checks the complete UTF-8 byte sequence by size and SHA-256.
+
 ## Invariants
 
 - Project loading cannot start a process or write command output.

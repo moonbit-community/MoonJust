@@ -146,13 +146,10 @@ fn regex_values_match(
 ) -> Bool raise EvaluationError {
   for value in left.elements() {
     for pattern in right.elements() {
-      let matched = @builtin.call("regex_matches", [
-        String(value),
-        String(pattern),
-      ]) catch {
+      let matched = @builtin.regex_matches(value, pattern) catch {
         error => raise Builtin(error, span~)
       }
-      if matched.truthy() {
+      if matched {
         return true
       }
     }

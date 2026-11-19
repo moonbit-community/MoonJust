@@ -1,38 +1,53 @@
 ///|
-fn format_diff(original : String, formatted : String, color : Bool) -> String {
-  let left : Array[String] = original
-    .trim_end()
-    .split("\n")
-    .map(fn(line) { line.to_owned() })
-    .collect()
-  let right : Array[String] = formatted
-    .trim_end()
-    .split("\n")
-    .map(fn(line) { line.to_owned() })
-    .collect()
-  let builder = StringBuilder()
-  let length = Int32::max(left.length(), right.length())
-  for index in 0..<length {
-    match (left.get(index), right.get(index)) {
-      (Some(before), Some(after)) if before == after =>
-        builder.write_string(" " + before + "\n")
-      (Some(before), Some(after)) =>
-        if color {
-          builder.write_string("\u{001b}[31m-" + before + "\n\u{001b}[0m")
-          builder.write_string("\u{001b}[32m+" + after + "\n\u{001b}[0m")
-        } else {
-          builder.write_string("-" + before + "\n+" + after + "\n")
-        }
-      (Some(before), None) => builder.write_string("-" + before + "\n")
-      (None, Some(after)) => builder.write_string("+" + after + "\n")
-      (None, None) => ()
+fn diff_lines(text : String) -> Array[StringView] {
+  let lines = []
+  let mut start = 0
+  for i = 0; i < text.length(); i = i + 1 {
+    if text[i] == '\n' {
+      lines.push(text[start:i + 1])
+      start = i + 1
     }
   }
-  builder.to_string()
+  if start < text.length() {
+    lines.push(text[start:])
+  }
+  lines
 }
 
 ///|
-fn format_check_response(
+fn format_diff(original : String, formatted : String, color : Bool) -> String {
+  let left = diff_lines(original)
+  let right = diff_lines(formatted)
+  let diff = @diff.Diff(old=left, new=right, algorithm=Patience)
+  let output = StringBuilder()
+  for edit in diff.edits() {
+    let (lines, prefix, paint) = match edit {
+      Equal(old_index~, len~, ..) => (left[old_index:old_index + len], " ", "")
+      Delete(old_index~, old_len~, ..) =>
+        (left[old_index:old_index + old_len], "-", "\u{001b}[31m")
+      Insert(new_index~, new_len~, ..) =>
+        (right[new_index:new_index + new_len], "+", "\u{001b}[32m")
+    }
+    for line in lines {
+      if color {
+        output.write_string(paint)
+      }
+      output.write_string(prefix)
+      output.write_stringview(line)
+      if !line.has_suffix("\n") {
+        output.write_char('\n')
+      }
+      if color && paint != "" {
+        output.write_string("\u{001b}[0m")
+      }
+    }
+  }
+  output.to_string()
+}
+
+///|
+async fn[H : @host.HostTerminal] format_check_response(
+  terminal : H,
   loaded : @loader.LoadedSource,
   arguments : @cli.CliArguments,
 ) -> @cli.ApplicationResponse raise ApplicationError {
@@ -44,9 +59,9 @@ fn format_check_response(
     if arguments.flag("quiet") {
       return @cli.ApplicationResponse::new(b"", b"", 1)
     }
-    let color = arguments.value("color") == Some("always")
+    let color = selected_color_active(terminal, arguments, Stdout)
     let diff = format_diff(loaded.source().text(), formatted, color)
-    let stderr = if color {
+    let stderr = if selected_color_active(terminal, arguments, Stderr) {
       "\u{001b}[1;31merror\u{001b}[0m: \u{001b}[1mformatted justfile differs from original\u{001b}[0m\n"
     } else {
       "error: formatted justfile differs from original\n"
@@ -208,8 +223,9 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response(
 }
 
 ///|
-pub async fn[T : @host.HostFs + @host.HostAtomicFs] execute_file_command(
+pub async fn[T : @host.HostFs + @host.HostAtomicFs, H : @host.HostTerminal] execute_file_command(
   host : T,
+  terminal : H,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
 ) -> @cli.ApplicationResponse raise ApplicationError {
@@ -217,7 +233,7 @@ pub async fn[T : @host.HostFs + @host.HostAtomicFs] execute_file_command(
     CheckCommand => {
       let loaded = load_input(host, arguments, context)
       perf_detail_mark("file.load")
-      let response = format_check_response(loaded, arguments)
+      let response = format_check_response(terminal, loaded, arguments)
       perf_detail_mark("file.format")
       ignore(perf_detail_emit() catch { _ => () })
       response

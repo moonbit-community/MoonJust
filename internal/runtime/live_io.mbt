@@ -96,8 +96,17 @@ async fn[
         )
       }
       Script(script, echo) => {
+        let timestamp = @planner.script_timestamp(
+          effects,
+          options,
+          script.recipe(),
+        ) catch {
+          error => raise live_failure(error, commands)
+        }
+        ignore(emit_live(output, Stderr, timestamp, commands))
         ignore(emit_live(output, Stderr, echo, commands))
-        if initial_stderr.is_empty() && script.contents().is_empty() {
+        if options.dry_run() ||
+          (initial_stderr.is_empty() && script.contents().is_empty()) {
           continue
         }
         let result = {
@@ -130,6 +139,9 @@ async fn[
           error => raise live_failure(error, commands)
         }
         ignore(emit_live(output, Stderr, echo, commands))
+        if options.dry_run() {
+          continue
+        }
         let result = @host.HostProcess::run_process(
           process,
           live_spec(command.spec()),

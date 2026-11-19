@@ -86,7 +86,7 @@ pub fn call(
       let words = case_words(string_argument(name, one(name, arguments)))
       let result : Array[String] = []
       for word in words {
-        result.push(capitalize(lower_ascii(word)))
+        result.push(case_word(word, capitalized=true))
       }
       String(result.join(" "))
     }
@@ -95,9 +95,9 @@ pub fn call(
       let result = StringBuilder()
       for index, word in words {
         if index == 0 && name == "lowercamelcase" {
-          result.write_string(lower_ascii(word))
+          result.write_string(case_word(word))
         } else {
-          result.write_string(capitalize(lower_ascii(word)))
+          result.write_string(case_word(word, capitalized=true))
         }
       }
       String(result.to_string())
@@ -235,9 +235,9 @@ pub fn call(
     "trim" =>
       String(string_argument(name, one(name, arguments)).trim().to_owned())
     "uppercase" =>
-      String(upper_ascii(string_argument(name, one(name, arguments))))
+      String(@unicode.uppercase(string_argument(name, one(name, arguments))))
     "lowercase" =>
-      String(lower_ascii(string_argument(name, one(name, arguments))))
+      String(@unicode.lowercase(string_argument(name, one(name, arguments))))
     "quote" => String(quote(string_argument(name, one(name, arguments))))
     "file_name" => {
       let raw = string_argument(name, one(name, arguments))
@@ -267,32 +267,20 @@ pub fn call(
       String(path_value(name, String(raw)).without_extension().as_string())
     }
     "replace_regex" => {
-      if arguments.length() != 2 && arguments.length() != 3 {
-        raise Arity(name~, expected="2 or 3", actual=arguments.length())
+      if arguments.length() != 3 {
+        raise Arity(name~, expected="3", actual=arguments.length())
       }
-      let value = string_argument(name, arguments[0])
+      let input = string_argument(name, arguments[0])
       let pattern = string_argument(name, arguments[1])
-      if pattern.contains("\\1") ||
-        pattern.contains("(?<=") ||
-        pattern.contains("(?<!") {
-        raise InvalidPattern(
-          value=pattern,
-          detail="invalid regular expression `" + pattern + "`",
-        )
-      }
-      let regexp = @regexp.compile(pattern[:]) catch {
-        error =>
-          raise InvalidPattern(
-            value=pattern,
-            detail=regex_parse_failure(pattern, error),
-          )
-      }
-      if arguments.length() == 2 {
-        Bool(regexp.execute(value[:]).matched())
-      } else {
-        let replacement = string_argument(name, arguments[2])
-        String(replace_regex_all(regexp, pattern, value, replacement))
-      }
+      let regexp = compile_regex(pattern)
+      String(
+        replace_regex_all(
+          regexp,
+          pattern,
+          input,
+          string_argument(name, arguments[2]),
+        ),
+      )
     }
     "semver_matches" => {
       let (version, requirement) = two(name, arguments)

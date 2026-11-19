@@ -17,4 +17,5 @@ description = "A MoonBit implementation of the just command runner"
 import {
   "moonbitlang/x@0.5.7",
   "moonbitlang/regexp@0.3.7",
+  "moonbit-community/unicode-data@0.8.1",
 }

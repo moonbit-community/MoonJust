@@ -37,6 +37,65 @@ async fn main {
     )
   }
   let file = root + "/justfile"
+  @fs.write_text(file, "run:\n    echo ran\n")
+  let timestamped = @process.run(
+    "moonrun",
+    [wasm, "--", "--timestamp", "--timestamp-format", "%z", "run"],
+    extra_env={ "TZ": "UTC+5" },
+    cwd=root,
+    stdout=Collect,
+    stderr=Collect,
+  )
+  assert_eq(timestamped.exit_code, 0)
+  assert_eq(timestamped.stdout_text(), "ran\n")
+  assert_eq(timestamped.stderr_text(), "[-0500] echo ran\n")
+  @fs.write_text(
+    file, "set unstable\nset lists\nvalue := style(['stdout','red'],'hello')\n",
+  )
+  for
+    (mode, expected) in [
+      ("auto", "hello"),
+      ("never", "hello"),
+      ("always", "\u{001b}[31mhello\u{001b}[0m"),
+    ] {
+    let result = @process.run(
+      "moonrun",
+      [wasm, "--color", mode, "--evaluate", "value"],
+      cwd=root,
+      stdout=Collect,
+      stderr=Collect,
+    )
+    assert_eq(result.stdout_text(), expected)
+  }
+  for mode in ["auto", "never"] {
+    let args = if @async.platform is MacOS {
+      [
+        "-q", "/dev/null", "moonrun", wasm, "--color", mode, "--evaluate", "value",
+      ]
+    } else {
+      [
+        "-q",
+        "-e",
+        "-c",
+        "moonrun \"$MOONJUST_TEST_WASM\" --color " + mode + " --evaluate value",
+        "/dev/null",
+      ]
+    }
+    let result = @process.run(
+      "script",
+      args,
+      extra_env={ "MOONJUST_TEST_WASM": wasm },
+      cwd=root,
+      stdin=Empty,
+      stdout=Collect,
+      stderr=Collect,
+    )
+    assert_true(result.stdout_text().contains("hello"))
+    assert_eq(
+      result.stdout_text().contains("\u{001b}[31mhello\u{001b}[0m"),
+      mode == "auto",
+    )
+  }
   let executable = root + "/tool"
   @fs.write_text(executable, "")
   @fs.chmod(executable, 0o111)

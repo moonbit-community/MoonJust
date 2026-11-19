@@ -108,6 +108,7 @@ pub(open) trait HostAsyncOutput {
 /// Wall-clock time represented as Unix milliseconds.
 pub(open) trait HostClock {
   fn now_millis(Self) -> Int64 raise HostError
+  async fn local_offset_seconds(Self, Int64) -> Int32 raise HostError
 }
 
 ///|
@@ -119,7 +120,7 @@ pub(open) trait HostRandom {
 ///|
 /// Terminal capability observations.
 pub(open) trait HostTerminal {
-  fn terminal_info(Self) -> TerminalInfo raise HostError
+  async fn terminal_info(Self) -> TerminalInfo raise HostError
 }
 
 ///|

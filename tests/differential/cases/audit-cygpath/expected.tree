@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	73
+answer := if invocation_directory() =~ '^/' { 'unix' } else { 'native' }
+

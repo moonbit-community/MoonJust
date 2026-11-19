@@ -208,7 +208,7 @@ pub async fn[
   let echo = if should_echo && !line.command.is_empty() {
     render_command_echo(
       line.command,
-      timestamp=planned.options.timestamp(),
+      timestamp=command_timestamp(host, planned.options),
       color=planned.options.command_color(),
     )
   } else {

@@ -52,10 +52,21 @@ async fn[
         )
       }
       Script(script, echo) => {
+        let timestamp = @planner.script_timestamp(
+          effects,
+          options,
+          script.recipe(),
+        ) catch {
+          error => raise runtime_failure(error, stdout, stderr, commands)
+        }
+        for byte in timestamp {
+          stderr.push(byte)
+        }
         for byte in echo {
           stderr.push(byte)
         }
-        if initial_stderr.is_empty() && script.contents().is_empty() {
+        if options.dry_run() ||
+          (initial_stderr.is_empty() && script.contents().is_empty()) {
           continue
         }
         let result = {
@@ -91,6 +102,9 @@ async fn[
         }
         for byte in echo {
           stderr.push(byte)
+        }
+        if options.dry_run() {
+          continue
         }
         let result = @host.HostProcess::run_process(process, command.spec()) catch {
           error =>

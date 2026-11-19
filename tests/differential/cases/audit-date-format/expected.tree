@@ -1,0 +1,4 @@
+dir	./home
+file	./justfile	118
+answer := replace_regex(datetime_utc('%F %T'), '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$', 'datetime')
+

@@ -305,16 +305,7 @@ async fn[
       )
     }
     let script_echo : Array[Byte] = []
-    if recipe_options.timestamp() is Some(_) && !recipe_options.dry_run() {
-      append_bytes(
-        script_echo,
-        render_command_echo(
-          display_name,
-          timestamp=recipe_options.timestamp(),
-          color=recipe_options.command_color(),
-        )[:],
-      )
-    } else if !recipe_options.quiet() &&
+    if !recipe_options.quiet() &&
       !recipe_options.echo_quiet() &&
       (
         recipe_options.dry_run() ||
@@ -330,13 +321,12 @@ async fn[
           script_echo,
           render_command_echo(
             line.to_owned(),
-            timestamp=recipe_options.timestamp(),
             color=recipe_options.command_color(),
           )[:],
         )
       }
     }
-    if recipe_options.dry_run() {
+    if recipe_options.dry_run() && recipe_options.timestamp() is None {
       dry_echo.append(script_echo)
     } else {
       task_steps.push(Script(planned, Bytes::from_array(script_echo)))
@@ -371,7 +361,7 @@ async fn[
         recipe.lines()[end_index].source_end_line(),
         continue_signals~,
       )
-      if recipe_options.dry_run() {
+      if recipe_options.dry_run() && recipe_options.timestamp() is None {
         let (command, echo) = materialize_line_async(
           process, host, planned_line,
         )

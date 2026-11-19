@@ -2,13 +2,19 @@
 async fn run_process_with_output_limit(
   command : @host.CommandSpec,
   output_limit : Int32,
+  cygpath~ : String = "cygpath",
 ) -> @host.ProcessResult raise @host.HostError {
   if output_limit < 0 {
     raise InvalidInput("captured process output limit must be non-negative")
   }
   let cwd = command.cwd().map(fn(path) { path.as_string() }).unwrap_or(".")
   let resolved_program = try
-    resolve_process_program_cached(command.program(), cwd, command.arguments())
+    resolve_process_program_cached(
+      command.program(),
+      cwd,
+      command.arguments(),
+      cygpath,
+    )
   catch {
     error => raise InvalidInput(error.to_string())
   } noraise {
@@ -133,8 +139,12 @@ async fn run_process_with_output_limit(
 
 ///|
 pub impl @host.HostProcess for ProcessAdapter with fn run_process(
-  _self : ProcessAdapter,
+  self : ProcessAdapter,
   command : @host.CommandSpec,
 ) -> @host.ProcessResult raise @host.HostError {
-  run_process_with_output_limit(command, MAX_CAPTURED_STREAM_BYTES)
+  run_process_with_output_limit(
+    command,
+    MAX_CAPTURED_STREAM_BYTES,
+    cygpath=self.cygpath,
+  )
 }

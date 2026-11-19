@@ -13,7 +13,7 @@ import {
   "moonbitlang/core/async",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/string",
-  "moonbitlang/x/time",
+  "ZSeanYves/MoonJust/internal/datetime",
 }
 
 import {

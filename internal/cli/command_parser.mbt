@@ -123,6 +123,7 @@ fn supported_option(token : String) -> Bool {
     | "--list-prefix"
     | "--alias-style"
     | "--ceiling"
+    | "--cygpath"
     | "--dump-format"
     | "--evaluate-format"
     | "--justfile"
@@ -206,6 +207,7 @@ fn supported_value_option(name : String) -> Bool {
   match name {
     "--alias-style"
     | "--ceiling"
+    | "--cygpath"
     | "--color"
     | "--command-color"
     | "--dump-format"

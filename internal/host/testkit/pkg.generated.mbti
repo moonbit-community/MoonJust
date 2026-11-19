@@ -87,7 +87,7 @@ pub fn FakeHost::set_env(Self, String, String) -> Unit
 pub fn FakeHost::set_platform(Self, @host.PlatformInfo) -> Unit
 pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
 pub fn FakeHost::set_terminal(Self, @host.TerminalInfo) -> Unit
-pub fn FakeHost::terminal_info(Self) -> @host.TerminalInfo raise @host.HostError
+pub async fn FakeHost::terminal_info(Self) -> @host.TerminalInfo raise @host.HostError
 pub async fn FakeHost::write_cache_manifest(Self, @host.CacheLease, Bytes) -> Unit raise @host.HostError
 pub fn FakeHost::write_file(Self, @path.PathValue, Bytes) -> Unit raise @host.HostError
 pub async fn FakeHost::write_file_atomic(Self, @path.PathValue, Bytes, Bool) -> Unit raise @host.HostError

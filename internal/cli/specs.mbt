@@ -132,9 +132,13 @@ fn option_specs() -> Array[@argparse.OptionArg] {
       about="Recipe command color",
       env="JUST_COMMAND_COLOR",
     ),
-    option("cygpath", long="cygpath", about="Path conversion binary", defaults=[
+    option(
       "cygpath",
-    ]),
+      long="cygpath",
+      env="JUST_CYGPATH",
+      about="Path conversion binary",
+      defaults=["cygpath"],
+    ),
     option(
       "dotenv-command",
       long="dotenv-command",

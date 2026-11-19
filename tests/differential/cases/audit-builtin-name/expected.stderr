@@ -1,0 +1,5 @@
+error: call to undefined function `stem`
+ ——▶ justfile:1:11
+  │
+1 │ answer := stem('hello.txt')
+  │           ^^^^

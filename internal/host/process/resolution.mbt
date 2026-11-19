@@ -128,11 +128,11 @@ async fn remove_windows_command_script(path : String) -> Unit {
 async fn windows_native_program(
   program : String,
   cwd : String,
+  cygpath : String,
 ) -> String noraise {
-  if !windows_process_runtime() || !program.contains("/") {
+  if !windows_process_runtime() || !program.contains("/") || program == cygpath {
     return program
   }
-  let cygpath = @env.get_env_var("JUST_CYGPATH").unwrap_or("cygpath")
   let result = try
     @async_process.run(
       cygpath,
@@ -172,11 +172,12 @@ async fn resolve_process_program_with_context(
   cwd : String,
   path : String,
   pathext : String,
+  cygpath : String,
 ) -> String {
   if !windows_process_runtime() {
     return program
   }
-  let program = windows_native_program(program, cwd)
+  let program = windows_native_program(program, cwd, cygpath)
   for candidate in windows_program_candidates(program, path, pathext) {
     let regular = try @async_fs.kind(candidate) catch {
       _ => false
@@ -189,16 +190,6 @@ async fn resolve_process_program_with_context(
     }
   }
   program
-}
-
-///|
-async fn resolve_process_program(program : String, cwd : String) -> String {
-  resolve_process_program_with_context(
-    program,
-    cwd,
-    @env.get_env_var("PATH").unwrap_or(""),
-    @env.get_env_var("PATHEXT").unwrap_or(".COM;.EXE;.BAT;.CMD"),
-  )
 }
 
 ///|
@@ -252,6 +243,7 @@ async fn resolve_process_program_cached(
   program : String,
   cwd : String,
   arguments : ArrayView[String],
+  cygpath : String,
 ) -> String {
   if !windows_process_runtime() {
     return program
@@ -263,7 +255,7 @@ async fn resolve_process_program_cached(
     cwd,
     path,
     pathext,
-    @env.get_env_var("JUST_CYGPATH").unwrap_or("cygpath"),
+    cygpath,
     shell_mode=windows_shell_mode(program, arguments),
   )
   process_resolution_mutex.acquire()
@@ -271,7 +263,9 @@ async fn resolve_process_program_cached(
   match process_resolution_cache.get(key) {
     Some(value) => value
     None => {
-      let resolved = resolve_process_program(program, cwd)
+      let resolved = resolve_process_program_with_context(
+        program, cwd, path, pathext, cygpath,
+      )
       if process_resolution_cache.length() >= 256 {
         process_resolution_cache.clear()
       }
