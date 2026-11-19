@@ -37,6 +37,18 @@ async fn main {
     )
   }
   let file = root + "/justfile"
+  @fs.write_text(file, "run:\n    echo ran\n")
+  let timestamped = @process.run(
+    "moonrun",
+    [wasm, "--", "--timestamp", "--timestamp-format", "%z", "run"],
+    extra_env={ "TZ": "UTC+5" },
+    cwd=root,
+    stdout=Collect,
+    stderr=Collect,
+  )
+  assert_eq(timestamped.exit_code, 0)
+  assert_eq(timestamped.stdout_text(), "ran\n")
+  assert_eq(timestamped.stderr_text(), "[-0500] echo ran\n")
   @fs.write_text(
     file, "set unstable\nset lists\nvalue := style(['stdout','red'],'hello')\n",
   )
