@@ -9,76 +9,48 @@ pub(all) suberror ProjectError {
 }
 
 ///|
-fn append_sources(
+type ImportKey = (@path.PathValue, @source.Span, @modulepath.ModulePath)
+
+///|
+fn index_imports(
   files : ArrayView[@loader.LoadedSource],
-  index : Int32,
-  visited : Array[Int32],
-  items : Array[@syntax.Item],
-) -> Unit {
-  if visited.contains(index) {
-    return
-  }
-  visited.push(index)
-  let loaded = files[index]
-  for item in loaded.ast().items() {
-    match item {
-      Import(_) | Module(_) => ()
-      _ => items.push(item)
+) -> Map[ImportKey, Int32] {
+  let children = Map([])
+  for index, loaded in files {
+    if loaded.relation() == ImportedSource &&
+      loaded.parent() is Some(parent) &&
+      loaded.import_span() is Some(span) {
+      children[(parent, span, loaded.module_path())] = index
     }
   }
-  for item in loaded.ast().items() {
-    match item {
-      Import(value) => {
-        let mut child : Int32? = None
-        for candidate_index, candidate in files {
-          if candidate.relation() == ImportedSource &&
-            candidate.parent() == Some(loaded.path()) &&
-            candidate.import_span() == Some(value.span()) &&
-            candidate.module_path() == loaded.module_path() {
-            child = Some(candidate_index)
-            break
-          }
-        }
-        match child {
-          Some(child_index) =>
-            append_sources(files, child_index, visited, items)
-          None => ()
-        }
-      }
-      _ => ()
-    }
-  }
+  children
 }
 
 ///|
-fn import_depth(
+fn module_sources(
   files : ArrayView[@loader.LoadedSource],
-  owner : @loader.LoadedSource,
-  source_id : @source.SourceId,
-) -> Int32 {
-  let mut current : @loader.LoadedSource? = None
-  for loaded in files {
-    if loaded.ast().source_id() == source_id &&
-      loaded.module_path() == owner.module_path() {
-      current = Some(loaded)
-      break
+  owner : Int32,
+  children : Map[ImportKey, Int32],
+) -> Array[(@loader.LoadedSource, Int32)] {
+  let sources = []
+  let visited : Set[Int32] = Set([])
+  fn visit(index : Int32, depth : Int32) -> Unit {
+    if visited.contains(index) {
+      return
     }
-  }
-  let mut depth = 0
-  while current is Some(loaded) && loaded.path() != owner.path() {
-    guard loaded.parent() is Some(parent) else { break }
-    let mut next : @loader.LoadedSource? = None
-    for candidate in files {
-      if candidate.path() == parent &&
-        candidate.module_path() == owner.module_path() {
-        next = Some(candidate)
-        break
+    visited.add(index)
+    let file = files[index]
+    sources.push((file, depth))
+    for item in file.ast().items() {
+      if item is Import(value) &&
+        children.get((file.path(), value.span(), file.module_path()))
+        is Some(child) {
+        visit(child, depth + 1)
       }
     }
-    current = next
-    depth += 1
   }
-  depth
+  visit(owner, 0)
+  sources
 }
 
 ///|
@@ -86,59 +58,43 @@ fn override_key(item : @syntax.Item) -> String? {
   match item {
     Recipe(recipe) => Some("recipe\u{0000}" + recipe.name())
     Assignment(assignment) => Some("variable\u{0000}" + assignment.name())
-    Alias(definition) => Some("alias\u{0000}" + definition.name())
     _ => None
   }
 }
 
 ///|
 fn merge_imports(
-  files : ArrayView[@loader.LoadedSource],
-  owner : @loader.LoadedSource,
-  items : ArrayView[@syntax.Item],
+  sources : ArrayView[(@loader.LoadedSource, Int32)],
 ) -> Array[@syntax.Item] {
-  if items.length() > 1 {
-    let source_id = items[0].span().source_id()
-    if items.all(fn(item) { item.span().source_id() == source_id }) {
-      return items.to_owned()
-    }
-  }
-  let result : Array[@syntax.Item] = []
-  let included : Array[Bool] = []
-  for item in items {
-    let mut include_current = true
-    guard override_key(item) is Some(key) else {
-      result.push(item)
-      included.push(true)
-      continue
-    }
-    let current_source = item.span().source_id()
-    let current_depth = import_depth(files, owner, current_source)
-    for previous, previous_item in result {
-      if !included[previous] ||
-        override_key(previous_item) != Some(key) ||
-        previous_item.span().source_id() == current_source {
-        continue
-      }
-      let previous_depth = import_depth(
-        files,
-        owner,
-        previous_item.span().source_id(),
-      )
-      if current_depth < previous_depth {
-        included[previous] = false
-      } else if current_depth > previous_depth {
-        include_current = false
-        break
+  // Equal-depth declarations all reach the semantic duplicate checks. Filtering
+  // the original traversal in a second pass preserves their diagnostic order.
+  let shallowest : Map[String, Int32] = Map([])
+  if sources.length() > 1 {
+    for (file, depth) in sources {
+      for item in file.ast().items() {
+        if override_key(item) is Some(key) {
+          match shallowest.get(key) {
+            Some(previous) if previous <= depth => ()
+            _ => shallowest[key] = depth
+          }
+        }
       }
     }
-    result.push(item)
-    included.push(include_current)
   }
-  let merged : Array[@syntax.Item] = []
-  for index, item in result {
-    if included[index] {
-      merged.push(item)
+  let merged = []
+  for (file, depth) in sources {
+    for item in file.ast().items() {
+      match item {
+        Import(_) | Module(_) => ()
+        _ => {
+          if depth > 0 &&
+            override_key(item) is Some(key) &&
+            shallowest[key] < depth {
+            continue
+          }
+          merged.push(item)
+        }
+      }
     }
   }
   merged
@@ -331,13 +287,12 @@ pub fn compile_loaded_graph(
     }
   }
   validate_names(files, platform)
+  let children = index_imports(files)
   for index, loaded in files {
     if loaded.relation() != RootSource && loaded.relation() != ModuleSource {
       continue
     }
-    let items : Array[@syntax.Item] = []
-    append_sources(files, index, [], items)
-    let items = merge_imports(files, loaded, items)
+    let items = merge_imports(module_sources(files, index, children))
     let ast = @syntax.Ast::new(
       loaded.ast().source_id(),
       items,

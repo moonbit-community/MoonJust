@@ -36,27 +36,11 @@ pub extend FailureKind with Eq::{not_equal, equal}
 
 ///|
 #deprecated
-pub extend ApplicationRequest with Debug::{to_repr}
-
-///|
-#deprecated
-pub extend ApplicationRequest with Eq::{not_equal, equal}
-
-///|
-#deprecated
 pub extend InputSelection with Debug::{to_repr}
 
 ///|
 #deprecated
 pub extend InputSelection with Eq::{not_equal, equal}
-
-///|
-#deprecated
-pub extend QueryKind with Debug::{to_repr}
-
-///|
-#deprecated
-pub extend QueryKind with Eq::{not_equal, equal}
 
 ///|
 #deprecated

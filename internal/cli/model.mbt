@@ -27,6 +27,7 @@ pub(all) enum CommandKind {
 /// Declarative CLI state after argparse has validated argv relationships.
 pub struct CliArguments {
   command : CommandKind
+  jobs : Int32?
   flags : Map[String, Bool]
   counts : Map[String, Int32]
   values : Map[String, Array[String]]
@@ -38,6 +39,12 @@ pub struct CliArguments {
 ///|
 pub fn CliArguments::command(self : CliArguments) -> CommandKind {
   self.command
+}
+
+///|
+/// Explicit CLI or environment concurrency limit. Absence is observable by num_jobs().
+pub fn CliArguments::jobs(self : CliArguments) -> Int32? {
+  self.jobs
 }
 
 ///|
@@ -91,15 +98,7 @@ pub fn CliArguments::with_run_positionals(
   self : CliArguments,
   positional : Array[String],
 ) -> CliArguments {
-  {
-    command: RunCommand,
-    flags: self.flags,
-    counts: self.counts,
-    values: self.values,
-    positional: positional.copy(),
-    variable_overrides: self.variable_overrides,
-    shell_arguments: self.shell_arguments,
-  }
+  { ..self, command: RunCommand, positional: positional.copy(), }
 }
 
 ///|

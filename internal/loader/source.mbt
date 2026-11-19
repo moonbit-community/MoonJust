@@ -213,12 +213,7 @@ fn parse_loaded_source(
   environment~ : ArrayView[(String, String)] = [],
 ) -> @syntax.Ast raise LoaderError {
   @parser.parse_with_environment(source, environment) catch {
-    error =>
-      raise ParseSource(
-        error,
-        source_name=source.name(),
-        source_bytes=source.bytes().to_owned(),
-      )
+    error => raise Parse(error, source)
   }
 }
 

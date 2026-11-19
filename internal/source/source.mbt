@@ -27,12 +27,17 @@ pub fn SourcePosition::scalar_column(self : SourcePosition) -> Int32 {
 
 ///|
 /// Validated UTF-8 source text and its byte-based line index.
-#derive(Debug)
+#derive(Eq, Debug)
 pub struct Source {
   id : SourceId
   name : String
   bytes : Bytes
   line_starts : Array[Int32]
+}
+
+///|
+pub fn Source::with_name(self : Source, name : String) -> Source {
+  { ..self, name, }
 }
 
 ///|

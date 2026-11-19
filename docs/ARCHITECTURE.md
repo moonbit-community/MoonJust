@@ -85,4 +85,4 @@ The embedded changelog is the output of `just --changelog` for the pinned 1.57.0
 
 ## Verification
 
-The Native test tools under `tests/` drive the Wasm artifact. Strict coverage runs the MoonBit spec tests and outlines with `--target wasm`, then merges differential results by upstream identity across three hosts. See [the runner contract](../tests/compatibility/README.md) and [the migration evidence](maintenance/WASM_MIGRATION.md).
+The Native test tools under `tests/` drive the Wasm artifact and the pinned official CLI. The runner records differential observations and upstream document checks separately. It verifies indexed local specs and smoke assertions with the Wasm test suite and outline. The merger checks the evidence kind and execution state of each upstream identity across Linux, macOS and Windows. [Runner contract](../tests/compatibility/README.md)

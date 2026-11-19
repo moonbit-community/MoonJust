@@ -1,17 +1,4 @@
 ///|
-/// A process failure retains all output emitted by completed steps so the CLI
-/// can report the same command echoes and child streams before the diagnostic.
-#derive(Debug)
-pub(all) suberror RuntimeError {
-  Execution(
-    error~ : @planner.ExecutionError,
-    stdout~ : Bytes,
-    stderr~ : Bytes,
-    commands~ : Int32,
-  )
-}
-
-///|
 /// A process failure for live execution. Child output has already been sent to
 /// the configured `HostAsyncOutput` and is therefore intentionally not stored
 /// for replay.
@@ -117,66 +104,6 @@ pub fn LiveRuntimeError::message(self : LiveRuntimeError) -> String {
 ///|
 pub fn LiveRuntimeError::exit_code(self : LiveRuntimeError) -> Int32 {
   self.error().exit_code()
-}
-
-///|
-fn runtime_failure(
-  error : @planner.ExecutionError,
-  stdout : Array[Byte],
-  stderr : Array[Byte],
-  commands : Int32,
-) -> RuntimeError {
-  Execution(
-    error~,
-    stdout=Bytes::from_array(stdout.copy()),
-    stderr=Bytes::from_array(stderr.copy()),
-    commands~,
-  )
-}
-
-///|
-pub fn RuntimeError::error(self : RuntimeError) -> @planner.ExecutionError {
-  match self {
-    Execution(error~, ..) => error
-  }
-}
-
-///|
-pub fn RuntimeError::stdout(self : RuntimeError) -> BytesView {
-  match self {
-    Execution(stdout~, ..) => stdout[:]
-  }
-}
-
-///|
-pub fn RuntimeError::stderr(self : RuntimeError) -> BytesView {
-  match self {
-    Execution(stderr~, ..) => stderr[:]
-  }
-}
-
-///|
-pub fn RuntimeError::commands(self : RuntimeError) -> Int32 {
-  match self {
-    Execution(commands~, ..) => commands
-  }
-}
-
-///|
-pub fn RuntimeError::message(self : RuntimeError) -> String {
-  self.error().message()
-}
-
-///|
-pub fn RuntimeError::exit_code(self : RuntimeError) -> Int32 {
-  self.error().exit_code()
-}
-
-///|
-priv enum TaskOutcome {
-  Completed(@planner.ExecutionReport)
-  Failed(RuntimeError)
-  Blocked
 }
 
 ///|

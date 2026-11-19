@@ -194,11 +194,14 @@ async fn[T : @host.HostFs] build_graph(
           }
           if exists || !value.optional() {
             if !exists {
-              raise ImportFileMissing(span=value.path().span())
+              raise ImportFileMissing(
+                span=value.path().span(),
+                source=loaded.source(),
+              )
             }
             visit(
               child,
-              @source.SourceId::new(next_id.value() + files.length()),
+              @source.SourceId::new(source_id.value() + files.length()),
               Some(path),
               Some(value.span()),
               ImportedSource,
@@ -219,12 +222,13 @@ async fn[T : @host.HostFs] build_graph(
               value,
               environment~,
               metadata_cache~,
+              source=loaded.source(),
             ) {
             None => ()
             Some(child) =>
               visit(
                 child,
-                @source.SourceId::new(next_id.value() + files.length()),
+                @source.SourceId::new(source_id.value() + files.length()),
                 Some(path),
                 Some(value.span()),
                 ModuleSource,

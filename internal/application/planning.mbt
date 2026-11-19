@@ -110,13 +110,12 @@ async fn[
   platform : @host.PlatformInfo,
   loading_environment : ArrayView[(String, String)],
   invocation_directory : @path.PathValue,
-  targets? : ArrayView[(@modulepath.ModulePath, String)],
+  targets? : ArrayView[@invocation.ProjectInvocation],
   evaluation_target? : (@modulepath.ModulePath, String?),
 ) -> (
   Map[@modulepath.ModulePath, @evaluator.Environment],
   Map[@modulepath.ModulePath, Array[(String, String)]],
 ) raise ApplicationError {
-  validate_project_variable_overrides(project, arguments)
   let globals : Map[@modulepath.ModulePath, @evaluator.Environment] = Map([])
   let dotenv_by_module : Map[@modulepath.ModulePath, Array[(String, String)]] = Map([],
   )
@@ -204,8 +203,8 @@ async fn[
     match targets {
       Some(targets) =>
         for target in targets {
-          if target.0 == path {
-            selected_recipes.push(target.1)
+          if target.module_path() == path {
+            selected_recipes.push(target.invocation().recipe())
           }
         }
       None => ()
@@ -287,13 +286,14 @@ async fn[
   F : @host.HostFs,
   P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-] plan_run_command_async(
+] prepare_run(
   filesystem : F,
   effects : H,
   process : P,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
-) -> @planner.ExecutionPlan raise ApplicationError {
+  default_list~ : Bool,
+) -> PreparedRun raise ApplicationError {
   if arguments.command() != RunCommand {
     raise UnsupportedCommand("execution planning for non-run command")
   }
@@ -307,58 +307,49 @@ async fn[
   }
   perf_detail_mark("run.environment")
   let mut current_context = context
+  let mut last_missing : @invocation.InvocationError? = None
   let mut fallback_depth = 0
   let fallback_stderr = StringBuilder()
-  while true {
-    let prepared = if fallback_depth == 0 {
-      take_prepared_run_project(
-        arguments, current_context, platform, loading_environment,
-      )
-    } else {
-      None
-    }
-    let (directories, project) = match prepared {
-      Some(snapshot) => {
-        perf_detail_mark("run.preloaded")
-        (snapshot.directories(), snapshot.compilation())
-      }
-      None => {
-        let (graph, directories) = load_graph_input_with_directories(
-          filesystem,
-          arguments,
-          current_context,
-          platform=semantic_target_platform(platform),
-          environment=loading_environment,
-        )
-        perf_detail_mark("run.load")
-        let project = compile_loaded_graph(
-          graph,
-          allow_unstable=arguments.flag("unstable"),
-          platform=semantic_target_platform(platform),
-        ) catch {
-          Semantic(error) if fallback_depth > 0 => {
-            for file in graph.files() {
-              if file.source().id() == error.span().source_id() {
-                raise ContextualSemantic(
-                  error~,
-                  source=file.source(),
-                  cwd=current_context.cwd(),
-                )
-              }
-            }
-            raise Semantic(error)
-          }
-          error => raise error
+  for ;; {
+    let snapshot = load_project_snapshot(
+      filesystem,
+      arguments,
+      current_context,
+      semantic_target_platform(platform),
+      loading_environment,
+    ) catch {
+      AtProject(Load(NoJustfileFound(_)), _, _) as error =>
+        match last_missing {
+          Some(missing) => raise Invocation(missing)
+          None => raise error
         }
-        perf_detail_mark("run.compile")
-        (directories, project)
-      }
+      error => raise error
     }
-    validate_project_const_settings(project, arguments, platform.path_flavor())
-    validate_no_recipe_variable_cycles(project)
-    validate_project_variable_overrides(project, arguments)
+    perf_detail_mark("run.snapshot")
+    let project = snapshot.compilation()
+    let directories = snapshot.directories()
+    try {
+      if default_list && fallback_depth == 0 {
+        if default_list_response(effects, arguments, snapshot) is Some(response) {
+          return Listing(response)
+        }
+      }
+      validate_project_const_settings(
+        project,
+        arguments,
+        platform.path_flavor(),
+      )
+      validate_no_recipe_variable_cycles(project)
+      validate_project_variable_overrides(project, arguments)
+    } catch {
+      error =>
+        raise error.with_project_sources(
+          snapshot.graph(),
+          current_context.cwd(),
+        )
+    }
     let targets = try
-      @invocation.parse_project_invocation_targets(
+      @invocation.resolve_project_invocations(
         project,
         arguments.positional(),
         allow_missing=arguments.flag("allow-missing"),
@@ -382,16 +373,7 @@ async fn[
         guard directory.parent() is Some(parent) else {
           raise Invocation(missing)
         }
-        let options = @loader.SearchOptions::new(
-          filename=arguments.value("justfile-name").unwrap_or("justfile"),
-          ceiling=ceiling_argument(arguments, current_context.cwd()),
-        )
-        try @loader.discover(filesystem, parent, options~) catch {
-          NoJustfileFound(_) => raise Invocation(missing)
-          error => raise Load(error)
-        } noraise {
-          _ => ()
-        }
+        last_missing = Some(missing)
         current_context = current_context.with_cwd(parent)
         fallback_depth += 1
         if arguments.flag("verbose") {
@@ -405,225 +387,178 @@ async fn[
         }
         continue
       }
-      error => raise Invocation(error)
+      error =>
+        raise ApplicationError::Invocation(error).with_project_sources(
+          snapshot.graph(),
+          current_context.cwd(),
+        )
     } noraise {
       value => value
     }
     perf_detail_mark("run.invocations")
-    let sync_dry_run = arguments.flag("dry-run") &&
-      !arguments.flag("explain") &&
-      !arguments.flag("timestamp") &&
-      @planner.supports_sync_dry_run(project)
-    let pure_sync_globals = sync_dry_run &&
-      project_supports_pure_sync_globals(project, arguments)
-    let invocation_directory = shell_invocation_directory(
-      process, directories, arguments, platform,
-    )
-    let (globals, dotenv_by_module) = if pure_sync_globals {
-      let globals = evaluate_project_globals(
-        project,
-        arguments,
-        flavor=platform.path_flavor(),
-      )
-      let dotenv_by_module : Map[
-        @modulepath.ModulePath,
-        Array[(String, String)],
-      ] = Map([])
-      for path in project.module_paths() {
-        dotenv_by_module[path] = []
-      }
-      (globals, dotenv_by_module)
-    } else {
-      evaluate_project_globals_async(
-        filesystem,
-        process,
-        effects,
-        project,
-        directories,
-        arguments,
-        platform,
-        loading_environment,
-        invocation_directory,
-        targets~,
-      )
-    }
-    perf_detail_mark("run.globals")
-    let invocations = @invocation.parse_project_invocations_in_environments(
-      project,
-      arguments.positional(),
-      globals,
-      allow_missing=arguments.flag("allow-missing"),
-      resolve_expressions=false,
+    let plan = plan_selected_run(
+      filesystem, effects, process, arguments, platform, loading_environment, snapshot,
+      targets,
     ) catch {
-      error => raise Invocation(error)
+      error =>
+        raise error.with_project_sources(
+          snapshot.graph(),
+          current_context.cwd(),
+        )
     }
-    if arguments.flag("one") && invocations.length() != 1 {
-      raise Query(
-        "expected 1 command-line recipe invocation but found " +
-        invocations.length().to_string(),
-      )
-    }
-    perf_detail_mark("run.runtime_setup")
-    let timestamp = selected_timestamp(arguments)
-    let color_enabled = selected_color_active(effects, arguments, Stderr)
-    let command_color = selected_command_color(arguments, color_enabled)
-    let options = execution_options(
-      arguments, timestamp, command_color, color_enabled,
-    )
-    let cache_directory = cache_directory(directories.module_directory())
-    let runtimes : Array[@planner.ProjectModuleRuntime] = []
-    for path in project.module_paths() {
-      let compilation = project.module_compilation(path).unwrap()
-      let global = globals[path]
-      let module_setting = evaluated_string_setting(
-        compilation, global, "working-directory",
-      )
-      let evaluation_cwd = project_module_cwd(
-        project, directories, path, module_setting, false,
-      )
-      let cwd = if compilation.settings().bool("no-cd") {
-        directories.invocation_directory()
+    let prefix = fallback_stderr.to_string()
+    return Ready(
+      if prefix.is_empty() {
+        plan
       } else {
-        evaluation_cwd
-      }
-      let shell = selected_shell(
-        compilation,
-        global,
-        arguments,
-        evaluation_cwd.flavor(),
-      )
-      let environment = process_environment(
-        loading_environment,
-        global,
-        evaluation_cwd.flavor(),
-        unexports=compilation.unexports(),
-      )
-      let environment = merge_dotenv_entries(
-        environment,
-        dotenv_by_module[path],
-        compilation.settings().bool("dotenv-override"),
-      )
-      let evaluation_context = project_evaluation_context(
-        project,
-        path,
-        evaluation_cwd,
-        directories,
-        arguments,
-        invocation_directory,
-        environment~,
-        platform~,
-      )
-      let script_interpreter = evaluated_shell_setting(
-        compilation, global, "script-interpreter",
-      ).unwrap_or(
-        @environment.ShellConfiguration::new("sh", ["-eu"]) catch {
-          error => raise Environment(error)
-        },
-      )
-      let setting_tempdir = evaluated_string_setting(
-        compilation, global, "tempdir",
-      )
-      let temporary = @environment.resolve_temporary_directory(
-        cwd,
-        cli_tempdir=arguments.value("tempdir"),
-        setting_tempdir~,
-      ) catch {
-        InvalidOverridePath(path~) =>
-          raise Environment(InvalidOverridePath(path~))
-        EmptyShell => raise Environment(EmptyShell)
-        Path(error) => raise Environment(Path(error))
-      }
-      let configuration = @planner.ScriptConfiguration::new(
-        script_interpreter,
-        temporary.directory().unwrap_or(cwd),
-        platform,
-      )
-      runtimes.push(
-        @planner.ProjectModuleRuntime::new(
-          path, global, evaluation_context, shell, cwd, environment, configuration,
-        ),
-      )
+        plan.with_stderr_prefix(@utf8.encode(prefix))
+      },
+      snapshot.graph(),
+      current_context.cwd(),
+    )
+  }
+}
+
+///|
+priv enum PreparedRun {
+  Listing(@cli.ApplicationResponse)
+  Ready(@planner.ExecutionPlan, @loader.LoadedGraph, @path.PathValue)
+}
+
+///|
+async fn[
+  F : @host.HostFs,
+  P : @host.HostProcess,
+  H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
+] plan_selected_run(
+  filesystem : F,
+  effects : H,
+  process : P,
+  arguments : @cli.CliArguments,
+  platform : @host.PlatformInfo,
+  loading_environment : ArrayView[(String, String)],
+  snapshot : @project.ProjectSnapshot,
+  invocations : ArrayView[@invocation.ProjectInvocation],
+) -> @planner.ExecutionPlan raise ApplicationError {
+  let project = snapshot.compilation()
+  let directories = snapshot.directories()
+  let sync_dry_run = arguments.flag("dry-run") &&
+    !arguments.flag("explain") &&
+    !arguments.flag("timestamp") &&
+    @planner.supports_sync_dry_run(project)
+  let pure_sync_globals = sync_dry_run &&
+    project_supports_pure_sync_globals(project, arguments)
+  let invocation_directory = shell_invocation_directory(
+    process, directories, arguments, platform,
+  )
+  let (globals, dotenv_by_module) = if pure_sync_globals {
+    let globals = evaluate_project_globals(
+      project,
+      arguments,
+      flavor=platform.path_flavor(),
+    )
+    let dotenv_by_module : Map[@modulepath.ModulePath, Array[(String, String)]] = Map([],
+    )
+    for path in project.module_paths() {
+      dotenv_by_module[path] = []
     }
-    let requests : Array[@planner.ProjectRecipeRequest] = []
-    if sync_dry_run {
-      let runtime = runtimes[0]
-      let path = runtime.module_path()
-      let compilation = project.module_compilation(path).unwrap()
-      let global = globals[path]
-      let roots = invocations.map(project_invocation => {
-        let invocation = project_invocation.invocation()
-        let values = invocation_values(compilation, invocation, global)
-        @planner.RecipeRequest::new(invocation.recipe(), arguments=values)
-      })
-      let combined = @planner.plan_recipe_graph(
-        compilation,
-        roots,
-        global,
-        runtime.shell(),
-        runtime.cwd(),
-        process_environment=runtime.process_environment(),
-        options=options.with_echo_quiet(
-          options.echo_quiet() || compilation.settings().bool("quiet"),
-        ),
-      ) catch {
-        error => raise Planner(error)
-      }
-      perf_detail_mark("run.sync_plan")
-      ignore(perf_detail_emit() catch { _ => () })
-      let prefix = fallback_stderr.to_string()
-      if prefix == "" {
-        return combined
-      }
-      return combined.with_stderr_prefix(@utf8.encode(prefix))
-    }
-    for project_invocation in invocations {
-      let path = project_invocation.module_path()
-      let invocation = project_invocation.invocation()
-      let compilation = project.module_compilation(path).unwrap()
-      let global = globals[path]
-      let mut selected_runtime : @planner.ProjectModuleRuntime? = None
-      for runtime in runtimes {
-        if runtime.module_path() == path {
-          selected_runtime = Some(runtime)
-          break
-        }
-      }
-      let runtime = selected_runtime.unwrap()
-      let values = invocation_values_async(
-        process,
-        effects,
-        compilation,
-        invocation,
-        global,
-        runtime.context().for_recipe(runtime.cwd(), invocation.recipe(), false),
-        runtime.shell(),
-      )
-      requests.push(
-        @planner.ProjectRecipeRequest::new(
-          path,
-          invocation.recipe(),
-          arguments=values,
-        ),
-      )
-    }
-    let combined = @planner.plan_project_recipe_graph_async(
+    (globals, dotenv_by_module)
+  } else {
+    evaluate_project_globals_async(
+      filesystem,
       process,
       effects,
       project,
-      requests,
-      runtimes,
-      options~,
-      cache_directory~,
+      directories,
+      arguments,
+      platform,
+      loading_environment,
+      invocation_directory,
+      targets=invocations,
+    )
+  }
+  perf_detail_mark("run.globals")
+  if arguments.flag("one") && invocations.length() != 1 {
+    raise Query(
+      "expected 1 command-line recipe invocation but found " +
+      invocations.length().to_string(),
+    )
+  }
+  perf_detail_mark("run.runtime_setup")
+  let timestamp = selected_timestamp(arguments)
+  let color_enabled = selected_color_active(effects, arguments, Stderr)
+  let command_color = selected_command_color(arguments, color_enabled)
+  let options = execution_options(
+    arguments, timestamp, command_color, color_enabled,
+  )
+  let cache_directory = cache_directory(directories.module_directory())
+  let runtimes = prepare_module_runtimes(
+    project, directories, arguments, platform, loading_environment, invocation_directory,
+    globals, dotenv_by_module,
+  )
+  if sync_dry_run {
+    let path = @modulepath.ModulePath::root()
+    let runtime = runtimes[path]
+    let compilation = project.module_compilation(path).unwrap()
+    let global = globals[path]
+    let roots = invocations.map(project_invocation => {
+      let invocation = project_invocation.invocation()
+      let values = invocation_values(compilation, invocation, global)
+      @planner.RecipeRequest::new(invocation.recipe(), arguments=values)
+    })
+    let combined = @planner.plan_recipe_graph(
+      compilation,
+      roots,
+      global,
+      runtime.shell(),
+      runtime.cwd(),
+      process_environment=runtime.process_environment(),
+      options=options.with_echo_quiet(
+        options.echo_quiet() || compilation.settings().bool("quiet"),
+      ),
     ) catch {
       error => raise Planner(error)
     }
-    perf_detail_mark("run.async_plan")
+    perf_detail_mark("run.sync_plan")
     ignore(perf_detail_emit() catch { _ => () })
-    let prefix = fallback_stderr.to_string()
-    if prefix == "" {
-      return combined
-    }
-    return combined.with_stderr_prefix(@utf8.encode(prefix))
+    return combined
   }
-  raise Query("fallback planning did not terminate")
+  let requests : Array[@planner.ProjectRecipeRequest] = []
+  for project_invocation in invocations {
+    let path = project_invocation.module_path()
+    let invocation = project_invocation.invocation()
+    let compilation = project.module_compilation(path).unwrap()
+    let global = globals[path]
+    let runtime = runtimes[path]
+    let values = invocation_values_async(
+      process,
+      effects,
+      compilation,
+      invocation,
+      global,
+      runtime.context().for_recipe(runtime.cwd(), invocation.recipe(), false),
+      runtime.shell(),
+    )
+    requests.push(
+      @planner.ProjectRecipeRequest::new(
+        path,
+        invocation.recipe(),
+        arguments=values,
+      ),
+    )
+  }
+  let combined = @planner.plan_project_recipe_graph_async(
+    process,
+    effects,
+    project,
+    requests,
+    runtimes,
+    options~,
+    cache_directory~,
+  ) catch {
+    error => raise Planner(error)
+  }
+  perf_detail_mark("run.async_plan")
+  ignore(perf_detail_emit() catch { _ => () })
+  combined
 }

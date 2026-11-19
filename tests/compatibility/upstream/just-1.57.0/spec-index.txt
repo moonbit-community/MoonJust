@@ -265,7 +265,7 @@ cache::symlink_to_directory_is_an_error	tests/compatibility/upstream/just-1.57.0
 cache::symlink_to_file_is_followed	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:9131		tests/cache.rs:417
 cache::unexported_variable_does_not_invalidate_cache	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:9175		tests/cache.rs:194
 cache::working_directory_invalidates_cache	internal/cache/upstream_invalidation_test.mbt:209	upstream cache::working_directory_invalidates_cache	tests/cache.rs:279
-changelog::print_changelog	internal/application/upstream_document_contract_test.mbt:77	upstream changelog::print_changelog	tests/changelog.rs:4
+changelog::print_changelog	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:9289		tests/changelog.rs:4
 choose::cancelled_by_user	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:9309		tests/choose.rs:226
 choose::chooser	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:9389		tests/choose.rs:23
 choose::chooser_selections_are_processed_separately	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:9431		tests/choose.rs:265
@@ -336,40 +336,40 @@ conditional::undefined_otherwise	tests/compatibility/upstream/just-1.57.0/upstre
 conditional::undefined_rhs	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:11497		tests/conditional.rs:97
 conditional::undefined_then	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:11545		tests/conditional.rs:120
 conditional::unexpected_op	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:11593		tests/conditional.rs:166
-config::tests::arguments	internal/cli/upstream_config_test.mbt:20	upstream config::tests::arguments	src/config.rs:1015
-config::tests::changelog_arguments	internal/cli/upstream_config_test.mbt:434	upstream config::tests::changelog_arguments	src/config.rs:1237
-config::tests::color_always	internal/cli/upstream_config_test.mbt:32	upstream config::tests::color_always	src/config.rs:569
-config::tests::color_auto	internal/cli/upstream_config_test.mbt:40	upstream config::tests::color_auto	src/config.rs:575
-config::tests::color_bad_value	internal/cli/upstream_config_test.mbt:389	upstream config::tests::color_bad_value	src/config.rs:581
-config::tests::color_default	internal/cli/upstream_config_test.mbt:27	upstream config::tests::color_default	src/config.rs:557
-config::tests::color_never	internal/cli/upstream_config_test.mbt:45	upstream config::tests::color_never	src/config.rs:563
+config::tests::arguments	internal/cli/upstream_config_test.mbt:27	upstream config::tests::arguments	src/config.rs:1015
+config::tests::changelog_arguments	internal/cli/upstream_config_test.mbt:450	upstream config::tests::changelog_arguments	src/config.rs:1237
+config::tests::color_always	internal/cli/upstream_config_test.mbt:39	upstream config::tests::color_always	src/config.rs:569
+config::tests::color_auto	internal/cli/upstream_config_test.mbt:47	upstream config::tests::color_auto	src/config.rs:575
+config::tests::color_bad_value	internal/cli/upstream_config_test.mbt:396	upstream config::tests::color_bad_value	src/config.rs:581
+config::tests::color_default	internal/cli/upstream_config_test.mbt:34	upstream config::tests::color_default	src/config.rs:557
+config::tests::color_never	internal/cli/upstream_config_test.mbt:52	upstream config::tests::color_never	src/config.rs:563
 config::tests::completions_argument	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:11765		src/config.rs:1208
-config::tests::default_config	internal/cli/upstream_config_test.mbt:468	upstream config::tests::default_config	src/config.rs:552
-config::tests::default_config_matches_parsed_config	internal/cli/upstream_config_test.mbt:476	upstream config::tests::default_config_matches_parsed_config	src/config.rs:1338
-config::tests::dotenv_both_filename_and_path	internal/cli/upstream_config_test.mbt:459	upstream config::tests::dotenv_both_filename_and_path	src/config.rs:699
-config::tests::dry_run_default	internal/cli/upstream_config_test.mbt:53	upstream config::tests::dry_run_default	src/config.rs:586
-config::tests::dry_run_long	internal/cli/upstream_config_test.mbt:59	upstream config::tests::dry_run_long	src/config.rs:592
-config::tests::dry_run_quiet	internal/cli/upstream_config_test.mbt:439	upstream config::tests::dry_run_quiet	src/config.rs:604
-config::tests::dry_run_short	internal/cli/upstream_config_test.mbt:64	upstream config::tests::dry_run_short	src/config.rs:598
-config::tests::dump_arguments	internal/cli/upstream_config_test.mbt:120	upstream config::tests::dump_arguments	src/config.rs:1247
-config::tests::edit_arguments	internal/cli/upstream_config_test.mbt:125	upstream config::tests::edit_arguments	src/config.rs:1257
-config::tests::fmt_alias	internal/cli/upstream_config_test.mbt:105	upstream config::tests::fmt_alias	src/config.rs:1277
-config::tests::fmt_arguments	internal/cli/upstream_config_test.mbt:100	upstream config::tests::fmt_arguments	src/config.rs:1267
-config::tests::init_alias	internal/cli/upstream_config_test.mbt:115	upstream config::tests::init_alias	src/config.rs:1297
-config::tests::init_arguments	internal/cli/upstream_config_test.mbt:110	upstream config::tests::init_arguments	src/config.rs:1287
-config::tests::no_cache	internal/cli/upstream_config_test.mbt:85	upstream config::tests::no_cache	src/config.rs:645
-config::tests::no_dependencies	internal/cli/upstream_config_test.mbt:90	upstream config::tests::no_dependencies	src/config.rs:657
-config::tests::no_deps	internal/cli/upstream_config_test.mbt:95	upstream config::tests::no_deps	src/config.rs:651
-config::tests::overrides	internal/cli/upstream_config_test.mbt:130	upstream config::tests::overrides	src/config.rs:1024
-config::tests::overrides_empty	internal/cli/upstream_config_test.mbt:137	upstream config::tests::overrides_empty	src/config.rs:1033
-config::tests::overrides_override_sets	internal/cli/upstream_config_test.mbt:166	upstream config::tests::overrides_override_sets	src/config.rs:1042
-config::tests::quiet_default	internal/cli/upstream_config_test.mbt:69	upstream config::tests::quiet_default	src/config.rs:681
-config::tests::quiet_long	internal/cli/upstream_config_test.mbt:75	upstream config::tests::quiet_long	src/config.rs:687
-config::tests::quiet_short	internal/cli/upstream_config_test.mbt:80	upstream config::tests::quiet_short	src/config.rs:693
+config::tests::default_config	internal/cli/upstream_config_test.mbt:497	upstream config::tests::default_config	src/config.rs:552
+config::tests::default_config_matches_parsed_config	internal/cli/upstream_config_test.mbt:505	upstream config::tests::default_config_matches_parsed_config	src/config.rs:1338
+config::tests::dotenv_both_filename_and_path	internal/cli/upstream_config_test.mbt:489	upstream config::tests::dotenv_both_filename_and_path	src/config.rs:699
+config::tests::dry_run_default	internal/cli/upstream_config_test.mbt:60	upstream config::tests::dry_run_default	src/config.rs:586
+config::tests::dry_run_long	internal/cli/upstream_config_test.mbt:66	upstream config::tests::dry_run_long	src/config.rs:592
+config::tests::dry_run_quiet	internal/cli/upstream_config_test.mbt:455	upstream config::tests::dry_run_quiet	src/config.rs:604
+config::tests::dry_run_short	internal/cli/upstream_config_test.mbt:71	upstream config::tests::dry_run_short	src/config.rs:598
+config::tests::dump_arguments	internal/cli/upstream_config_test.mbt:127	upstream config::tests::dump_arguments	src/config.rs:1247
+config::tests::edit_arguments	internal/cli/upstream_config_test.mbt:132	upstream config::tests::edit_arguments	src/config.rs:1257
+config::tests::fmt_alias	internal/cli/upstream_config_test.mbt:112	upstream config::tests::fmt_alias	src/config.rs:1277
+config::tests::fmt_arguments	internal/cli/upstream_config_test.mbt:107	upstream config::tests::fmt_arguments	src/config.rs:1267
+config::tests::init_alias	internal/cli/upstream_config_test.mbt:122	upstream config::tests::init_alias	src/config.rs:1297
+config::tests::init_arguments	internal/cli/upstream_config_test.mbt:117	upstream config::tests::init_arguments	src/config.rs:1287
+config::tests::no_cache	internal/cli/upstream_config_test.mbt:92	upstream config::tests::no_cache	src/config.rs:645
+config::tests::no_dependencies	internal/cli/upstream_config_test.mbt:97	upstream config::tests::no_dependencies	src/config.rs:657
+config::tests::no_deps	internal/cli/upstream_config_test.mbt:102	upstream config::tests::no_deps	src/config.rs:651
+config::tests::overrides	internal/cli/upstream_config_test.mbt:137	upstream config::tests::overrides	src/config.rs:1024
+config::tests::overrides_empty	internal/cli/upstream_config_test.mbt:144	upstream config::tests::overrides_empty	src/config.rs:1033
+config::tests::overrides_override_sets	internal/cli/upstream_config_test.mbt:173	upstream config::tests::overrides_override_sets	src/config.rs:1042
+config::tests::quiet_default	internal/cli/upstream_config_test.mbt:76	upstream config::tests::quiet_default	src/config.rs:681
+config::tests::quiet_long	internal/cli/upstream_config_test.mbt:82	upstream config::tests::quiet_long	src/config.rs:687
+config::tests::quiet_short	internal/cli/upstream_config_test.mbt:87	upstream config::tests::quiet_short	src/config.rs:693
 config::tests::search_config_default	internal/application/upstream_search_config_wbtest.mbt:210	upstream config::tests::search_config_default	src/config.rs:1103
 config::tests::search_config_from_working_directory_and_justfile	internal/application/upstream_search_config_wbtest.mbt:216	upstream config::tests::search_config_from_working_directory_and_justfile	src/config.rs:1109
-config::tests::search_config_justfile_long	internal/cli/upstream_config_test.mbt:422	upstream config::tests::search_config_justfile_long	src/config.rs:1118
-config::tests::search_config_justfile_short	internal/cli/upstream_config_test.mbt:428	upstream config::tests::search_config_justfile_short	src/config.rs:1126
+config::tests::search_config_justfile_long	internal/cli/upstream_config_test.mbt:438	upstream config::tests::search_config_justfile_long	src/config.rs:1118
+config::tests::search_config_justfile_short	internal/cli/upstream_config_test.mbt:444	upstream config::tests::search_config_justfile_short	src/config.rs:1126
 config::tests::search_config_justfile_stdin_long	internal/application/upstream_search_config_wbtest.mbt:233	upstream config::tests::search_config_justfile_stdin_long	src/config.rs:1134
 config::tests::search_config_justfile_stdin_short	internal/application/upstream_search_config_wbtest.mbt:240	upstream config::tests::search_config_justfile_stdin_short	src/config.rs:1140
 config::tests::search_config_justfile_stdin_with_working_directory	internal/application/upstream_search_config_wbtest.mbt:247	upstream config::tests::search_config_justfile_stdin_with_working_directory	src/config.rs:1146
@@ -380,64 +380,64 @@ config::tests::search_directory_conflict_working_directory	internal/application/
 config::tests::search_directory_deep	internal/application/upstream_search_config_wbtest.mbt:276	upstream config::tests::search_directory_deep	src/config.rs:1179
 config::tests::search_directory_parent	internal/application/upstream_search_config_wbtest.mbt:261	upstream config::tests::search_directory_parent	src/config.rs:1154
 config::tests::search_directory_parent_with_recipe	internal/application/upstream_search_config_wbtest.mbt:266	upstream config::tests::search_directory_parent_with_recipe	src/config.rs:1162
-config::tests::set_bad	internal/cli/upstream_config_test.mbt:394	upstream config::tests::set_bad	src/config.rs:764
-config::tests::set_default	internal/cli/upstream_config_test.mbt:143	upstream config::tests::set_default	src/config.rs:719
-config::tests::set_empty	internal/cli/upstream_config_test.mbt:148	upstream config::tests::set_empty	src/config.rs:737
-config::tests::set_one	internal/cli/upstream_config_test.mbt:154	upstream config::tests::set_one	src/config.rs:728
-config::tests::set_override	internal/cli/upstream_config_test.mbt:160	upstream config::tests::set_override	src/config.rs:755
-config::tests::set_two	internal/cli/upstream_config_test.mbt:179	upstream config::tests::set_two	src/config.rs:746
-config::tests::shell_args_clear	internal/cli/upstream_config_test.mbt:190	upstream config::tests::shell_args_clear	src/config.rs:1075
-config::tests::shell_args_clear_and_set	internal/cli/upstream_config_test.mbt:222	upstream config::tests::shell_args_clear_and_set	src/config.rs:1082
-config::tests::shell_args_default	internal/cli/upstream_config_test.mbt:185	upstream config::tests::shell_args_default	src/config.rs:1051
-config::tests::shell_args_set	internal/cli/upstream_config_test.mbt:198	upstream config::tests::shell_args_set	src/config.rs:782
-config::tests::shell_args_set_and_clear	internal/cli/upstream_config_test.mbt:214	upstream config::tests::shell_args_set_and_clear	src/config.rs:1089
-config::tests::shell_args_set_hyphen	internal/cli/upstream_config_test.mbt:230	upstream config::tests::shell_args_set_hyphen	src/config.rs:1056
-config::tests::shell_args_set_multiple	internal/cli/upstream_config_test.mbt:206	upstream config::tests::shell_args_set_multiple	src/config.rs:1068
-config::tests::shell_args_set_multiple_and_clear	internal/cli/upstream_config_test.mbt:399	upstream config::tests::shell_args_set_multiple_and_clear	src/config.rs:1096
-config::tests::shell_args_set_word	internal/cli/upstream_config_test.mbt:409	upstream config::tests::shell_args_set_word	src/config.rs:1062
-config::tests::shell_default	internal/cli/upstream_config_test.mbt:238	upstream config::tests::shell_default	src/config.rs:769
-config::tests::shell_set	internal/cli/upstream_config_test.mbt:243	upstream config::tests::shell_set	src/config.rs:776
+config::tests::set_bad	internal/cli/upstream_config_test.mbt:404	upstream config::tests::set_bad	src/config.rs:764
+config::tests::set_default	internal/cli/upstream_config_test.mbt:150	upstream config::tests::set_default	src/config.rs:719
+config::tests::set_empty	internal/cli/upstream_config_test.mbt:155	upstream config::tests::set_empty	src/config.rs:737
+config::tests::set_one	internal/cli/upstream_config_test.mbt:161	upstream config::tests::set_one	src/config.rs:728
+config::tests::set_override	internal/cli/upstream_config_test.mbt:167	upstream config::tests::set_override	src/config.rs:755
+config::tests::set_two	internal/cli/upstream_config_test.mbt:186	upstream config::tests::set_two	src/config.rs:746
+config::tests::shell_args_clear	internal/cli/upstream_config_test.mbt:197	upstream config::tests::shell_args_clear	src/config.rs:1075
+config::tests::shell_args_clear_and_set	internal/cli/upstream_config_test.mbt:229	upstream config::tests::shell_args_clear_and_set	src/config.rs:1082
+config::tests::shell_args_default	internal/cli/upstream_config_test.mbt:192	upstream config::tests::shell_args_default	src/config.rs:1051
+config::tests::shell_args_set	internal/cli/upstream_config_test.mbt:205	upstream config::tests::shell_args_set	src/config.rs:782
+config::tests::shell_args_set_and_clear	internal/cli/upstream_config_test.mbt:221	upstream config::tests::shell_args_set_and_clear	src/config.rs:1089
+config::tests::shell_args_set_hyphen	internal/cli/upstream_config_test.mbt:237	upstream config::tests::shell_args_set_hyphen	src/config.rs:1056
+config::tests::shell_args_set_multiple	internal/cli/upstream_config_test.mbt:213	upstream config::tests::shell_args_set_multiple	src/config.rs:1068
+config::tests::shell_args_set_multiple_and_clear	internal/cli/upstream_config_test.mbt:412	upstream config::tests::shell_args_set_multiple_and_clear	src/config.rs:1096
+config::tests::shell_args_set_word	internal/cli/upstream_config_test.mbt:422	upstream config::tests::shell_args_set_word	src/config.rs:1062
+config::tests::shell_default	internal/cli/upstream_config_test.mbt:245	upstream config::tests::shell_default	src/config.rs:769
+config::tests::shell_set	internal/cli/upstream_config_test.mbt:250	upstream config::tests::shell_set	src/config.rs:776
 config::tests::subcommand_completions	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:12821		src/config.rs:878
 config::tests::subcommand_completions_invalid	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:12837		src/config.rs:890
 config::tests::subcommand_completions_uppercase	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:12851		src/config.rs:884
-config::tests::subcommand_conflict_changelog	internal/cli/upstream_config_test.mbt:483	upstream config::tests::subcommand_conflict_changelog	src/config.rs:828
-config::tests::subcommand_conflict_choose	internal/cli/upstream_config_test.mbt:488	upstream config::tests::subcommand_conflict_choose	src/config.rs:873
-config::tests::subcommand_conflict_completions	internal/cli/upstream_config_test.mbt:493	upstream config::tests::subcommand_conflict_completions	src/config.rs:863
-config::tests::subcommand_conflict_dump	internal/cli/upstream_config_test.mbt:417	upstream config::tests::subcommand_conflict_dump	src/config.rs:838
-config::tests::subcommand_conflict_evaluate	internal/cli/upstream_config_test.mbt:498	upstream config::tests::subcommand_conflict_evaluate	src/config.rs:853
-config::tests::subcommand_conflict_fmt	internal/cli/upstream_config_test.mbt:503	upstream config::tests::subcommand_conflict_fmt	src/config.rs:843
-config::tests::subcommand_conflict_init	internal/cli/upstream_config_test.mbt:508	upstream config::tests::subcommand_conflict_init	src/config.rs:848
-config::tests::subcommand_conflict_show	internal/cli/upstream_config_test.mbt:513	upstream config::tests::subcommand_conflict_show	src/config.rs:858
-config::tests::subcommand_conflict_summary	internal/cli/upstream_config_test.mbt:518	upstream config::tests::subcommand_conflict_summary	src/config.rs:833
-config::tests::subcommand_conflict_variables	internal/cli/upstream_config_test.mbt:444	upstream config::tests::subcommand_conflict_variables	src/config.rs:868
-config::tests::subcommand_default	internal/cli/upstream_config_test.mbt:251	upstream config::tests::subcommand_default	src/config.rs:819
-config::tests::subcommand_dump	internal/cli/upstream_config_test.mbt:256	upstream config::tests::subcommand_dump	src/config.rs:895
-config::tests::subcommand_edit	internal/cli/upstream_config_test.mbt:261	upstream config::tests::subcommand_edit	src/config.rs:907
-config::tests::subcommand_evaluate	internal/cli/upstream_config_test.mbt:266	upstream config::tests::subcommand_evaluate	src/config.rs:913
-config::tests::subcommand_evaluate_overrides	internal/cli/upstream_config_test.mbt:360	upstream config::tests::subcommand_evaluate_overrides	src/config.rs:923
-config::tests::subcommand_evaluate_overrides_with_argument	internal/cli/upstream_config_test.mbt:367	upstream config::tests::subcommand_evaluate_overrides_with_argument	src/config.rs:933
-config::tests::subcommand_json	internal/cli/upstream_config_test.mbt:271	upstream config::tests::subcommand_json	src/config.rs:901
-config::tests::subcommand_list_arguments	internal/cli/upstream_config_test.mbt:375	upstream config::tests::subcommand_list_arguments	src/config.rs:955
-config::tests::subcommand_list_long	internal/cli/upstream_config_test.mbt:276	upstream config::tests::subcommand_list_long	src/config.rs:943
+config::tests::subcommand_conflict_changelog	internal/cli/upstream_config_test.mbt:512	upstream config::tests::subcommand_conflict_changelog	src/config.rs:828
+config::tests::subcommand_conflict_choose	internal/cli/upstream_config_test.mbt:520	upstream config::tests::subcommand_conflict_choose	src/config.rs:873
+config::tests::subcommand_conflict_completions	internal/cli/upstream_config_test.mbt:528	upstream config::tests::subcommand_conflict_completions	src/config.rs:863	Checks MoonJust rejects --list --completions as Unsupported("--completions"). The upstream clap assertion only requires a parse error.
+config::tests::subcommand_conflict_dump	internal/cli/upstream_config_test.mbt:430	upstream config::tests::subcommand_conflict_dump	src/config.rs:838
+config::tests::subcommand_conflict_evaluate	internal/cli/upstream_config_test.mbt:537	upstream config::tests::subcommand_conflict_evaluate	src/config.rs:853
+config::tests::subcommand_conflict_fmt	internal/cli/upstream_config_test.mbt:545	upstream config::tests::subcommand_conflict_fmt	src/config.rs:843
+config::tests::subcommand_conflict_init	internal/cli/upstream_config_test.mbt:553	upstream config::tests::subcommand_conflict_init	src/config.rs:848
+config::tests::subcommand_conflict_show	internal/cli/upstream_config_test.mbt:561	upstream config::tests::subcommand_conflict_show	src/config.rs:858
+config::tests::subcommand_conflict_summary	internal/cli/upstream_config_test.mbt:569	upstream config::tests::subcommand_conflict_summary	src/config.rs:833
+config::tests::subcommand_conflict_variables	internal/cli/upstream_config_test.mbt:463	upstream config::tests::subcommand_conflict_variables	src/config.rs:868
+config::tests::subcommand_default	internal/cli/upstream_config_test.mbt:258	upstream config::tests::subcommand_default	src/config.rs:819
+config::tests::subcommand_dump	internal/cli/upstream_config_test.mbt:263	upstream config::tests::subcommand_dump	src/config.rs:895
+config::tests::subcommand_edit	internal/cli/upstream_config_test.mbt:268	upstream config::tests::subcommand_edit	src/config.rs:907
+config::tests::subcommand_evaluate	internal/cli/upstream_config_test.mbt:273	upstream config::tests::subcommand_evaluate	src/config.rs:913
+config::tests::subcommand_evaluate_overrides	internal/cli/upstream_config_test.mbt:367	upstream config::tests::subcommand_evaluate_overrides	src/config.rs:923
+config::tests::subcommand_evaluate_overrides_with_argument	internal/cli/upstream_config_test.mbt:374	upstream config::tests::subcommand_evaluate_overrides_with_argument	src/config.rs:933
+config::tests::subcommand_json	internal/cli/upstream_config_test.mbt:278	upstream config::tests::subcommand_json	src/config.rs:901
+config::tests::subcommand_list_arguments	internal/cli/upstream_config_test.mbt:382	upstream config::tests::subcommand_list_arguments	src/config.rs:955
+config::tests::subcommand_list_long	internal/cli/upstream_config_test.mbt:283	upstream config::tests::subcommand_list_long	src/config.rs:943
 config::tests::subcommand_list_search_directory	internal/application/upstream_search_config_wbtest.mbt:328	upstream config::tests::subcommand_list_search_directory	src/config.rs:981
-config::tests::subcommand_list_short	internal/cli/upstream_config_test.mbt:281	upstream config::tests::subcommand_list_short	src/config.rs:949
-config::tests::subcommand_overrides_and_arguments	internal/cli/upstream_config_test.mbt:449	upstream config::tests::subcommand_overrides_and_arguments	src/config.rs:1317
-config::tests::subcommand_show_long	internal/cli/upstream_config_test.mbt:286	upstream config::tests::subcommand_show_long	src/config.rs:961
-config::tests::subcommand_show_multiple_args	internal/cli/upstream_config_test.mbt:382	upstream config::tests::subcommand_show_multiple_args	src/config.rs:973
+config::tests::subcommand_list_short	internal/cli/upstream_config_test.mbt:288	upstream config::tests::subcommand_list_short	src/config.rs:949
+config::tests::subcommand_overrides_and_arguments	internal/cli/upstream_config_test.mbt:471	upstream config::tests::subcommand_overrides_and_arguments	src/config.rs:1317
+config::tests::subcommand_show_long	internal/cli/upstream_config_test.mbt:293	upstream config::tests::subcommand_show_long	src/config.rs:961
+config::tests::subcommand_show_multiple_args	internal/cli/upstream_config_test.mbt:389	upstream config::tests::subcommand_show_multiple_args	src/config.rs:973
 config::tests::subcommand_show_search_directory	internal/application/upstream_search_config_wbtest.mbt:342	upstream config::tests::subcommand_show_search_directory	src/config.rs:990
-config::tests::subcommand_show_short	internal/cli/upstream_config_test.mbt:291	upstream config::tests::subcommand_show_short	src/config.rs:967
-config::tests::subcommand_summary	internal/cli/upstream_config_test.mbt:296	upstream config::tests::subcommand_summary	src/config.rs:1008
-config::tests::subcommand_usage_search_directory	internal/cli/upstream_config_test.mbt:353	upstream config::tests::subcommand_usage_search_directory	src/config.rs:999
-config::tests::summary_arguments	internal/cli/upstream_config_test.mbt:341	upstream config::tests::summary_arguments	src/config.rs:1307
-config::tests::summary_overrides	internal/cli/upstream_config_test.mbt:454	upstream config::tests::summary_overrides	src/config.rs:1328
-config::tests::unsorted_default	internal/cli/upstream_config_test.mbt:301	upstream config::tests::unsorted_default	src/config.rs:663
-config::tests::unsorted_long	internal/cli/upstream_config_test.mbt:306	upstream config::tests::unsorted_long	src/config.rs:669
-config::tests::unsorted_short	internal/cli/upstream_config_test.mbt:311	upstream config::tests::unsorted_short	src/config.rs:675
-config::tests::verbosity_default	internal/cli/upstream_config_test.mbt:316	upstream config::tests::verbosity_default	src/config.rs:789
-config::tests::verbosity_grandiloquent	internal/cli/upstream_config_test.mbt:331	upstream config::tests::verbosity_grandiloquent	src/config.rs:807
-config::tests::verbosity_great_grandiloquent	internal/cli/upstream_config_test.mbt:336	upstream config::tests::verbosity_great_grandiloquent	src/config.rs:813
-config::tests::verbosity_long	internal/cli/upstream_config_test.mbt:321	upstream config::tests::verbosity_long	src/config.rs:795
-config::tests::verbosity_loquacious	internal/cli/upstream_config_test.mbt:326	upstream config::tests::verbosity_loquacious	src/config.rs:801
+config::tests::subcommand_show_short	internal/cli/upstream_config_test.mbt:298	upstream config::tests::subcommand_show_short	src/config.rs:967
+config::tests::subcommand_summary	internal/cli/upstream_config_test.mbt:303	upstream config::tests::subcommand_summary	src/config.rs:1008
+config::tests::subcommand_usage_search_directory	internal/cli/upstream_config_test.mbt:360	upstream config::tests::subcommand_usage_search_directory	src/config.rs:999
+config::tests::summary_arguments	internal/cli/upstream_config_test.mbt:348	upstream config::tests::summary_arguments	src/config.rs:1307
+config::tests::summary_overrides	internal/cli/upstream_config_test.mbt:481	upstream config::tests::summary_overrides	src/config.rs:1328
+config::tests::unsorted_default	internal/cli/upstream_config_test.mbt:308	upstream config::tests::unsorted_default	src/config.rs:663
+config::tests::unsorted_long	internal/cli/upstream_config_test.mbt:313	upstream config::tests::unsorted_long	src/config.rs:669
+config::tests::unsorted_short	internal/cli/upstream_config_test.mbt:318	upstream config::tests::unsorted_short	src/config.rs:675
+config::tests::verbosity_default	internal/cli/upstream_config_test.mbt:323	upstream config::tests::verbosity_default	src/config.rs:789
+config::tests::verbosity_grandiloquent	internal/cli/upstream_config_test.mbt:338	upstream config::tests::verbosity_grandiloquent	src/config.rs:807
+config::tests::verbosity_great_grandiloquent	internal/cli/upstream_config_test.mbt:343	upstream config::tests::verbosity_great_grandiloquent	src/config.rs:813
+config::tests::verbosity_long	internal/cli/upstream_config_test.mbt:328	upstream config::tests::verbosity_long	src/config.rs:795
+config::tests::verbosity_loquacious	internal/cli/upstream_config_test.mbt:333	upstream config::tests::verbosity_loquacious	src/config.rs:801
 confirm::confirm_attribute_is_formatted_correctly	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:13535		tests/confirm.rs:140
 confirm::confirm_expression_dump	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:13575		tests/confirm.rs:194
 confirm::confirm_expression_is_dependency_is_false_for_direct_invocation	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:13627		tests/confirm.rs:219
@@ -458,7 +458,7 @@ constants::constants_are_defined_in_recipe_parameters	tests/compatibility/upstre
 constants::constants_are_not_exported	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:14133		tests/constants.rs:54
 constants::constants_can_be_redefined	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:14165		tests/constants.rs:41
 constants::constants_can_have_different_values_on_windows	internal/evaluator/upstream_constants_test.mbt:17	upstream constants::constants_can_have_different_values_on_windows	tests/constants.rs:9
-constants::tests::readme_table	internal/application/upstream_document_contract_test.mbt:48	upstream constants::tests::readme_table	src/constants.rs:61
+constants::tests::readme_table	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:14207		src/constants.rs:61
 count::tests::count	internal/diagnostic/upstream_grammar_test.mbt:2	upstream count::tests::count	src/count.rs:71
 datetime::datetime	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:14301		tests/datetime.rs:4
 datetime::datetime_utc	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:14329		tests/datetime.rs:17
@@ -573,7 +573,7 @@ evaluate::format_shell_special_characters_are_escaped	tests/compatibility/upstre
 evaluate::format_shell_variables_are_exported_with_setting	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:18591		tests/evaluate.rs:387
 evaluator::tests::backtick_code	internal/evaluator/upstream_backtick_wbtest.mbt:33	upstream evaluator::tests::backtick_code	src/evaluator.rs:871
 evaluator::tests::export_assignment_backtick	internal/evaluator/upstream_backtick_wbtest.mbt:38	upstream evaluator::tests::export_assignment_backtick	src/evaluator.rs:888
-examples::examples	internal/application/upstream_document_contract_test.mbt:61	upstream examples::examples	tests/examples.rs:4
+examples::examples	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:18711		tests/examples.rs:4
 executor::tests::needs_bom	internal/planner/upstream_shebang_wbtest.mbt:101	upstream executor::tests::needs_bom	src/executor.rs:175
 executor::tests::shebang_script_filename	internal/planner/upstream_shebang_wbtest.mbt:119	upstream executor::tests::shebang_script_filename	src/executor.rs:144
 export::override_variable	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:18877		tests/export.rs:58
@@ -957,9 +957,9 @@ json::settings	internal/application/upstream_json_wbtest.mbt:52	upstream json::s
 json::shebang	internal/application/upstream_json_wbtest.mbt:151	upstream json::shebang	tests/json.rs:872
 json::simple	internal/application/upstream_json_wbtest.mbt:21	upstream json::simple	tests/json.rs:897
 justfile::tests::code_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:34207		src/justfile.rs:890
-justfile::tests::concatenation_in_group	internal/parser/upstream_parser_remaining.mbt:605	upstream justfile::tests::concatenation_in_group	src/justfile.rs:1415
+justfile::tests::concatenation_in_group	internal/parser/upstream_parser_expressions_wbtest.mbt:115	upstream justfile::tests::concatenation_in_group	src/justfile.rs:1415
 justfile::tests::env_functions	internal/formatter/upstream_format_remaining_test.mbt:52	upstream justfile::tests::env_functions	src/justfile.rs:1334
-justfile::tests::eof_test	internal/parser/upstream_parser_remaining.mbt:646	upstream justfile::tests::eof_test	src/justfile.rs:1294
+justfile::tests::eof_test	internal/parser/upstream_parser_recipes_wbtest.mbt:166	upstream justfile::tests::eof_test	src/justfile.rs:1294
 justfile::tests::escaped_dos_newlines	internal/formatter/upstream_format_remaining_test.mbt:62	upstream justfile::tests::escaped_dos_newlines	src/justfile.rs:1426
 justfile::tests::export_failure	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:34347		src/justfile.rs:1022
 justfile::tests::missing_all_arguments	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:34401		src/justfile.rs:968
@@ -967,34 +967,34 @@ justfile::tests::missing_all_defaults	tests/compatibility/upstream/just-1.57.0/u
 justfile::tests::missing_some_arguments	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:34481		src/justfile.rs:932
 justfile::tests::missing_some_arguments_variadic	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:34521		src/justfile.rs:950
 justfile::tests::missing_some_defaults	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:34561		src/justfile.rs:986
-justfile::tests::parameter_default_backtick	internal/parser/upstream_parser_remaining.mbt:551	upstream justfile::tests::parameter_default_backtick	src/justfile.rs:1369
-justfile::tests::parameter_default_concatenation_string	internal/parser/upstream_parser_remaining.mbt:561	upstream justfile::tests::parameter_default_concatenation_string	src/justfile.rs:1379
-justfile::tests::parameter_default_concatenation_variable	internal/parser/upstream_parser_remaining.mbt:570	upstream justfile::tests::parameter_default_concatenation_variable	src/justfile.rs:1389
-justfile::tests::parameter_default_multiple	internal/parser/upstream_parser_remaining.mbt:580	upstream justfile::tests::parameter_default_multiple	src/justfile.rs:1402
-justfile::tests::parameter_default_raw_string	internal/parser/upstream_parser_remaining.mbt:685	upstream justfile::tests::parameter_default_raw_string	src/justfile.rs:1359
-justfile::tests::parameter_default_string	internal/parser/upstream_parser_remaining.mbt:675	upstream justfile::tests::parameter_default_string	src/justfile.rs:1349
-justfile::tests::parameters	internal/parser/upstream_parser_remaining.mbt:587	upstream justfile::tests::parameters	src/justfile.rs:1309
-justfile::tests::parse_alias_after_target	internal/parser/upstream_parser_remaining.mbt:461	upstream justfile::tests::parse_alias_after_target	src/justfile.rs:1144
-justfile::tests::parse_alias_before_target	internal/parser/upstream_parser_remaining.mbt:452	upstream justfile::tests::parse_alias_before_target	src/justfile.rs:1159
-justfile::tests::parse_alias_with_comment	internal/parser/upstream_parser_remaining.mbt:470	upstream justfile::tests::parse_alias_with_comment	src/justfile.rs:1174
-justfile::tests::parse_assignment_backticks	internal/parser/upstream_parser_remaining.mbt:493	upstream justfile::tests::parse_assignment_backticks	src/justfile.rs:1270
-justfile::tests::parse_assignments	internal/parser/upstream_parser_remaining.mbt:481	upstream justfile::tests::parse_assignments	src/justfile.rs:1255
-justfile::tests::parse_complex	internal/parser/upstream_parser_remaining.mbt:692	upstream justfile::tests::parse_complex	src/justfile.rs:1189
-justfile::tests::parse_empty	internal/parser/upstream_parser_remaining.mbt:442	upstream justfile::tests::parse_empty	src/justfile.rs:1056
+justfile::tests::parameter_default_backtick	internal/parser/upstream_parser_parameters_wbtest.mbt:262	upstream justfile::tests::parameter_default_backtick	src/justfile.rs:1369
+justfile::tests::parameter_default_concatenation_string	internal/parser/upstream_parser_parameters_wbtest.mbt:272	upstream justfile::tests::parameter_default_concatenation_string	src/justfile.rs:1379
+justfile::tests::parameter_default_concatenation_variable	internal/parser/upstream_parser_parameters_wbtest.mbt:281	upstream justfile::tests::parameter_default_concatenation_variable	src/justfile.rs:1389
+justfile::tests::parameter_default_multiple	internal/parser/upstream_parser_parameters_wbtest.mbt:291	upstream justfile::tests::parameter_default_multiple	src/justfile.rs:1402
+justfile::tests::parameter_default_raw_string	internal/parser/upstream_parser_parameters_wbtest.mbt:317	upstream justfile::tests::parameter_default_raw_string	src/justfile.rs:1359
+justfile::tests::parameter_default_string	internal/parser/upstream_parser_parameters_wbtest.mbt:307	upstream justfile::tests::parameter_default_string	src/justfile.rs:1349
+justfile::tests::parameters	internal/parser/upstream_parser_parameters_wbtest.mbt:298	upstream justfile::tests::parameters	src/justfile.rs:1309
+justfile::tests::parse_alias_after_target	internal/parser/upstream_parser_declarations_wbtest.mbt:213	upstream justfile::tests::parse_alias_after_target	src/justfile.rs:1144
+justfile::tests::parse_alias_before_target	internal/parser/upstream_parser_declarations_wbtest.mbt:204	upstream justfile::tests::parse_alias_before_target	src/justfile.rs:1159
+justfile::tests::parse_alias_with_comment	internal/parser/upstream_parser_comments_wbtest.mbt:140	upstream justfile::tests::parse_alias_with_comment	src/justfile.rs:1174
+justfile::tests::parse_assignment_backticks	internal/parser/upstream_parser_declarations_wbtest.mbt:234	upstream justfile::tests::parse_assignment_backticks	src/justfile.rs:1270
+justfile::tests::parse_assignments	internal/parser/upstream_parser_declarations_wbtest.mbt:222	upstream justfile::tests::parse_assignments	src/justfile.rs:1255
+justfile::tests::parse_complex	internal/parser/upstream_parser_recipes_wbtest.mbt:195	upstream justfile::tests::parse_complex	src/justfile.rs:1189
+justfile::tests::parse_empty	internal/parser/upstream_parser_recipes_wbtest.mbt:156	upstream justfile::tests::parse_empty	src/justfile.rs:1056
 justfile::tests::parse_export	internal/formatter/upstream_format_remaining_test.mbt:28	upstream justfile::tests::parse_export	src/justfile.rs:1133
-justfile::tests::parse_interpolation_backticks	internal/parser/upstream_parser_remaining.mbt:506	upstream justfile::tests::parse_interpolation_backticks	src/justfile.rs:1284
-justfile::tests::parse_multiple	internal/parser/upstream_parser_remaining.mbt:447	upstream justfile::tests::parse_multiple	src/justfile.rs:1082
-justfile::tests::parse_raw_string_default	internal/parser/upstream_parser_remaining.mbt:526	upstream justfile::tests::parse_raw_string_default	src/justfile.rs:1120
-justfile::tests::parse_shebang	internal/parser/upstream_parser_remaining.mbt:657	upstream justfile::tests::parse_shebang	src/justfile.rs:1229
-justfile::tests::parse_simple_shebang	internal/parser/upstream_parser_remaining.mbt:668	upstream justfile::tests::parse_simple_shebang	src/justfile.rs:1250
-justfile::tests::parse_string_default	internal/parser/upstream_parser_remaining.mbt:516	upstream justfile::tests::parse_string_default	src/justfile.rs:1069
-justfile::tests::parse_variadic	internal/parser/upstream_parser_remaining.mbt:533	upstream justfile::tests::parse_variadic	src/justfile.rs:1094
-justfile::tests::parse_variadic_string_default	internal/parser/upstream_parser_remaining.mbt:540	upstream justfile::tests::parse_variadic_string_default	src/justfile.rs:1107
+justfile::tests::parse_interpolation_backticks	internal/parser/upstream_parser_strings_wbtest.mbt:243	upstream justfile::tests::parse_interpolation_backticks	src/justfile.rs:1284
+justfile::tests::parse_multiple	internal/parser/upstream_parser_recipes_wbtest.mbt:161	upstream justfile::tests::parse_multiple	src/justfile.rs:1082
+justfile::tests::parse_raw_string_default	internal/parser/upstream_parser_parameters_wbtest.mbt:237	upstream justfile::tests::parse_raw_string_default	src/justfile.rs:1120
+justfile::tests::parse_shebang	internal/parser/upstream_parser_recipes_wbtest.mbt:177	upstream justfile::tests::parse_shebang	src/justfile.rs:1229
+justfile::tests::parse_simple_shebang	internal/parser/upstream_parser_recipes_wbtest.mbt:188	upstream justfile::tests::parse_simple_shebang	src/justfile.rs:1250
+justfile::tests::parse_string_default	internal/parser/upstream_parser_parameters_wbtest.mbt:227	upstream justfile::tests::parse_string_default	src/justfile.rs:1069
+justfile::tests::parse_variadic	internal/parser/upstream_parser_parameters_wbtest.mbt:244	upstream justfile::tests::parse_variadic	src/justfile.rs:1094
+justfile::tests::parse_variadic_string_default	internal/parser/upstream_parser_parameters_wbtest.mbt:251	upstream justfile::tests::parse_variadic_string_default	src/justfile.rs:1107
 justfile::tests::run_args	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:35275		src/justfile.rs:911
 justfile::tests::string_escapes	internal/formatter/upstream_format_remaining_test.mbt:36	upstream justfile::tests::string_escapes	src/justfile.rs:1304
-justfile::tests::string_in_group	internal/parser/upstream_parser_remaining.mbt:596	upstream justfile::tests::string_in_group	src/justfile.rs:1420
+justfile::tests::string_in_group	internal/parser/upstream_parser_strings_wbtest.mbt:253	upstream justfile::tests::string_in_group	src/justfile.rs:1420
 justfile::tests::string_quote_escape	internal/formatter/upstream_format_remaining_test.mbt:44	upstream justfile::tests::string_quote_escape	src/justfile.rs:1299
-justfile::tests::unary_functions	internal/parser/upstream_parser_remaining.mbt:614	upstream justfile::tests::unary_functions	src/justfile.rs:1319
+justfile::tests::unary_functions	internal/parser/upstream_parser_expressions_wbtest.mbt:124	upstream justfile::tests::unary_functions	src/justfile.rs:1319
 justfile::tests::unknown_recipe_no_suggestion	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:35393		src/justfile.rs:836
 justfile::tests::unknown_recipe_show_alias_suggestion	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:35425		src/justfile.rs:867
 justfile::tests::unknown_recipe_with_suggestion	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:35475		src/justfile.rs:850
@@ -1640,31 +1640,31 @@ parser::dont_run_duplicate_recipes	tests/compatibility/upstream/just-1.57.0/upst
 parser::tests::addition_chained	internal/parser/upstream_parser_simple.mbt:2	upstream parser::tests::addition_chained	src/parser.rs:2168
 parser::tests::addition_single	internal/parser/upstream_parser_simple.mbt:17	upstream parser::tests::addition_single	src/parser.rs:2156
 parser::tests::alias_equals	internal/parser/upstream_parser_simple.mbt:32	upstream parser::tests::alias_equals	src/parser.rs:2072
-parser::tests::alias_modulepath	internal/parser/upstream_parser_additional.mbt:7	upstream parser::tests::alias_modulepath	src/parser.rs:2044
+parser::tests::alias_modulepath	internal/parser/upstream_parser_declarations_wbtest.mbt:2	upstream parser::tests::alias_modulepath	src/parser.rs:2044
 parser::tests::alias_syntax_colon_end	internal/parser/upstream_parser_errors.mbt:2	upstream parser::tests::alias_syntax_colon_end	src/parser.rs:3228
 parser::tests::alias_syntax_multiple_rhs	internal/parser/upstream_parser_errors.mbt:20	upstream parser::tests::alias_syntax_multiple_rhs	src/parser.rs:3208
 parser::tests::alias_syntax_no_rhs	internal/parser/upstream_parser_errors.mbt:38	upstream parser::tests::alias_syntax_no_rhs	src/parser.rs:3218
 parser::tests::alias_syntax_single_colon	internal/parser/upstream_parser_errors.mbt:56	upstream parser::tests::alias_syntax_single_colon	src/parser.rs:3238
-parser::tests::alias_with_attribute	internal/parser/upstream_parser_remaining.mbt:132	upstream parser::tests::alias_with_attribute	src/parser.rs:2038
-parser::tests::aliases_multiple	internal/parser/upstream_parser_additional.mbt:15	upstream parser::tests::aliases_multiple	src/parser.rs:2062
-parser::tests::assert	internal/parser/upstream_parser_additional.mbt:39	upstream parser::tests::assert	src/parser.rs:3178
-parser::tests::assert_conditional_condition	internal/parser/upstream_parser_additional.mbt:48	upstream parser::tests::assert_conditional_condition	src/parser.rs:3184
-parser::tests::assignment_equals	internal/parser/upstream_parser_additional.mbt:28	upstream parser::tests::assignment_equals	src/parser.rs:2130
+parser::tests::alias_with_attribute	internal/parser/upstream_parser_declarations_wbtest.mbt:149	upstream parser::tests::alias_with_attribute	src/parser.rs:2038
+parser::tests::aliases_multiple	internal/parser/upstream_parser_declarations_wbtest.mbt:10	upstream parser::tests::aliases_multiple	src/parser.rs:2062
+parser::tests::assert	internal/parser/upstream_parser_expressions_wbtest.mbt:2	upstream parser::tests::assert	src/parser.rs:3178
+parser::tests::assert_conditional_condition	internal/parser/upstream_parser_expressions_wbtest.mbt:11	upstream parser::tests::assert_conditional_condition	src/parser.rs:3184
+parser::tests::assignment_equals	internal/parser/upstream_parser_declarations_wbtest.mbt:23	upstream parser::tests::assignment_equals	src/parser.rs:2130
 parser::tests::bad_export	internal/parser/upstream_parser_errors.mbt:74	upstream parser::tests::bad_export	src/parser.rs:3338
 parser::tests::call_multiple_args	internal/parser/upstream_parser_simple.mbt:44	upstream parser::tests::call_multiple_args	src/parser.rs:2180
 parser::tests::call_one_arg	internal/parser/upstream_parser_simple.mbt:59	upstream parser::tests::call_one_arg	src/parser.rs:2174
 parser::tests::call_trailing_comma	internal/parser/upstream_parser_simple.mbt:74	upstream parser::tests::call_trailing_comma	src/parser.rs:2186
-parser::tests::comment_after_alias	internal/parser/upstream_parser_additional.mbt:83	upstream parser::tests::comment_after_alias	src/parser.rs:2358
-parser::tests::comment_assignment	internal/parser/upstream_parser_additional.mbt:69	upstream parser::tests::comment_assignment	src/parser.rs:2364
-parser::tests::comment_before_alias	internal/parser/upstream_parser_additional.mbt:59	upstream parser::tests::comment_before_alias	src/parser.rs:2352
-parser::tests::comment_export	internal/parser/upstream_parser_additional.mbt:94	upstream parser::tests::comment_export	src/parser.rs:2370
-parser::tests::comment_recipe	internal/parser/upstream_parser_additional.mbt:107	upstream parser::tests::comment_recipe	src/parser.rs:2376
-parser::tests::comment_recipe_dependencies	internal/parser/upstream_parser_additional.mbt:115	upstream parser::tests::comment_recipe_dependencies	src/parser.rs:2382
+parser::tests::comment_after_alias	internal/parser/upstream_parser_comments_wbtest.mbt:26	upstream parser::tests::comment_after_alias	src/parser.rs:2358
+parser::tests::comment_assignment	internal/parser/upstream_parser_comments_wbtest.mbt:12	upstream parser::tests::comment_assignment	src/parser.rs:2364
+parser::tests::comment_before_alias	internal/parser/upstream_parser_comments_wbtest.mbt:2	upstream parser::tests::comment_before_alias	src/parser.rs:2352
+parser::tests::comment_export	internal/parser/upstream_parser_comments_wbtest.mbt:37	upstream parser::tests::comment_export	src/parser.rs:2370
+parser::tests::comment_recipe	internal/parser/upstream_parser_comments_wbtest.mbt:50	upstream parser::tests::comment_recipe	src/parser.rs:2376
+parser::tests::comment_recipe_dependencies	internal/parser/upstream_parser_comments_wbtest.mbt:58	upstream parser::tests::comment_recipe_dependencies	src/parser.rs:2382
 parser::tests::comparison	internal/parser/upstream_parser_simple.mbt:89	upstream parser::tests::comparison	src/parser.rs:3106
 parser::tests::comparison_binds_looser_than_concatenation	internal/parser/upstream_parser_simple.mbt:104	upstream parser::tests::comparison_binds_looser_than_concatenation	src/parser.rs:3112
 parser::tests::comparison_binds_tighter_than_logical_operators	internal/parser/upstream_parser_simple.mbt:119	upstream parser::tests::comparison_binds_tighter_than_logical_operators	src/parser.rs:3118
 parser::tests::concatenation_in_default	internal/semantic/upstream_analyzer_test.mbt:265	upstream parser::tests::concatenation_in_default	src/parser.rs:3368
-parser::tests::concatenation_in_group	internal/parser/upstream_parser_additional.mbt:124	upstream parser::tests::concatenation_in_group	src/parser.rs:2855
+parser::tests::concatenation_in_group	internal/parser/upstream_parser_expressions_wbtest.mbt:22	upstream parser::tests::concatenation_in_group	src/parser.rs:2855
 parser::tests::conditional	internal/parser/upstream_parser_simple.mbt:160	upstream parser::tests::conditional	src/parser.rs:3058
 parser::tests::conditional_concatenations	internal/parser/upstream_parser_simple.mbt:175	upstream parser::tests::conditional_concatenations	src/parser.rs:3076
 parser::tests::conditional_inverted	internal/parser/upstream_parser_simple.mbt:190	upstream parser::tests::conditional_inverted	src/parser.rs:3070
@@ -1672,122 +1672,122 @@ parser::tests::conditional_nested_lhs	internal/parser/upstream_parser_simple.mbt
 parser::tests::conditional_nested_otherwise	internal/parser/upstream_parser_simple.mbt:220	upstream parser::tests::conditional_nested_otherwise	src/parser.rs:3100
 parser::tests::conditional_nested_rhs	internal/parser/upstream_parser_simple.mbt:235	upstream parser::tests::conditional_nested_rhs	src/parser.rs:3088
 parser::tests::conditional_nested_then	internal/parser/upstream_parser_simple.mbt:250	upstream parser::tests::conditional_nested_then	src/parser.rs:3094
-parser::tests::conditional_without_otherwise	internal/parser/upstream_parser_additional.mbt:133	upstream parser::tests::conditional_without_otherwise	src/parser.rs:3064
-parser::tests::doc_comment_assignment_clear	internal/parser/upstream_parser_remaining.mbt:380	upstream parser::tests::doc_comment_assignment_clear	src/parser.rs:2417
-parser::tests::doc_comment_empty_line_clear	internal/parser/upstream_parser_remaining.mbt:389	upstream parser::tests::doc_comment_empty_line_clear	src/parser.rs:2427
-parser::tests::doc_comment_middle	internal/parser/upstream_parser_remaining.mbt:398	upstream parser::tests::doc_comment_middle	src/parser.rs:2407
-parser::tests::doc_comment_recipe_clear	internal/parser/upstream_parser_remaining.mbt:407	upstream parser::tests::doc_comment_recipe_clear	src/parser.rs:2397
-parser::tests::doc_comment_single	internal/parser/upstream_parser_final.mbt:261	upstream parser::tests::doc_comment_single	src/parser.rs:2388
+parser::tests::conditional_without_otherwise	internal/parser/upstream_parser_expressions_wbtest.mbt:31	upstream parser::tests::conditional_without_otherwise	src/parser.rs:3064
+parser::tests::doc_comment_assignment_clear	internal/parser/upstream_parser_comments_wbtest.mbt:104	upstream parser::tests::doc_comment_assignment_clear	src/parser.rs:2417
+parser::tests::doc_comment_empty_line_clear	internal/parser/upstream_parser_comments_wbtest.mbt:113	upstream parser::tests::doc_comment_empty_line_clear	src/parser.rs:2427
+parser::tests::doc_comment_middle	internal/parser/upstream_parser_comments_wbtest.mbt:122	upstream parser::tests::doc_comment_middle	src/parser.rs:2407
+parser::tests::doc_comment_recipe_clear	internal/parser/upstream_parser_comments_wbtest.mbt:131	upstream parser::tests::doc_comment_recipe_clear	src/parser.rs:2397
+parser::tests::doc_comment_single	internal/parser/upstream_parser_comments_wbtest.mbt:95	upstream parser::tests::doc_comment_single	src/parser.rs:2388
 parser::tests::double_negation	internal/parser/upstream_parser_simple.mbt:265	upstream parser::tests::double_negation	src/parser.rs:3136
 parser::tests::empty_attribute	internal/parser/upstream_parser_errors.mbt:92	upstream parser::tests::empty_attribute	src/parser.rs:3408
-parser::tests::empty_multiline	internal/parser/upstream_parser_additional.mbt:142	upstream parser::tests::empty_multiline	src/parser.rs:2014
-parser::tests::env_functions	internal/parser/upstream_parser_final.mbt:187	upstream parser::tests::env_functions	src/parser.rs:2799
-parser::tests::eof_test	internal/parser/upstream_parser_remaining.mbt:2	upstream parser::tests::eof_test	src/parser.rs:2751
-parser::tests::escaped_dos_newlines	internal/parser/upstream_parser_remaining.mbt:357	upstream parser::tests::escaped_dos_newlines	src/parser.rs:2867
-parser::tests::export_equals	internal/parser/upstream_parser_additional.mbt:148	upstream parser::tests::export_equals	src/parser.rs:2107
-parser::tests::format_string_complex	internal/parser/upstream_parser_final.mbt:174	upstream parser::tests::format_string_complex	src/parser.rs:3202
-parser::tests::format_string_expression	internal/parser/upstream_parser_final.mbt:163	upstream parser::tests::format_string_expression	src/parser.rs:3196
-parser::tests::format_string_simple	internal/parser/upstream_parser_additional.mbt:478	upstream parser::tests::format_string_simple	src/parser.rs:3190
-parser::tests::indented_backtick	internal/parser/upstream_parser_remaining.mbt:226	upstream parser::tests::indented_backtick	src/parser.rs:2520
-parser::tests::indented_backtick_no_dedent	internal/parser/upstream_parser_remaining.mbt:238	upstream parser::tests::indented_backtick_no_dedent	src/parser.rs:2531
-parser::tests::indented_string_cooked	internal/parser/upstream_parser_remaining.mbt:198	upstream parser::tests::indented_string_cooked	src/parser.rs:2498
-parser::tests::indented_string_cooked_no_dedent	internal/parser/upstream_parser_remaining.mbt:212	upstream parser::tests::indented_string_cooked_no_dedent	src/parser.rs:2509
-parser::tests::indented_string_raw_no_dedent	internal/parser/upstream_parser_remaining.mbt:72	upstream parser::tests::indented_string_raw_no_dedent	src/parser.rs:2487
-parser::tests::indented_string_raw_with_dedent	internal/parser/upstream_parser_remaining.mbt:54	upstream parser::tests::indented_string_raw_with_dedent	src/parser.rs:2476
+parser::tests::empty_multiline	internal/parser/upstream_parser_recipes_wbtest.mbt:2	upstream parser::tests::empty_multiline	src/parser.rs:2014
+parser::tests::env_functions	internal/parser/upstream_parser_expressions_wbtest.mbt:49	upstream parser::tests::env_functions	src/parser.rs:2799	Checks the declaration count and the assignment call kind
+parser::tests::eof_test	internal/parser/upstream_parser_recipes_wbtest.mbt:115	upstream parser::tests::eof_test	src/parser.rs:2751
+parser::tests::escaped_dos_newlines	internal/parser/upstream_parser_strings_wbtest.mbt:220	upstream parser::tests::escaped_dos_newlines	src/parser.rs:2867
+parser::tests::export_equals	internal/parser/upstream_parser_declarations_wbtest.mbt:34	upstream parser::tests::export_equals	src/parser.rs:2107
+parser::tests::format_string_complex	internal/parser/upstream_parser_strings_wbtest.mbt:49	upstream parser::tests::format_string_complex	src/parser.rs:3202
+parser::tests::format_string_expression	internal/parser/upstream_parser_strings_wbtest.mbt:38	upstream parser::tests::format_string_expression	src/parser.rs:3196
+parser::tests::format_string_simple	internal/parser/upstream_parser_strings_wbtest.mbt:29	upstream parser::tests::format_string_simple	src/parser.rs:3190
+parser::tests::indented_backtick	internal/parser/upstream_parser_strings_wbtest.mbt:126	upstream parser::tests::indented_backtick	src/parser.rs:2520
+parser::tests::indented_backtick_no_dedent	internal/parser/upstream_parser_strings_wbtest.mbt:138	upstream parser::tests::indented_backtick_no_dedent	src/parser.rs:2531
+parser::tests::indented_string_cooked	internal/parser/upstream_parser_strings_wbtest.mbt:98	upstream parser::tests::indented_string_cooked	src/parser.rs:2498
+parser::tests::indented_string_cooked_no_dedent	internal/parser/upstream_parser_strings_wbtest.mbt:112	upstream parser::tests::indented_string_cooked_no_dedent	src/parser.rs:2509
+parser::tests::indented_string_raw_no_dedent	internal/parser/upstream_parser_strings_wbtest.mbt:80	upstream parser::tests::indented_string_raw_no_dedent	src/parser.rs:2487
+parser::tests::indented_string_raw_with_dedent	internal/parser/upstream_parser_strings_wbtest.mbt:62	upstream parser::tests::indented_string_raw_with_dedent	src/parser.rs:2476
 parser::tests::invalid_escape_sequence	internal/parser/upstream_parser_errors.mbt:110	upstream parser::tests::invalid_escape_sequence	src/parser.rs:3328
-parser::tests::list_concatenation_single	internal/parser/upstream_parser_additional.mbt:158	upstream parser::tests::list_concatenation_single	src/parser.rs:2162
+parser::tests::list_concatenation_single	internal/parser/upstream_parser_expressions_wbtest.mbt:40	upstream parser::tests::list_concatenation_single	src/parser.rs:2162
 parser::tests::missing_colon	internal/parser/upstream_parser_errors.mbt:128	upstream parser::tests::missing_colon	src/parser.rs:3248
 parser::tests::missing_default_eof	internal/parser/upstream_parser_errors.mbt:146	upstream parser::tests::missing_default_eof	src/parser.rs:3278
 parser::tests::missing_default_eol	internal/parser/upstream_parser_errors.mbt:164	upstream parser::tests::missing_default_eol	src/parser.rs:3258
 parser::tests::missing_eol	internal/parser/upstream_parser_errors.mbt:182	upstream parser::tests::missing_eol	src/parser.rs:3288
-parser::tests::module_with	internal/parser/upstream_parser_additional.mbt:167	upstream parser::tests::module_with	src/parser.rs:3154
-parser::tests::module_with_path	internal/parser/upstream_parser_additional.mbt:176	upstream parser::tests::module_with_path	src/parser.rs:3166
+parser::tests::module_with	internal/parser/upstream_parser_declarations_wbtest.mbt:44	upstream parser::tests::module_with	src/parser.rs:3154
+parser::tests::module_with_path	internal/parser/upstream_parser_declarations_wbtest.mbt:53	upstream parser::tests::module_with_path	src/parser.rs:3166
 parser::tests::negation	internal/parser/upstream_parser_simple.mbt:280	upstream parser::tests::negation	src/parser.rs:3124
 parser::tests::negation_binds_tighter_than_comparison	internal/parser/upstream_parser_simple.mbt:295	upstream parser::tests::negation_binds_tighter_than_comparison	src/parser.rs:3130
-parser::tests::optional_module	internal/parser/upstream_parser_additional.mbt:186	upstream parser::tests::optional_module	src/parser.rs:3160
-parser::tests::optional_module_with_path	internal/parser/upstream_parser_additional.mbt:194	upstream parser::tests::optional_module_with_path	src/parser.rs:3172
-parser::tests::parameter_after_variadic	internal/parser/upstream_parser_final.mbt:137	upstream parser::tests::parameter_after_variadic	src/parser.rs:3358
-parser::tests::parameter_default_backtick	internal/parser/upstream_parser_final.mbt:100	upstream parser::tests::parameter_default_backtick	src/parser.rs:2837
-parser::tests::parameter_default_concatenation_string	internal/parser/upstream_parser_final.mbt:120	upstream parser::tests::parameter_default_concatenation_string	src/parser.rs:2847
-parser::tests::parameter_default_concatenation_variable	internal/parser/upstream_parser_remaining.mbt:278	upstream parser::tests::parameter_default_concatenation_variable	src/parser.rs:2550
-parser::tests::parameter_default_multiple	internal/parser/upstream_parser_remaining.mbt:297	upstream parser::tests::parameter_default_multiple	src/parser.rs:2563
-parser::tests::parameter_default_raw_string	internal/parser/upstream_parser_final.mbt:130	upstream parser::tests::parameter_default_raw_string	src/parser.rs:2829
-parser::tests::parameter_default_string	internal/parser/upstream_parser_final.mbt:110	upstream parser::tests::parameter_default_string	src/parser.rs:2821
-parser::tests::parameter_follows_variadic_parameter	internal/parser/upstream_parser_final.mbt:150	upstream parser::tests::parameter_follows_variadic_parameter	src/parser.rs:3348
-parser::tests::parameters	internal/parser/upstream_parser_additional.mbt:584	upstream parser::tests::parameters	src/parser.rs:2776
-parser::tests::parse_alias_after_target	internal/parser/upstream_parser_additional.mbt:498	upstream parser::tests::parse_alias_after_target	src/parser.rs:2586
-parser::tests::parse_alias_before_target	internal/parser/upstream_parser_additional.mbt:487	upstream parser::tests::parse_alias_before_target	src/parser.rs:2599
-parser::tests::parse_alias_with_comment	internal/parser/upstream_parser_additional.mbt:509	upstream parser::tests::parse_alias_with_comment	src/parser.rs:2612
-parser::tests::parse_assignment_backticks	internal/parser/upstream_parser_additional.mbt:347	upstream parser::tests::parse_assignment_backticks	src/parser.rs:2724
-parser::tests::parse_assignment_with_comment	internal/parser/upstream_parser_additional.mbt:522	upstream parser::tests::parse_assignment_with_comment	src/parser.rs:2626
-parser::tests::parse_assignments	internal/parser/upstream_parser_additional.mbt:336	upstream parser::tests::parse_assignments	src/parser.rs:2710
-parser::tests::parse_complex	internal/parser/upstream_parser_remaining.mbt:416	upstream parser::tests::parse_complex	src/parser.rs:2640
-parser::tests::parse_interpolation_backticks	internal/parser/upstream_parser_remaining.mbt:250	upstream parser::tests::parse_interpolation_backticks	src/parser.rs:2738
-parser::tests::parse_raw_string_default	internal/parser/upstream_parser_remaining.mbt:90	upstream parser::tests::parse_raw_string_default	src/parser.rs:2575
-parser::tests::parse_shebang	internal/parser/upstream_parser_final.mbt:212	upstream parser::tests::parse_shebang	src/parser.rs:2679
-parser::tests::parse_simple_shebang	internal/parser/upstream_parser_final.mbt:228	upstream parser::tests::parse_simple_shebang	src/parser.rs:2702
+parser::tests::optional_module	internal/parser/upstream_parser_declarations_wbtest.mbt:63	upstream parser::tests::optional_module	src/parser.rs:3160
+parser::tests::optional_module_with_path	internal/parser/upstream_parser_declarations_wbtest.mbt:71	upstream parser::tests::optional_module_with_path	src/parser.rs:3172
+parser::tests::parameter_after_variadic	internal/parser/upstream_parser_parameters_wbtest.mbt:148	upstream parser::tests::parameter_after_variadic	src/parser.rs:3358
+parser::tests::parameter_default_backtick	internal/parser/upstream_parser_parameters_wbtest.mbt:111	upstream parser::tests::parameter_default_backtick	src/parser.rs:2837
+parser::tests::parameter_default_concatenation_string	internal/parser/upstream_parser_parameters_wbtest.mbt:131	upstream parser::tests::parameter_default_concatenation_string	src/parser.rs:2847
+parser::tests::parameter_default_concatenation_variable	internal/parser/upstream_parser_parameters_wbtest.mbt:190	upstream parser::tests::parameter_default_concatenation_variable	src/parser.rs:2550
+parser::tests::parameter_default_multiple	internal/parser/upstream_parser_parameters_wbtest.mbt:209	upstream parser::tests::parameter_default_multiple	src/parser.rs:2563
+parser::tests::parameter_default_raw_string	internal/parser/upstream_parser_parameters_wbtest.mbt:141	upstream parser::tests::parameter_default_raw_string	src/parser.rs:2829
+parser::tests::parameter_default_string	internal/parser/upstream_parser_parameters_wbtest.mbt:121	upstream parser::tests::parameter_default_string	src/parser.rs:2821
+parser::tests::parameter_follows_variadic_parameter	internal/parser/upstream_parser_parameters_wbtest.mbt:161	upstream parser::tests::parameter_follows_variadic_parameter	src/parser.rs:3348
+parser::tests::parameters	internal/parser/upstream_parser_parameters_wbtest.mbt:56	upstream parser::tests::parameters	src/parser.rs:2776
+parser::tests::parse_alias_after_target	internal/parser/upstream_parser_declarations_wbtest.mbt:138	upstream parser::tests::parse_alias_after_target	src/parser.rs:2586
+parser::tests::parse_alias_before_target	internal/parser/upstream_parser_declarations_wbtest.mbt:127	upstream parser::tests::parse_alias_before_target	src/parser.rs:2599
+parser::tests::parse_alias_with_comment	internal/parser/upstream_parser_comments_wbtest.mbt:67	upstream parser::tests::parse_alias_with_comment	src/parser.rs:2612
+parser::tests::parse_assignment_backticks	internal/parser/upstream_parser_declarations_wbtest.mbt:92	upstream parser::tests::parse_assignment_backticks	src/parser.rs:2724
+parser::tests::parse_assignment_with_comment	internal/parser/upstream_parser_comments_wbtest.mbt:80	upstream parser::tests::parse_assignment_with_comment	src/parser.rs:2626
+parser::tests::parse_assignments	internal/parser/upstream_parser_declarations_wbtest.mbt:81	upstream parser::tests::parse_assignments	src/parser.rs:2710
+parser::tests::parse_complex	internal/parser/upstream_parser_recipes_wbtest.mbt:136	upstream parser::tests::parse_complex	src/parser.rs:2640	Checks selected recipe fields, dependency names, body length and trailing comment
+parser::tests::parse_interpolation_backticks	internal/parser/upstream_parser_strings_wbtest.mbt:150	upstream parser::tests::parse_interpolation_backticks	src/parser.rs:2738
+parser::tests::parse_raw_string_default	internal/parser/upstream_parser_parameters_wbtest.mbt:174	upstream parser::tests::parse_raw_string_default	src/parser.rs:2575
+parser::tests::parse_shebang	internal/parser/upstream_parser_recipes_wbtest.mbt:86	upstream parser::tests::parse_shebang	src/parser.rs:2679
+parser::tests::parse_simple_shebang	internal/parser/upstream_parser_recipes_wbtest.mbt:102	upstream parser::tests::parse_simple_shebang	src/parser.rs:2702
 parser::tests::plus_following_parameter	internal/parser/upstream_parser_errors.mbt:200	upstream parser::tests::plus_following_parameter	src/parser.rs:3318
-parser::tests::private_assignment	internal/parser/upstream_parser_additional.mbt:447	upstream parser::tests::private_assignment	src/parser.rs:2121
-parser::tests::private_export	internal/parser/upstream_parser_additional.mbt:457	upstream parser::tests::private_export	src/parser.rs:2098
+parser::tests::private_assignment	internal/parser/upstream_parser_declarations_wbtest.mbt:105	upstream parser::tests::private_assignment	src/parser.rs:2121
+parser::tests::private_export	internal/parser/upstream_parser_declarations_wbtest.mbt:115	upstream parser::tests::private_export	src/parser.rs:2098
 parser::tests::recipe	internal/parser/upstream_parser_simple.mbt:134	upstream parser::tests::recipe	src/parser.rs:2192
-parser::tests::recipe_default_multiple	internal/parser/upstream_parser_additional.mbt:213	upstream parser::tests::recipe_default_multiple	src/parser.rs:2232
-parser::tests::recipe_default_single	internal/parser/upstream_parser_additional.mbt:204	upstream parser::tests::recipe_default_single	src/parser.rs:2226
-parser::tests::recipe_dependency_argument_concatenation	internal/parser/upstream_parser_additional.mbt:432	upstream parser::tests::recipe_dependency_argument_concatenation	src/parser.rs:2298
-parser::tests::recipe_dependency_argument_identifier	internal/parser/upstream_parser_additional.mbt:424	upstream parser::tests::recipe_dependency_argument_identifier	src/parser.rs:2292
-parser::tests::recipe_dependency_argument_string	internal/parser/upstream_parser_additional.mbt:240	upstream parser::tests::recipe_dependency_argument_string	src/parser.rs:2286
-parser::tests::recipe_dependency_module	internal/parser/upstream_parser_additional.mbt:401	upstream parser::tests::recipe_dependency_module	src/parser.rs:2316
-parser::tests::recipe_dependency_module_mixed	internal/parser/upstream_parser_additional.mbt:408	upstream parser::tests::recipe_dependency_module_mixed	src/parser.rs:2328
-parser::tests::recipe_dependency_multiple	internal/parser/upstream_parser_additional.mbt:222	upstream parser::tests::recipe_dependency_multiple	src/parser.rs:2274
-parser::tests::recipe_dependency_parenthesis	internal/parser/upstream_parser_additional.mbt:231	upstream parser::tests::recipe_dependency_parenthesis	src/parser.rs:2280
-parser::tests::recipe_dependency_parenthesis_module	internal/parser/upstream_parser_additional.mbt:417	upstream parser::tests::recipe_dependency_parenthesis_module	src/parser.rs:2322
+parser::tests::recipe_default_multiple	internal/parser/upstream_parser_parameters_wbtest.mbt:11	upstream parser::tests::recipe_default_multiple	src/parser.rs:2232
+parser::tests::recipe_default_single	internal/parser/upstream_parser_parameters_wbtest.mbt:2	upstream parser::tests::recipe_default_single	src/parser.rs:2226
+parser::tests::recipe_dependency_argument_concatenation	internal/parser/upstream_parser_dependencies_wbtest.mbt:71	upstream parser::tests::recipe_dependency_argument_concatenation	src/parser.rs:2298
+parser::tests::recipe_dependency_argument_identifier	internal/parser/upstream_parser_dependencies_wbtest.mbt:63	upstream parser::tests::recipe_dependency_argument_identifier	src/parser.rs:2292
+parser::tests::recipe_dependency_argument_string	internal/parser/upstream_parser_dependencies_wbtest.mbt:20	upstream parser::tests::recipe_dependency_argument_string	src/parser.rs:2286
+parser::tests::recipe_dependency_module	internal/parser/upstream_parser_dependencies_wbtest.mbt:40	upstream parser::tests::recipe_dependency_module	src/parser.rs:2316
+parser::tests::recipe_dependency_module_mixed	internal/parser/upstream_parser_dependencies_wbtest.mbt:47	upstream parser::tests::recipe_dependency_module_mixed	src/parser.rs:2328
+parser::tests::recipe_dependency_multiple	internal/parser/upstream_parser_dependencies_wbtest.mbt:2	upstream parser::tests::recipe_dependency_multiple	src/parser.rs:2274
+parser::tests::recipe_dependency_parenthesis	internal/parser/upstream_parser_dependencies_wbtest.mbt:11	upstream parser::tests::recipe_dependency_parenthesis	src/parser.rs:2280
+parser::tests::recipe_dependency_parenthesis_module	internal/parser/upstream_parser_dependencies_wbtest.mbt:56	upstream parser::tests::recipe_dependency_parenthesis_module	src/parser.rs:2322
 parser::tests::recipe_dependency_single	internal/parser/upstream_parser_simple.mbt:145	upstream parser::tests::recipe_dependency_single	src/parser.rs:2268
-parser::tests::recipe_line_interpolation	internal/parser/upstream_parser_additional.mbt:383	upstream parser::tests::recipe_line_interpolation	src/parser.rs:2340
-parser::tests::recipe_line_multiple	internal/parser/upstream_parser_additional.mbt:537	upstream parser::tests::recipe_line_multiple	src/parser.rs:2334
-parser::tests::recipe_line_single	internal/parser/upstream_parser_additional.mbt:372	upstream parser::tests::recipe_line_single	src/parser.rs:2310
-parser::tests::recipe_multiple	internal/parser/upstream_parser_additional.mbt:360	upstream parser::tests::recipe_multiple	src/parser.rs:2198
-parser::tests::recipe_named_alias	internal/parser/upstream_parser_remaining.mbt:153	upstream parser::tests::recipe_named_alias	src/parser.rs:2080
-parser::tests::recipe_parameter_multiple	internal/parser/upstream_parser_additional.mbt:252	upstream parser::tests::recipe_parameter_multiple	src/parser.rs:2220
-parser::tests::recipe_parameter_single	internal/parser/upstream_parser_additional.mbt:261	upstream parser::tests::recipe_parameter_single	src/parser.rs:2214
-parser::tests::recipe_plus_variadic	internal/parser/upstream_parser_additional.mbt:270	upstream parser::tests::recipe_plus_variadic	src/parser.rs:2238
-parser::tests::recipe_quiet	internal/parser/upstream_parser_additional.mbt:279	upstream parser::tests::recipe_quiet	src/parser.rs:2208
-parser::tests::recipe_star_variadic	internal/parser/upstream_parser_additional.mbt:287	upstream parser::tests::recipe_star_variadic	src/parser.rs:2244
-parser::tests::recipe_subsequent	internal/parser/upstream_parser_additional.mbt:296	upstream parser::tests::recipe_subsequent	src/parser.rs:2304
-parser::tests::recipe_variadic_addition_group_default	internal/parser/upstream_parser_additional.mbt:617	upstream parser::tests::recipe_variadic_addition_group_default	src/parser.rs:2262
-parser::tests::recipe_variadic_string_default	internal/parser/upstream_parser_additional.mbt:594	upstream parser::tests::recipe_variadic_string_default	src/parser.rs:2250
-parser::tests::recipe_variadic_variable_default	internal/parser/upstream_parser_additional.mbt:607	upstream parser::tests::recipe_variadic_variable_default	src/parser.rs:2256
-parser::tests::recipe_variadic_with_default_after_default	internal/parser/upstream_parser_additional.mbt:627	upstream parser::tests::recipe_variadic_with_default_after_default	src/parser.rs:2542
-parser::tests::set_allow_duplicate_recipes_implicit	internal/parser/upstream_parser_final.mbt:2	upstream parser::tests::set_allow_duplicate_recipes_implicit	src/parser.rs:2932
-parser::tests::set_allow_duplicate_variables_implicit	internal/parser/upstream_parser_final.mbt:8	upstream parser::tests::set_allow_duplicate_variables_implicit	src/parser.rs:2938
-parser::tests::set_dotenv_load_false	internal/parser/upstream_parser_additional.mbt:645	upstream parser::tests::set_dotenv_load_false	src/parser.rs:2950
-parser::tests::set_dotenv_load_implicit	internal/parser/upstream_parser_final.mbt:16	upstream parser::tests::set_dotenv_load_implicit	src/parser.rs:2926
-parser::tests::set_dotenv_load_true	internal/parser/upstream_parser_additional.mbt:639	upstream parser::tests::set_dotenv_load_true	src/parser.rs:2944
-parser::tests::set_export_false	internal/parser/upstream_parser_additional.mbt:310	upstream parser::tests::set_export_false	src/parser.rs:2920
-parser::tests::set_export_implicit	internal/parser/upstream_parser_additional.mbt:304	upstream parser::tests::set_export_implicit	src/parser.rs:2908
-parser::tests::set_export_true	internal/parser/upstream_parser_final.mbt:22	upstream parser::tests::set_export_true	src/parser.rs:2914
-parser::tests::set_no_cd	internal/parser/upstream_parser_additional.mbt:659	upstream parser::tests::set_no_cd	src/parser.rs:2986
-parser::tests::set_positional_arguments_false	internal/parser/upstream_parser_final.mbt:28	upstream parser::tests::set_positional_arguments_false	src/parser.rs:2992
-parser::tests::set_positional_arguments_implicit	internal/parser/upstream_parser_final.mbt:36	upstream parser::tests::set_positional_arguments_implicit	src/parser.rs:2956
-parser::tests::set_positional_arguments_true	internal/parser/upstream_parser_additional.mbt:651	upstream parser::tests::set_positional_arguments_true	src/parser.rs:2962
-parser::tests::set_quiet_false	internal/parser/upstream_parser_final.mbt:42	upstream parser::tests::set_quiet_false	src/parser.rs:2980
-parser::tests::set_quiet_implicit	internal/parser/upstream_parser_additional.mbt:316	upstream parser::tests::set_quiet_implicit	src/parser.rs:2968
-parser::tests::set_quiet_true	internal/parser/upstream_parser_additional.mbt:322	upstream parser::tests::set_quiet_true	src/parser.rs:2974
+parser::tests::recipe_line_interpolation	internal/parser/upstream_parser_strings_wbtest.mbt:2	upstream parser::tests::recipe_line_interpolation	src/parser.rs:2340
+parser::tests::recipe_line_multiple	internal/parser/upstream_parser_recipes_wbtest.mbt:39	upstream parser::tests::recipe_line_multiple	src/parser.rs:2334
+parser::tests::recipe_line_single	internal/parser/upstream_parser_recipes_wbtest.mbt:28	upstream parser::tests::recipe_line_single	src/parser.rs:2310
+parser::tests::recipe_multiple	internal/parser/upstream_parser_recipes_wbtest.mbt:16	upstream parser::tests::recipe_multiple	src/parser.rs:2198
+parser::tests::recipe_named_alias	internal/parser/upstream_parser_declarations_wbtest.mbt:159	upstream parser::tests::recipe_named_alias	src/parser.rs:2080
+parser::tests::recipe_parameter_multiple	internal/parser/upstream_parser_parameters_wbtest.mbt:20	upstream parser::tests::recipe_parameter_multiple	src/parser.rs:2220
+parser::tests::recipe_parameter_single	internal/parser/upstream_parser_parameters_wbtest.mbt:29	upstream parser::tests::recipe_parameter_single	src/parser.rs:2214
+parser::tests::recipe_plus_variadic	internal/parser/upstream_parser_parameters_wbtest.mbt:38	upstream parser::tests::recipe_plus_variadic	src/parser.rs:2238
+parser::tests::recipe_quiet	internal/parser/upstream_parser_recipes_wbtest.mbt:8	upstream parser::tests::recipe_quiet	src/parser.rs:2208
+parser::tests::recipe_star_variadic	internal/parser/upstream_parser_parameters_wbtest.mbt:47	upstream parser::tests::recipe_star_variadic	src/parser.rs:2244
+parser::tests::recipe_subsequent	internal/parser/upstream_parser_dependencies_wbtest.mbt:32	upstream parser::tests::recipe_subsequent	src/parser.rs:2304
+parser::tests::recipe_variadic_addition_group_default	internal/parser/upstream_parser_parameters_wbtest.mbt:89	upstream parser::tests::recipe_variadic_addition_group_default	src/parser.rs:2262
+parser::tests::recipe_variadic_string_default	internal/parser/upstream_parser_parameters_wbtest.mbt:66	upstream parser::tests::recipe_variadic_string_default	src/parser.rs:2250
+parser::tests::recipe_variadic_variable_default	internal/parser/upstream_parser_parameters_wbtest.mbt:79	upstream parser::tests::recipe_variadic_variable_default	src/parser.rs:2256
+parser::tests::recipe_variadic_with_default_after_default	internal/parser/upstream_parser_parameters_wbtest.mbt:99	upstream parser::tests::recipe_variadic_with_default_after_default	src/parser.rs:2542
+parser::tests::set_allow_duplicate_recipes_implicit	internal/parser/upstream_parser_settings_wbtest.mbt:60	upstream parser::tests::set_allow_duplicate_recipes_implicit	src/parser.rs:2932
+parser::tests::set_allow_duplicate_variables_implicit	internal/parser/upstream_parser_settings_wbtest.mbt:66	upstream parser::tests::set_allow_duplicate_variables_implicit	src/parser.rs:2938
+parser::tests::set_dotenv_load_false	internal/parser/upstream_parser_settings_wbtest.mbt:40	upstream parser::tests::set_dotenv_load_false	src/parser.rs:2950
+parser::tests::set_dotenv_load_implicit	internal/parser/upstream_parser_settings_wbtest.mbt:74	upstream parser::tests::set_dotenv_load_implicit	src/parser.rs:2926
+parser::tests::set_dotenv_load_true	internal/parser/upstream_parser_settings_wbtest.mbt:34	upstream parser::tests::set_dotenv_load_true	src/parser.rs:2944
+parser::tests::set_export_false	internal/parser/upstream_parser_settings_wbtest.mbt:8	upstream parser::tests::set_export_false	src/parser.rs:2920
+parser::tests::set_export_implicit	internal/parser/upstream_parser_settings_wbtest.mbt:2	upstream parser::tests::set_export_implicit	src/parser.rs:2908
+parser::tests::set_export_true	internal/parser/upstream_parser_settings_wbtest.mbt:80	upstream parser::tests::set_export_true	src/parser.rs:2914
+parser::tests::set_no_cd	internal/parser/upstream_parser_settings_wbtest.mbt:54	upstream parser::tests::set_no_cd	src/parser.rs:2986
+parser::tests::set_positional_arguments_false	internal/parser/upstream_parser_settings_wbtest.mbt:86	upstream parser::tests::set_positional_arguments_false	src/parser.rs:2992
+parser::tests::set_positional_arguments_implicit	internal/parser/upstream_parser_settings_wbtest.mbt:94	upstream parser::tests::set_positional_arguments_implicit	src/parser.rs:2956
+parser::tests::set_positional_arguments_true	internal/parser/upstream_parser_settings_wbtest.mbt:46	upstream parser::tests::set_positional_arguments_true	src/parser.rs:2962
+parser::tests::set_quiet_false	internal/parser/upstream_parser_settings_wbtest.mbt:100	upstream parser::tests::set_quiet_false	src/parser.rs:2980
+parser::tests::set_quiet_implicit	internal/parser/upstream_parser_settings_wbtest.mbt:14	upstream parser::tests::set_quiet_implicit	src/parser.rs:2968
+parser::tests::set_quiet_true	internal/parser/upstream_parser_settings_wbtest.mbt:20	upstream parser::tests::set_quiet_true	src/parser.rs:2974
 parser::tests::set_shell_bad	internal/parser/upstream_parser_errors.mbt:218	upstream parser::tests::set_shell_bad	src/parser.rs:3398
 parser::tests::set_shell_bad_comma	internal/parser/upstream_parser_errors.mbt:236	upstream parser::tests::set_shell_bad_comma	src/parser.rs:3388
 parser::tests::set_shell_empty	internal/parser/upstream_parser_errors.mbt:254	upstream parser::tests::set_shell_empty	src/parser.rs:3378
-parser::tests::set_shell_no_arguments	internal/parser/upstream_parser_final.mbt:70	upstream parser::tests::set_shell_no_arguments	src/parser.rs:2998
-parser::tests::set_shell_no_arguments_cooked	internal/parser/upstream_parser_remaining.mbt:142	upstream parser::tests::set_shell_no_arguments_cooked	src/parser.rs:3004
-parser::tests::set_shell_no_arguments_trailing_comma	internal/parser/upstream_parser_remaining.mbt:23	upstream parser::tests::set_shell_no_arguments_trailing_comma	src/parser.rs:3010
-parser::tests::set_shell_with_one_argument	internal/parser/upstream_parser_final.mbt:78	upstream parser::tests::set_shell_with_one_argument	src/parser.rs:3016
-parser::tests::set_shell_with_one_argument_trailing_comma	internal/parser/upstream_parser_remaining.mbt:37	upstream parser::tests::set_shell_with_one_argument_trailing_comma	src/parser.rs:3022
-parser::tests::set_shell_with_two_arguments	internal/parser/upstream_parser_final.mbt:88	upstream parser::tests::set_shell_with_two_arguments	src/parser.rs:3028
+parser::tests::set_shell_no_arguments	internal/parser/upstream_parser_settings_wbtest.mbt:128	upstream parser::tests::set_shell_no_arguments	src/parser.rs:2998
+parser::tests::set_shell_no_arguments_cooked	internal/parser/upstream_parser_settings_wbtest.mbt:189	upstream parser::tests::set_shell_no_arguments_cooked	src/parser.rs:3004
+parser::tests::set_shell_no_arguments_trailing_comma	internal/parser/upstream_parser_settings_wbtest.mbt:158	upstream parser::tests::set_shell_no_arguments_trailing_comma	src/parser.rs:3010
+parser::tests::set_shell_with_one_argument	internal/parser/upstream_parser_settings_wbtest.mbt:136	upstream parser::tests::set_shell_with_one_argument	src/parser.rs:3016
+parser::tests::set_shell_with_one_argument_trailing_comma	internal/parser/upstream_parser_settings_wbtest.mbt:172	upstream parser::tests::set_shell_with_one_argument_trailing_comma	src/parser.rs:3022
+parser::tests::set_shell_with_two_arguments	internal/parser/upstream_parser_settings_wbtest.mbt:146	upstream parser::tests::set_shell_with_two_arguments	src/parser.rs:3028
 parser::tests::set_unknown	internal/parser/upstream_parser_errors.mbt:272	upstream parser::tests::set_unknown	src/parser.rs:3428
-parser::tests::set_windows_powershell_false	internal/parser/upstream_parser_final.mbt:48	upstream parser::tests::set_windows_powershell_false	src/parser.rs:3046
-parser::tests::set_windows_powershell_implicit	internal/parser/upstream_parser_final.mbt:56	upstream parser::tests::set_windows_powershell_implicit	src/parser.rs:3034
-parser::tests::set_windows_powershell_true	internal/parser/upstream_parser_final.mbt:62	upstream parser::tests::set_windows_powershell_true	src/parser.rs:3040
-parser::tests::set_working_directory	internal/parser/upstream_parser_additional.mbt:328	upstream parser::tests::set_working_directory	src/parser.rs:3052
-parser::tests::single_argument_attribute_shorthand	internal/parser/upstream_parser_remaining.mbt:169	upstream parser::tests::single_argument_attribute_shorthand	src/parser.rs:2050
-parser::tests::single_argument_attribute_shorthand_multiple_same_line	internal/parser/upstream_parser_remaining.mbt:181	upstream parser::tests::single_argument_attribute_shorthand_multiple_same_line	src/parser.rs:2056
-parser::tests::single_line_body	internal/parser/upstream_parser_additional.mbt:558	upstream parser::tests::single_line_body	src/parser.rs:2896
+parser::tests::set_windows_powershell_false	internal/parser/upstream_parser_settings_wbtest.mbt:106	upstream parser::tests::set_windows_powershell_false	src/parser.rs:3046
+parser::tests::set_windows_powershell_implicit	internal/parser/upstream_parser_settings_wbtest.mbt:114	upstream parser::tests::set_windows_powershell_implicit	src/parser.rs:3034
+parser::tests::set_windows_powershell_true	internal/parser/upstream_parser_settings_wbtest.mbt:120	upstream parser::tests::set_windows_powershell_true	src/parser.rs:3040
+parser::tests::set_working_directory	internal/parser/upstream_parser_settings_wbtest.mbt:26	upstream parser::tests::set_working_directory	src/parser.rs:3052
+parser::tests::single_argument_attribute_shorthand	internal/parser/upstream_parser_declarations_wbtest.mbt:175	upstream parser::tests::single_argument_attribute_shorthand	src/parser.rs:2050
+parser::tests::single_argument_attribute_shorthand_multiple_same_line	internal/parser/upstream_parser_declarations_wbtest.mbt:187	upstream parser::tests::single_argument_attribute_shorthand_multiple_same_line	src/parser.rs:2056
+parser::tests::single_line_body	internal/parser/upstream_parser_recipes_wbtest.mbt:60	upstream parser::tests::single_line_body	src/parser.rs:2896
 parser::tests::string_escape_carriage_return	internal/parser/upstream_parser_simple.mbt:310	upstream parser::tests::string_escape_carriage_return	src/parser.rs:2458
 parser::tests::string_escape_newline	internal/parser/upstream_parser_simple.mbt:325	upstream parser::tests::string_escape_newline	src/parser.rs:2443
 parser::tests::string_escape_quote	internal/parser/upstream_parser_simple.mbt:340	upstream parser::tests::string_escape_quote	src/parser.rs:2470
@@ -1795,15 +1795,15 @@ parser::tests::string_escape_slash	internal/parser/upstream_parser_simple.mbt:35
 parser::tests::string_escape_suppress_newline	internal/parser/upstream_parser_simple.mbt:370	upstream parser::tests::string_escape_suppress_newline	src/parser.rs:2449
 parser::tests::string_escape_tab	internal/parser/upstream_parser_simple.mbt:385	upstream parser::tests::string_escape_tab	src/parser.rs:2437
 parser::tests::string_escapes	internal/parser/upstream_parser_simple.mbt:400	upstream parser::tests::string_escapes	src/parser.rs:2770
-parser::tests::string_in_group	internal/parser/upstream_parser_additional.mbt:469	upstream parser::tests::string_in_group	src/parser.rs:2861
+parser::tests::string_in_group	internal/parser/upstream_parser_strings_wbtest.mbt:20	upstream parser::tests::string_in_group	src/parser.rs:2861
 parser::tests::string_quote_escape	internal/parser/upstream_parser_simple.mbt:415	upstream parser::tests::string_quote_escape	src/parser.rs:2762
-parser::tests::trimmed_body	internal/parser/upstream_parser_additional.mbt:566	upstream parser::tests::trimmed_body	src/parser.rs:2902
-parser::tests::unary_functions	internal/parser/upstream_parser_final.mbt:235	upstream parser::tests::unary_functions	src/parser.rs:2785
+parser::tests::trimmed_body	internal/parser/upstream_parser_recipes_wbtest.mbt:68	upstream parser::tests::trimmed_body	src/parser.rs:2902
+parser::tests::unary_functions	internal/parser/upstream_parser_expressions_wbtest.mbt:74	upstream parser::tests::unary_functions	src/parser.rs:2785	Checks the assignment call kind and the number of recipe fragments
 parser::tests::unclosed_parenthesis_in_expression	internal/parser/upstream_parser_errors.mbt:290	upstream parser::tests::unclosed_parenthesis_in_expression	src/parser.rs:3308
 parser::tests::unexpected_brace	internal/parser/upstream_parser_errors.mbt:308	upstream parser::tests::unexpected_brace	src/parser.rs:3298
 parser::tests::unknown_attribute	internal/parser/upstream_parser_errors.mbt:326	upstream parser::tests::unknown_attribute	src/parser.rs:3418
 parser::tests::variable	internal/parser/upstream_parser_simple.mbt:430	upstream parser::tests::variable	src/parser.rs:2144
-parser::tests::whitespace	internal/parser/upstream_parser_final.mbt:255	upstream parser::tests::whitespace	src/parser.rs:2026
+parser::tests::whitespace	internal/parser/upstream_parser_recipes_wbtest.mbt:109	upstream parser::tests::whitespace	src/parser.rs:2026
 positional::tests::all_dot	internal/application/upstream_search_config_wbtest.mbt:160	upstream positional::tests::all_dot	src/positional.rs:162
 positional::tests::all_dot_dot	internal/application/upstream_search_config_wbtest.mbt:170	upstream positional::tests::all_dot_dot	src/positional.rs:170
 positional::tests::all_overrides	internal/application/upstream_search_config_wbtest.mbt:120	upstream positional::tests::all_overrides	src/positional.rs:130
@@ -1835,9 +1835,9 @@ quote::quoted_strings_can_be_used_as_arguments	tests/compatibility/upstream/just
 quote::quotes_are_escaped	internal/evaluator/upstream_functions_basic_test.mbt:505	upstream quote::quotes_are_escaped	tests/quote.rs:9
 quote::single_quotes_are_prepended_and_appended	internal/evaluator/upstream_functions_basic_test.mbt:500	upstream quote::single_quotes_are_prepended_and_appended	tests/quote.rs:4
 range_ext::tests::display	internal/builtin/upstream_range_wbtest.mbt:2	upstream range_ext::tests::display	src/range_ext.rs:31
-readme::h1_and_h2_headings_are_setext	internal/application/upstream_document_contract_test.mbt:22	upstream readme::h1_and_h2_headings_are_setext	tests/readme.rs:40
-readme::heading_levels_are_not_skipped	internal/application/upstream_document_contract_test.mbt:28	upstream readme::heading_levels_are_not_skipped	tests/readme.rs:7
-readme::readme	internal/application/upstream_document_contract_test.mbt:36	upstream readme::readme	tests/readme.rs:58
+readme::h1_and_h2_headings_are_setext	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64683		tests/readme.rs:40
+readme::heading_levels_are_not_skipped	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64721		tests/readme.rs:7
+readme::readme	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:64789		tests/readme.rs:58
 recipe_resolver::tests::circular_recipe_dependency	internal/semantic/upstream_analyzer_test.mbt:357	upstream recipe_resolver::tests::circular_recipe_dependency	src/recipe_resolver.rs:148
 recipe_resolver::tests::self_recipe_dependency	internal/semantic/upstream_analyzer_test.mbt:362	upstream recipe_resolver::tests::self_recipe_dependency	src/recipe_resolver.rs:158
 recipe_resolver::tests::unknown_dependency	internal/semantic/upstream_analyzer_test.mbt:367	upstream recipe_resolver::tests::unknown_dependency	src/recipe_resolver.rs:168
@@ -2007,7 +2007,7 @@ slash_operator::no_lhs_once	internal/evaluator/upstream_logical_test.mbt:117	ups
 slash_operator::no_lhs_parenthesized	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:71587		tests/slash_operator.rs:97
 slash_operator::no_lhs_twice	internal/evaluator/upstream_logical_test.mbt:122	upstream slash_operator::no_lhs_twice	tests/slash_operator.rs:19
 slash_operator::no_lhs_un_parenthesized	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:71631		tests/slash_operator.rs:62
-slash_operator::no_rhs_once	internal/parser/upstream_parser_remaining.mbt:106	upstream slash_operator::no_rhs_once	tests/slash_operator.rs:25
+slash_operator::no_rhs_once	internal/parser/upstream_parser_expressions_wbtest.mbt:94	upstream slash_operator::no_rhs_once	tests/slash_operator.rs:25
 slash_operator::once	internal/evaluator/upstream_logical_test.mbt:128	upstream slash_operator::once	tests/slash_operator.rs:4
 slash_operator::twice	internal/evaluator/upstream_logical_test.mbt:133	upstream slash_operator::twice	tests/slash_operator.rs:9
 string::cooked_string_crlf_line_continuation	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:71733		tests/string.rs:136
@@ -2018,12 +2018,12 @@ string::error_line_after_multiline_raw_string_in_interpolation	tests/compatibili
 string::escaped_carriage_return_at_end_of_string_is_an_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:71953		tests/string.rs:160
 string::escaped_carriage_return_without_line_feed_is_an_error	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:71985		tests/string.rs:145
 string::indented_backtick_string_contents_indentation_removed	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:72017		tests/string.rs:447
-string::indented_backtick_string_escapes	internal/parser/upstream_parser_remaining.mbt:315	upstream string::indented_backtick_string_escapes	tests/string.rs:514
+string::indented_backtick_string_escapes	internal/parser/upstream_parser_strings_wbtest.mbt:178	upstream string::indented_backtick_string_escapes	tests/string.rs:514
 string::indented_cooked_string_contents_indentation_removed	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:72101		tests/string.rs:424
 string::indented_cooked_string_escapes	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:72149		tests/string.rs:490
 string::indented_raw_string_contents_indentation_removed	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:72199		tests/string.rs:401
-string::indented_raw_string_escapes	internal/parser/upstream_parser_remaining.mbt:329	upstream string::indented_raw_string_escapes	tests/string.rs:467
-string::indented_string_crlf_blank_lines_keep_crlf	internal/parser/upstream_parser_remaining.mbt:343	upstream string::indented_string_crlf_blank_lines_keep_crlf	tests/string.rs:691
+string::indented_raw_string_escapes	internal/parser/upstream_parser_strings_wbtest.mbt:192	upstream string::indented_raw_string_escapes	tests/string.rs:467
+string::indented_string_crlf_blank_lines_keep_crlf	internal/parser/upstream_parser_strings_wbtest.mbt:206	upstream string::indented_string_crlf_blank_lines_keep_crlf	tests/string.rs:691
 string::invalid_escape_sequence	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:72327		tests/string.rs:117
 string::maximum_valid_unicode_escape	internal/evaluator/upstream_string_test.mbt:39	upstream string::maximum_valid_unicode_escape	tests/string.rs:567
 string::multiline_backtick	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:72379		tests/string.rs:46
@@ -2170,3 +2170,47 @@ working_directory::setting	tests/compatibility/upstream/just-1.57.0/upstream-fix
 working_directory::setting_and_attribute	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:78631		tests/working_directory.rs:400
 working_directory::working_dir_in_submodule_is_relative_to_module_path	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:78667		tests/working_directory.rs:245
 working_directory::working_directory_setting_conflicts_with_no_cd_setting	tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:78707		tests/working_directory.rs:224
+completions::aliases_completed_with_environment_variable	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:359		tests/completions.rs:359
+completions::aliases_completed_with_flag	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:343		tests/completions.rs:343
+completions::aliases_in_modules	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:393		tests/completions.rs:393
+completions::aliases_not_completed_by_default	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:327		tests/completions.rs:327
+completions::argument_completion_includes_recipes_and_variables	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:155		tests/completions.rs:155
+completions::bash	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:198		tests/completions.rs:198
+completions::completion_scripts	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:11		tests/completions.rs:11
+completions::doc_comments	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:75		tests/completions.rs:75
+completions::elvish	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:210		tests/completions.rs:210
+completions::group_completion	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:289		tests/completions.rs:289
+completions::group_completion_filters_by_prefix	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:308		tests/completions.rs:308
+completions::justfile_flag_in_completion_words	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:187		tests/completions.rs:187
+completions::module_recipes	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:171		tests/completions.rs:171
+completions::positional_malformed_override	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:256		tests/completions.rs:256
+completions::powershell	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:222		tests/completions.rs:222
+completions::private_aliases_excluded	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:376		tests/completions.rs:376
+completions::private_recipes_excluded	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:59		tests/completions.rs:59
+completions::private_variables_excluded	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:139		tests/completions.rs:139
+completions::recipe_prefix_filter	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:42		tests/completions.rs:42
+completions::recipes	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:26		tests/completions.rs:26
+completions::recipes_with_invalid_config	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:441		tests/completions.rs:441
+completions::rejects_unexpected_arguments	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:431		tests/completions.rs:431
+completions::set_malformed_override_path	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:245		tests/completions.rs:245
+completions::show_malformed_path	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:278		tests/completions.rs:278
+completions::show_recipes	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:91		tests/completions.rs:91
+completions::usage_recipes	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:415		tests/completions.rs:415
+completions::variable_completion	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:107		tests/completions.rs:107
+completions::variable_completion_filters_by_prefix	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:123		tests/completions.rs:123
+completions::working_directory_without_justfile	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:267		tests/completions.rs:267
+completions::zsh	tests/compatibility/upstream/just-1.57.0/source/tests/completions.rs:233		tests/completions.rs:233
+signals::continue_default_excludes_hangup	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:172		tests/signals.rs:172
+signals::continue_default_excludes_quit	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:137		tests/signals.rs:137
+signals::continue_default_line	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:103		tests/signals.rs:103
+signals::continue_default_shebang	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:119		tests/signals.rs:119
+signals::continue_explicit_excludes_unlisted	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:204		tests/signals.rs:204
+signals::continue_hangup_opt_in	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:188		tests/signals.rs:188
+signals::continue_runs_subsequents	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:153		tests/signals.rs:153
+signals::forwarding	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:239		tests/signals.rs:239
+signals::infallible_line_clears_caught_signal	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:220		tests/signals.rs:220
+signals::interrupt_backtick	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:83		tests/signals.rs:83
+signals::interrupt_command	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:97		tests/signals.rs:97
+signals::interrupt_line	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:71		tests/signals.rs:71
+signals::interrupt_shebang	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:58		tests/signals.rs:58
+signals::siginfo_prints_current_process	tests/compatibility/upstream/just-1.57.0/source/tests/signals.rs:311		tests/signals.rs:311

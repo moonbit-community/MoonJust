@@ -44,22 +44,6 @@ pub extend CompiledSettings with Debug::{to_repr}
 
 ///|
 #deprecated
-pub extend SettingKind with Debug::{to_repr}
-
-///|
-#deprecated
-pub extend SettingKind with Eq::{not_equal, equal}
-
-///|
-#deprecated
-pub extend SettingSpec with Debug::{to_repr}
-
-///|
-#deprecated
-pub extend SettingSpec with Eq::{not_equal, equal}
-
-///|
-#deprecated
 pub extend SettingValue with Debug::{to_repr}
 
 ///|

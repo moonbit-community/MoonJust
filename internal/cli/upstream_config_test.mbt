@@ -6,14 +6,21 @@ fn upstream_cli(
 }
 
 ///|
-fn expect_upstream_cli_error(args : Array[String]) -> Bool {
+fn upstream_cli_error(args : Array[String]) -> @cli.CliParseError raise {
   try upstream_cli(args) catch {
-    Invalid(message) => !message.is_empty()
-    Config(message) => !message.is_empty()
-    Unsupported(message) => !message.is_empty()
+    error => error
   } noraise {
-    _ => false
+    _ => fail("expected CLI rejection for \{Repr(args)}")
   }
+}
+
+///|
+fn assert_cli_usage_error(args : Array[String], reason : String) -> Unit raise {
+  let error = upstream_cli_error(args)
+  guard error is Invalid(message) else {
+    fail("unexpected CLI error: \{Repr(error)}")
+  }
+  assert_true(message.has_prefix(reason), msg=message)
 }
 
 ///|
@@ -387,12 +394,18 @@ test "upstream config::tests::subcommand_show_multiple_args" {
 
 ///|
 test "upstream config::tests::color_bad_value" {
-  assert_true(expect_upstream_cli_error(["--color", "foo"]))
+  assert_cli_usage_error(
+    ["--color", "foo"],
+    "error: invalid value 'foo' for '--color'",
+  )
 }
 
 ///|
 test "upstream config::tests::set_bad" {
-  assert_true(expect_upstream_cli_error(["--set", "foo"]))
+  assert_cli_usage_error(
+    ["--set", "foo"],
+    "error: '--set' requires a VARIABLE and VALUE",
+  )
 }
 
 ///|
@@ -415,7 +428,10 @@ test "upstream config::tests::shell_args_set_word" {
 
 ///|
 test "upstream config::tests::subcommand_conflict_dump" {
-  assert_true(expect_upstream_cli_error(["--list", "--dump"]))
+  assert_cli_usage_error(
+    ["--list", "--dump"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
@@ -437,30 +453,43 @@ test "upstream config::tests::changelog_arguments" {
 
 ///|
 test "upstream config::tests::dry_run_quiet" {
-  assert_true(expect_upstream_cli_error(["--dry-run", "--quiet"]))
+  assert_cli_usage_error(
+    ["--dry-run", "--quiet"],
+    "error: conflicting arguments: dry-run and quiet",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_variables" {
-  assert_true(expect_upstream_cli_error(["--variables", "--list"]))
+  assert_cli_usage_error(
+    ["--variables", "--list"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_overrides_and_arguments" {
-  assert_true(expect_upstream_cli_error(["--summary", "bar=baz", "bar"]))
+  assert_eq(
+    upstream_cli_error(["--summary", "bar=baz", "bar"]),
+    Config(
+      "error: `--summary` used with unexpected overrides: `bar=baz`; and arguments: `bar`",
+    ),
+  )
 }
 
 ///|
 test "upstream config::tests::summary_overrides" {
-  assert_true(expect_upstream_cli_error(["--summary", "bar=baz"]))
+  assert_eq(
+    upstream_cli_error(["--summary", "bar=baz"]),
+    Config("error: `--summary` used with unexpected overrides: `bar=baz`"),
+  )
 }
 
 ///|
 test "upstream config::tests::dotenv_both_filename_and_path" {
-  assert_true(
-    expect_upstream_cli_error([
-      "--dotenv-filename", "foo", "--dotenv-path", "bar",
-    ]),
+  assert_cli_usage_error(
+    ["--dotenv-filename", "foo", "--dotenv-path", "bar"],
+    "error: conflicting arguments: dotenv-filename and dotenv-path",
   )
 }
 
@@ -481,40 +510,65 @@ test "upstream config::tests::default_config_matches_parsed_config" {
 
 ///|
 test "upstream config::tests::subcommand_conflict_changelog" {
-  assert_true(expect_upstream_cli_error(["--changelog", "--list"]))
+  assert_cli_usage_error(
+    ["--changelog", "--list"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_choose" {
-  assert_true(expect_upstream_cli_error(["--choose", "--list"]))
+  assert_cli_usage_error(
+    ["--choose", "--list"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_completions" {
-  assert_true(expect_upstream_cli_error(["--list", "--completions"]))
+  // Completion generation is excluded from the product. Preserve its own error category.
+  assert_eq(
+    upstream_cli_error(["--list", "--completions"]),
+    Unsupported("--completions"),
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_evaluate" {
-  assert_true(expect_upstream_cli_error(["--evaluate", "--list"]))
+  assert_cli_usage_error(
+    ["--evaluate", "--list"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_fmt" {
-  assert_true(expect_upstream_cli_error(["--fmt", "--list"]))
+  assert_cli_usage_error(
+    ["--fmt", "--list"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_init" {
-  assert_true(expect_upstream_cli_error(["--init", "--list"]))
+  assert_cli_usage_error(
+    ["--init", "--list"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_show" {
-  assert_true(expect_upstream_cli_error(["--show", "foo", "--list"]))
+  assert_cli_usage_error(
+    ["--show", "foo", "--list"],
+    "error: group conflict command-mode",
+  )
 }
 
 ///|
 test "upstream config::tests::subcommand_conflict_summary" {
-  assert_true(expect_upstream_cli_error(["--summary", "--list"]))
+  assert_cli_usage_error(
+    ["--summary", "--list"],
+    "error: group conflict command-mode",
+  )
 }

@@ -10,7 +10,7 @@ async fn[
   host : H,
   dependencies : ArrayView[@syntax.Dependency],
   project : @semantic.ProjectCompilation?,
-  project_runtimes : ArrayView[ProjectModuleRuntime],
+  project_runtimes : Map[@modulepath.ModulePath, ProjectModuleRuntime],
   module_path : @modulepath.ModulePath,
   compilation : @semantic.Compilation,
   global : @evaluator.Environment,

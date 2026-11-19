@@ -1,18 +1,4 @@
 ///|
-fn command_accepts_overrides(command : CommandKind) -> Bool {
-  match command {
-    RunCommand
-    | ListCommand
-    | ShowCommand
-    | UsageCommand
-    | EvaluateCommand
-    | ChooseCommand
-    | CommandCommand => true
-    _ => false
-  }
-}
-
-///|
 fn normalize_argparse_error(message : String) -> String {
   let fmt = "error: the following required argument was not provided: 'fmt' (required by 'check')"
   if message.has_prefix(fmt) {
@@ -72,61 +58,60 @@ fn normalize_argparse_error(message : String) -> String {
 }
 
 ///|
-fn parse_explicit_file_fast_path(
-  argv : ArrayView[String],
-  env : Map[String, String],
-) -> CliArguments? {
-  guard argv.length() >= 3 && (argv[0] == "--justfile" || argv[0] == "-f") else {
-    return None
+fn parsed_jobs(matches : @argparse.Matches) -> Int32? raise CliParseError {
+  guard matches.values.get("jobs") is Some([.., value]) else { return None }
+  fn invalid(reason : String) -> CliParseError {
+    Invalid(
+      "error: invalid value '\{value}' for '--jobs <N>': \{reason}\n\nFor more information, try '--help'.",
+    )
   }
-  for name, _ in env {
-    if name.has_prefix("JUST_") {
-      return None
-    }
+  if value.is_empty() {
+    raise invalid("cannot parse integer from empty string")
   }
-  let mut command = RunCommand
-  let flags : Map[String, Bool] = Map([])
-  let positional : Array[String] = []
-  if argv.length() == 3 && argv[2] == "--summary" {
-    command = SummaryCommand
-    flags["summary"] = true
-  } else if argv.length() == 3 && argv[2] == "--fmt" {
-    command = FormatCommand
-    flags["fmt"] = true
-  } else if argv.length() == 4 && argv[2] == "--fmt" && argv[3] == "--check" {
-    command = CheckCommand
-    flags["fmt"] = true
-    flags["check"] = true
-  } else if argv.length() >= 4 &&
-    argv[2] == "--dry-run" &&
-    !argv[3].has_prefix("-") &&
-    !argv[3].contains("=") {
-    flags["dry-run"] = true
-    positional.append(argv[3:])
-  } else if !argv[2].has_prefix("-") && !argv[2].contains("=") {
-    positional.append(argv[2:])
-  } else {
-    return None
+  let digits = value.strip_prefix("+").unwrap_or(value[:])
+  if digits.is_empty() || !digits.iter().all(c => c is ('0'..<='9')) {
+    raise invalid("invalid digit found in string")
   }
-  Some({
-    command,
-    flags,
-    counts: Map([]),
-    values: {
-      "alias-style": ["right"],
-      "color": ["auto"],
-      "cygpath": ["cygpath"],
-      "dump-format": ["just"],
-      "evaluate-format": ["just"],
-      "justfile": [argv[1]],
-      "list-heading": ["Available recipes:\n"],
-      "list-prefix": ["    "],
-      "timestamp-format": ["%H:%M:%S"],
-    },
-    positional,
-    variable_overrides: [],
-    shell_arguments: None,
+  let parsed = @string.parse_int(digits, radix=10) catch {
+    _ => raise invalid("number too large to fit in target type")
+  }
+  if parsed == 0 {
+    raise invalid("number would be zero for non-zero type")
+  }
+  Some(parsed)
+}
+
+///|
+fn unexpected_overrides(
+  command : String,
+  overrides : Array[(String, String)],
+  positional : Array[String],
+) -> CliParseError {
+  let effective : Map[String, String] = Map([])
+  for (name, value) in overrides {
+    effective[name] = value
+  }
+  let names = effective.keys().collect()
+  // just orders overrides by module path first, then by variable name.
+  names.sort_by_key(name => {
+    let path = name.split("::").map(part => part.to_owned()).collect()
+    let variable = path.pop().unwrap()
+    (path, variable)
   })
+  let pairs = names.map(name => name + "=" + effective[name])
+  let message = "error: " +
+    @diagnostic.tick("--" + command) +
+    " used with unexpected overrides: " +
+    @diagnostic.join_list(pairs, "and", ticked=true)
+  Config(
+    if positional.is_empty() {
+      message
+    } else {
+      message +
+      "; and arguments: " +
+      @diagnostic.join_list(positional, "and", ticked=true)
+    },
+  )
 }
 
 ///|
@@ -135,101 +120,83 @@ pub fn parse_arguments(
   argv : ArrayView[String],
   env : Map[String, String],
 ) -> CliArguments raise CliParseError {
-  match parse_explicit_file_fast_path(argv, env) {
-    Some(arguments) => return arguments
-    None => ()
-  }
-  let normalized_env = if early_exit_requested(argv) {
-    Map([])
-  } else {
-    normalize_supported_environment(env)
-  }
-  let environment_argv = normalize_environment_argv(argv)
-  for entry in environment_argv.variable_overrides {
-    if !valid_override_path(entry.0) {
-      raise Config("error: invalid override path `" + entry.0 + "`")
-    }
-  }
-  check_supported(environment_argv.argv)
-  let parser_input = parser_argv(environment_argv.argv, normalized_env)
-  let matches = @argparse.Command::parse(
-    parser_command(),
-    argv=parser_input[:],
+  let normalized = normalize_argv(argv)
+  let normalized_env = normalize_supported_environment(env, normalized)
+  let matches = parser_command.parse(
+    argv=normalized.options,
     env=normalized_env,
   ) catch {
     error => raise Invalid(normalize_argparse_error(error.to_string()))
   }
-  if !matches.flags.get("help").unwrap_or(false) &&
-    !matches.flags.get("version").unwrap_or(false) {
+  if !normalized.early_exit {
     check_unsupported_environment(env)
   }
-  validate_choice(matches, "alias-style", ["left", "right", "separate"])
-  validate_choice(matches, "dump-format", ["json", "just"])
-  validate_choice(matches, "evaluate-format", ["just", "shell"])
-  validate_choice(matches, "color", ["always", "auto", "never"])
-  validate_choice(matches, "command-color", [
-    "black", "blue", "cyan", "green", "purple", "red", "yellow",
-  ])
-  match matches.values.get("jobs") {
-    Some(values) =>
-      match values.last() {
-        Some(value) => {
-          let parsed = @string.parse_int(value[:]) catch {
-            _ =>
-              raise Invalid(
-                "error: invalid value '" +
-                value +
-                "' for '--jobs <N>': expected a positive integer\n\nFor more information, try '--help'.",
-              )
-          }
-          if parsed <= 0 {
-            raise Invalid(
-              "error: invalid value '" +
-              value +
-              "' for '--jobs <N>': number would be zero for non-zero type\n\nFor more information, try '--help'.",
-            )
-          }
-        }
-        None => ()
-      }
-    None => ()
+  let command = normalized.command
+    .bind(spec => spec.command)
+    .unwrap_or(RunCommand)
+  for spec in argument_specs {
+    if !spec.requires_any.is_empty() &&
+      matches.values.contains(spec.name) &&
+      !spec.requires_any.any(name => matches.flags.get(name) == Some(true)) {
+      let required = spec.requires_any.map(name => "'--" + name + "'")
+      raise Invalid(
+        "error: '--" + spec.name + "' requires " + required.join(" or "),
+      )
+    }
+    if !spec.choices.is_empty() &&
+      matches.values.get(spec.name) is Some([.., value]) &&
+      !spec.choices.contains(value) {
+      raise Invalid(
+        "error: invalid value '\{value}' for '--\{spec.name}'; expected one of: " +
+        spec.choices.join(", "),
+      )
+    }
   }
-  let command = command_kind(matches)
-  let command_arguments = matches.values.get("arguments").unwrap_or([])
+  let jobs = parsed_jobs(matches)
+  let command_arguments = normalized.positional
+  for (name, _) in normalized.variable_overrides {
+    if !valid_override_path(name) {
+      raise Config("error: invalid override path " + @diagnostic.tick(name))
+    }
+  }
   if (command == ListCommand || command == ShowCommand) &&
     !valid_query_module_path(command_arguments) {
     raise Config(
       "error: invalid module path `" + command_arguments.join(" ") + "`",
     )
   }
-  if command == CommandCommand &&
-    matches.values.get("arguments").unwrap_or([]).is_empty() {
+  if command == CommandCommand && command_arguments.is_empty() {
     raise Invalid(
       "error: a value is required for '--command <COMMAND>...' but none was supplied\n\nFor more information, try '--help'.",
     )
   }
-  if !matches.values.get("group").unwrap_or([]).is_empty() &&
-    command != ListCommand &&
-    command != ChooseCommand {
-    raise Invalid("error: '--group' requires '--list' or '--choose'")
-  }
-  if !environment_argv.variable_overrides.is_empty() &&
-    !command_accepts_overrides(command) {
-    raise Invalid(
-      "error: '--set' cannot be used with command '\{Repr(command)}'",
+  if !normalized.variable_overrides.is_empty() &&
+    normalized.command is Some(spec) &&
+    spec.operands is SearchOnly {
+    let name = match command {
+      CheckCommand | FormatCommand => "format"
+      _ => spec.name
+    }
+    raise unexpected_overrides(
+      name,
+      normalized.variable_overrides,
+      command_arguments,
     )
   }
   let values = matches.values
-  if !environment_argv.variable_overrides.is_empty() {
+  if !command_arguments.is_empty() {
+    values["arguments"] = command_arguments
+  }
+  if !normalized.variable_overrides.is_empty() {
     let flattened : Array[String] = []
-    for entry in environment_argv.variable_overrides {
+    for entry in normalized.variable_overrides {
       flattened.push(entry.0)
       flattened.push(entry.1)
     }
     values["set"] = flattened
   }
   let flags = matches.flags
-  match environment_argv.shell_arguments {
+  match normalized.shell_arguments {
     Some(arguments) => {
       values["shell-arg"] = arguments.copy()
       flags["clear-shell-args"] = arguments.is_empty()
@@ -241,17 +208,14 @@ pub fn parse_arguments(
     flags,
     counts: matches.flag_counts,
     values,
-    positional: if command is RunCommand {
-      invocation_arguments(environment_argv.argv)
-    } else {
-      matches.values.get("arguments").unwrap_or([])
-    },
-    variable_overrides: environment_argv.variable_overrides,
-    shell_arguments: environment_argv.shell_arguments,
+    jobs,
+    positional: command_arguments,
+    variable_overrides: normalized.variable_overrides,
+    shell_arguments: normalized.shell_arguments,
   }
 }
 
 ///|
 pub fn render_help() -> String {
-  parser_command().render_help()
+  parser_command.render_help()
 }

@@ -1,11 +1,10 @@
 ///|
-pub fn visible_recipe_names(
+fn visible_recipe_names(
   compilation : @semantic.Compilation,
-  request : QueryRequest,
+  filter : RecipeFilter,
 ) -> Array[String] {
-  let arguments = request.arguments()
   let result : Array[String] = []
-  let requested_groups = arguments.values("group")
+  let requested_groups = filter.groups
   for name in compilation.recipe_names() {
     match compilation.recipe_attributes(name) {
       Some(attributes) if !name.has_prefix("_") &&
@@ -17,7 +16,7 @@ pub fn visible_recipe_names(
       _ => ()
     }
   }
-  if !arguments.flag("unsorted") {
+  if !filter.unsorted {
     result.sort_by(lexical_compare)
   }
   result
@@ -28,9 +27,8 @@ pub fn visible_recipe_names(
 /// is a query-stage decision, not an application or loader special case.
 pub fn try_fast_summary(
   graph : @loader.LoadedGraph,
-  request : QueryRequest,
+  arguments : @cli.CliArguments,
 ) -> QueryResult? {
-  let arguments = request.arguments()
   if arguments.command() != SummaryCommand ||
     !arguments.variable_overrides().is_empty() ||
     !arguments.values("group").is_empty() {
@@ -69,11 +67,16 @@ pub fn try_fast_summary(
   if !arguments.flag("unsorted") {
     names.sort_by(lexical_compare)
   }
+  Some(summary_result(names, arguments.flag("quiet")))
+}
+
+///|
+fn summary_result(names : ArrayView[String], quiet : Bool) -> QueryResult {
   let output = names.join(" ") + "\n"
-  let stderr = if !arguments.flag("quiet") && output == "\n" {
+  let stderr = if !quiet && names.is_empty() {
     b"justfile contains no recipes\n"
   } else {
     b""
   }
-  Some(QueryResult::new(stdout=@utf8.encode(output), stderr~))
+  QueryResult::new(stdout=@utf8.encode(output), stderr~)
 }

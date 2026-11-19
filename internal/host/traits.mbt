@@ -3,6 +3,7 @@
 pub(open) trait HostFs {
   async fn read_source(Self, @path.PathValue, Int32) -> Bytes raise HostError
   async fn read_file(Self, @path.PathValue) -> Bytes raise HostError
+  async fn stream_regular_file(Self, @path.PathValue, Int32, (Bytes) -> Unit) -> FileMetadata raise HostError = _
   async fn read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   async fn file_exists(Self, @path.PathValue) -> Bool raise HostError
@@ -11,6 +12,39 @@ pub(open) trait HostFs {
   async fn can_execute(Self, @path.PathValue) -> Bool raise HostError
   async fn metadata(Self, @path.PathValue) -> FileMetadata raise HostError
   async fn canonicalize(Self, @path.PathValue) -> @path.PathValue raise HostError
+}
+
+///|
+/// Range-based fallback for in-memory and test hosts. Filesystem adapters can
+/// hold a single open handle for the duration of the callback sequence.
+impl HostFs with fn stream_regular_file(host, path, chunk_size, consume) {
+  if chunk_size <= 0 {
+    raise InvalidInput("chunk size must be positive")
+  }
+  let metadata = HostFs::metadata(host, path)
+  if !metadata.is_file() {
+    return metadata
+  }
+  let size = HostFs::file_size(host, path)
+  let mut offset = 0L
+  while offset < size {
+    let remaining = size - offset
+    let length = if remaining < chunk_size.to_int64() {
+      remaining.to_int()
+    } else {
+      chunk_size
+    }
+    let bytes = HostFs::read_file_range(host, path, offset, length)
+    if bytes.length() == 0 || bytes.length() > length {
+      raise InvalidInput("host returned an invalid file range")
+    }
+    consume(bytes)
+    offset += bytes.length().to_int64()
+  }
+  if size == 0L {
+    consume(b"")
+  }
+  metadata
 }
 
 ///|

@@ -247,50 +247,57 @@ async fn[
   let loading_environment = @host.HostEnv::env_entries(effects) catch {
     error => raise Host(error)
   }
-  let (graph, directories) = load_graph_input_with_directories(
+  let sources = load_project_sources(
     filesystem,
     arguments,
     context,
     environment=loading_environment,
   )
-  let platform = @host.HostPlatform::platform_info(effects) catch {
-    error => raise Host(error)
+  let graph = sources.graph()
+  let directories = sources.directories()
+  try {
+    let platform = @host.HostPlatform::platform_info(effects) catch {
+      error => raise Host(error)
+    }
+    let project = compile_loaded_graph(
+      graph,
+      allow_unstable=arguments.flag("unstable"),
+      platform=semantic_target_platform(platform),
+    )
+    let (path, selected) = evaluation_path(project, arguments.positional())
+    validate_project_variable_overrides(project, arguments)
+    let invocation_directory = shell_invocation_directory(
+      process, directories, arguments, platform,
+    )
+    let (globals, _) = evaluate_project_globals_async(
+      filesystem,
+      process,
+      effects,
+      project,
+      directories,
+      arguments,
+      platform,
+      loading_environment,
+      invocation_directory,
+      evaluation_target=(path, selected),
+    )
+    guard project.module_compilation(path) is Some(compilation) else {
+      raise Query("unknown module `" + path.as_string() + "`")
+    }
+    guard loaded_for_module(graph, path) is Some(loaded) else {
+      raise Query("source for module `" + path.as_string() + "` is unavailable")
+    }
+    let output = evaluated_environment_text(
+      compilation,
+      loaded.ast(),
+      arguments,
+      globals[path],
+      selected?,
+    )
+    @cli.ApplicationResponse::success(stdout=@utf8.encode(output))
+  } catch {
+    error => raise error.with_project_sources(graph, context.cwd())
   }
-  let project = compile_loaded_graph(
-    graph,
-    allow_unstable=arguments.flag("unstable"),
-    platform=semantic_target_platform(platform),
-  )
-  let (path, selected) = evaluation_path(project, arguments.positional())
-  let invocation_directory = shell_invocation_directory(
-    process, directories, arguments, platform,
-  )
-  let (globals, _) = evaluate_project_globals_async(
-    filesystem,
-    process,
-    effects,
-    project,
-    directories,
-    arguments,
-    platform,
-    loading_environment,
-    invocation_directory,
-    evaluation_target=(path, selected),
-  )
-  guard project.module_compilation(path) is Some(compilation) else {
-    raise Query("unknown module `" + path.as_string() + "`")
-  }
-  guard loaded_for_module(graph, path) is Some(loaded) else {
-    raise Query("source for module `" + path.as_string() + "` is unavailable")
-  }
-  let output = evaluated_environment_text(
-    compilation,
-    loaded.ast(),
-    arguments,
-    globals[path],
-    selected?,
-  )
-  @cli.ApplicationResponse::success(stdout=@utf8.encode(output))
 }
 
 ///|

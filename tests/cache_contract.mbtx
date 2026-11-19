@@ -1,0 +1,161 @@
+----
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/async/process",
+}
+----
+
+///|
+async fn wait_for(path : String) -> Unit {
+  @async.with_timeout(10000, () => {
+    while !@fs.exists(path) {
+      @async.sleep(10)
+    }
+  })
+}
+
+///|
+async fn main {
+  let wasm = @fs.realpath("_build/wasm/release/build/MoonJust.wasm")
+  let root = @fs.tmpdir(prefix="moonjust-cache-contract")
+  defer @fs.remove(root, recursive=true)
+  let cache = root + "/.justcache"
+  let started = root + "/started"
+  let proceed = root + "/proceed"
+  let runs = root + "/runs"
+  @fs.write_text(
+    root + "/justfile",
+    (
+      #|[cache]
+      #|[script]
+      #|work:
+      #|  echo x >> runs
+      #|  touch started
+      #|  i=0
+      #|  while [ ! -f proceed ] && [ "$i" -lt 300 ]; do sleep 0.1; i=$((i + 1)); done
+      #|  test -f proceed
+      #|
+    ),
+  )
+  async fn invoke(args : Array[String]) -> @process.ProcessResult {
+    @process.run(
+      "moonrun",
+      [wasm, "--unstable", ..args],
+      cwd=root,
+      stdout=Collect,
+      stderr=Collect,
+    )
+  }
+  async fn ok(args : Array[String]) -> Unit {
+    let result = invoke(args)
+    assert_eq(result.exit_code, 0, msg=result.stderr_text())
+  }
+  @async.with_timeout(60000, () => {
+    // All waiters initially miss the same key. Once the owner publishes,
+    // every waiting process must revalidate its lease and observe that hit.
+    @async.with_task_group(group => {
+      for _ in 0..<6 {
+        group.spawn_bg(() => ok(["work"]))
+      }
+      wait_for(started)
+      @fs.write_text(proceed, "")
+    })
+    assert_eq(@fs.read_text(runs), "x\n")
+    let entries = @fs.readdir(cache)
+    guard entries is [manifest] && manifest.has_suffix(".json") else {
+      fail("unexpected cache tree: " + entries.join(", "))
+    }
+    let path = cache + "/" + manifest
+    let valid = @fs.read_binary(path)
+    assert_eq(valid, b"{\"recipe\":\"work\"}")
+    // A reader of the old inode must continue to see that exact inode's
+    // bytes after publication. In-place truncate/rewrite fails this check.
+    @fs.write_binary(path, b"{bad json")
+    {
+      let old = @fs.open(path, mode=ReadOnly)
+      defer old.close()
+      ok(["work"])
+      assert_eq(old.read_all(), b"{bad json")
+    }
+    assert_eq(@fs.read_binary(path), valid)
+    ok(["work"])
+    assert_eq(@fs.read_text(runs), "x\nx\n")
+    // Start cold, then clean while the process holds the execution lease.
+    ok(["--clean"])
+    assert_false(@fs.exists(cache))
+    @fs.remove(started)
+    @fs.remove(proceed)
+    @async.with_task_group(group => {
+      group.spawn_bg(() => ok(["work"]))
+      wait_for(started)
+      let clean = @process.spawn(
+        group,
+        "moonrun",
+        [wasm, "--clean"],
+        cwd=root,
+        stderr=Discard,
+      )
+      @async.sleep(200)
+      assert_eq(clean.try_wait(), None)
+      @fs.write_text(proceed, "")
+      assert_eq(clean.wait(), 0)
+    })
+    assert_false(@fs.exists(cache))
+    // Kill an actual moonrun owner with a waiting process. Seed a partial
+    // commit at the reserved staging name to exercise crash recovery before
+    // rename. The public path must contain only the empty miss marker.
+    @fs.remove(started)
+    @fs.remove(proceed)
+    @async.with_task_group(group => {
+      let owner = @process.spawn(
+        group,
+        "moonrun",
+        [wasm, "--unstable", "work"],
+        cwd=root,
+        accepted_exit_code=_ => true,
+      )
+      wait_for(started)
+      assert_eq(@fs.read_binary(path), b"")
+      let tmp = cache + "/." + manifest[:64].to_owned() + ".tmp"
+      @fs.write_binary(tmp, b"{\"recipe\":", create_mode=CreateNew)
+      let waiter = group.spawn(() => ok(["work"]))
+      @async.sleep(150)
+      if @async.platform is Windows {
+        ignore(
+          @process.run(
+            "taskkill",
+            ["/F", "/T", "/PID", owner.pid.to_string()],
+            accepted_exit_code=c => c == 0,
+          ),
+        )
+      } else {
+        ignore(
+          @process.run("kill", ["-KILL", owner.pid.to_string()], accepted_exit_code=c => {
+            c == 0
+          }),
+        )
+      }
+      assert_true(owner.wait() != 0)
+      @fs.write_text(proceed, "")
+      waiter.wait()
+      assert_false(@fs.exists(tmp))
+    })
+    assert_eq(@fs.read_binary(path), valid)
+    ok(["work"])
+    assert_eq(@fs.read_text(runs), "x\nx\nx\nx\nx\n")
+    assert_eq(@fs.readdir(cache), [manifest])
+    // Race last-entry directory removal with new publishers. Each invocation
+    // must succeed regardless of whether it linearizes before or after clean.
+    for _ in 0..<6 {
+      @async.with_task_group(group => {
+        for _ in 0..<4 {
+          group.spawn_bg(() => ok(["--clean"]))
+          group.spawn_bg(() => ok(["work"]))
+        }
+      })
+    }
+    ok(["--clean"])
+    assert_false(@fs.exists(cache))
+  })
+}

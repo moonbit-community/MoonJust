@@ -251,22 +251,9 @@ priv struct RecipePlanningTarget {
 }
 
 ///|
-fn project_runtime(
-  runtimes : ArrayView[ProjectModuleRuntime],
-  path : @modulepath.ModulePath,
-) -> ProjectModuleRuntime? {
-  for runtime in runtimes {
-    if runtime.module_path() == path {
-      return Some(runtime)
-    }
-  }
-  None
-}
-
-///|
 fn dependency_planning_target(
   project : @semantic.ProjectCompilation?,
-  runtimes : ArrayView[ProjectModuleRuntime],
+  runtimes : Map[@modulepath.ModulePath, ProjectModuleRuntime],
   from : @modulepath.ModulePath,
   compilation : @semantic.Compilation,
   requested : String,
@@ -285,7 +272,7 @@ fn dependency_planning_target(
       guard project.module_compilation(address.module_path()) is Some(target) else {
         raise UnknownRecipe(recipe=requested)
       }
-      guard project_runtime(runtimes, address.module_path()) is Some(runtime) else {
+      guard runtimes.get(address.module_path()) is Some(runtime) else {
         raise UnknownRecipe(recipe=requested)
       }
       {

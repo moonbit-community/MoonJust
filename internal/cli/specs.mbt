@@ -1,322 +1,334 @@
 ///|
-fn flag(
-  name : String,
-  short? : Char,
-  long~ : String = name,
-  about~ : String = "",
-  action~ : @argparse.FlagAction = SetTrue,
-  env? : StringView,
-  requires~ : ArrayView[String] = [],
-  conflicts~ : ArrayView[String] = [],
-) -> @argparse.FlagArg {
-  match short {
-    Some(value) =>
-      FlagArg(
-        name,
-        short=value,
-        long~,
-        about~,
-        action~,
-        env?,
-        requires~,
-        conflicts_with=conflicts,
-      )
-    None =>
-      FlagArg(
-        name,
-        long~,
-        about~,
-        action~,
-        env?,
-        requires~,
-        conflicts_with=conflicts,
-      )
-  }
+priv enum ArgAction {
+  Flag
+  Count
+  Value
+  Append
+  OverridePair
 }
 
 ///|
-fn option(
+/// How a command interprets operands after global option processing.
+priv enum CommandOperands {
+  SearchOnly
+  Trailing
+  QueryPath
+  External
+}
+
+///|
+/// Both argv normalization and core argparse consume this definition.
+priv struct ArgSpec {
+  name : String
+  action : ArgAction
+  short : Char?
+  long_alias : String?
+  command : CommandKind?
+  operands : CommandOperands
+  requires_any : ArrayView[String]
+  about : String
+  env : String?
+  defaults : ArrayView[String]
+  choices : ArrayView[String]
+  requires : ArrayView[String]
+  conflicts : ArrayView[String]
+}
+
+///|
+fn arg(
   name : String,
+  action : ArgAction,
   short? : Char,
-  long~ : String = name,
-  about~ : String = "",
-  action~ : @argparse.OptionAction = Set,
-  env? : StringView,
+  long_alias? : String,
+  command? : CommandKind,
+  operands~ : CommandOperands = SearchOnly,
+  requires_any~ : ArrayView[String] = [],
+  about~ : String,
+  env? : String,
   defaults~ : ArrayView[String] = [],
+  choices~ : ArrayView[String] = [],
   requires~ : ArrayView[String] = [],
   conflicts~ : ArrayView[String] = [],
-) -> @argparse.OptionArg {
-  match short {
-    Some(value) =>
-      OptionArg(
-        name,
-        short=value,
-        long~,
-        about~,
-        action~,
-        env?,
-        default_values=defaults,
-        requires~,
-        conflicts_with=conflicts,
-        allow_hyphen_values=true,
-      )
-    None =>
-      OptionArg(
-        name,
-        long~,
-        about~,
-        action~,
-        env?,
-        default_values=defaults,
-        requires~,
-        conflicts_with=conflicts,
-        allow_hyphen_values=true,
-      )
+) -> ArgSpec {
+  {
+    name,
+    action,
+    short,
+    long_alias,
+    command,
+    operands,
+    requires_any,
+    about,
+    env,
+    defaults,
+    choices,
+    requires,
+    conflicts,
   }
 }
 
 ///|
-fn command_flags() -> Array[@argparse.FlagArg] {
-  [
-    flag("help", short='h', about="Print help"),
-    flag("version", short='V', about="Print version"),
-    flag("check", about="Check formatting", requires=["fmt"]),
-    flag("fmt", long="fmt", about="Format and overwrite justfile"),
-    flag("init", long="init", about="Initialize a new justfile"),
-    flag("list", short='l', about="List available recipes"),
-    flag("show", short='s', about="Show a recipe"),
-    flag("summary", about="List recipe names"),
-    flag("usage", about="Print recipe usage"),
-    flag("variables", about="List variables"),
-    flag("dump", about="Print justfile"),
-    flag("json", about="Print justfile as JSON"),
-    flag("evaluate", about="Evaluate variables"),
-    flag("groups", about="List recipe groups"),
-    flag("choose", about="Choose recipes"),
-    flag("changelog", about="Print changelog"),
-    flag("clean", about="Clear recipe cache"),
-    flag("command", short='c', about="Run an arbitrary command"),
-    flag("edit", short='e', about="Edit justfile"),
-    flag("man", about="Print man page"),
-  ]
-}
-
-///|
-fn option_specs() -> Array[@argparse.OptionArg] {
-  [
-    option(
-      "alias-style",
-      long="alias-style",
-      about="Set list alias display style",
-      env="JUST_ALIAS_STYLE",
-      defaults=["right"],
-    ),
-    option(
-      "ceiling",
-      long="ceiling",
-      about="Stop justfile search above this directory",
-      env="JUST_CEILING",
-    ),
-    option(
-      "chooser",
-      long="chooser",
-      about="Override chooser binary",
-      env="JUST_CHOOSER",
-    ),
-    option("color", long="color", about="Color mode", env="JUST_COLOR", defaults=[
-      "auto",
-    ]),
-    option(
-      "command-color",
-      long="command-color",
-      about="Recipe command color",
-      env="JUST_COMMAND_COLOR",
-    ),
-    option(
-      "cygpath",
-      long="cygpath",
-      env="JUST_CYGPATH",
-      about="Path conversion binary",
-      defaults=["cygpath"],
-    ),
-    option(
-      "dotenv-command",
-      long="dotenv-command",
-      about="Load environment from command",
-      action=Append,
-      env="JUST_DOTENV_COMMAND",
-      conflicts=["dotenv-filename", "dotenv-path", "no-dotenv"],
-    ),
-    option(
-      "dotenv-filename",
-      short='F',
-      long="dotenv-filename",
-      about="Environment filename",
-      action=Append,
-      conflicts=["dotenv-command", "dotenv-path"],
-    ),
-    option(
-      "dotenv-path",
-      short='E',
-      long="dotenv-path",
-      about="Environment path",
-      action=Append,
-      conflicts=["dotenv-command", "dotenv-filename"],
-    ),
-    option(
-      "dump-format",
-      long="dump-format",
-      about="Dump format",
-      env="JUST_DUMP_FORMAT",
-      defaults=["just"],
-    ),
-    option(
-      "evaluate-format",
-      long="evaluate-format",
-      about="Evaluate format",
-      env="JUST_EVALUATE_FORMAT",
-      defaults=["just"],
-    ),
-    option(
-      "group",
-      long="group",
-      about="Only list recipes in group",
-      action=Append,
-      env="JUST_GROUP",
-    ),
-    option(
-      "indentation",
-      long="indentation",
-      about="Recipe indentation",
-      env="JUST_INDENTATION",
-    ),
-    option("jobs", long="jobs", about="Maximum parallel jobs", env="JUST_JOBS"),
-    option(
-      "justfile",
-      short='f',
-      long="justfile",
-      about="Use justfile or - for stdin",
-      env="JUST_JUSTFILE",
-    ),
-    option(
-      "justfile-name",
-      long="justfile-name",
-      about="Search filename",
-      env="JUST_JUSTFILE_NAME",
-    ),
-    option(
-      "list-heading",
-      long="list-heading",
-      about="List heading",
-      env="JUST_LIST_HEADING",
-      defaults=["Available recipes:\n"],
-    ),
-    option(
-      "list-prefix",
-      long="list-prefix",
-      about="List item prefix",
-      env="JUST_LIST_PREFIX",
-      defaults=["    "],
-    ),
-    option("shell", long="shell", about="Recipe shell"),
-    option("shell-arg", long="shell-arg", about="Shell argument", action=Append),
-    option("set", long="set", about="Override variable", action=Append),
-    option(
-      "tempdir",
-      long="tempdir",
-      about="Temporary directory",
-      env="JUST_TEMPDIR",
-    ),
-    option(
-      "timestamp-format",
-      long="timestamp-format",
-      about="Timestamp format",
-      env="JUST_TIMESTAMP_FORMAT",
-      defaults=["%H:%M:%S"],
-    ),
-    option(
-      "working-directory",
-      short='d',
-      long="working-directory",
-      about="Working directory",
-      env="JUST_WORKING_DIRECTORY",
-      requires=["justfile"],
-    ),
-  ]
-}
-
-///|
-fn other_flags() -> Array[@argparse.FlagArg] {
-  [
-    flag(
-      "allow-missing",
-      about="Ignore missing recipe and module errors",
-      env="JUST_ALLOW_MISSING",
-    ),
-    flag("clear-shell-args", about="Clear shell arguments"),
-    flag(
-      "default-list",
-      about="List recipes with no arguments",
-      env="JUST_DEFAULT_LIST",
-    ),
-    flag(
-      "dry-run",
-      short='n',
-      about="Print commands without running",
-      env="JUST_DRY_RUN",
-      conflicts=["quiet"],
-    ),
-    flag(
-      "explain",
-      about="Print recipe docs before running",
-      env="JUST_EXPLAIN",
-    ),
-    flag("global-justfile", short='g', about="Use global justfile", conflicts=[
-      "justfile", "working-directory",
-    ]),
-    flag(
-      "highlight",
-      about="Highlight echoed recipe lines",
-      env="JUST_HIGHLIGHT",
-    ),
-    flag(
-      "list-submodules",
-      about="List submodule recipes",
-      env="JUST_LIST_SUBMODULES",
-      requires=["list"],
-    ),
-    flag("no-aliases", about="Hide aliases", env="JUST_NO_ALIASES"),
-    flag("no-cache", about="Bypass recipe cache", env="JUST_NO_CACHE"),
-    flag(
-      "no-deps",
-      long="no-deps",
-      about="Do not run dependencies",
-      env="JUST_NO_DEPS",
-    ),
-    flag("no-dotenv", about="Do not load dotenv", env="JUST_NO_DOTENV"),
-    flag(
-      "no-highlight",
-      about="Do not highlight commands",
-      env="JUST_NO_HIGHLIGHT",
-    ),
-    flag("one", about="Allow only one recipe", env="JUST_ONE"),
-    flag("quiet", short='q', about="Suppress output", env="JUST_QUIET", conflicts=[
-      "dry-run",
-    ]),
-    flag("time", about="Print recipe timing", env="JUST_TIME"),
-    flag("timestamp", about="Print command timestamps", env="JUST_TIMESTAMP"),
-    flag("unsorted", short='u', about="Use source order", env="JUST_UNSORTED"),
-    flag("unstable", about="Enable unstable features", env="JUST_UNSTABLE"),
-    flag(
-      "verbose",
-      short='v',
-      about="Verbose output",
-      action=Count,
-      env="JUST_VERBOSE",
-    ),
-    flag("yes", about="Automatically confirm recipes", env="JUST_YES"),
-    flag("shell-command", about="Run command with recipe shell", requires=[
-      "command",
-    ]),
-  ]
-}
+let argument_specs : Array[ArgSpec] = [
+  arg("help", Flag, short='h', about="Print help"),
+  arg("version", Flag, short='V', about="Print version"),
+  arg("check", Flag, command=CheckCommand, about="Check formatting", requires=[
+    "fmt",
+  ]),
+  arg(
+    "fmt",
+    Flag,
+    command=FormatCommand,
+    long_alias="format",
+    about="Format and overwrite justfile",
+  ),
+  arg(
+    "init",
+    Flag,
+    command=InitCommand,
+    long_alias="initialize",
+    about="Initialize a new justfile",
+  ),
+  arg(
+    "list",
+    Flag,
+    command=ListCommand,
+    operands=QueryPath,
+    short='l',
+    about="List available recipes",
+  ),
+  arg(
+    "show",
+    Flag,
+    command=ShowCommand,
+    operands=QueryPath,
+    short='s',
+    about="Show a recipe",
+  ),
+  arg("summary", Flag, command=SummaryCommand, about="List recipe names"),
+  arg(
+    "usage",
+    Flag,
+    command=UsageCommand,
+    operands=QueryPath,
+    about="Print recipe usage",
+  ),
+  arg("variables", Flag, command=VariablesCommand, about="List variables"),
+  arg("dump", Flag, command=DumpCommand, about="Print justfile"),
+  arg("json", Flag, command=JsonCommand, about="Print justfile as JSON"),
+  arg(
+    "evaluate",
+    Flag,
+    command=EvaluateCommand,
+    operands=Trailing,
+    long_alias="eval",
+    about="Evaluate variables",
+  ),
+  arg("groups", Flag, command=GroupsCommand, about="List recipe groups"),
+  arg(
+    "choose",
+    Flag,
+    command=ChooseCommand,
+    operands=Trailing,
+    about="Choose recipes",
+  ),
+  arg("changelog", Flag, command=ChangelogCommand, about="Print changelog"),
+  arg(
+    "clean",
+    Flag,
+    command=CleanCommand,
+    operands=QueryPath,
+    about="Clear recipe cache",
+  ),
+  arg(
+    "command",
+    Flag,
+    command=CommandCommand,
+    operands=External,
+    short='c',
+    about="Run an arbitrary command",
+  ),
+  arg("edit", Flag, command=EditCommand, short='e', about="Edit justfile"),
+  arg("man", Flag, command=ManCommand, about="Print man page"),
+  arg(
+    "alias-style",
+    Value,
+    choices=["left", "right", "separate"],
+    about="Set list alias display style",
+    env="JUST_ALIAS_STYLE",
+    defaults=["right"],
+  ),
+  arg(
+    "ceiling",
+    Value,
+    about="Stop justfile search above this directory",
+    env="JUST_CEILING",
+  ),
+  arg("chooser", Value, about="Override chooser binary", env="JUST_CHOOSER"),
+  arg(
+    "color",
+    Value,
+    choices=["always", "auto", "never"],
+    about="Color mode",
+    env="JUST_COLOR",
+    defaults=["auto"],
+  ),
+  arg(
+    "command-color",
+    Value,
+    choices=["black", "blue", "cyan", "green", "purple", "red", "yellow"],
+    about="Recipe command color",
+    env="JUST_COMMAND_COLOR",
+  ),
+  arg("cygpath", Value, env="JUST_CYGPATH", about="Path conversion binary", defaults=[
+    "cygpath",
+  ]),
+  arg(
+    "dotenv-command",
+    Append,
+    about="Load environment from command",
+    env="JUST_DOTENV_COMMAND",
+    conflicts=["dotenv-filename", "dotenv-path", "no-dotenv"],
+  ),
+  arg("dotenv-filename", Append, short='F', about="Environment filename", conflicts=[
+    "dotenv-command", "dotenv-path",
+  ]),
+  arg("dotenv-path", Append, short='E', about="Environment path", conflicts=[
+    "dotenv-command", "dotenv-filename",
+  ]),
+  arg(
+    "dump-format",
+    Value,
+    choices=["json", "just"],
+    about="Dump format",
+    env="JUST_DUMP_FORMAT",
+    defaults=["just"],
+  ),
+  arg(
+    "evaluate-format",
+    Value,
+    choices=["just", "shell"],
+    about="Evaluate format",
+    env="JUST_EVALUATE_FORMAT",
+    defaults=["just"],
+  ),
+  arg(
+    "group",
+    Append,
+    requires_any=["list", "choose"],
+    about="Only list recipes in group",
+    env="JUST_GROUP",
+  ),
+  arg("indentation", Value, about="Recipe indentation", env="JUST_INDENTATION"),
+  arg("jobs", Value, about="Maximum parallel jobs", env="JUST_JOBS"),
+  arg(
+    "justfile",
+    Value,
+    short='f',
+    about="Use justfile or - for stdin",
+    env="JUST_JUSTFILE",
+  ),
+  arg("justfile-name", Value, about="Search filename", env="JUST_JUSTFILE_NAME"),
+  arg("list-heading", Value, about="List heading", env="JUST_LIST_HEADING", defaults=[
+    "Available recipes:\n",
+  ]),
+  arg("list-prefix", Value, about="List item prefix", env="JUST_LIST_PREFIX", defaults=[
+    "    ",
+  ]),
+  arg("shell", Value, about="Recipe shell"),
+  arg("shell-arg", Append, about="Shell argument"),
+  arg("set", OverridePair, about="Override variable"),
+  arg("tempdir", Value, about="Temporary directory", env="JUST_TEMPDIR"),
+  arg(
+    "timestamp-format",
+    Value,
+    about="Timestamp format",
+    env="JUST_TIMESTAMP_FORMAT",
+    defaults=["%H:%M:%S"],
+  ),
+  arg(
+    "working-directory",
+    Value,
+    short='d',
+    about="Working directory",
+    env="JUST_WORKING_DIRECTORY",
+    requires=["justfile"],
+  ),
+  arg(
+    "allow-missing",
+    Flag,
+    about="Ignore missing recipe and module errors",
+    env="JUST_ALLOW_MISSING",
+  ),
+  arg("clear-shell-args", Flag, about="Clear shell arguments"),
+  arg(
+    "default-list",
+    Flag,
+    about="List recipes with no arguments",
+    env="JUST_DEFAULT_LIST",
+  ),
+  arg(
+    "dry-run",
+    Flag,
+    short='n',
+    about="Print commands without running",
+    env="JUST_DRY_RUN",
+    conflicts=["quiet"],
+  ),
+  arg(
+    "explain",
+    Flag,
+    about="Print recipe docs before running",
+    env="JUST_EXPLAIN",
+  ),
+  arg("global-justfile", Flag, short='g', about="Use global justfile", conflicts=[
+    "justfile", "working-directory",
+  ]),
+  arg(
+    "highlight",
+    Flag,
+    about="Highlight echoed recipe lines",
+    env="JUST_HIGHLIGHT",
+  ),
+  arg(
+    "list-submodules",
+    Flag,
+    about="List submodule recipes",
+    env="JUST_LIST_SUBMODULES",
+    requires=["list"],
+  ),
+  arg("no-aliases", Flag, about="Hide aliases", env="JUST_NO_ALIASES"),
+  arg("no-cache", Flag, about="Bypass recipe cache", env="JUST_NO_CACHE"),
+  arg(
+    "no-deps",
+    Flag,
+    long_alias="no-dependencies",
+    about="Do not run dependencies",
+    env="JUST_NO_DEPS",
+  ),
+  arg("no-dotenv", Flag, about="Do not load dotenv", env="JUST_NO_DOTENV"),
+  arg(
+    "no-highlight",
+    Flag,
+    about="Do not highlight commands",
+    env="JUST_NO_HIGHLIGHT",
+  ),
+  arg("one", Flag, about="Allow only one recipe", env="JUST_ONE"),
+  arg("quiet", Flag, short='q', about="Suppress output", env="JUST_QUIET", conflicts=[
+    "dry-run",
+  ]),
+  arg("time", Flag, about="Print recipe timing", env="JUST_TIME"),
+  arg("timestamp", Flag, about="Print command timestamps", env="JUST_TIMESTAMP"),
+  arg(
+    "unsorted",
+    Flag,
+    short='u',
+    about="Use source order",
+    env="JUST_UNSORTED",
+  ),
+  arg("unstable", Flag, about="Enable unstable features", env="JUST_UNSTABLE"),
+  arg("verbose", Count, short='v', about="Verbose output", env="JUST_VERBOSE"),
+  arg("yes", Flag, about="Automatically confirm recipes", env="JUST_YES"),
+  arg("shell-command", Flag, about="Run command with recipe shell", requires=[
+    "command",
+  ]),
+]

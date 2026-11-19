@@ -6,7 +6,7 @@ fn upstream_json_source(text : String) -> String {
     display_name="<stdin>",
   )
   let compilation = try! @semantic.compile(loaded.ast())
-  inspect_json(loaded, compilation).stringify()
+  @query.inspect_json(loaded, compilation).stringify()
 }
 
 ///|

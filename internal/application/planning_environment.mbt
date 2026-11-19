@@ -31,7 +31,7 @@ async fn[P : @host.HostProcess] shell_invocation_directory(
     return native
   }
   // Custom converters may use a different mount prefix even for drive paths.
-  let program = arguments.value("cygpath").unwrap_or("cygpath")
+  let program = arguments.value("cygpath").unwrap()
   if program == "cygpath" && windows_drive_path_to_unix(native) is Some(path) {
     return path
   }
@@ -78,7 +78,6 @@ fn evaluate_project_globals(
   arguments : @cli.CliArguments,
   flavor? : @path.PathFlavor,
 ) -> Map[@modulepath.ModulePath, @evaluator.Environment] raise ApplicationError {
-  validate_project_variable_overrides(project, arguments)
   let globals : Map[@modulepath.ModulePath, @evaluator.Environment] = Map([])
   for path in project.module_paths() {
     let seed = match path.parent() {
@@ -122,7 +121,7 @@ fn selected_timestamp(
   if !arguments.flag("timestamp") {
     return None
   }
-  let format = arguments.value("timestamp-format").unwrap_or("%H:%M:%S")
+  let format = arguments.value("timestamp-format").unwrap()
   if !@planner.valid_timestamp_format(format) {
     raise Query(
       "failed to parse time format string `\{format}`: bad or unsupported format string",

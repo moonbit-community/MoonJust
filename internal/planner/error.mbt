@@ -14,6 +14,7 @@ pub(all) suberror ExecutionError {
   CommandSignaled(recipe~ : String, line~ : Int32, signal~ : @host.SignalKind)
   Interrupted(signal~ : @host.SignalKind)
   GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
+  CachedRecipesUnstable
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
   ConfirmationFailure(message~ : String)
   CacheFailure(message~ : String)
@@ -60,6 +61,7 @@ pub fn ExecutionError::exit_code(self : ExecutionError) -> Int32 {
     | InvalidShebang(..)
     | UnknownRecipe(_)
     | DependencyCycle(_)
+    | CachedRecipesUnstable
     | InvalidAttributeValue(_)
     | ConfirmationFailure(_)
     | CacheFailure(_) => 1
@@ -106,6 +108,8 @@ pub fn ExecutionError::message(self : ExecutionError) -> String {
     Interrupted(signal~) => "error: interrupted by " + signal.name()
     GuardCode(recipe~, line~, code~) =>
       "error: guard line in recipe `\{recipe}` on line \{line} returned reserved exit code \{code}"
+    CachedRecipesUnstable =>
+      "error: cached recipes are currently unstable, invoke `just` with `--unstable`, set the `JUST_UNSTABLE` environment variable, or add `set unstable` to your `justfile` to enable unstable features"
     InvalidAttributeValue(message~, ..) => "error: " + message
     ConfirmationFailure(message~) | CacheFailure(message~) =>
       "error: " + message

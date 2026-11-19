@@ -44,24 +44,6 @@ pub fn ScriptConfiguration::platform(
 }
 
 ///|
-/// Captured bytes are kept separate by stream and retain process order.
-#derive(Eq)
-pub struct ExecutionReport {
-  stdout : Bytes
-  stderr : Bytes
-  commands : Int32
-}
-
-///|
-pub fn ExecutionReport::new(
-  stdout : Bytes,
-  stderr : Bytes,
-  commands : Int32,
-) -> ExecutionReport {
-  { stdout, stderr, commands, }
-}
-
-///|
 /// One process step produced entirely before process capability is used.
 #derive(Eq)
 pub struct PlannedCommand {

@@ -87,9 +87,9 @@ fn ExecutionCoordinator::coordinator_pop_ready(
 ///|
 fn execution_coordinator(
   tasks : ArrayView[@planner.ExecutionTask],
-  workers : Int32,
+  jobs : Int32,
 ) -> ExecutionCoordinator? {
-  if workers <= 0 || tasks.is_empty() {
+  if jobs <= 0 || tasks.is_empty() {
     return None
   }
   let total = tasks.length()
@@ -120,7 +120,9 @@ fn execution_coordinator(
   }
   let coordinator = {
     mutex: Mutex(),
-    wake: Semaphore(total + workers + 1, initial_value=0),
+    // Readiness uses at most one permit per task. Shutdown starts after
+    // every task permit has been consumed and needs one permit per worker.
+    wake: Semaphore(total, initial_value=0),
     remaining,
     blocked,
     dependents,
@@ -128,7 +130,7 @@ fn execution_coordinator(
     output_order,
     ready: [],
     completed: 0,
-    workers,
+    workers: jobs.min(total),
     total,
   }
   coordinator.output_order.sort_by(fn(left, right) {

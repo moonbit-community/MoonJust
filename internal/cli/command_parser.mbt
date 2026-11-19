@@ -1,11 +1,48 @@
 ///|
-fn parser_command() -> @argparse.Command {
-  let flags = command_flags()
-  flags.append(other_flags())
+let parser_command : @argparse.Command = {
+  let flags : Array[@argparse.FlagArg] = []
+  let options : Array[@argparse.OptionArg] = []
+  let modes : Array[String] = []
+  for spec in argument_specs {
+    let env = spec.env.map(name => name[:])
+    match spec.action {
+      Flag | Count =>
+        flags.push(
+          FlagArg(
+            spec.name,
+            long=spec.name,
+            short?=spec.short,
+            about=spec.about,
+            action=if spec.action is Count { Count } else { SetTrue },
+            env?,
+            requires=spec.requires,
+            conflicts_with=spec.conflicts,
+          ),
+        )
+      Value | Append | OverridePair =>
+        options.push(
+          OptionArg(
+            spec.name,
+            long=spec.name,
+            short?=spec.short,
+            about=spec.about,
+            action=if spec.action is Value { Set } else { Append },
+            env?,
+            requires=spec.requires,
+            conflicts_with=spec.conflicts,
+            default_values=spec.defaults,
+            allow_hyphen_values=true,
+          ),
+        )
+    }
+    if spec.command is Some(command) && command != CheckCommand {
+      modes.push(spec.name)
+    }
+  }
   Command(
     "just",
     flags~,
-    options=option_specs(),
+    options~,
     positionals=[
       PositionArg(
         "arguments",
@@ -16,262 +53,23 @@ fn parser_command() -> @argparse.Command {
     about="MoonJust: a just-compatible command runner implemented in MoonBit",
     disable_help_flag=true,
     disable_version_flag=true,
-    groups=[
-      ArgGroup("command-mode", multiple=false, args=[
-        "fmt", "init", "list", "show", "summary", "usage", "variables", "dump", "json",
-        "evaluate", "groups", "choose", "changelog", "clean", "command", "edit",
-        "man",
-      ]),
-    ],
+    groups=[ArgGroup("command-mode", multiple=false, args=modes)],
   )
 }
 
 ///|
-fn command_kind(matches : @argparse.Matches) -> CommandKind {
-  if matches.flags.get("check").unwrap_or(false) {
-    return CheckCommand
-  }
-  if matches.flags.get("fmt").unwrap_or(false) {
-    return FormatCommand
-  }
-  if matches.flags.get("init").unwrap_or(false) {
-    return InitCommand
-  }
-  if matches.flags.get("list").unwrap_or(false) {
-    return ListCommand
-  }
-  if matches.flags.get("show").unwrap_or(false) {
-    return ShowCommand
-  }
-  if matches.flags.get("summary").unwrap_or(false) {
-    return SummaryCommand
-  }
-  if matches.flags.get("usage").unwrap_or(false) {
-    return UsageCommand
-  }
-  if matches.flags.get("variables").unwrap_or(false) {
-    return VariablesCommand
-  }
-  if matches.flags.get("dump").unwrap_or(false) {
-    return DumpCommand
-  }
-  if matches.flags.get("json").unwrap_or(false) {
-    return JsonCommand
-  }
-  if matches.flags.get("evaluate").unwrap_or(false) {
-    return EvaluateCommand
-  }
-  if matches.flags.get("groups").unwrap_or(false) {
-    return GroupsCommand
-  }
-  if matches.flags.get("choose").unwrap_or(false) {
-    return ChooseCommand
-  }
-  if matches.flags.get("changelog").unwrap_or(false) {
-    return ChangelogCommand
-  }
-  if matches.flags.get("man").unwrap_or(false) {
-    return ManCommand
-  }
-  if matches.flags.get("edit").unwrap_or(false) {
-    return EditCommand
-  }
-  if matches.flags.get("clean").unwrap_or(false) {
-    return CleanCommand
-  }
-  if matches.flags.get("command").unwrap_or(false) {
-    return CommandCommand
-  }
-  RunCommand
-}
-
-///|
-fn supported_option(token : String) -> Bool {
-  match token {
-    "--help"
-    | "-h"
-    | "--version"
-    | "-V"
-    | "--check"
-    | "--fmt"
-    | "--format"
-    | "--init"
-    | "--initialize"
-    | "--list"
-    | "-l"
-    | "--show"
-    | "-s"
-    | "--summary"
-    | "--usage"
-    | "--variables"
-    | "--dump"
-    | "--json"
-    | "--evaluate"
-    | "--eval"
-    | "--groups"
-    | "--choose"
-    | "--chooser"
-    | "--edit"
-    | "-e"
-    | "--group"
-    | "--list-submodules"
-    | "--no-aliases"
-    | "--unstable"
-    | "--unsorted"
-    | "-u"
-    | "--list-heading"
-    | "--list-prefix"
-    | "--alias-style"
-    | "--ceiling"
-    | "--cygpath"
-    | "--dump-format"
-    | "--evaluate-format"
-    | "--justfile"
-    | "--justfile-name"
-    | "-f"
-    | "--dotenv-filename"
-    | "-F"
-    | "--dotenv-command"
-    | "--dotenv-path"
-    | "-E"
-    | "--no-dotenv"
-    | "--dry-run"
-    | "-n"
-    | "--quiet"
-    | "-q"
-    | "--time"
-    | "--timestamp"
-    | "--verbose"
-    | "-v"
-    | "--command-color"
-    | "--timestamp-format"
-    | "--color"
-    | "--set"
-    | "--shell"
-    | "--shell-arg"
-    | "--clear-shell-args"
-    | "--allow-missing"
-    | "--default-list"
-    | "--explain"
-    | "--global-justfile"
-    | "-g"
-    | "--highlight"
-    | "--indentation"
-    | "--no-highlight"
-    | "--no-deps"
-    | "--no-dependencies"
-    | "--one"
-    | "--shell-command"
-    | "--tempdir"
-    | "--working-directory"
-    | "-d"
-    | "--jobs"
-    | "--no-cache"
-    | "--yes"
-    | "--clean"
-    | "--changelog"
-    | "--command"
-    | "-c"
-    | "--man" => true
-    _ => false
-  }
-}
-
-///|
-fn option_name(token : String) -> String {
-  let name = if token.has_prefix("--") {
-    let builder = StringBuilder()
-    for character in token {
-      if character == '=' {
-        break
-      }
-      builder.write_char(character)
+let option_index : Map[String, ArgSpec] = {
+  let index = Map([])
+  for spec in argument_specs {
+    index["--" + spec.name] = spec
+    if spec.short is Some(short) {
+      index["-\{short}"] = spec
     }
-    builder.to_string()
-  } else if token.has_prefix("-") && token.length() > 1 {
-    token[:2].to_owned()
-  } else {
-    token
+    if spec.long_alias is Some(long_alias) {
+      index["--" + long_alias] = spec
+    }
   }
-  match name {
-    "--format" => "--fmt"
-    "--initialize" => "--init"
-    "--eval" => "--evaluate"
-    "--no-dependencies" => "--no-deps"
-    _ => name
-  }
-}
-
-///|
-fn supported_value_option(name : String) -> Bool {
-  match name {
-    "--alias-style"
-    | "--ceiling"
-    | "--cygpath"
-    | "--color"
-    | "--command-color"
-    | "--dump-format"
-    | "--evaluate-format"
-    | "--group"
-    | "--indentation"
-    | "--chooser"
-    | "--justfile"
-    | "--justfile-name"
-    | "-f"
-    | "--dotenv-filename"
-    | "-F"
-    | "--dotenv-command"
-    | "--dotenv-path"
-    | "-E"
-    | "--list-heading"
-    | "--list-prefix"
-    | "--set"
-    | "--shell"
-    | "--shell-arg"
-    | "--tempdir"
-    | "--timestamp-format"
-    | "--working-directory"
-    | "-d"
-    | "--jobs" => true
-    _ => false
-  }
-}
-
-///|
-fn command_option(name : String) -> Bool {
-  match name {
-    "--help"
-    | "-h"
-    | "--version"
-    | "-V"
-    | "--check"
-    | "--fmt"
-    | "--init"
-    | "--list"
-    | "-l"
-    | "--show"
-    | "-s"
-    | "--summary"
-    | "--usage"
-    | "--variables"
-    | "--dump"
-    | "--json"
-    | "--evaluate"
-    | "--groups"
-    | "--choose"
-    | "--edit"
-    | "-e"
-    | "--clean"
-    | "--command"
-    | "-c"
-    | "--shell-command" => true
-    _ => false
-  }
-}
-
-///|
-fn raw_command_option(name : String) -> Bool {
-  name == "--command" || name == "-c" || name == "--shell-command"
+  index
 }
 
 ///|
@@ -329,56 +127,4 @@ fn valid_query_module_path(arguments : ArrayView[String]) -> Bool {
     }
   }
   true
-}
-
-///|
-fn has_command_mode_before_invocation(argv : ArrayView[String]) -> Bool {
-  let mut consumes_value = false
-  for token in argv {
-    if consumes_value {
-      consumes_value = false
-      continue
-    }
-    if token == "--" {
-      return false
-    }
-    if token.has_prefix("-") && token != "-" {
-      let name = option_name(token)
-      if command_option(name) {
-        return true
-      }
-      if supported_value_option(name) && !token.contains("=") {
-        consumes_value = true
-      }
-    } else {
-      return false
-    }
-  }
-  false
-}
-
-///|
-fn has_raw_command_mode_before_invocation(argv : ArrayView[String]) -> Bool {
-  let mut consumes_value = false
-  for token in argv {
-    if consumes_value {
-      consumes_value = false
-      continue
-    }
-    if token == "--" {
-      return false
-    }
-    if token.has_prefix("-") && token != "-" {
-      let name = option_name(token)
-      if raw_command_option(name) {
-        return true
-      }
-      if supported_value_option(name) && !token.contains("=") {
-        consumes_value = true
-      }
-    } else {
-      return false
-    }
-  }
-  false
 }

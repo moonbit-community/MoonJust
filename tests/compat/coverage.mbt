@@ -3,32 +3,29 @@ priv struct SpecCase {
   fixture : String
   anchor : String
   local_test : String?
+  smoke_scope : String?
 }
 
 ///|
 fn parse_spec_index(text : String) -> Map[String, SpecCase] {
   let result : Map[String, SpecCase] = Map([])
   for raw in text.split("\n") {
-    let line = raw.trim().to_owned()
-    if line.is_empty() || line.has_prefix("#") {
+    let line = strip_cr(raw)
+    if line.trim().is_empty() || line.has_prefix("#") {
       continue
     }
     let fields = line.split("\t").collect()
-    if fields.length() >= 3 {
-      let local_test = if fields.length() >= 4 && !fields[2].trim().is_empty() {
+    if fields.length() == 4 || fields.length() == 5 {
+      let local_test = if !fields[2].trim().is_empty() {
         Some(fields[2].trim().to_owned())
       } else {
         None
       }
-      let anchor = if fields.length() >= 4 {
-        fields[3].to_owned()
-      } else {
-        fields[2].to_owned()
-      }
       result[fields[0].to_owned()] = {
         fixture: fields[1].to_owned(),
-        anchor,
+        anchor: fields[3].to_owned(),
         local_test,
+        smoke_scope: fields.get(4).map(field => field.to_owned()),
       }
     }
   }
@@ -36,14 +33,7 @@ fn parse_spec_index(text : String) -> Map[String, SpecCase] {
 }
 
 ///|
-fn json_string(value : String) -> String {
-  "\"" +
-  value.replace_all(old="\\", new="\\\\").replace_all(old="\"", new="\\\"") +
-  "\""
-}
-
-///|
-fn excluded_reason(upstream_test : String) -> String? {
+fn exclusion(upstream_test : String) -> (String, String)? {
   let completion_protocol_tests = [
     "config::tests::completions_argument", "config::tests::subcommand_completions",
     "config::tests::subcommand_completions_invalid", "config::tests::subcommand_completions_uppercase",
@@ -54,11 +44,19 @@ fn excluded_reason(upstream_test : String) -> String? {
   ]
   if upstream_test.has_prefix("completions::") ||
     completion_protocol_tests.contains(upstream_test) {
-    Some("completion generation protocol is shell-specific")
+    Some(
+      (
+        "excluded-completion", "completion generation protocol is shell-specific",
+      ),
+    )
   } else if upstream_test.has_prefix("signals::") ||
     upstream_test.has_prefix("signal::") ||
     runtime_signal_tests.contains(upstream_test) {
-    Some("runtime signal identity and forwarding are OS-specific")
+    Some(
+      (
+        "excluded-signal", "runtime signal identity and forwarding are OS-specific",
+      ),
+    )
   } else {
     None
   }
@@ -88,42 +86,28 @@ fn coverage_status(
   // Explicitly excluded upstream suites remain excluded even when their
   // source snapshot is present. They depend on shell completion or OS signal
   // identity rather than MoonJust's portable command semantics.
-  match excluded_reason(upstream_test) {
-    Some(reason) if upstream_test.has_prefix("completions::") ||
-      upstream_test == "config::tests::completions_argument" ||
-      upstream_test == "config::tests::subcommand_completions" ||
-      upstream_test == "config::tests::subcommand_completions_invalid" ||
-      upstream_test == "config::tests::subcommand_completions_uppercase" => {
-      let evidence = specs.get(upstream_test)
-      return (
-        "excluded-completion",
-        evidence.map(fn(spec) { spec.fixture }).unwrap_or(upstream_test),
-        evidence.map(fn(spec) { spec.anchor }).unwrap_or(""),
-        reason,
-      )
-    }
-    Some(reason) => {
-      let evidence = specs.get(upstream_test)
-      return (
-        "excluded-signal",
-        evidence.map(fn(spec) { spec.fixture }).unwrap_or(upstream_test),
-        evidence.map(fn(spec) { spec.anchor }).unwrap_or(""),
-        reason,
-      )
-    }
-    None => ()
-  }
   // Concrete MoonBit assertion files are executable spec evidence. The large
   // Rust source snapshot is audit evidence only and must not inflate coverage.
   if specs.get(upstream_test) is Some(spec) {
+    if exclusion(upstream_test) is Some((kind, reason)) {
+      return (kind, spec.fixture, spec.anchor, reason)
+    }
+    if document_contract(upstream_test) is Some(doc) {
+      let (kind, artifact, scope) = doc.evidence()
+      return (kind, artifact, spec.anchor, scope)
+    }
     let fixture_path = spec.fixture
       .split(":")
       .collect()
       .get(0)
       .unwrap_or("")
       .to_owned()
-    if !fixture_path.has_suffix("upstream-fixtures.txt") {
-      return ("moonbit-spec-exact", spec.fixture, spec.anchor, "")
+    if !fixture_path.has_suffix("upstream-fixtures.txt") &&
+      spec.local_test is Some(_) {
+      return match spec.smoke_scope {
+        Some(scope) => ("local-smoke", spec.fixture, spec.anchor, scope)
+        None => ("moonbit-spec", spec.fixture, spec.anchor, "")
+      }
     }
     return ("unclassified", spec.fixture, spec.anchor, "source-snapshot-only")
   }
@@ -150,8 +134,8 @@ fn location_parts(location : String) -> (String, Int32)? {
 ///|
 /// Read the quoted name from a MoonBit test declaration.
 fn test_name(line : String) -> String? {
-  guard line.find("test \"") is Some(start) else { return None }
-  let rest = line[start + 6:]
+  let declaration = line.strip_prefix("async ").unwrap_or(line[:])
+  guard declaration.strip_prefix("test \"") is Some(rest) else { return None }
   guard rest.find("\"") is Some(end) else { return None }
   Some(rest[:end].to_owned())
 }
@@ -164,44 +148,24 @@ async fn validate_spec_anchor(
   upstream_test : String,
   spec : SpecCase,
 ) -> String? {
-  let fixture_path = match location_parts(spec.fixture) {
-    Some((path, _)) => path
-    None => return Some(upstream_test + ": invalid local fixture location")
+  guard location_parts(spec.fixture) is Some((fixture_path, line)) else {
+    return Some(upstream_test + ": invalid local fixture location")
   }
-  if fixture_path.has_suffix("upstream-fixtures.txt") {
+  if fixture_path.has_suffix("upstream-fixtures.txt") ||
+    spec.fixture == DOCUMENT_ROOT + "/" + spec.anchor {
     return None
   }
   guard @fs.exists(fixture_path) else {
     return Some(upstream_test + ": local spec file is missing: " + fixture_path)
   }
-  let (_, line) = location_parts(spec.fixture).unwrap()
   let lines = @fs.read_text(fixture_path).split("\n").collect()
   if line > lines.length() {
     return Some(
       upstream_test + ": local spec line is out of range: " + spec.fixture,
     )
   }
-  let mut declaration : String? = None
-  let mut declaration_line = 0
-  for index, raw in lines {
-    match test_name(raw.to_owned()) {
-      Some(name) => {
-        declaration = Some(name)
-        declaration_line = index + 1
-      }
-      None => ()
-    }
-    if index + 1 > line {
-      break
-    }
-  }
-  guard declaration is Some(name) else {
-    return Some(upstream_test + ": local spec anchor is outside a test block")
-  }
-  if declaration_line > line {
-    return Some(
-      upstream_test + ": local spec anchor is before a test declaration",
-    )
+  guard test_name(lines[line - 1].to_owned()) is Some(name) else {
+    return Some(upstream_test + ": local spec anchor is not a test declaration")
   }
   match spec.local_test {
     Some(expected) if name != expected =>
@@ -214,7 +178,7 @@ async fn validate_spec_anchor(
         "`",
       )
     Some(_) => None
-    None => None
+    None => Some(upstream_test + ": missing local test name")
   }
 }
 
@@ -250,14 +214,15 @@ fn spec_index_shape_errors(text : String) -> Array[String] {
   let seen : Set[String] = Set([])
   let seen_local : Set[String] = Set([])
   for raw in text.split("\n") {
-    let line = raw.trim().to_owned()
-    if line.is_empty() || line.has_prefix("#") {
+    let line = strip_cr(raw).to_owned()
+    if line.trim().is_empty() || line.has_prefix("#") {
       continue
     }
     let fields = line.split("\t").collect()
-    if fields.length() != 4 {
+    if fields.length() != 4 && fields.length() != 5 {
       errors.push(
-        "spec-index row must contain four tab-separated fields: " + line,
+        "spec-index row must contain four fields and an optional smoke scope: " +
+        line,
       )
       continue
     }
@@ -276,14 +241,24 @@ fn spec_index_shape_errors(text : String) -> Array[String] {
       .get(0)
       .unwrap_or("")
       .to_owned()
-    let is_snapshot = fixture_path.has_suffix("upstream-fixtures.txt")
-    if location_parts(fields[1].to_owned()) is None && !is_snapshot {
+    let provenance = fixture_path.has_suffix("upstream-fixtures.txt") ||
+      fields[1] == (DOCUMENT_ROOT + "/" + fields[3].to_owned())[:]
+    if fields.length() == 5 && (provenance || fields[4].trim().is_empty()) {
+      errors.push(
+        upstream_test +
+        ": smoke scope requires an executable local assertion and a description",
+      )
+    }
+    if location_parts(fields[1].to_owned()) is None {
       errors.push(upstream_test + ": invalid local fixture location")
     }
-    if !is_snapshot && fields[2].trim().is_empty() {
+    if provenance && !fields[2].is_empty() {
+      errors.push(upstream_test + ": provenance cannot name a local test")
+    }
+    if !provenance && fields[2].trim().is_empty() {
       errors.push(upstream_test + ": missing local test name")
     }
-    if !is_snapshot {
+    if !provenance {
       let local_key = fields[1].to_owned() + "\t" + fields[2].to_owned()
       if seen_local.contains(local_key) {
         errors.push(upstream_test + ": duplicate local test mapping")
@@ -300,213 +275,48 @@ fn spec_index_shape_errors(text : String) -> Array[String] {
 }
 
 ///|
-/// Validate the generated upstream snapshot format used for migrated cases.
-///  A snapshot is deliberately source-backed: it must contain the original
-///  test body in both the input and expected sections, so an index row cannot
-///  claim coverage with an empty placeholder file.
+/// Check the indexed snapshot line, source anchor and both nonempty sections.
 async fn audited_fixture(
   upstream_test : String,
-  fixture_file : String,
-  anchor : String,
-  cache : Map[String, String],
+  spec : SpecCase,
+  cache : Map[String, Array[StringView]],
 ) -> Bool {
+  guard location_parts(spec.fixture) is Some((fixture_file, line)) else {
+    return false
+  }
   if !fixture_file.has_suffix("upstream-fixtures.txt") {
     return true
   }
-  let text = match cache.get(fixture_file) {
+  let lines = match cache.get(fixture_file) {
     Some(value) => value
     None => {
-      let value = @fs.read_text(fixture_file) catch { _ => "" }
+      let value = @fs.read_text(fixture_file).split("\n").collect()
       cache[fixture_file] = value
       value
     }
   }
-  let marker = "=== " + upstream_test + " ==="
-  guard text.find(marker) is Some(start) else { return false }
-  let tail = text[start:]
-  guard tail.find("=== end ===") is Some(end) else { return false }
-  let block = tail[:end].to_owned()
-  block.contains("\nsource: " + anchor + "\n") &&
-  block.contains("\ninput:\n") &&
-  block.contains("\nexpected:\n")
-}
-
-///|
-fn coverage_json(
-  upstream_names : Set[String],
-  metadata : Map[String, CaseMetadata],
-  specs : Map[String, SpecCase],
-  executed : Set[String],
-  exact : Set[String],
-  known : Set[String],
-  failed : Set[String],
-  deferred : Set[String],
-  spec_executed : Set[String],
-  failures : Int32,
-  execution_platform : String,
-  execution_target : String,
-  reentry : String,
-) -> String {
-  let rows : Array[String] = []
-  let mut differential_declared = 0
-  let mut differential_executed = 0
-  let mut differential_exact = 0
-  let mut differential_known = 0
-  let mut spec_declared = 0
-  let mut spec_done = 0
-  let mut completion = 0
-  let mut signal = 0
-  let mut deferred_count = 0
-  let mut unclassified = 0
-  let mut product_identity = 0
-  for upstream_test in upstream_names {
-    let (status, fixture, anchor, reason) = coverage_status(
-      upstream_test, metadata, specs,
-    )
-    let is_differential = status == "differential-exact" ||
-      status == "differential-known-difference"
-    if is_differential {
-      differential_declared += 1
-    }
-    if is_differential && executed.contains(upstream_test) {
-      differential_executed += 1
-    }
-    if status == "differential-exact" && exact.contains(upstream_test) {
-      differential_exact += 1
-    }
-    if status == "differential-known-difference" &&
-      known.contains(upstream_test) {
-      differential_known += 1
-    }
-    if status == "moonbit-spec-exact" {
-      spec_declared += 1
-      if spec_executed.contains(upstream_test) {
-        spec_done += 1
-      }
-    }
-    if deferred.contains(upstream_test) {
-      deferred_count += 1
-    }
-    let candidate_digest = match status {
-      "differential-known-difference" =>
-        metadata
-        .get(fixture)
-        .map(details => refusal_digest(fixture, details).unwrap_or(""))
-        .unwrap_or("")
-      _ => ""
-    }
-    let evidence_kind = match status {
-      "differential-exact" | "differential-known-difference" => "differential"
-      "moonbit-spec-exact" => "moonbit-spec"
-      "excluded-completion" => "excluded-completion"
-      "excluded-signal" => "excluded-signal"
-      _ => "unclassified"
-    }
-    let execution_state = if deferred.contains(upstream_test) {
-      "deferred-platform"
-    } else if failed.contains(upstream_test) {
-      "failed"
-    } else if executed.contains(upstream_test) ||
-      spec_executed.contains(upstream_test) {
-      "executed"
-    } else if status == "excluded-completion" || status == "excluded-signal" {
-      "excluded"
-    } else {
-      "unexecuted"
-    }
-    let mut host_inputs : Array[String] = []
-    let required_platform = {
-      let mut required = "all"
-      for _, details in metadata {
-        if details.upstream_tests.contains(upstream_test) {
-          host_inputs = details.host_inputs
-          required = details.platform.unwrap_or("all")
-          break
+  guard line + 1 < lines.length() &&
+    lines[line - 1] == ("=== " + upstream_test + " ===")[:] &&
+    lines[line] == ("source: " + spec.anchor)[:] &&
+    lines[line + 1] == "input:" else {
+    return false
+  }
+  let mut input = false
+  let mut expected = false
+  let mut in_expected = false
+  for index in (line + 2)..<lines.length() {
+    match lines[index] {
+      "expected:" => in_expected = true
+      "=== end ===" => return input && expected
+      value if value.has_prefix("=== ") => return false
+      value if !value.trim().is_empty() =>
+        if in_expected {
+          expected = true
+        } else {
+          input = true
         }
-      }
-      required
-    }
-    match status {
-      "excluded-completion" => completion += 1
-      "excluded-signal" => signal += 1
-      "unclassified" => unclassified += 1
       _ => ()
     }
-    let fixture = if fixture.is_empty() { upstream_test } else { fixture }
-    let local_test = match specs.get(upstream_test) {
-      Some(spec) => spec.local_test.unwrap_or(fixture)
-      None => fixture
-    }
-    rows.push(
-      "{\"upstream_id\":" +
-      json_string(upstream_test) +
-      ",\"evidence_kind\":" +
-      json_string(evidence_kind) +
-      ",\"execution_state\":" +
-      json_string(execution_state) +
-      ",\"status\":" +
-      json_string(status) +
-      ",\"execution_platform\":" +
-      json_string(execution_platform) +
-      ",\"execution_target\":" +
-      json_string(execution_target) +
-      ",\"required_platform\":" +
-      json_string(required_platform) +
-      ",\"fixture\":" +
-      json_string(fixture) +
-      ",\"host_inputs\":[" +
-      host_inputs.map(json_string).join(",") +
-      "]" +
-      ",\"local_test\":" +
-      json_string(local_test) +
-      ",\"upstream_source_anchor\":" +
-      json_string(anchor) +
-      ",\"difference_reason\":" +
-      json_string(reason) +
-      ",\"candidate_digest\":" +
-      json_string(candidate_digest) +
-      "}",
-    )
   }
-  for _, details in metadata {
-    if details.status == "expected-difference" &&
-      details.allowed_difference == Some("product-identity") {
-      product_identity += 1
-    }
-  }
-  "{\"schema_version\":3,\"runner_os\":" +
-  json_string(execution_platform) +
-  ",\"target\":" +
-  json_string(execution_target) +
-  ",\"reentry\":" +
-  json_string(reentry) +
-  ",\"upstream_total\":" +
-  upstream_names.length().to_string() +
-  ",\"differential_declared\":" +
-  differential_declared.to_string() +
-  ",\"differential_executed\":" +
-  differential_executed.to_string() +
-  ",\"differential_exact\":" +
-  differential_exact.to_string() +
-  ",\"differential_known_difference\":" +
-  differential_known.to_string() +
-  ",\"moonbit_spec_declared\":" +
-  spec_declared.to_string() +
-  ",\"moonbit_spec_executed\":" +
-  spec_done.to_string() +
-  ",\"excluded_completion\":" +
-  completion.to_string() +
-  ",\"excluded_signal\":" +
-  signal.to_string() +
-  ",\"deferred_platform\":" +
-  deferred_count.to_string() +
-  ",\"unclassified\":" +
-  unclassified.to_string() +
-  ",\"failures\":" +
-  failures.to_string() +
-  ",\"product_identity_difference\":" +
-  product_identity.to_string() +
-  ",\"rows\":[" +
-  rows.join(",") +
-  "]}\n"
+  false
 }

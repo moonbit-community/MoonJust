@@ -15,13 +15,11 @@ import {
 // Values
 pub fn parse_invocations(@semantic.Compilation, ArrayView[String], overrides? : ArrayView[(String, String)]) -> Array[Invocation] raise InvocationError
 
-pub fn parse_project_invocation_targets(@semantic.ProjectCompilation, ArrayView[String], allow_missing? : Bool) -> Array[(@modulepath.ModulePath, String)] raise InvocationError
-
 pub fn parse_project_invocations(@semantic.ProjectCompilation, ArrayView[String], overrides? : ArrayView[(String, String)], allow_missing? : Bool) -> Array[ProjectInvocation] raise InvocationError
 
-pub fn parse_project_invocations_in_environments(@semantic.ProjectCompilation, ArrayView[String], Map[@modulepath.ModulePath, @evaluator.Environment], allow_missing? : Bool, resolve_expressions? : Bool) -> Array[ProjectInvocation] raise InvocationError
-
 pub fn recipe_argument_value_expression(@semantic.Compilation, String, String) -> @syntax.Expression? raise InvocationError
+
+pub fn resolve_project_invocations(@semantic.ProjectCompilation, ArrayView[String], environments? : Map[@modulepath.ModulePath, @evaluator.Environment], allow_missing? : Bool) -> Array[ProjectInvocation] raise InvocationError
 
 pub fn validate_recipe_argument_values(@semantic.Compilation, String, ArrayView[@value.Value], @evaluator.Environment) -> Unit raise InvocationError
 

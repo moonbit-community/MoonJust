@@ -103,7 +103,7 @@ fn expression_json(expression : @syntax.Expression) -> Json {
 }
 
 ///|
-fn private_assignments(ast : @syntax.Ast) -> Set[String] {
+pub fn private_assignments(ast : @syntax.Ast) -> Set[String] {
   let result : Set[String] = Set([])
   for item in ast.items() {
     match item {
@@ -310,7 +310,7 @@ fn attribute_json(attribute : @syntax.Attribute) -> Json {
     }
     if attribute.name() == "continue" {
       values.sort_by(fn(left, right) {
-        @query.lexical_compare(left.stringify(), right.stringify())
+        lexical_compare(left.stringify(), right.stringify())
       })
     }
     return json_object([(attribute.name(), Json::array(values))])
@@ -350,7 +350,7 @@ fn recipe_json(
 ) -> Json {
   let attribute_nodes = recipe.attributes().to_owned()
   attribute_nodes.sort_by(fn(left, right) {
-    @query.lexical_compare(left.name(), right.name())
+    lexical_compare(left.name(), right.name())
   })
   let attributes = attribute_nodes.map(attribute_json)
   let body : Array[Json] = []
@@ -527,7 +527,7 @@ fn settings_json(settings : @semantic.CompiledSettings) -> Json {
 }
 
 ///|
-fn inspect_json(
+pub fn inspect_json(
   loaded : @loader.LoadedSource,
   compilation : @semantic.Compilation,
   module_path~ : @modulepath.ModulePath = @modulepath.ModulePath::root(),
@@ -537,7 +537,7 @@ fn inspect_json(
   let private = private_assignments(loaded.ast())
   let assignment_entries : Array[(String, Json)] = []
   let names = compilation.variable_names().to_owned()
-  names.sort_by(@query.lexical_compare)
+  names.sort_by(lexical_compare)
   for name in names {
     guard compilation.variable(name) is Some(assignment) else { continue }
     assignment_entries.push(
@@ -562,15 +562,13 @@ fn inspect_json(
       )
     }
   }
-  alias_entries.sort_by(fn(left, right) {
-    @query.lexical_compare(left.0, right.0)
-  })
+  alias_entries.sort_by(fn(left, right) { lexical_compare(left.0, right.0) })
   let docs = recipe_docs(loaded.ast())
   let recipe_entries : Array[(String, Json)] = []
   let source_recipe_names = compilation.recipe_names()
   let first = source_recipe_names.get(0)
   let recipe_names = source_recipe_names.to_owned()
-  recipe_names.sort_by(@query.lexical_compare)
+  recipe_names.sort_by(lexical_compare)
   for name in recipe_names {
     guard compilation.recipe(name) is Some(recipe) else { continue }
     recipe_entries.push(
@@ -583,7 +581,7 @@ fn inspect_json(
       unexports.push(name)
     }
   }
-  unexports.sort_by(@query.lexical_compare)
+  unexports.sort_by(lexical_compare)
   // just's JSON oracle keeps the lexical Windows temp path. macOS is the
   // only platform where the upstream JSON tests canonicalize this field.
   let source_path = if loaded.path().flavor() == Windows {
@@ -601,18 +599,9 @@ fn inspect_json(
         guard project.module_compilation(child) is Some(child_compilation) else {
           continue
         }
-        let mut child_loaded : @loader.LoadedSource? = None
-        for candidate in graph.files() {
-          if candidate.module_path() == child &&
-            (
-              candidate.relation() == RootSource ||
-              candidate.relation() == ModuleSource
-            ) {
-            child_loaded = Some(candidate)
-            break
-          }
+        guard loaded_for_module(graph, child) is Some(child_loaded) else {
+          continue
         }
-        guard child_loaded is Some(child_loaded) else { continue }
         let child_name = child.components().last().unwrap()
         module_entries.push(
           (
@@ -628,7 +617,7 @@ fn inspect_json(
         )
       }
       module_entries.sort_by(fn(left, right) {
-        @query.lexical_compare(left.0, right.0)
+        lexical_compare(left.0, right.0)
       })
     }
     _ => ()

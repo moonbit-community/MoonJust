@@ -4,8 +4,6 @@ fn parse_one(
   global : @evaluator.Environment,
   input : ArrayView[String],
   start : Int32,
-  resolve_expressions~ : Bool = true,
-  display_name? : String,
 ) -> (Invocation, Int32) raise InvocationError {
   let (recipe, consumed) = match input.get(start) {
     Some(requested) =>
@@ -19,6 +17,25 @@ fn parse_one(
         None => raise NoRecipes
       }
   }
+  let (invocation, used) = parse_recipe_arguments(
+    compilation,
+    recipe,
+    input[start + consumed:],
+    Some(global),
+    use_default=consumed == 0,
+  )
+  (invocation, consumed + used)
+}
+
+///|
+fn parse_recipe_arguments(
+  compilation : @semantic.Compilation,
+  recipe : @syntax.Recipe,
+  rest : ArrayView[String],
+  environment : @evaluator.Environment?,
+  use_default~ : Bool = false,
+  display_name? : String,
+) -> (Invocation, Int32) raise InvocationError {
   let spec = recipe_spec(compilation, recipe)
   let groups : Array[Array[String]] = spec.parameters.map(fn(_) { [] })
   let positional : Array[Int32] = []
@@ -30,7 +47,6 @@ fn parse_one(
       positional.push(index)
     }
   }
-  let rest = input[start + consumed:]
   let mut cursor = 0
   let mut positional_index = 0
   let mut positional_accepted = 0
@@ -106,7 +122,7 @@ fn parse_one(
     cursor += 1
   }
   let (minimum, maximum) = positional_bounds(spec)
-  if consumed == 0 {
+  if use_default {
     let mut required = 0
     for parameter in spec.parameters {
       if parameter.is_required() {
@@ -137,7 +153,7 @@ fn parse_one(
       usage=short_usage(spec, display_name?),
     )
   }
-  if resolve_expressions {
+  if environment is Some(global) {
     resolve_values_and_patterns(
       recipe,
       spec,
@@ -145,8 +161,6 @@ fn parse_one(
       global,
       resolve_defaults=!saw_terminator,
     )
-  }
-  if resolve_expressions {
     for index, parameter in spec.parameters {
       let group = groups[index]
       match parameter.minimum {
@@ -190,59 +204,7 @@ fn parse_one(
       list: parameter.flag || parameter.multiple || parameter.variadic,
     })
   }
-  ({ recipe: spec.name, arguments, }, consumed + cursor)
-}
-
-///|
-/// Resolve command-line recipe targets without evaluating parameter defaults,
-/// patterns, or value expressions. Execution uses this first pass to determine
-/// the assignment closure required by `set lazy`.
-pub fn parse_project_invocation_targets(
-  project : @semantic.ProjectCompilation,
-  arguments : ArrayView[String],
-  allow_missing~ : Bool = false,
-) -> Array[(@modulepath.ModulePath, String)] raise InvocationError {
-  let result : Array[(@modulepath.ModulePath, String)] = []
-  let mut cursor = 0
-  while cursor < arguments.length() || result.is_empty() {
-    let resolved = try
-      Some(resolve_project_recipe(project, arguments, cursor))
-    catch {
-      UnknownRecipe(_)
-      | UnknownRecipeSuggested(_)
-      | UnknownSubmodule(_)
-      | OptionalModuleAbsent(_) if allow_missing => None
-      error => raise error
-    } noraise {
-      value => value
-    }
-    guard resolved is Some((module_path, recipe, path_consumed)) else {
-      cursor += 1
-      if cursor >= arguments.length() {
-        break
-      }
-      continue
-    }
-    let compilation = project.module_compilation(module_path).unwrap()
-    let synthetic : Array[String] = [recipe]
-    for value in arguments[cursor + path_consumed:] {
-      synthetic.push(value)
-    }
-    let (_, consumed) = parse_one(
-      compilation,
-      @evaluator.Environment::new(),
-      synthetic,
-      0,
-      resolve_expressions=false,
-      display_name=arguments[cursor:cursor + path_consumed].join("::"),
-    )
-    result.push((module_path, recipe))
-    cursor += path_consumed + consumed - 1
-    if cursor >= arguments.length() {
-      break
-    }
-  }
-  result
+  ({ recipe: spec.name, arguments, }, cursor)
 }
 
 ///|

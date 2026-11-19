@@ -290,93 +290,99 @@ async fn[
   let loading_environment = @host.HostEnv::env_entries(effects) catch {
     error => raise Host(error)
   }
-  let (graph, directories) = load_graph_input_with_directories(
+  let sources = load_project_sources(
     filesystem,
     arguments,
     context,
     environment=loading_environment,
   )
-  let platform = @host.HostPlatform::platform_info(effects) catch {
-    error => raise Host(error)
-  }
-  let project = compile_loaded_graph(
-    graph,
-    allow_unstable=arguments.flag("unstable"),
-    platform=semantic_target_platform(platform),
-  )
-  let compilation = project.root()
-  let overrides = variable_overrides(compilation, arguments)
-  let cwd = directories.project_directory()
-  let evaluation_context = @evaluator.EvaluationContext::new(
-    cwd~,
-    color_mode=arguments.value("color").unwrap_or("auto"),
-  )
-  let global = @evaluator.evaluate_compilation_with_async_effects(
-    process,
-    effects,
-    compilation,
-    evaluation_context,
-    @evaluator.EffectShell::new("sh", ["-cu"]),
-    overrides~,
-  ) catch {
-    error => raise Evaluation(error)
-  }
-  let candidates = chooser_candidates(project, arguments)
-  if candidates.is_empty() {
-    raise Query("justfile contains no choosable recipes")
-  }
-  let shell = selected_shell(compilation, global, arguments, cwd.flavor())
-  let justfile = directories
-    .justfile()
-    .map(fn(path) { path.as_string() })
-    .unwrap_or("-")
-  let default_chooser = "fzf --multi --preview 'just --unstable --color always --justfile \"" +
-    justfile +
-    "\" --show {}'"
-  let chooser = match arguments.value("chooser") {
-    Some(value) => value
-    None => {
-      let configured = @host.HostEnv::env_get(effects, "JUST_CHOOSER") catch {
-        error => raise Host(error)
+  let graph = sources.graph()
+  let directories = sources.directories()
+  try {
+    let platform = @host.HostPlatform::platform_info(effects) catch {
+      error => raise Host(error)
+    }
+    let project = compile_loaded_graph(
+      graph,
+      allow_unstable=arguments.flag("unstable"),
+      platform=semantic_target_platform(platform),
+    )
+    let compilation = project.root()
+    let overrides = variable_overrides(compilation, arguments)
+    let cwd = directories.project_directory()
+    let evaluation_context = @evaluator.EvaluationContext::new(
+      cwd~,
+      color_mode?=arguments.value("color"),
+    )
+    let global = @evaluator.evaluate_compilation_with_async_effects(
+      process,
+      effects,
+      compilation,
+      evaluation_context,
+      @evaluator.EffectShell::new("sh", ["-cu"]),
+      overrides~,
+    ) catch {
+      error => raise Evaluation(error)
+    }
+    let candidates = chooser_candidates(project, arguments)
+    if candidates.is_empty() {
+      raise Query("justfile contains no choosable recipes")
+    }
+    let shell = selected_shell(compilation, global, arguments, cwd.flavor())
+    let justfile = directories
+      .justfile()
+      .map(fn(path) { path.as_string() })
+      .unwrap_or("-")
+    let default_chooser = "fzf --multi --preview 'just --unstable --color always --justfile \"" +
+      justfile +
+      "\" --show {}'"
+    let chooser = match arguments.value("chooser") {
+      Some(value) => value
+      None => {
+        let configured = @host.HostEnv::env_get(effects, "JUST_CHOOSER") catch {
+          error => raise Host(error)
+        }
+        match configured {
+          Some(value) => value
+          None => default_chooser
+        }
       }
-      match configured {
-        Some(value) => value
-        None => default_chooser
+    }
+    let shell_arguments = shell.arguments().to_owned()
+    shell_arguments.push(chooser)
+    if cwd.flavor() == Windows {
+      let shell_path = @path.PathValue::new(shell.program(), Windows) catch {
+        error => raise Path(error)
+      }
+      if shell_path.file_name() is None {
+        raise InteractiveInvocation(
+          kind="chooser",
+          command=shell.program() + " " + shell_arguments.join(" "),
+          detail="program path has no file name",
+        )
       }
     }
-  }
-  let shell_arguments = shell.arguments().to_owned()
-  shell_arguments.push(chooser)
-  if cwd.flavor() == Windows {
-    let shell_path = @path.PathValue::new(shell.program(), Windows) catch {
-      error => raise Path(error)
+    let spec = @host.CommandSpec::new(shell.program(), shell_arguments) catch {
+      error => raise Host(error)
     }
-    if shell_path.file_name() is None {
-      raise InteractiveInvocation(
-        kind="chooser",
-        command=shell.program() + " " + shell_arguments.join(" "),
-        detail="program path has no file name",
-      )
+    spec.set_cwd(cwd)
+    spec.set_stdin(@utf8.encode(candidates.join("\n") + "\n"))
+    spec.set_stdout(Capture)
+    spec.set_stderr(Inherit)
+    let result = @host.HostProcess::run_process(process, spec) catch {
+      error =>
+        raise interactive_invocation_failure(
+          "chooser",
+          shell.program() + " " + shell_arguments.join(" "),
+          error,
+        )
     }
-  }
-  let spec = @host.CommandSpec::new(shell.program(), shell_arguments) catch {
-    error => raise Host(error)
-  }
-  spec.set_cwd(cwd)
-  spec.set_stdin(@utf8.encode(candidates.join("\n") + "\n"))
-  spec.set_stdout(Capture)
-  spec.set_stderr(Inherit)
-  let result = @host.HostProcess::run_process(process, spec) catch {
-    error =>
-      raise interactive_invocation_failure(
-        "chooser",
-        shell.program() + " " + shell_arguments.join(" "),
-        error,
-      )
-  }
-  match result.termination() {
-    Exited(0) => decode_chooser_selections(result.stdout())
-    Exited(130) => []
-    termination => raise interactive_failure("chooser", chooser, termination)
+    match result.termination() {
+      Exited(0) => decode_chooser_selections(result.stdout())
+      Exited(130) => []
+      termination => raise interactive_failure("chooser", chooser, termination)
+    }
+  } catch {
+    error => raise error.with_project_sources(graph, context.cwd())
   }
 }

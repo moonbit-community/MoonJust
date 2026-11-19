@@ -335,29 +335,4 @@ pub impl Debug for ExecutionPlan with fn to_repr(self) {
 }
 
 ///|
-pub fn ExecutionReport::stdout(self : ExecutionReport) -> BytesView {
-  self.stdout[:]
-}
-
-///|
-pub fn ExecutionReport::stderr(self : ExecutionReport) -> BytesView {
-  self.stderr[:]
-}
-
-///|
-pub fn ExecutionReport::commands(self : ExecutionReport) -> Int32 {
-  self.commands
-}
-
-///|
-/// Debug output reports byte counts because child output may contain secrets.
-pub impl Debug for ExecutionReport with fn to_repr(self) {
-  Repr::record({
-    "stdout_bytes": Repr(self.stdout.length()),
-    "stderr_bytes": Repr(self.stderr.length()),
-    "commands": Repr(self.commands),
-  })
-}
-
-///|
 /// One requested root recipe and its already parsed positional values.

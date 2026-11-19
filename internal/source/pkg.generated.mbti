@@ -28,7 +28,7 @@ pub fn SourceError::not_equal(Self, Self) -> Bool
 pub fn SourceError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
-#derive(@debug.Debug)
+#derive(Eq, @debug.Debug)
 pub struct Source {
   id : SourceId
   name : String
@@ -54,6 +54,7 @@ pub fn Source::slice_text(Self, Span) -> String raise SourceError
 pub fn Source::text(Self) -> String
 #deprecated
 pub fn Source::to_repr(Self) -> @debug.Repr
+pub fn Source::with_name(Self, String) -> Self
 
 #derive(Compare, Eq, Hash, @debug.Debug)
 pub struct SourceId(Int32)

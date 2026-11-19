@@ -1,0 +1,124 @@
+----
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/async/process",
+  "moonbitlang/core/bench",
+  "moonbitlang/core/env",
+}
+----
+
+///|
+/// Run with two release Wasm paths and just 1.57.0 on PATH.
+/// One warm-up pair, then six measured pairs with alternating launch order.
+async fn main {
+  guard @env.args()[1:] is [before, after] else {
+    fail("expected paths to the before and after Wasm artifacts")
+  }
+  let artifacts = [@fs.realpath(before), @fs.realpath(after)]
+  let version = @process.run("just", ["--version"], stdout=Collect)
+  assert_eq(version.stdout_text().trim(), "just 1.57.0")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonjust-builtin-imports"))
+  defer @fs.remove(root, recursive=true)
+  async fn measure(name : String, args : Array[String]) -> Unit {
+    let args = ["-f", "justfile", ..args]
+    let oracle = @process.run(
+      "just",
+      args,
+      cwd=root,
+      stdout=Collect,
+      stderr=Collect,
+    )
+    assert_eq(oracle.exit_code, 0, msg=oracle.stderr_text())
+    let samples : Array[Array[Int32]] = [[], []]
+    for pair in 0..<=6 {
+      for side in (if pair % 2 == 0 { [0, 1] } else { [1, 0] }) {
+        let start = @bench.monotonic_clock_start()
+        let result = @process.run(
+          "moonrun",
+          [artifacts[side], "--", ..args],
+          cwd=root,
+          stdout=Collect,
+          stderr=Collect,
+        )
+        let us = @bench.monotonic_clock_end(start).to_int()
+        assert_eq(result.exit_code, oracle.exit_code, msg=result.stderr_text())
+        assert_eq(result.stdout_binary(), oracle.stdout_binary(), msg=name)
+        assert_eq(result.stderr_binary(), oracle.stderr_binary(), msg=name)
+        if pair > 0 {
+          samples[side].push(us)
+        }
+      }
+    }
+    for side, label in ["before", "after"] {
+      let times = samples[side]
+      let sorted = times.copy()
+      sorted.sort()
+      let ms = (sorted[2] + sorted[3]).to_double() / 2000
+      println("\{name} \{label} median_ms=\{ms} samples_us=\{Repr(times)}")
+    }
+  }
+  let term = "trim(uppercase(lowercase(' X ')))"
+  for bindings in [1, 16] {
+    let text = StringBuilder()
+    let names = Array::makei(bindings, i => "v\{i}")
+    for name in names {
+      text.write_string(
+        "\{name} := " + Array::make(16, term).join(" + ") + "\n",
+      )
+    }
+    text.write_string("result := " + names.join(" + ") + "\n")
+    @fs.write_text(root + "/justfile", text.to_string())
+    measure("builtin-\{bindings * 48}", ["--evaluate", "result"])
+  }
+  for size in [1, 250, 500, 1000, 2000] {
+    for count in (if size == 1 { [1] } else { [1, 2] }) {
+      write_graph(root, size, count, chain=false, duplicates=false)
+      measure("recipes-\{size}-files-\{count}", ["--summary"])
+    }
+  }
+  for
+    (shape, chain, duplicates) in [
+      ("wide", false, false),
+      ("deep", true, false),
+      ("deep-shadow", true, true),
+    ] {
+    write_graph(root, 1024, 16, chain~, duplicates~)
+    measure("recipes-1024-files-16-\{shape}", ["--summary"])
+    if duplicates {
+      measure("show-shadowed-r0", ["--show", "r0"])
+    }
+  }
+}
+
+///|
+async fn write_graph(
+  root : String,
+  size : Int32,
+  count : Int32,
+  chain~ : Bool,
+  duplicates~ : Bool,
+) -> Unit {
+  let per_file = size / count
+  for file in 0..<count {
+    let text = StringBuilder()
+    if duplicates && file == 0 {
+      text.write_string("set allow-duplicate-recipes\n")
+    }
+    if chain && file + 1 < count {
+      text.write_string("import 'part\{file + 1}'\n")
+    } else if !chain && file == 0 {
+      for child in 1..<count {
+        text.write_string("import 'part\{child}'\n")
+      }
+    }
+    for offset in 0..<per_file {
+      let shadow = duplicates && offset % 4 == 0
+      let index = if shadow { offset } else { file * per_file + offset }
+      let body = if shadow { "from\{file}" } else { "item" }
+      text.write_string("r\{index}:\n    echo \{body}\n")
+    }
+    let name = if file == 0 { "justfile" } else { "part\{file}" }
+    @fs.write_text(root + "/" + name, text.to_string())
+  }
+}

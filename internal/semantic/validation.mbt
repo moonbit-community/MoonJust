@@ -187,6 +187,15 @@ fn version_greater(
 }
 
 ///|
+/// Upstream just version used by minimum-version and the just_version() builtin.
+pub const JUST_COMPATIBILITY_VERSION : String = "1.57.0"
+
+///|
+let compatibility_version_parts : (Int32, Int32, Int32) = version_parts(
+  JUST_COMPATIBILITY_VERSION,
+).unwrap()
+
+///|
 fn validate_minimum_version(
   settings : CompiledSettings,
   setting_nodes : Array[@syntax.Setting],
@@ -200,12 +209,18 @@ fn validate_minimum_version(
   match settings.get("minimum-version") {
     Some(Text(required)) =>
       match version_parts(required) {
-        Some(requested) if version_greater(requested, (1, 57, 0)) => {
+        Some(requested) if version_greater(
+            requested, compatibility_version_parts,
+          ) => {
           let span = match definition.unwrap().value() {
             Some(String(value)) => value.span()
             _ => definition.unwrap().span()
           }
-          raise MinimumVersionUnsatisfied(required~, current="1.57.0", span~)
+          raise MinimumVersionUnsatisfied(
+            required~,
+            current=JUST_COMPATIBILITY_VERSION,
+            span~,
+          )
         }
         Some(_) => ()
         None => {

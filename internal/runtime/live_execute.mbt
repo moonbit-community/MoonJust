@@ -52,7 +52,7 @@ pub async fn[
       for _ in plan.tasks() {
         outcomes.push(LiveBlocked)
       }
-      for _ in 0..<jobs.min(plan.tasks().length()) {
+      for _ in 0..<coordinator.workers {
         group.spawn(() => {
           while true {
             guard coordinator.next() is Some((id, is_blocked)) else { break }

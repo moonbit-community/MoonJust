@@ -7,6 +7,9 @@ import {
 }
 
 // Values
+pub fn setting_spec(String) -> SettingSpec?
+
+pub fn setting_specs() -> ArrayView[SettingSpec]
 
 // Errors
 
@@ -387,6 +390,36 @@ pub fn Setting::span(Self) -> @source.Span
 #deprecated
 pub fn Setting::to_repr(Self) -> @debug.Repr
 pub fn Setting::value(Self) -> Expression?
+
+#derive(Eq, @debug.Debug)
+pub(all) enum SettingKind {
+  Boolean
+  Text
+  Expression
+}
+#deprecated
+pub fn SettingKind::equal(Self, Self) -> Bool
+#deprecated
+pub fn SettingKind::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn SettingKind::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct SettingSpec {
+  name : String
+  kind : SettingKind
+  required : Bool
+}
+#deprecated
+pub fn SettingSpec::equal(Self, Self) -> Bool
+pub fn SettingSpec::kind(Self) -> SettingKind
+pub fn SettingSpec::name(Self) -> String
+pub fn SettingSpec::new(String, SettingKind, Bool) -> Self
+#deprecated
+pub fn SettingSpec::not_equal(Self, Self) -> Bool
+pub fn SettingSpec::required(Self) -> Bool
+#deprecated
+pub fn SettingSpec::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
 pub(all) enum StringKind {

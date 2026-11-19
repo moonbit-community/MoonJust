@@ -1,10 +1,36 @@
 # ADR 0008: Cache format, locking, and hashing
 
-- Status: Accepted
+- Status: Superseded (historical Phase 9 design)
 - Date: 2026-08-11
 - Compatibility baseline: `just 1.57.0`
 
-## Context
+## Current Wasm cache contract (2026-11-19)
+
+The Wasm CLI stores entries in the project’s `.justcache/<digest>.json`. A
+miss publishes an empty marker before execution. After the recipe succeeds
+and its declared outputs exist, the runner publishes `{"recipe":"…"}`. Both
+writes create a private same-directory `.<digest>.tmp` and rename it into
+place. Empty or malformed manifests trigger another execution.
+
+Cooperating processes hold an exclusive OS lock on
+`.<digest>.lease/<generation>` across lookup, execution and commit. A waiter
+checks that the named generation still exists after locking. Normal release
+removes that generation and its empty directory. Process death releases the
+OS lock. The next owner discards any partial manifest temporary under the
+lease. A committed manifest survives process interruption. Power-loss
+durability and concurrent access by older binaries are outside this contract.
+
+Clean enumerates the cache and takes each discovered digest’s lease before
+removing its manifest. A concurrent run may publish after clean passes that
+key or introduce a new key after enumeration. Full clean also reaps recognized
+abandoned staging names and removes the cache root when empty. Recipe side
+effects survive interruption and may run again on a miss. The cross-process
+tests cover contended runs, clean during execution, owner termination with a
+seeded partial temporary, and atomic replacement of corrupt JSON.
+[Cache contract tests](../../../tests/cache_contract.mbtx) ·
+[Lease implementation](../../../internal/host/wasm/cache_lease.mbt)
+
+## Historical context
 
 Phase 9 introduces persistent recipe caching. A cache hit can suppress command
 execution, so a false hit is a correctness and security failure. Cache entries
@@ -16,7 +42,7 @@ The upstream baseline hashes a serialized key with BLAKE3 and holds an
 exclusive lock while deciding whether a recipe must run. MoonJust preserves
 the observable invalidation inputs without sharing the upstream on-disk format.
 
-## Decision
+## Phase 9 decision
 
 - The cache root is `.moonjust-cache/v1` below the project directory. The `v1`
   component is part of the storage format and is never inferred from file
@@ -57,7 +83,7 @@ the observable invalidation inputs without sharing the upstream on-disk format.
 - Native and wasm1 adapters implement the same project-owned HostCacheStore
   contract. Wasm execution still requires explicit filesystem policy grants.
 
-## Consequences
+## Phase 9 consequences
 
 Cache data is not compatible with upstream `just` or future MoonJust versions
 unless an explicit migration is added. Deleting `.moonjust-cache` is always a

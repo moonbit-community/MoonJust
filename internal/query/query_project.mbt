@@ -1,5 +1,5 @@
 ///|
-fn loaded_for_module(
+pub fn loaded_for_module(
   graph : @loader.LoadedGraph,
   path : @modulepath.ModulePath,
 ) -> @loader.LoadedSource? {
@@ -16,7 +16,7 @@ fn loaded_for_module(
 fn module_path_from_arguments(
   project : @semantic.ProjectCompilation,
   arguments : ArrayView[String],
-) -> @modulepath.ModulePath raise ApplicationError {
+) -> @modulepath.ModulePath raise QueryError {
   if arguments.is_empty() {
     return @modulepath.ModulePath::root()
   }
@@ -51,7 +51,7 @@ fn module_path_from_arguments(
 fn query_recipe_path(
   project : @semantic.ProjectCompilation,
   arguments : ArrayView[String],
-) -> (@modulepath.ModulePath, String, String) raise ApplicationError {
+) -> (@modulepath.ModulePath, String, String) raise QueryError {
   if arguments.is_empty() {
     raise Query("recipe path is required")
   }
@@ -143,7 +143,7 @@ fn direct_child_modules(
   }
   if !unsorted {
     result.sort_by(fn(left, right) {
-      @query.lexical_compare(left.as_string(), right.as_string())
+      lexical_compare(left.as_string(), right.as_string())
     })
   }
   result
@@ -155,7 +155,7 @@ fn evaluated_module_attribute(
   path : @modulepath.ModulePath,
   globals : Map[@modulepath.ModulePath, @evaluator.Environment],
   name : String,
-) -> String? raise ApplicationError {
+) -> String? raise QueryError {
   let environment_path = path.parent().unwrap_or(@modulepath.ModulePath::root())
   let environment = globals
     .get(environment_path)
@@ -190,70 +190,14 @@ fn append_indented_text(
 }
 
 ///|
-fn append_project_list_module(
-  builder : StringBuilder,
-  graph : @loader.LoadedGraph,
+fn project_summary_names(
   project : @semantic.ProjectCompilation,
-  path : @modulepath.ModulePath,
-  arguments : @cli.CliArguments,
-  color : Bool,
-  depth : Int32,
-  globals : Map[@modulepath.ModulePath, @evaluator.Environment],
-) -> Unit raise ApplicationError {
-  let compilation = project.module_compilation(path).unwrap()
-  guard loaded_for_module(graph, path) is Some(loaded) else {
-    raise Query("source for module `" + path.as_string() + "` is unavailable")
-  }
-  let heading = arguments
-    .value("list-heading")
-    .unwrap_or("Available recipes:\n")
-  let hidden_recipes : Array[String] = []
-  let hidden_aliases : Array[String] = []
-  for name in compilation.recipe_names() {
-    if project.recipe_disabled(path, name) {
-      hidden_recipes.push(name)
-    }
-  }
-  for symbol in compilation.symbols() {
-    if symbol.kind() is Alias && project.alias_disabled(path, symbol.name()) {
-      hidden_aliases.push(symbol.name())
-    }
-  }
-  let body = list_text(
-      loaded,
-      compilation,
-      arguments,
-      color,
-      hidden_recipes~,
-      hidden_aliases~,
-      project~,
-      module_path=path,
-      globals~,
-      graph~,
-    )
-    .strip_prefix(heading)
-    .unwrap_or("")
-    .to_owned()
-  let prefix = arguments.value("list-prefix").unwrap_or("    ")
-  append_indented_text(builder, body, prefix.repeat(depth))
-  if !body.is_empty() && !body.has_suffix("\n") {
-    builder.write_char('\n')
-  }
-}
-
-///|
-fn project_summary_text(
-  project : @semantic.ProjectCompilation,
-  arguments : @cli.CliArguments,
-) -> String {
+  filter : RecipeFilter,
+) -> Array[String] {
   let names : Array[String] = []
   for path in project.module_paths() {
     let compilation = project.module_compilation(path).unwrap()
-    for
-      name in @query.visible_recipe_names(
-        compilation,
-        @query.build_query(arguments),
-      ) {
+    for name in visible_recipe_names(compilation, filter) {
       if project.recipe_disabled(path, name) {
         continue
       }
@@ -266,41 +210,31 @@ fn project_summary_text(
       )
     }
   }
-  names.join(" ") + "\n"
+  names
 }
 
 ///|
-
-///|
-fn query_project_text(
+pub fn render(
+  request : QueryRequest,
   graph : @loader.LoadedGraph,
   project : @semantic.ProjectCompilation,
-  arguments : @cli.CliArguments,
   color : Bool,
-) -> String raise ApplicationError {
-  match arguments.command() {
-    SummaryCommand => project_summary_text(project, arguments)
-    ListCommand => {
-      let globals = evaluate_project_globals(project, arguments)
-      let path = module_path_from_arguments(project, arguments.positional())
+  globals : Map[@modulepath.ModulePath, @evaluator.Environment],
+) -> QueryResult raise QueryError {
+  let output = match request {
+    Summary(filter, quiet~) =>
+      return summary_result(project_summary_names(project, filter), quiet)
+    ListModule(target, options) => {
+      let path = match target {
+        Arguments(parts) => module_path_from_arguments(project, parts[:])
+        Module(path) => path
+      }
       if project.module_compilation(path) is None {
         raise Query("unknown module `" + path.as_string() + "`")
       }
-      let builder = StringBuilder()
-      builder.write_string(
-        arguments.value("list-heading").unwrap_or("Available recipes:\n"),
-      )
-      append_project_list_module(
-        builder, graph, project, path, arguments, color, 0, globals,
-      )
-      builder.to_string()
+      options.heading + list_body(graph, project, path, options, color, globals)
     }
-    ShowCommand => {
-      if arguments.positional().is_empty() {
-        raise Query("`--show` requires recipe")
-      }
-      let (path, recipe, _) = query_recipe_path(project, arguments.positional())
-      let compilation = project.module_compilation(path).unwrap()
+    Show(path, recipe) => {
       if project.alias_disabled(path, recipe) {
         let modules = project.alias_absent_modules(path, recipe)
         raise Query(
@@ -323,56 +257,51 @@ fn query_project_text(
           "`",
         )
       }
-      match compilation.alias_target(recipe) {
-        Some(target) =>
-          match project.resolve_recipe(path, recipe) {
-            Some(resolved) if resolved.module_path() != path =>
-              "alias " +
-              recipe +
-              " := " +
-              target +
-              "\n" +
-              show_recipe_text(
-                loaded_for_module(graph, resolved.module_path()).unwrap(),
-                project.module_compilation(resolved.module_path()).unwrap(),
-                resolved.recipe_name(),
-              )
-            _ =>
-              show_recipe_text(
-                loaded_for_module(graph, path).unwrap(),
-                compilation,
-                recipe,
-              )
-          }
-        None =>
-          show_recipe_text(
-            loaded_for_module(graph, path).unwrap(),
-            compilation,
-            recipe,
-          )
-      }
+      show_recipe_text(graph, project, path, recipe)
     }
-    UsageCommand => {
-      if arguments.positional().is_empty() {
-        raise Query("`--usage` requires recipe")
-      }
-      let (path, recipe, display) = query_recipe_path(
-        project,
-        arguments.positional(),
-      )
-      let globals = evaluate_project_globals(project, arguments)
+    Usage(path, recipe, display) =>
       usage_recipe_text(
         project.module_compilation(path).unwrap(),
         recipe,
         display,
         environment=globals[path],
       )
+    Variables => {
+      let private = private_assignments(graph.files()[0].ast())
+      let names = project
+        .root()
+        .variable_names()
+        .filter(fn(name) { !private.contains(name) })
+      names.sort_by(lexical_compare)
+      if names.is_empty() {
+        ""
+      } else {
+        names.join(" ") + "\n"
+      }
     }
-    _ => {
-      let loaded = graph.files()[0]
-      query_text(loaded, project.root(), arguments, color)
+    Groups(filter, prefix~) => {
+      let compilation = project.root()
+      let groups : Array[String] = []
+      for name in visible_recipe_names(compilation, filter) {
+        if compilation.recipe_attributes(name) is Some(attributes) {
+          for group in attributes.groups() {
+            if !groups.contains(group) {
+              groups.push(group)
+            }
+          }
+        }
+      }
+      if !filter.unsorted {
+        groups.sort_by(lexical_compare)
+      }
+      if groups.is_empty() {
+        ""
+      } else {
+        "Recipe groups:\n" +
+        groups.map(fn(value) { prefix + value }).join("\n") +
+        "\n"
+      }
     }
   }
+  QueryResult::new(stdout=@utf8.encode(output))
 }
-
-///|

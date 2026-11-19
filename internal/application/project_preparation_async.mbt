@@ -77,7 +77,7 @@ async fn[T : @host.HostFs] load_input(
 }
 
 ///|
-async fn[T : @host.HostFs] load_graph_input_with_directories(
+async fn[T : @host.HostFs] load_project_sources(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
@@ -86,39 +86,54 @@ async fn[T : @host.HostFs] load_graph_input_with_directories(
     false,
   ),
   environment~ : ArrayView[(String, String)] = [],
-) -> (@loader.LoadedGraph, @workdir.WorkingDirectoryModel) raise ApplicationError {
+) -> @project.ProjectSources raise ApplicationError {
   let request = project_load_request(arguments, context, platform, environment)
-  let sources = @project.load_sources(host, request) catch {
-    Load(error) => raise Load(error)
-    Path(error) => raise Path(error)
-    WorkingDirectory(error) => raise WorkingDirectory(error)
-    Semantic(error) => raise Semantic(error)
-    Compilation(error) => raise Project(error)
+  @project.load_sources(host, request) catch {
+    error =>
+      raise AtProject(
+        ApplicationError::from_project_error(error),
+        None,
+        context.cwd(),
+      )
   }
-  (sources.graph(), sources.directories())
+}
+
+///|
+fn ApplicationError::from_project_error(
+  error : @project.ProjectError,
+) -> ApplicationError {
+  match error {
+    Load(error) => Load(error)
+    Path(error) => Path(error)
+    WorkingDirectory(error) => WorkingDirectory(error)
+    Semantic(error) => Semantic(error)
+    Compilation(error) => Project(error)
+  }
 }
 
 ///|
 /// Keep asynchronous project preparation behind the project boundary. The
 /// application layer only translates CLI arguments into a load request and
 /// maps the project-owned errors into its response vocabulary.
-async fn[T : @host.HostFs] load_project_snapshot_async(
+async fn[T : @host.HostFs] load_project_snapshot(
   host : T,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
   platform : @semantic.TargetPlatform,
   environment : ArrayView[(String, String)],
 ) -> @project.ProjectSnapshot raise ApplicationError {
-  let request = project_load_request(arguments, context, platform, environment)
-  @project.load_snapshot(
+  let sources = load_project_sources(
     host,
-    request,
-    allow_unstable=arguments.flag("unstable"),
-  ) catch {
-    Load(error) => raise Load(error)
-    Path(error) => raise Path(error)
-    WorkingDirectory(error) => raise WorkingDirectory(error)
-    Semantic(error) => raise Semantic(error)
-    Compilation(error) => raise Project(error)
+    arguments,
+    context,
+    platform~,
+    environment~,
+  )
+  sources.compile(allow_unstable=arguments.flag("unstable"), platform~) catch {
+    error =>
+      raise ApplicationError::from_project_error(error).with_project_sources(
+        sources.graph(),
+        context.cwd(),
+      )
   }
 }

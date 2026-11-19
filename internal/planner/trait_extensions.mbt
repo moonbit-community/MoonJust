@@ -32,14 +32,6 @@ pub extend ExecutionPlan with Debug::{to_repr}
 
 ///|
 #deprecated
-pub extend ExecutionReport with Debug::{to_repr}
-
-///|
-#deprecated
-pub extend ExecutionReport with Eq::{not_equal, equal}
-
-///|
-#deprecated
 pub extend ExecutionTask with Debug::{to_repr}
 
 ///|

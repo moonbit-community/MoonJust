@@ -27,7 +27,7 @@ test "coverage index rejects malformed and duplicate evidence" {
   assert_true(errors.contains("duplicate spec-index upstream identity: first"))
   assert_true(
     errors.any(fn(error) {
-      error.has_prefix("spec-index row must contain four tab-separated fields")
+      error.has_prefix("spec-index row must contain four fields")
     }),
   )
 }
@@ -104,6 +104,7 @@ async test "coverage rejects anchors outside exact test declarations" {
   let out_of_range : SpecCase = {
     fixture: "internal/path/upstream_clean_test.mbt:9999",
     anchor: "src/clean.rs:46",
+    smoke_scope: None,
     local_test: Some("clean empty_path_maps_to_current_dir"),
   }
   assert_true(
@@ -114,16 +115,18 @@ async test "coverage rejects anchors outside exact test declarations" {
   let helper : SpecCase = {
     fixture: "internal/path/upstream_clean_test.mbt:2",
     anchor: "src/clean.rs:46",
+    smoke_scope: None,
     local_test: Some("clean empty_path_maps_to_current_dir"),
   }
   assert_true(
     validate_spec_anchor("clean::tests::empty", helper)
     .unwrap_or("")
-    .contains("outside a test block"),
+    .contains("not a test declaration"),
   )
   let wrong_name : SpecCase = {
     fixture: "internal/path/upstream_clean_test.mbt:14",
     anchor: "src/clean.rs:46",
+    smoke_scope: None,
     local_test: Some("wrong name"),
   }
   assert_true(
@@ -142,6 +145,7 @@ test "source snapshots alone remain unclassified" {
       {
         fixture: "tests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:1",
         anchor: "src/parser.rs:1",
+        smoke_scope: None,
         local_test: None,
       },
     ),
@@ -251,4 +255,97 @@ test "allowlisted formatting must refuse unchanged, not just return a known code
   assert_true(
     refusal_digest(fixture, { ..details, platform: Some("unix"), }) is None,
   )
+}
+
+///|
+async test "schema 4 distinguishes document contracts, local smoke and repository evidence" {
+  let specs = parse_spec_index(
+    @fs.read_text("tests/compatibility/upstream/just-1.57.0/spec-index.txt"),
+  )
+  let readme = "readme::readme"
+  let completion = "config::tests::subcommand_conflict_completions"
+  let repository = "readme::h1_and_h2_headings_are_setext"
+  let names = Set([readme, completion, repository])
+  let empty : Set[String] = Set([])
+  // An outline entry cannot stand in for running the document oracle.
+  let report = coverage_report(
+    names,
+    Map([]),
+    specs,
+    empty,
+    empty,
+    empty,
+    empty,
+    empty,
+    names,
+    empty,
+    failures=0,
+    product_identity=0,
+    platform="macos",
+    target="wasm",
+    reentry="",
+  )
+  assert_false(report.complete(allow_deferred=true))
+  assert_eq(report.document_oracle_declared, 1)
+  assert_eq(report.document_oracle_executed, 0)
+  assert_eq(report.moonbit_spec_executed, 0)
+  assert_eq(report.local_smoke_executed, 1)
+  assert_eq(report.repository_only, 1)
+  for row in report.rows {
+    if row.upstream_id == completion {
+      assert_eq(row.status, "local-smoke")
+      assert_true(row.evidence_scope.contains("Unsupported"))
+      assert_eq(row.local_test, "upstream " + completion)
+    } else if row.upstream_id == repository {
+      assert_eq(row.execution_state, "excluded")
+      assert_eq(row.local_test, "")
+    } else {
+      assert_eq(row.status, "document-oracle")
+      assert_eq(row.execution_state, "unexecuted")
+    }
+  }
+}
+
+///|
+test "README document oracle extracts only closed just fences and keeps body lines" {
+  assert_eq(
+    readme_just_blocks(
+      "# Title\n```sh\njust abc\n```\n```just\nx:\n  echo x\n\n```",
+    ),
+    [(5, "x:\n  echo x\n\n")],
+  )
+  let invalid = Some(readme_just_blocks("```just\nfoo:\n")) catch { _ => None }
+  assert_true(invalid is None)
+}
+
+///|
+async test "snapshot provenance is bound to its indexed line" {
+  let raw = "man::output\ttests/compatibility/upstream/just-1.57.0/upstream-fixtures.txt:1\t\ttests/man.rs:4"
+  let spec = parse_spec_index(raw)["man::output"]
+  assert_false(audited_fixture("man::output", spec, Map([])))
+}
+
+///|
+async test "all completion and signal exclusions carry verified pinned source anchors" {
+  let specs = parse_spec_index(
+    @fs.read_text("tests/compatibility/upstream/just-1.57.0/spec-index.txt"),
+  )
+  let names = upstream_test_names(
+    @fs.read_text("tests/compatibility/upstream/just-1.57.0/test-list.txt"),
+  )
+  let mut completions = 0
+  let mut signals = 0
+  for id in names {
+    guard exclusion(id) is Some((kind, _)) else { continue }
+    let (status, _, anchor, _) = coverage_status(id, Map([]), specs)
+    assert_eq(status, kind, msg=id)
+    assert_eq(validate_upstream_anchor(id, anchor), None, msg=id)
+    if status == "excluded-completion" {
+      completions += 1
+    } else {
+      signals += 1
+    }
+  }
+  assert_eq(completions, 34)
+  assert_eq(signals, 21)
 }

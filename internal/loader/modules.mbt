@@ -114,6 +114,7 @@ async fn[T : @host.HostFs] resolve_module_file(
   host : T,
   source_path : @path.PathValue,
   definition : @syntax.Module,
+  source? : @source.Source,
   environment~ : ArrayView[(String, String)] = [],
   metadata_cache~ : Map[String, @host.FileMetadata] = Map([]),
 ) -> @path.PathValue? raise LoaderError {
@@ -170,6 +171,7 @@ async fn[T : @host.HostFs] resolve_module_file(
   if candidates.length() > 1 {
     raise AmbiguousModuleFile(
       module_name=definition.name(),
+      source~,
       found=candidates,
       span=definition.name_span(),
     )
@@ -180,6 +182,7 @@ async fn[T : @host.HostFs] resolve_module_file(
     None =>
       raise ModuleFileMissing(
         module_name=definition.name(),
+        source~,
         span=@source.Span::new(
           definition.span().source_id(),
           definition.span().start_byte() +

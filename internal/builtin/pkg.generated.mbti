@@ -104,10 +104,8 @@ pub(all) struct BuiltinSpec {
   purity : BuiltinPurity
   min_arguments : Int32
   max_arguments : Int32?
-  aliases : Array[String]
-  capabilities : Array[BuiltinCapability]
-  targets : Array[BuiltinTarget]
-  evidence : String
+  aliases : ArrayView[String]
+  capabilities : ArrayView[BuiltinCapability]
 }
 pub fn BuiltinSpec::accepts_arity(Self, Int32) -> Bool
 pub fn BuiltinSpec::aliases(Self) -> ArrayView[String]
