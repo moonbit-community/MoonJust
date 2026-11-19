@@ -1,5 +1,158 @@
 schema_version = 3
-upstream = "just 1.57.0"
+upstream = "just 1.59.0"
+
+[[case]]
+id = "MJ-WINDOWS-NEGATIVE-EXIT-CODE"
+directory = "windows-negative-exit-code"
+owner_area = "runtime"
+platform = "windows"
+verify_snapshot = true
+status = "expected-difference"
+allowed_difference = "moonrun-wasi-exit"
+compare = ["status", "stdout", "stderr"]
+reason = "moonrun converts WASI proc_exit values above Int32::MAX to 1. The diagnostic must still report the original Windows child exit code."
+
+[[case]]
+id = "MJ-PRINT-BROKEN-PIPE"
+directory = "upstream-print-broken-pipe"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+closed_stdout = true
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["print::broken_pipe_is_ignored"]
+upstream_anchors = ["tests/print.rs:4"]
+
+[[case]]
+id = "MJ-WIN159-CMD-VERBATIM"
+directory = "upstream-win159-cmd-verbatim"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+platform = "windows"
+status = "match"
+compare = ["status", "stdout", "stderr"]
+upstream_tests = ["windows::cmd_shell_receives_command_verbatim"]
+upstream_anchors = ["tests/windows.rs:4"]
+
+[[case]]
+id = "MJ-WIN159-CMD-ENV"
+directory = "upstream-win159-cmd-env"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+platform = "windows"
+status = "match"
+compare = ["status", "stdout", "stderr"]
+upstream_tests = ["windows::cmd_shell_expands_environment_variables"]
+upstream_anchors = ["tests/windows.rs:36"]
+
+[[case]]
+id = "MJ-WIN159-CMD-REDIRECTION"
+directory = "upstream-win159-cmd-redirection"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+platform = "windows"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["windows::cmd_shell_redirection"]
+upstream_anchors = ["tests/windows.rs:53"]
+
+[[case]]
+id = "MJ-WIN159-BARE-BASH"
+directory = "upstream-win159-bare-bash"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+platform = "windows"
+status = "match"
+compare = ["status", "stdout", "stderr"]
+upstream_tests = ["windows::bare_bash_in_shebang"]
+upstream_anchors = ["tests/windows.rs:71"]
+
+[[case]]
+id = "MJ-WIN159-WINDOWS-SHELL"
+directory = "upstream-win159-windows-shell"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+platform = "windows"
+status = "match"
+compare = ["status", "stdout", "stderr"]
+upstream_tests = ["windows_shell::windows_shell_setting"]
+upstream_anchors = ["tests/windows_shell.rs:4"]
+
+[[case]]
+id = "MJ-WIN159-POWERSHELL-WITH-SHELL"
+directory = "upstream-win159-powershell-with-shell"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+platform = "windows"
+host_inputs = ["SystemRoot"]
+status = "match"
+compare = ["status", "stdout", "stderr"]
+upstream_tests = ["windows_shell::windows_powershell_setting_uses_powershell_set_shell"]
+upstream_anchors = ["tests/windows_shell.rs:22"]
+
+[[case]]
+id = "MJ-WIN159-POWERSHELL"
+directory = "upstream-win159-powershell"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+platform = "windows"
+host_inputs = ["SystemRoot"]
+status = "match"
+compare = ["status", "stdout", "stderr"]
+upstream_tests = ["windows_shell::windows_powershell_setting_uses_powershell"]
+upstream_anchors = ["tests/windows_shell.rs:40"]
+
+[[case]]
+id = "MJ-LINUX-NON-UNICODE-SIBLING"
+directory = "upstream-non-unicode-sibling"
+owner_area = "upstream-blackbox"
+platform = "linux"
+host_inputs = ["MOONJUST_EXECUTABLE"]
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["non_unicode::non_unicode_sibling_files_are_ignored"]
+upstream_anchors = ["tests/non_unicode.rs:16"]
+
+[[case]]
+id = "MJ-UPSTREAM-FORMAT-INTERPOLATION-SPACES"
+directory = "upstream-format-interpolation-spaces"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["format_string::interpolation_expressions_are_formatted_with_spaces"]
+upstream_anchors = ["tests/format_string.rs:263"]
+
+[[case]]
+id = "MJ-UPSTREAM-CHOOSER-PREVIEW"
+directory = "upstream-chooser-preview"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+platform = "unix"
+host_inputs = ["MOONJUST_EXECUTABLE"]
+upstream_tests = ["choose::default_chooser_preview_finds_justfile"]
+upstream_anchors = ["tests/choose.rs:379"]
+
+[[case]]
+id = "MJ-AUDIT-81"
+directory = "audit-duplicate-alias"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
+id = "MJ-AUDIT-82"
+directory = "audit-import-overrides"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+
+[[case]]
+id = "MJ-AUDIT-83"
+directory = "audit-list-unused-assignment"
+owner_area = "compatibility"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
 
 [[case]]
 id = "MJ-AUDIT-B01"
@@ -85,7 +238,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["justfile::tests::code_error", "justfile::tests::export_failure", "justfile::tests::missing_all_arguments", "justfile::tests::missing_all_defaults", "justfile::tests::missing_some_arguments", "justfile::tests::missing_some_arguments_variadic", "justfile::tests::missing_some_defaults", "justfile::tests::run_args", "justfile::tests::unknown_recipe_no_suggestion", "justfile::tests::unknown_recipe_show_alias_suggestion", "justfile::tests::unknown_recipe_with_suggestion"]
-upstream_anchors = ["src/justfile.rs:890", "src/justfile.rs:1022", "src/justfile.rs:968", "src/justfile.rs:1004", "src/justfile.rs:932", "src/justfile.rs:950", "src/justfile.rs:986", "src/justfile.rs:911", "src/justfile.rs:836", "src/justfile.rs:867", "src/justfile.rs:850"]
+upstream_anchors = ["src/justfile.rs:928", "src/justfile.rs:1060", "src/justfile.rs:1006", "src/justfile.rs:1042", "src/justfile.rs:970", "src/justfile.rs:988", "src/justfile.rs:1024", "src/justfile.rs:949", "src/justfile.rs:874", "src/justfile.rs:905", "src/justfile.rs:888"]
 reason = "Runs every remaining upstream justfile execution/error vector as an independent persistent fixture step."
 
 [[case]]
@@ -189,7 +342,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["compiler::tests::recursive_includes_fail"]
-upstream_anchors = ["src/compiler.rs:299"]
+upstream_anchors = ["src/compiler.rs:294"]
 reason = "Rejects a two-file circular import with the complete source diagnostic."
 
 [[case]]
@@ -392,7 +545,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["init::fmt_compatibility"]
-upstream_anchors = ["tests/init.rs:189"]
+upstream_anchors = ["tests/init.rs:200"]
 reason = "Initializes then checks the generated file with the upstream formatting invocation."
 
 [[case]]
@@ -528,7 +681,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["search::justfile_symlink_parent"]
-upstream_anchors = ["tests/search.rs:243"]
+upstream_anchors = ["tests/search.rs:275"]
 reason = "Finds and executes a parent source through a justfile symlink."
 
 [[case]]
@@ -610,7 +763,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::modulepaths_beginning_with_tilde_are_expanded_to_homdir"]
-upstream_anchors = ["tests/modules.rs:1449"]
+upstream_anchors = ["tests/modules.rs:1467"]
 reason = "Expands HOME in a module path and executes the module recipe."
 
 [[case]]
@@ -724,7 +877,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["search::justfile_with_no_parent_returns_correct_error"]
-upstream_anchors = ["tests/search.rs:261"]
+upstream_anchors = ["tests/search.rs:293"]
 reason = "Compares the root-justfile parent error exactly."
 
 [[case]]
@@ -869,6 +1022,46 @@ upstream_anchors = ["tests/json.rs:1234"]
 reason = "Compares the complete official JSON document for private recipe metadata."
 
 [[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-REMOVED"
+directory = "upstream-cache-environment-removed"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::environment_variables_may_be_removed_from_cache_key"]
+upstream_anchors = ["tests/cache.rs:217"]
+reason = "Changing the exported override hits the existing cache entry when the environment selection is empty."
+
+[[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-ADDED"
+directory = "upstream-cache-environment-added"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::environment_variables_may_be_added_to_cache_key"]
+upstream_anchors = ["tests/cache.rs:242"]
+reason = "Changing the selected inherited variable reruns the recipe in the same workspace."
+
+[[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-EXPRESSION"
+directory = "upstream-cache-environment-expression"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::environment_may_be_expression"]
+upstream_anchors = ["tests/cache.rs:265"]
+reason = "Resolves a variable in the environment selection and changes its inherited value between runs."
+
+[[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-UNDEFINED"
+directory = "upstream-cache-environment-undefined"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::cache_environment_variables_are_resolved"]
+upstream_anchors = ["tests/cache.rs:1207"]
+reason = "Compares the complete undefined-variable diagnostic and the workspace after the failed invocation."
+
+[[case]]
 id = "MJ-UPSTREAM-CACHE-HIT-SKIPS"
 directory = "upstream-cache-hit-skips"
 owner_area = "upstream-blackbox"
@@ -887,8 +1080,8 @@ compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 upstream_anchors = []
 allowed_difference = "product-identity"
-candidate_stdout_sha256 = "4a5311886b0c0578ec203f049174bab3a7140c89c92eaddd00e2ead88319fb10"
-reason = "ADR 0001 requires MoonJust product identity in version output."
+candidate_stdout_sha256 = "de59db85b4d0275d47f74b2fb1e9c1ef1dd9a0c9319cbee6579bf899209bf2c1"
+reason = "MoonJust reports its own package name and version."
 
 [[case]]
 id = "MJ-COMPAT-0002"
@@ -899,8 +1092,8 @@ compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 upstream_anchors = []
 allowed_difference = "product-identity"
-candidate_stdout_sha256 = "ae98ab873ade45bed606f51e6d50c52d4fde4591318aa7492feaacaa0949821b"
-reason = "ADR 0001 requires independent MoonJust identification; argparse presentation is not copied from upstream."
+candidate_stdout_sha256 = "1f73f3e325dc6df95dc68148e96828d5eea55eddcef1cf74118879d57fe0a566"
+reason = "The help output identifies MoonJust and describes its supported options."
 
 [[case]]
 id = "MJ-COMPAT-0003"
@@ -1289,6 +1482,7 @@ reason = "Undefined function calls in recipe interpolation fail semantic validat
 [[case]]
 id = "MJ-COMPAT-0040"
 directory = "40-function-dotenv"
+verify_snapshot = true
 owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
@@ -1460,6 +1654,7 @@ reason = "-c is byte-compatible with the long command form."
 [[case]]
 id = "MJ-COMPAT-0057"
 directory = "57-command-dotenv"
+verify_snapshot = true
 owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
@@ -1903,7 +2098,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["misc::run_colors", "config::tests::highlight_yes"]
-upstream_anchors = ["tests/misc.rs:1937", "src/config.rs:615"]
+upstream_anchors = ["tests/misc.rs:1937", "src/config.rs:587"]
 reason = "Forced color highlights command echo and the verbose recipe banner with their distinct official styles."
 
 [[case]]
@@ -1913,7 +2108,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["misc::no_highlight", "config::tests::highlight_yes_no"]
-upstream_anchors = ["tests/misc.rs:1956", "src/config.rs:639"]
+upstream_anchors = ["tests/misc.rs:1956", "src/config.rs:611"]
 reason = "A trailing no-highlight disables command styling while preserving the colored verbose banner."
 
 [[case]]
@@ -1933,7 +2128,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_default"]
-upstream_anchors = ["src/config.rs:609"]
+upstream_anchors = ["src/config.rs:581"]
 reason = "Highlighting is enabled by default whenever color output is active."
 
 [[case]]
@@ -1943,7 +2138,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_no"]
-upstream_anchors = ["src/config.rs:621"]
+upstream_anchors = ["src/config.rs:593"]
 reason = "A single no-highlight option disables command styling."
 
 [[case]]
@@ -1953,7 +2148,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_no_yes"]
-upstream_anchors = ["src/config.rs:627"]
+upstream_anchors = ["src/config.rs:599"]
 reason = "A trailing highlight option overrides an earlier no-highlight option."
 
 [[case]]
@@ -1963,7 +2158,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::highlight_no_yes_no"]
-upstream_anchors = ["src/config.rs:633"]
+upstream_anchors = ["src/config.rs:605"]
 reason = "Repeated highlight toggles use the final option."
 
 [[case]]
@@ -2421,7 +2616,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_backticks"]
-upstream_anchors = ["tests/working_directory.rs:264"]
+upstream_anchors = ["tests/working_directory.rs:289"]
 reason = "The module working-directory setting applies while evaluating global backticks."
 
 [[case]]
@@ -2431,7 +2626,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_shell_function"]
-upstream_anchors = ["tests/working_directory.rs:282"]
+upstream_anchors = ["tests/working_directory.rs:307"]
 reason = "The module working-directory setting applies while evaluating global shell functions."
 
 [[case]]
@@ -2441,7 +2636,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_backticks_in_submodules"]
-upstream_anchors = ["tests/working_directory.rs:300"]
+upstream_anchors = ["tests/working_directory.rs:325"]
 reason = "Submodule backticks resolve the setting relative to the submodule directory."
 
 [[case]]
@@ -2451,7 +2646,7 @@ owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "merged", "tree"]
 upstream_tests = ["working_directory::working_dir_applies_to_shell_function_in_submodules"]
-upstream_anchors = ["tests/working_directory.rs:321"]
+upstream_anchors = ["tests/working_directory.rs:346"]
 reason = "Submodule shell functions resolve the setting relative to the submodule directory."
 
 [[case]]
@@ -2707,7 +2902,7 @@ owner_area = "execution-context"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_filename"]
-upstream_anchors = ["src/config.rs:704"]
+upstream_anchors = ["src/config.rs:676"]
 reason = "The CLI rejects dotenv-command combined with dotenv-filename before loading the justfile."
 
 [[case]]
@@ -2717,7 +2912,7 @@ owner_area = "execution-context"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_path"]
-upstream_anchors = ["src/config.rs:709"]
+upstream_anchors = ["src/config.rs:681"]
 reason = "The CLI rejects dotenv-command combined with dotenv-path before loading the justfile."
 
 [[case]]
@@ -2727,7 +2922,7 @@ owner_area = "execution-context"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["config::tests::dotenv_command_conflicts_with_no_dotenv"]
-upstream_anchors = ["src/config.rs:714"]
+upstream_anchors = ["src/config.rs:686"]
 reason = "The CLI rejects dotenv-command combined with no-dotenv before loading the justfile."
 
 [[case]]
@@ -4547,7 +4742,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::absolute_path_argument_is_relative_to_submodule_working_directory"]
-upstream_anchors = ["tests/functions.rs:1473"]
+upstream_anchors = ["tests/functions.rs:1471"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -4557,7 +4752,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::blake3_file_argument_is_relative_to_submodule_working_directory"]
-upstream_anchors = ["tests/functions.rs:1490"]
+upstream_anchors = ["tests/functions.rs:1488"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -4568,7 +4763,7 @@ status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 normalizations = ["temp-path", "canonical-path"]
 upstream_tests = ["functions::canonicalize_argument_is_relative_to_submodule_working_directory"]
-upstream_anchors = ["tests/functions.rs:1507"]
+upstream_anchors = ["tests/functions.rs:1505"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6371,7 +6566,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["shebang::echo"]
-upstream_anchors = ["tests/shebang.rs:121"]
+upstream_anchors = ["tests/shebang.rs:146"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6381,7 +6576,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["shebang::echo_with_command_color"]
-upstream_anchors = ["tests/shebang.rs:136"]
+upstream_anchors = ["tests/shebang.rs:161"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6391,7 +6586,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["shebang::invalid_shebang_error"]
-upstream_anchors = ["tests/shebang.rs:174"]
+upstream_anchors = ["tests/shebang.rs:199"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6401,7 +6596,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["shebang::run_shebang"]
-upstream_anchors = ["tests/shebang.rs:157"]
+upstream_anchors = ["tests/shebang.rs:182"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6411,7 +6606,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["shebang::simple"]
-upstream_anchors = ["tests/shebang.rs:107"]
+upstream_anchors = ["tests/shebang.rs:132"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6611,7 +6806,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format_string::format_backticks_are_forbidden"]
-upstream_anchors = ["tests/format_string.rs:332"]
+upstream_anchors = ["tests/format_string.rs:341"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6621,7 +6816,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format_string::format_string_followed_by_recipe"]
-upstream_anchors = ["tests/format_string.rs:283"]
+upstream_anchors = ["tests/format_string.rs:292"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6641,7 +6836,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format_string::mismatched_closing_delimiter_in_format_string"]
-upstream_anchors = ["tests/format_string.rs:311"]
+upstream_anchors = ["tests/format_string.rs:320"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6691,7 +6886,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format_string::stray_identifier_in_interpolation_is_an_error"]
-upstream_anchors = ["tests/format_string.rs:348"]
+upstream_anchors = ["tests/format_string.rs:357"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6711,7 +6906,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format_string::undefined_variable_error"]
-upstream_anchors = ["tests/format_string.rs:263"]
+upstream_anchors = ["tests/format_string.rs:272"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -6731,7 +6926,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["format_string::unterminated_format_string_error"]
-upstream_anchors = ["tests/format_string.rs:295"]
+upstream_anchors = ["tests/format_string.rs:304"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8000,8 +8195,8 @@ directory = "upstream-b4-055"
 owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
-upstream_tests = ["usage::search_directory_without_recipe"]
-upstream_anchors = ["tests/usage.rs:4"]
+upstream_tests = []
+upstream_anchors = []
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8021,7 +8216,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute"]
-upstream_anchors = ["tests/working_directory.rs:363"]
+upstream_anchors = ["tests/working_directory.rs:388"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8031,7 +8226,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute_duplicate"]
-upstream_anchors = ["tests/working_directory.rs:342"]
+upstream_anchors = ["tests/working_directory.rs:367"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8041,7 +8236,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute_undefined_variable"]
-upstream_anchors = ["tests/working_directory.rs:490"]
+upstream_anchors = ["tests/working_directory.rs:515"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8051,7 +8246,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute_with_backtick"]
-upstream_anchors = ["tests/working_directory.rs:450"]
+upstream_anchors = ["tests/working_directory.rs:475"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8061,7 +8256,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute_with_expression"]
-upstream_anchors = ["tests/working_directory.rs:417"]
+upstream_anchors = ["tests/working_directory.rs:442"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8071,7 +8266,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute_with_expression_dump"]
-upstream_anchors = ["tests/working_directory.rs:465"]
+upstream_anchors = ["tests/working_directory.rs:490"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8081,7 +8276,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute_with_nocd_is_forbidden"]
-upstream_anchors = ["tests/working_directory.rs:378"]
+upstream_anchors = ["tests/working_directory.rs:403"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8091,7 +8286,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::attribute_with_recipe_parameter"]
-upstream_anchors = ["tests/working_directory.rs:434"]
+upstream_anchors = ["tests/working_directory.rs:459"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8101,7 +8296,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::false_no_cd_does_not_conflict_with_working_directory"]
-upstream_anchors = ["tests/working_directory.rs:511"]
+upstream_anchors = ["tests/working_directory.rs:536"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8111,7 +8306,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::setting_and_attribute"]
-upstream_anchors = ["tests/working_directory.rs:400"]
+upstream_anchors = ["tests/working_directory.rs:425"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8121,7 +8316,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::working_dir_in_submodule_is_relative_to_module_path"]
-upstream_anchors = ["tests/working_directory.rs:245"]
+upstream_anchors = ["tests/working_directory.rs:270"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8131,7 +8326,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::working_directory_setting_conflicts_with_no_cd_setting"]
-upstream_anchors = ["tests/working_directory.rs:224"]
+upstream_anchors = ["tests/working_directory.rs:249"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8251,7 +8446,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::cache_extra_variables_are_resolved"]
-upstream_anchors = ["tests/cache.rs:1135"]
+upstream_anchors = ["tests/cache.rs:1231"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8261,7 +8456,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::cache_inputs_variables_are_resolved"]
-upstream_anchors = ["tests/cache.rs:1159"]
+upstream_anchors = ["tests/cache.rs:1255"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8271,7 +8466,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::cache_outputs_variables_are_resolved"]
-upstream_anchors = ["tests/cache.rs:1183"]
+upstream_anchors = ["tests/cache.rs:1279"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8281,7 +8476,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_succeeds_without_cache_directory"]
-upstream_anchors = ["tests/cache.rs:785"]
+upstream_anchors = ["tests/cache.rs:857"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8374,7 +8569,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["datetime::parse_only_specifier_error"]
-upstream_anchors = ["tests/datetime.rs:46"]
+upstream_anchors = ["tests/datetime.rs:47"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8545,7 +8740,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::dir_abbreviations_are_accepted"]
-upstream_anchors = ["tests/functions.rs:1443"]
+upstream_anchors = ["tests/functions.rs:1441"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8555,7 +8750,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::dry_run_does_not_execute_shell_function"]
-upstream_anchors = ["tests/functions.rs:1669"]
+upstream_anchors = ["tests/functions.rs:1667"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8565,7 +8760,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::dry_run_shell_function_output_is_escaped"]
-upstream_anchors = ["tests/functions.rs:1683"]
+upstream_anchors = ["tests/functions.rs:1681"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8605,7 +8800,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::invocation_dir_native_abbreviation_is_accepted"]
-upstream_anchors = ["tests/functions.rs:1458"]
+upstream_anchors = ["tests/functions.rs:1456"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8655,7 +8850,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::module_path_in_submodule"]
-upstream_anchors = ["tests/functions.rs:1604"]
+upstream_anchors = ["tests/functions.rs:1602"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8665,7 +8860,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::module_paths"]
-upstream_anchors = ["tests/functions.rs:1204"]
+upstream_anchors = ["tests/functions.rs:1202"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8675,7 +8870,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::num_jobs_requires_lists"]
-upstream_anchors = ["tests/functions.rs:1648"]
+upstream_anchors = ["tests/functions.rs:1646"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8695,7 +8890,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::path_exists_argument_is_relative_to_submodule_working_directory"]
-upstream_anchors = ["tests/functions.rs:1524"]
+upstream_anchors = ["tests/functions.rs:1522"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8705,7 +8900,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::read"]
-upstream_anchors = ["tests/functions.rs:1558"]
+upstream_anchors = ["tests/functions.rs:1556"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8715,7 +8910,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::recipe_name"]
-upstream_anchors = ["tests/functions.rs:1348"]
+upstream_anchors = ["tests/functions.rs:1346"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8725,7 +8920,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::recipe_name_ignores_alias"]
-upstream_anchors = ["tests/functions.rs:1393"]
+upstream_anchors = ["tests/functions.rs:1391"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8735,7 +8930,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::recipe_name_in_assignment_is_an_error"]
-upstream_anchors = ["tests/functions.rs:1409"]
+upstream_anchors = ["tests/functions.rs:1407"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8745,7 +8940,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::recipe_name_in_dependency_argument"]
-upstream_anchors = ["tests/functions.rs:1378"]
+upstream_anchors = ["tests/functions.rs:1376"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8755,7 +8950,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::recipe_name_in_parameter_default"]
-upstream_anchors = ["tests/functions.rs:1365"]
+upstream_anchors = ["tests/functions.rs:1363"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8805,7 +9000,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::sha256_file_argument_is_relative_to_submodule_working_directory"]
-upstream_anchors = ["tests/functions.rs:1541"]
+upstream_anchors = ["tests/functions.rs:1539"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8875,7 +9070,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::source_directory"]
-upstream_anchors = ["tests/functions.rs:1183"]
+upstream_anchors = ["tests/functions.rs:1181"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -8948,7 +9143,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::unary_argument_count_mismatch_error_message"]
-upstream_anchors = ["tests/functions.rs:1426"]
+upstream_anchors = ["tests/functions.rs:1424"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9179,7 +9374,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::argument_count_mismatch_usage_hint_includes_module_path"]
-upstream_anchors = ["tests/modules.rs:2172"]
+upstream_anchors = ["tests/modules.rs:2190"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9199,7 +9394,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::bad_module_attribute_fails"]
-upstream_anchors = ["tests/modules.rs:1872"]
+upstream_anchors = ["tests/modules.rs:1890"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9229,7 +9424,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::colon_separated_path_components_are_not_used_as_arguments"]
-upstream_anchors = ["tests/modules.rs:1583"]
+upstream_anchors = ["tests/modules.rs:1601"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9239,7 +9434,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::colon_separated_path_does_not_run_recipes"]
-upstream_anchors = ["tests/modules.rs:1547"]
+upstream_anchors = ["tests/modules.rs:1565"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9249,7 +9444,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::comments_can_follow_modules"]
-upstream_anchors = ["tests/modules.rs:1592"]
+upstream_anchors = ["tests/modules.rs:1610"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9259,7 +9454,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::cross_module_dependency_runs_in_submodule_directory"]
-upstream_anchors = ["tests/modules.rs:1378"]
+upstream_anchors = ["tests/modules.rs:1396"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9269,7 +9464,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::cross_module_dependency_with_no_cd_runs_in_invocation_directory"]
-upstream_anchors = ["tests/modules.rs:1401"]
+upstream_anchors = ["tests/modules.rs:1419"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9349,7 +9544,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::doc_attribute_on_module"]
-upstream_anchors = ["tests/modules.rs:1627"]
+upstream_anchors = ["tests/modules.rs:1645"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9359,7 +9554,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::doc_attribute_on_module_may_be_expression"]
-upstream_anchors = ["tests/modules.rs:1643"]
+upstream_anchors = ["tests/modules.rs:1661"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9369,7 +9564,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::doc_comment_on_module"]
-upstream_anchors = ["tests/modules.rs:1612"]
+upstream_anchors = ["tests/modules.rs:1630"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9379,7 +9574,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::empty_doc_attribute_on_module"]
-upstream_anchors = ["tests/modules.rs:1887"]
+upstream_anchors = ["tests/modules.rs:1905"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9389,7 +9584,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::evaluate_absent_optional_module_is_error"]
-upstream_anchors = ["tests/modules.rs:1037"]
+upstream_anchors = ["tests/modules.rs:1055"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9399,7 +9594,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::expected_submodule_but_found_recipe_in_root_error"]
-upstream_anchors = ["tests/modules.rs:1564"]
+upstream_anchors = ["tests/modules.rs:1582"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9409,7 +9604,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::expected_submodule_but_found_recipe_in_submodule_error"]
-upstream_anchors = ["tests/modules.rs:1573"]
+upstream_anchors = ["tests/modules.rs:1591"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9419,7 +9614,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::exported_variables_are_available_in_submodules"]
-upstream_anchors = ["tests/modules.rs:1922"]
+upstream_anchors = ["tests/modules.rs:1940"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9429,7 +9624,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::exported_variables_can_be_overridden_in_submodules"]
-upstream_anchors = ["tests/modules.rs:1967"]
+upstream_anchors = ["tests/modules.rs:1985"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9439,7 +9634,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::exported_variables_can_be_unexported_in_submodules"]
-upstream_anchors = ["tests/modules.rs:1944"]
+upstream_anchors = ["tests/modules.rs:1962"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9449,7 +9644,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::group_attribute_on_module"]
-upstream_anchors = ["tests/modules.rs:1682"]
+upstream_anchors = ["tests/modules.rs:1700"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9459,7 +9654,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::group_attribute_on_module_list_submodule"]
-upstream_anchors = ["tests/modules.rs:1773"]
+upstream_anchors = ["tests/modules.rs:1791"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9469,7 +9664,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::group_attribute_on_module_list_submodule_unsorted"]
-upstream_anchors = ["tests/modules.rs:1822"]
+upstream_anchors = ["tests/modules.rs:1840"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9479,7 +9674,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::group_attribute_on_module_unsorted"]
-upstream_anchors = ["tests/modules.rs:1727"]
+upstream_anchors = ["tests/modules.rs:1745"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9489,7 +9684,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::ignore_files_named_after_module_directory"]
-upstream_anchors = ["tests/modules.rs:2146"]
+upstream_anchors = ["tests/modules.rs:2164"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9509,7 +9704,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::list_absent_optional_module_is_error"]
-upstream_anchors = ["tests/modules.rs:1028"]
+upstream_anchors = ["tests/modules.rs:1037"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9689,7 +9884,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::modules_may_specify_path"]
-upstream_anchors = ["tests/modules.rs:1236"]
+upstream_anchors = ["tests/modules.rs:1254"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9699,7 +9894,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::modules_may_specify_path_to_directory"]
-upstream_anchors = ["tests/modules.rs:1257"]
+upstream_anchors = ["tests/modules.rs:1275"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9730,7 +9925,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::modules_with_paths_are_dumped_correctly"]
-upstream_anchors = ["tests/modules.rs:1278"]
+upstream_anchors = ["tests/modules.rs:1296"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9750,7 +9945,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::nested_cross_module_dependency_runs_in_correct_directory"]
-upstream_anchors = ["tests/modules.rs:1425"]
+upstream_anchors = ["tests/modules.rs:1443"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9766,11 +9961,12 @@ reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differen
 [[case]]
 id = "MJ-UPSTREAM-B7-062"
 directory = "upstream-b7-062"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::nested_submodule_dotenv_merge"]
-upstream_anchors = ["tests/modules.rs:1171"]
+upstream_anchors = ["tests/modules.rs:1189"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9780,7 +9976,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::nested_trailing_separator_runs_default_recipe"]
-upstream_anchors = ["tests/modules.rs:2031"]
+upstream_anchors = ["tests/modules.rs:2049"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9800,7 +9996,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::optional_modules_with_paths_are_dumped_correctly"]
-upstream_anchors = ["tests/modules.rs:1298"]
+upstream_anchors = ["tests/modules.rs:1316"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9810,7 +10006,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::overrides_work_when_submodule_is_present"]
-upstream_anchors = ["tests/modules.rs:1903"]
+upstream_anchors = ["tests/modules.rs:1921"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9860,7 +10056,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::recipes_may_be_named_mod"]
-upstream_anchors = ["tests/modules.rs:1318"]
+upstream_anchors = ["tests/modules.rs:1336"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9880,7 +10076,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::recipes_with_same_name_are_both_run"]
-upstream_anchors = ["tests/modules.rs:1474"]
+upstream_anchors = ["tests/modules.rs:1492"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9900,7 +10096,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::root_does_not_see_submodule_dotenv"]
-upstream_anchors = ["tests/modules.rs:1143"]
+upstream_anchors = ["tests/modules.rs:1161"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9910,7 +10106,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::root_dotenv_is_available_to_submodules"]
-upstream_anchors = ["tests/modules.rs:1046"]
+upstream_anchors = ["tests/modules.rs:1064"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9930,7 +10126,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_assignments_are_not_shadowed_by_parent_variables"]
-upstream_anchors = ["tests/modules.rs:2093"]
+upstream_anchors = ["tests/modules.rs:2111"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9940,7 +10136,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_dotenv_load_false_skips_own_but_inherits_parent"]
-upstream_anchors = ["tests/modules.rs:1211"]
+upstream_anchors = ["tests/modules.rs:1229"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9950,7 +10146,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_dotenv_overrides_root"]
-upstream_anchors = ["tests/modules.rs:1118"]
+upstream_anchors = ["tests/modules.rs:1136"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9960,7 +10156,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_function_bodies_are_not_shadowed_by_parent_variables"]
-upstream_anchors = ["tests/modules.rs:2118"]
+upstream_anchors = ["tests/modules.rs:2136"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9970,7 +10166,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_inherits_root_dotenv_even_with_dotenv_load_false"]
-upstream_anchors = ["tests/modules.rs:1069"]
+upstream_anchors = ["tests/modules.rs:1087"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9980,7 +10176,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_loads_own_dotenv"]
-upstream_anchors = ["tests/modules.rs:1093"]
+upstream_anchors = ["tests/modules.rs:1111"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -9990,7 +10186,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_recipe_not_found_colon_separated_error_message"]
-upstream_anchors = ["tests/modules.rs:1527"]
+upstream_anchors = ["tests/modules.rs:1545"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10000,7 +10196,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_recipe_not_found_error_message"]
-upstream_anchors = ["tests/modules.rs:1498"]
+upstream_anchors = ["tests/modules.rs:1516"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10010,7 +10206,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_recipe_not_found_spaced_error_message"]
-upstream_anchors = ["tests/modules.rs:1507"]
+upstream_anchors = ["tests/modules.rs:1525"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10020,7 +10216,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_shebang_recipes_run_in_submodule_directory"]
-upstream_anchors = ["tests/modules.rs:1355"]
+upstream_anchors = ["tests/modules.rs:1373"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10030,7 +10226,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::submodule_shell_recipes_run_in_submodule_directory"]
-upstream_anchors = ["tests/modules.rs:1333"]
+upstream_anchors = ["tests/modules.rs:1351"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10050,7 +10246,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::sugest_similarly_named_submodules"]
-upstream_anchors = ["tests/modules.rs:2157"]
+upstream_anchors = ["tests/modules.rs:2175"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10060,7 +10256,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::trailing_separator_no_default_recipe"]
-upstream_anchors = ["tests/modules.rs:2052"]
+upstream_anchors = ["tests/modules.rs:2070"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10070,7 +10266,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::trailing_separator_not_last_argument"]
-upstream_anchors = ["tests/modules.rs:2073"]
+upstream_anchors = ["tests/modules.rs:2091"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10080,7 +10276,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::trailing_separator_runs_default_recipe"]
-upstream_anchors = ["tests/modules.rs:2011"]
+upstream_anchors = ["tests/modules.rs:2029"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10090,7 +10286,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::variables_in_doc_attributes_are_resolved"]
-upstream_anchors = ["tests/modules.rs:1659"]
+upstream_anchors = ["tests/modules.rs:1677"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -10100,7 +10296,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["modules::verbose_message_includes_module_path"]
-upstream_anchors = ["tests/modules.rs:1990"]
+upstream_anchors = ["tests/modules.rs:2008"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -12225,7 +12421,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["timestamps::invalid_format_string_error"]
-upstream_anchors = ["tests/timestamps.rs:66"]
+upstream_anchors = ["tests/timestamps.rs:129"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13249,7 +13445,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_path_removes_empty_entries"]
-upstream_anchors = ["tests/cache.rs:951"]
+upstream_anchors = ["tests/cache.rs:1023"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13259,7 +13455,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_path_removes_exact_recipe"]
-upstream_anchors = ["tests/cache.rs:904"]
+upstream_anchors = ["tests/cache.rs:976"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13269,7 +13465,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_path_removes_subtree"]
-upstream_anchors = ["tests/cache.rs:857"]
+upstream_anchors = ["tests/cache.rs:929"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13279,7 +13475,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_removes_cache_directory"]
-upstream_anchors = ["tests/cache.rs:726"]
+upstream_anchors = ["tests/cache.rs:798"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13289,7 +13485,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_removes_entries_but_leaves_unexpected_entries"]
-upstream_anchors = ["tests/cache.rs:754"]
+upstream_anchors = ["tests/cache.rs:826"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13299,7 +13495,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::clean_reports_plural_count"]
-upstream_anchors = ["tests/cache.rs:825"]
+upstream_anchors = ["tests/cache.rs:897"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13319,7 +13515,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::directory_input_is_an_error"]
-upstream_anchors = ["tests/cache.rs:454"]
+upstream_anchors = ["tests/cache.rs:526"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13329,7 +13525,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::dry_run_skips_input_checking"]
-upstream_anchors = ["tests/cache.rs:489"]
+upstream_anchors = ["tests/cache.rs:561"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13339,7 +13535,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::dry_run_skips_output_checking"]
-upstream_anchors = ["tests/cache.rs:684"]
+upstream_anchors = ["tests/cache.rs:756"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13359,7 +13555,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::extra_invalidates_cache"]
-upstream_anchors = ["tests/cache.rs:311"]
+upstream_anchors = ["tests/cache.rs:383"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13369,7 +13565,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::missing_input_is_an_error"]
-upstream_anchors = ["tests/cache.rs:438"]
+upstream_anchors = ["tests/cache.rs:510"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13379,7 +13575,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::no_cache_does_not_write_cache_entries"]
-upstream_anchors = ["tests/cache.rs:1069"]
+upstream_anchors = ["tests/cache.rs:1141"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13389,7 +13585,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::no_cache_reruns_on_hit"]
-upstream_anchors = ["tests/cache.rs:1040"]
+upstream_anchors = ["tests/cache.rs:1112"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13399,7 +13595,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::symlink_to_directory_is_an_error"]
-upstream_anchors = ["tests/cache.rs:471"]
+upstream_anchors = ["tests/cache.rs:543"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13409,7 +13605,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["cache::symlink_to_file_is_followed"]
-upstream_anchors = ["tests/cache.rs:417"]
+upstream_anchors = ["tests/cache.rs:489"]
 reason = "Replays every upstream invocation in one persistent sandbox and compares each step plus final filesystem state."
 
 [[case]]
@@ -13549,7 +13745,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::num_jobs_falls_back_to_empty_list"]
-upstream_anchors = ["tests/functions.rs:1632"]
+upstream_anchors = ["tests/functions.rs:1630"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13559,7 +13755,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["functions::num_jobs_returns_jobs"]
-upstream_anchors = ["tests/functions.rs:1615"]
+upstream_anchors = ["tests/functions.rs:1613"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13810,7 +14006,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["usage::flags_have_no_value_placeholder"]
-upstream_anchors = ["tests/usage.rs:70"]
+upstream_anchors = ["tests/usage.rs:131"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13820,7 +14016,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["usage::usage"]
-upstream_anchors = ["tests/usage.rs:31"]
+upstream_anchors = ["tests/usage.rs:22"]
 reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differential fixture."
 
 [[case]]
@@ -13861,7 +14057,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::no_cd_overrides_setting"]
-upstream_anchors = ["tests/working_directory.rs:205"]
+upstream_anchors = ["tests/working_directory.rs:230"]
 
 [[case]]
 id = "MJ-UPSTREAM-B13-001"
@@ -13871,7 +14067,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["working_directory::setting"]
-upstream_anchors = ["tests/working_directory.rs:177"]
+upstream_anchors = ["tests/working_directory.rs:202"]
 
 [[case]]
 id = "MJ-UPSTREAM-B14-026"
@@ -14106,7 +14302,7 @@ owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = ["usage::usage_recipe_in_search_directory"]
-upstream_anchors = ["tests/usage.rs:13"]
+upstream_anchors = ["tests/usage.rs:4"]
 
 [[case]]
 id = "MJ-UPSTREAM-B15-002"

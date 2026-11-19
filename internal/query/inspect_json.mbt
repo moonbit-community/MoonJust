@@ -245,6 +245,18 @@ fn attribute_plain_json(expression : @syntax.Expression) -> Json {
 
 ///|
 fn attribute_json(attribute : @syntax.Attribute) -> Json {
+  if attribute.name() == "cache" {
+    let fields : Map[String, Json] = Map([])
+    for key in ["environment", "extra", "inputs", "outputs"] {
+      fields[key] = Json::null()
+    }
+    for arg in attribute.arguments() {
+      if arg.key() is Some(key) && arg.value() is Some(value) {
+        fields[key] = expression_json(value)
+      }
+    }
+    return json_object([("cache", Json::object(fields))])
+  }
   if attribute.name() == "arg" {
     let arguments = attribute.arguments()
     let mut name : Json = Json::null()
@@ -317,6 +329,9 @@ fn attribute_json(attribute : @syntax.Attribute) -> Json {
   }
   let arguments = attribute.arguments()
   if arguments.is_empty() {
+    if attribute.name() == "timestamp" || attribute.name() == "script" {
+      return json_object([(attribute.name(), Json::null())])
+    }
     return Json::string(attribute.name())
   }
   let positional : Array[Json] = []

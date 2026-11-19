@@ -10,6 +10,9 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+# The differential runner copies these synthetic inputs into isolated trees.
+!tests/differential/cases/*/tree/**/.env
+!tests/differential/cases/*/steps/*/write/**/.env
 *.key
 *.pem
 coverage.xml

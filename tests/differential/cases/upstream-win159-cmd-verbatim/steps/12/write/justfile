@@ -1,0 +1,4 @@
+set shell := ['cmd.exe', '/c']
+
+foo:
+ @for %i in (foo bar) do @echo %i

@@ -1,0 +1,193 @@
+----
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/async/process",
+}
+----
+
+///|
+const REPORT = "tests/compatibility/upgrade/"
+
+///|
+const SOURCE = "tests/compatibility/upstream/just-1.59.0/source"
+
+///|
+async fn git(repo : String, args : Array[String]) -> String {
+  @process.run("git", ["-C", repo, ..args], stdout=Collect, accepted_exit_code=code => {
+    code == 0
+  }).stdout_text()
+}
+
+///|
+async fn compare_report(
+  name : String,
+  rows : Array[String],
+  emit : String?,
+) -> Unit {
+  let expected = rows.join("\n") + "\n"
+  if emit == Some(name) {
+    println(rows.join("\n"))
+  } else if emit is None {
+    assert_eq(
+      @fs.read_text(REPORT + name),
+      expected,
+      msg="release inventory mismatch: " + name,
+    )
+  }
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 || args.length() == 3 else {
+    fail(
+      "usage: git-delta.mbtx UPSTREAM_GIT [release-commits.tsv|source-hunks.tsv]",
+    )
+  }
+  let repo = @fs.realpath(args[1])
+  let emit = args.get(2)
+  guard emit is None ||
+    emit == Some("release-commits.tsv") ||
+    emit == Some("source-hunks.tsv") else {
+    fail("unknown table")
+  }
+  let pins = [
+    ("1.57.0", "e01a6bd7e7a30baf86bc86d2b95b0998ebbdc36f"),
+    ("1.58.0", "7f4ef81bd6a93faa2b28430912c8e9ab0e3dd29a"),
+    ("1.59.0", "2638e9c0941edb1f409da7426fa7842887656973"),
+  ]
+  for (tag, commit) in pins {
+    assert_eq(
+      git(repo, ["rev-parse", tag + "^{commit}"]).trim().to_owned(),
+      commit,
+      msg=tag,
+    )
+  }
+  let commits = ["release\tcommit\tchangelog_anchor\tsubject"]
+  let hunks = ["base\tresult\tpath\told_start,count\tnew_start,count"]
+  let notes = @fs.read_text(SOURCE + "/CHANGELOG.md").split("\n").collect()
+  async fn record_hunks(base : String, end : String) -> Unit {
+    let patch = git(repo, [
+      "-c", "diff.algorithm=myers", "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+      "--no-indent-heuristic", "--unified=0", base, end, "--",
+    ])
+    let mut path = ""
+    for line in patch.split("\n") {
+      if line.has_prefix("diff --git ") {
+        path = line.split(" b/").last().unwrap().to_owned()
+      } else if line.has_prefix("@@ ") {
+        let fields = line.split(" ").collect()
+        let old = fields[1][1:].to_owned()
+        let new = fields[2][1:].to_owned()
+        hunks.push(
+          [
+            base,
+            end,
+            path,
+            if old.contains(",") {
+              old
+            } else {
+              old + ",1"
+            },
+            if new.contains(",") {
+              new
+            } else {
+              new + ",1"
+            },
+          ].join("\t"),
+        )
+      }
+    }
+  }
+  for (base, release) in [("1.57.0", "1.58.0"), ("1.58.0", "1.59.0")] {
+    for
+      line in git(repo, [
+        "log",
+        "--reverse",
+        "--topo-order",
+        "--format=%H%x09%s",
+        base + ".." + release,
+      ])
+      .trim()
+      .split("\n") {
+      let cols = line.split("\t").collect()
+      let sha = cols[0].to_owned()
+      let subject = cols[1].to_owned()
+      let mut note = ""
+      let pr = subject
+        .split("(#")
+        .last()
+        .unwrap()
+        .trim_end(chars=")")
+        .to_owned()
+      for i, n in notes {
+        if n.contains("[#" + pr + "]") ||
+          (subject.has_prefix("Release ") && n.has_prefix("[" + release + "]")) {
+          note = "CHANGELOG.md:" + (i + 1).to_string()
+          break
+        }
+      }
+      guard !note.is_empty() else { fail("unmatched release item: " + subject) }
+      commits.push([release, sha, note, subject].join("\t"))
+      record_hunks(sha + "^", sha)
+    }
+  }
+  record_hunks("1.57.0", "1.59.0")
+  compare_report("release-commits.tsv", commits, emit)
+  compare_report("source-hunks.tsv", hunks, emit)
+  if emit is None {
+    let files = git(repo, [
+      "ls-tree", "-r", "1.59.0", "--", "src", "tests", "examples", "README.md", "LICENSE",
+      "CHANGELOG.md",
+    ])
+    let sources : Set[String] = Set([])
+    let paths = []
+    let hashes = []
+    for line in files.trim().split("\n") {
+      let f = line.split("\t").collect()
+      let path = f[1].to_owned()
+      paths.push(@fs.realpath(SOURCE + "/" + path))
+      hashes.push(f[0].split(" ").last().unwrap().to_owned())
+      sources.add(path)
+    }
+    let mut first = 0
+    while first < paths.length() {
+      let end = (first + 32).min(paths.length())
+      let actual = git(
+        repo,
+        ["hash-object", "--no-filters", "--", ..paths[first:end]],
+      )
+      assert_eq(
+        actual.trim().split("\n").map(x => x.to_owned()).collect(),
+        hashes[first:end].to_owned(),
+        msg=paths[first],
+      )
+      first = end
+    }
+    async fn check_directory(relative : String) -> Unit {
+      for name in @fs.readdir(SOURCE + relative, include_hidden=true) {
+        let child = relative + "/" + name
+        if @fs.kind(SOURCE + child) is Directory {
+          check_directory(child)
+        } else {
+          guard sources.contains(child[1:].to_owned()) ||
+            child == "/PROVENANCE.md" else {
+            fail("untracked upstream path " + child)
+          }
+        }
+      }
+    }
+    check_directory("")
+    println(
+      "Verified three release pins, " +
+      (commits.length() - 1).to_string() +
+      " commits, " +
+      (hunks.length() - 1).to_string() +
+      " changed hunks and " +
+      paths.length().to_string() +
+      " upstream source blobs.",
+    )
+  }
+}

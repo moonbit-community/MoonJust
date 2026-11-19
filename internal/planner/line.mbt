@@ -185,6 +185,7 @@ pub async fn[
   process : P,
   host : H,
   planned : PlannedLine,
+  timestamp_format : String?,
 ) -> (PlannedCommand, Bytes) raise ExecutionError {
   let line = evaluate_async_line(
     process,
@@ -199,7 +200,7 @@ pub async fn[
   )
   let should_echo = planned.options.dry_run() ||
     planned.options.verbose() ||
-    planned.options.timestamp() is Some(_) ||
+    timestamp_format is Some(_) ||
     (
       !planned.options.quiet() &&
       !planned.options.echo_quiet() &&
@@ -208,7 +209,7 @@ pub async fn[
   let echo = if should_echo && !line.command.is_empty() {
     render_command_echo(
       line.command,
-      timestamp=command_timestamp(host, planned.options),
+      timestamp=command_timestamp(host, timestamp_format),
       color=planned.options.command_color(),
     )
   } else {

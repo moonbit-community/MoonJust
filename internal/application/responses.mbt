@@ -16,7 +16,7 @@ pub fn static_invocation_text(argv : ArrayView[String]) -> String? {
     "--help" | "-h" => Some(@cli.render_help().trim_end().to_owned() + "\n")
     "--version" | "-V" => Some(version_line() + "\n")
     "--changelog" => Some(just_changelog)
-    "--man" => Some(JUST_MAN_PAGE + "\n")
+    "--man" => Some(just_man_page)
     _ => None
   }
 }

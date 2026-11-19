@@ -20,7 +20,7 @@ priv enum PathRoot {
   UnixRoot
   WindowsRoot
   WindowsDrive(String, Bool)
-  WindowsUnc(String, String)
+  WindowsPrefix(String)
 }
 
 ///|
@@ -75,7 +75,10 @@ fn chars_after(value : String, count : Int32) -> String {
 }
 
 ///|
-fn normalize_components(raw : Array[String], rooted : Bool) -> Array[String] {
+fn normalize_components(
+  raw : ArrayView[String],
+  rooted : Bool,
+) -> Array[String] {
   let normalized : Array[String] = []
   for component in raw {
     if component == "" || component == "." {
@@ -105,24 +108,33 @@ fn parse_unix(value : String) -> ParsedPath {
 }
 
 ///|
+fn parse_windows_prefix(parts : Array[String]) -> ParsedPath {
+  guard !parts.is_empty() else { return { root: WindowsRoot, components: [], } }
+  // An ordinary UNC prefix starts with the server and gains its share on
+  // joining the next name. Extended UNC has two names after the namespace.
+  let extended_unc = parts is ["?" | ".", name, ..] && name.to_upper() == "UNC"
+  let start = if extended_unc { 2 } else { 1 }
+  let prefix = parts[:start].to_owned()
+  let prefix_len = if extended_unc { 4 } else { 2 }
+  let mut end = start
+  while end < parts.length() && prefix.length() < prefix_len {
+    let name = parts[end]
+    if name != "." && name != ".." {
+      prefix.push(name)
+    }
+    end += 1
+  }
+  {
+    root: WindowsPrefix("\\\\" + prefix.join("\\")),
+    components: normalize_components(parts[end:], true),
+  }
+}
+
+///|
 fn parse_windows(value : String) -> ParsedPath {
   let characters = value.to_array()
   if value.has_prefix("\\\\") {
-    let all = collect_nonempty(value, "\\")
-    if all.length() >= 2 {
-      let body : Array[String] = []
-      for index, component in all {
-        if index >= 2 {
-          body.push(component)
-        }
-      }
-      {
-        root: WindowsUnc(all[0], all[1]),
-        components: normalize_components(body, true),
-      }
-    } else {
-      { root: WindowsRoot, components: normalize_components(all, true), }
-    }
+    parse_windows_prefix(collect_nonempty(value, "\\"))
   } else if characters.length() >= 2 &&
     characters[0].is_ascii_alphabetic() &&
     characters[1] == ':' {
@@ -180,14 +192,7 @@ fn format_parsed(parsed : ParsedPath, flavor : PathFlavor) -> String {
       } else {
         "\{drive}\\\{body}"
       }
-    WindowsUnc(server, share) => {
-      let root = "\\\\\{server}\\\{share}"
-      if body == "" {
-        root
-      } else {
-        "\{root}\\\{body}"
-      }
-    }
+    WindowsPrefix(root) => if body == "" { root } else { "\{root}\\\{body}" }
   }
 }
 
@@ -227,33 +232,33 @@ pub fn PathValue::clean(self : PathValue) -> PathValue {
 ///|
 pub fn PathValue::is_absolute(self : PathValue) -> Bool {
   match parse(self.value, self.flavor).root {
-    UnixRoot | WindowsRoot | WindowsDrive(_, true) | WindowsUnc(_, _) => true
+    UnixRoot | WindowsRoot | WindowsDrive(_, true) | WindowsPrefix(_) => true
     Relative | WindowsDrive(_, false) => false
   }
 }
 
 ///|
-fn compose_raw(base : PathValue, child : ParsedPath) -> String {
-  let child_text = format_parsed(child, base.flavor)
-  match child.root {
-    UnixRoot | WindowsUnc(_, _) | WindowsDrive(_, _) => child_text
+fn compose_raw(base : PathValue, child : String) -> String {
+  match parse(child, base.flavor).root {
+    UnixRoot | WindowsPrefix(_) | WindowsDrive(_, _) => child
     WindowsRoot =>
       match parse(base.value, base.flavor).root {
-        WindowsDrive(drive, _) => "\{drive}\{child_text}"
-        WindowsUnc(server, share) => "\\\\\{server}\\\{share}\{child_text}"
-        _ => child_text
+        WindowsDrive(drive, _) => drive + child
+        WindowsPrefix(prefix) => prefix + child
+        _ => child
       }
     Relative =>
-      if child_text == "." {
+      if child == "." || child.is_empty() {
         base.value
       } else if base.value == "." {
-        child_text
+        child
       } else {
-        let separator = match base.flavor {
-          Unix => "/"
-          Windows => "\\"
+        let separator = base.flavor.separator().to_string()
+        if base.value.has_suffix(separator) {
+          base.value + child
+        } else {
+          base.value + separator + child
         }
-        "\{base.value}\{separator}\{child_text}"
       }
   }
 }
@@ -267,8 +272,18 @@ pub fn PathValue::join(
   if self.flavor != child.flavor {
     raise FlavorMismatch(expected=self.flavor, actual=child.flavor)
   }
+  PathValue::new(compose_raw(self, child.value), self.flavor)
+}
+
+///|
+/// Resolve a source spelling against this base before normalizing its parents.
+/// For example, a share introduced by the child becomes part of the UNC root.
+pub fn PathValue::join_text(
+  self : PathValue,
+  child : String,
+) -> PathValue raise PathError {
   PathValue::new(
-    compose_raw(self, parse(child.value, child.flavor)),
+    compose_raw(self, canonical_separators(child, self.flavor)),
     self.flavor,
   )
 }

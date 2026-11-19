@@ -5,7 +5,7 @@ pub struct CacheDirective {
   body : String
   interpreter : String
   interpreter_arguments : Array[String]
-  environment : Array[(String, String)]
+  environment : Array[(String, String?)]
   extension : String
   working_directory : @path.PathValue
   positional : Array[String]
@@ -38,7 +38,7 @@ fn CacheDirective::new(
   body : String,
   interpreter : String,
   interpreter_arguments : Array[String],
-  environment : Array[(String, String)],
+  environment : Array[(String, String?)],
   extension : String,
   working_directory : @path.PathValue,
   positional : Array[String],
@@ -86,7 +86,7 @@ pub fn CacheDirective::interpreter_arguments(
 ///|
 pub fn CacheDirective::environment(
   self : CacheDirective,
-) -> ArrayView[(String, String)] {
+) -> ArrayView[(String, String?)] {
   self.environment[:]
 }
 
@@ -175,6 +175,11 @@ pub struct ExecutionTask {
   dependencies : Array[Int32]
   cache : CacheDirective?
   confirmation : (async () -> String raise ExecutionError)?
+  timestamp : (async () -> String raise ExecutionError)?
+  deferred_script : (
+    String,
+    async () -> (PlannedScript, Bytes, CacheDirective?) raise ExecutionError,
+  )?
   print_exit_message : Bool
   preamble : Bytes
 }
@@ -202,6 +207,11 @@ fn ExecutionTask::new(
   dependencies : ArrayView[Int32],
   cache? : CacheDirective,
   confirmation? : async () -> String raise ExecutionError,
+  timestamp? : async () -> String raise ExecutionError,
+  deferred_script? : (
+    String,
+    async () -> (PlannedScript, Bytes, CacheDirective?) raise ExecutionError,
+  ),
   print_exit_message~ : Bool = true,
   preamble~ : Bytes = b"",
 ) -> ExecutionTask {
@@ -213,6 +223,8 @@ fn ExecutionTask::new(
     dependencies: dependencies.to_owned(),
     cache,
     confirmation,
+    timestamp,
+    deferred_script,
     print_exit_message,
     preamble,
   }
@@ -236,6 +248,16 @@ pub fn ExecutionTask::recipe(self : ExecutionTask) -> String {
 ///|
 pub fn ExecutionTask::steps(self : ExecutionTask) -> ArrayView[PlannedStep] {
   self.steps[:]
+}
+
+///|
+pub fn ExecutionTask::with_script(
+  self : ExecutionTask,
+  script : PlannedScript,
+  echo : Bytes,
+  cache : CacheDirective?,
+) -> ExecutionTask {
+  { ..self, steps: [Script(script, echo)], cache, deferred_script: None, }
 }
 
 ///|

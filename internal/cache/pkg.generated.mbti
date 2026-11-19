@@ -52,7 +52,7 @@ pub struct CacheKey {
   body : String
   interpreter : String
   interpreter_arguments : Array[String]
-  environment : Array[(String, String)]
+  environment : Array[(String, String?)]
   extension : String
   working_directory : String
   positional : Array[String]
@@ -65,7 +65,7 @@ pub fn CacheKey::debug_json(Self) -> String
 pub fn CacheKey::digest(Self) -> String
 #deprecated
 pub fn CacheKey::equal(Self, Self) -> Bool
-pub fn CacheKey::new(String, String, String, interpreter_arguments? : Array[String], environment? : Array[(String, String)], extension? : String, working_directory? : String, positional? : Array[String], extra? : String, inputs? : Array[InputDigest], outputs? : Array[String]) -> Self raise CacheError
+pub fn CacheKey::new(String, String, String, interpreter_arguments? : Array[String], environment? : Array[(String, String?)], extension? : String, working_directory? : String, positional? : Array[String], extra? : String, inputs? : Array[InputDigest], outputs? : Array[String]) -> Self raise CacheError
 #deprecated
 pub fn CacheKey::not_equal(Self, Self) -> Bool
 pub fn CacheKey::outputs(Self) -> ArrayView[String]

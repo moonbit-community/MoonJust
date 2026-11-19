@@ -13,7 +13,7 @@ pub struct ProjectLoadRequest {
   input : ProjectInput
   selection : SourceSelection
   working_directory : @path.PathValue?
-  filename : String
+  filenames : ArrayView[String]
   ceiling : @path.PathValue?
   platform : @semantic.TargetPlatform
   environment : ArrayView[(String, String)]
@@ -23,7 +23,7 @@ pub struct ProjectLoadRequest {
 pub fn ProjectLoadRequest::new(
   input : ProjectInput,
   selection : SourceSelection,
-  filename : String,
+  filenames : ArrayView[String],
   platform : @semantic.TargetPlatform,
   environment : ArrayView[(String, String)],
   working_directory? : @path.PathValue,
@@ -33,7 +33,7 @@ pub fn ProjectLoadRequest::new(
     input,
     selection,
     working_directory,
-    filename,
+    filenames,
     ceiling,
     platform,
     environment,
@@ -54,12 +54,32 @@ fn justfile_directories(
   working_directory : @path.PathValue?,
 ) -> @workdir.WorkingDirectoryModel raise ProjectError {
   @workdir.WorkingDirectoryModel::from_justfile(
-    input.cwd(),
+    input.invocation_directory(),
     path,
     working_directory~,
   ) catch {
     error => raise WorkingDirectory(error)
   }
+}
+
+///|
+pub async fn[T : @host.HostFs] discover_directories(
+  host : T,
+  input : ProjectInput,
+  options : @loader.SearchOptions,
+  working_directory : @path.PathValue?,
+) -> @workdir.WorkingDirectoryModel raise ProjectError {
+  let start = match working_directory {
+    Some(directory) =>
+      input.invocation_directory().join(directory) catch {
+        error => raise Path(error)
+      }
+    None => input.cwd()
+  }
+  let path = @loader.discover(host, start, options~) catch {
+    error => raise Load(error)
+  }
+  justfile_directories(input, path, working_directory)
 }
 
 ///|
@@ -103,18 +123,16 @@ async fn[T : @host.HostFs] resolve_project_input(
         }
         Search => {
           let options = @loader.SearchOptions::new(
-            filename=request.filename,
+            filenames=request.filenames,
             ceiling=request.ceiling,
           )
-          let path = @loader.discover(host, input.cwd(), options~) catch {
-            error => raise Load(error)
-          }
-          let directories = justfile_directories(
+          let directories = discover_directories(
+            host,
             input,
-            path,
+            options,
             request.working_directory,
           )
-          { input, path: Some(path), directories, }
+          { input, path: directories.justfile(), directories, }
         }
       }
   }

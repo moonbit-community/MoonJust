@@ -11,11 +11,13 @@ async fn[T : @host.HostFs] load_input_with_directories(
     }
     return (loaded, directories)
   }
+  let cwd = context.cwd()
   let working_directory = working_directory_argument(
     arguments,
-    context.cwd().flavor(),
+    cwd.flavor(),
+    base=context.invocation_directory(),
   )
-  match input_selection(arguments, context.cwd().flavor()) {
+  match input_selection(arguments, cwd.flavor(), base=cwd) {
     Stdin => {
       let directories = @workdir.WorkingDirectoryModel::from_stdin(
         context.cwd(),
@@ -47,18 +49,15 @@ async fn[T : @host.HostFs] load_input_with_directories(
     }
     Search => {
       let options = @loader.SearchOptions::new(
-        filename=arguments.value("justfile-name").unwrap_or("justfile"),
-        ceiling=ceiling_argument(arguments, context.cwd()),
+        filenames=arguments.values("justfile-name"),
+        ceiling=ceiling_argument(arguments, context.invocation_directory()),
       )
-      let path = @loader.discover(host, context.cwd(), options~) catch {
-        error => raise Load(error)
-      }
-      let directories = @workdir.WorkingDirectoryModel::from_justfile(
-        context.cwd(),
-        path,
+      let directories = @project.discover_directories(
+        host, context, options, working_directory,
       ) catch {
-        error => raise WorkingDirectory(error)
+        error => raise ApplicationError::from_project_error(error)
       }
+      let path = directories.justfile().unwrap()
       let loaded = @loader.load(host, path, context.source_id()) catch {
         error => raise Load(error)
       }

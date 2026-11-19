@@ -1,6 +1,12 @@
 # Upstream test provenance
 
-The compatibility oracle and fixture source is:
+MoonJust verifies the current CLI against just 1.59.0 at commit
+`2638e9c0941edb1f409da7426fa7842887656973`. Both pinned upstream source
+trees are distributed under CC0-1.0. The current release inventory includes
+platform-specific registrations from Linux, macOS and Windows.
+[Release and registration delta](../upgrade)
+
+The historical just 1.57.0 corpus has the following provenance.
 
 - Project: `casey/just`
 - Repository: <https://github.com/casey/just>
@@ -14,7 +20,7 @@ registrations emitted by `cargo test -- --list`. The adjacent `source/` tree
 supplies the upstream Rust source anchors, the complete README and all seven
 files from `examples/`.
 
-The runner executes the official binary on each host. Schema 4 records the
+The runner executes the official binary on each host. Schema 5 records the
 observation for each upstream identity and the host that supplied it.
 The coverage guide defines the live comparisons, local assertions, document
 checks, exclusions and cross-host merge. [Coverage guide](../README.md)

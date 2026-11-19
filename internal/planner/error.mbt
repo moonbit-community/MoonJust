@@ -16,6 +16,7 @@ pub(all) suberror ExecutionError {
   GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   CachedRecipesUnstable
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
+  InvalidTimestampFormat(String)
   ConfirmationFailure(message~ : String)
   CacheFailure(message~ : String)
 }
@@ -63,6 +64,7 @@ pub fn ExecutionError::exit_code(self : ExecutionError) -> Int32 {
     | DependencyCycle(_)
     | CachedRecipesUnstable
     | InvalidAttributeValue(_)
+    | InvalidTimestampFormat(_)
     | ConfirmationFailure(_)
     | CacheFailure(_) => 1
   }
@@ -111,6 +113,7 @@ pub fn ExecutionError::message(self : ExecutionError) -> String {
     CachedRecipesUnstable =>
       "error: cached recipes are currently unstable, invoke `just` with `--unstable`, set the `JUST_UNSTABLE` environment variable, or add `set unstable` to your `justfile` to enable unstable features"
     InvalidAttributeValue(message~, ..) => "error: " + message
+    InvalidTimestampFormat(message) => "error: " + message
     ConfirmationFailure(message~) | CacheFailure(message~) =>
       "error: " + message
   }

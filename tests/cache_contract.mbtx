@@ -3,6 +3,7 @@ import {
   "moonbitlang/core/async",
   "moonbitlang/core/async/fs",
   "moonbitlang/core/async/process",
+  "moonbitlang/core/json",
 }
 ----
 
@@ -16,8 +17,232 @@ async fn wait_for(path : String) -> Unit {
 }
 
 ///|
+async fn cache_cli(
+  wasm : String,
+  cwd : String,
+  args : Array[String],
+  env~ : Map[String, String] = {},
+  unstable~ : Bool = true,
+) -> @process.ProcessResult {
+  let flags = if unstable { ["--unstable"] } else { [] }
+  @process.run(
+    "moonrun",
+    [wasm, "--", ..flags, ..args],
+    cwd~,
+    extra_env=env,
+    stdout=Collect,
+    stderr=Collect,
+  )
+}
+
+///|
+fn expect_stdout(
+  result : @process.ProcessResult,
+  expected : String,
+) -> Unit raise {
+  assert_eq(result.exit_code, 0, msg=result.stderr_text())
+  assert_eq(result.stdout_text(), expected)
+}
+
+///|
+async fn environment_variables_may_be_removed_from_cache_key(
+  wasm : String,
+) -> Unit {
+  let root = @fs.tmpdir(prefix="moonjust-cache-remove")
+  defer @fs.remove(root, recursive=true)
+  @fs.write_text(
+    root + "/justfile",
+    "set lists\nexport value := 'default'\n[cache(environment=[])]\n[script]\nfoo:\n  echo $value\n",
+  )
+  expect_stdout(cache_cli(wasm, root, ["value=bar"]), "bar\n")
+  expect_stdout(cache_cli(wasm, root, ["value=baz"]), "")
+}
+
+///|
+async fn environment_variables_may_be_added_to_cache_key(wasm : String) -> Unit {
+  let root = @fs.tmpdir(prefix="moonjust-cache-add")
+  defer @fs.remove(root, recursive=true)
+  @fs.write_text(
+    root + "/justfile",
+    "set lists\n[cache(environment=['value'])]\n[script]\nfoo:\n  echo $value\n",
+  )
+  expect_stdout(cache_cli(wasm, root, [], env={ "value": "bar" }), "bar\n")
+  expect_stdout(cache_cli(wasm, root, [], env={ "value": "baz" }), "baz\n")
+  expect_stdout(cache_cli(wasm, root, [], env={ "value": "baz" }), "")
+}
+
+///|
+async fn environment_may_be_expression(wasm : String) -> Unit {
+  let root = @fs.tmpdir(prefix="moonjust-cache-expression")
+  defer @fs.remove(root, recursive=true)
+  @fs.write_text(
+    root + "/justfile",
+    "set lists\nname := 'value'\n[cache(environment=[name])]\n[script]\nfoo:\n  echo $value\n",
+  )
+  expect_stdout(cache_cli(wasm, root, [], env={ "value": "bar" }), "bar\n")
+  expect_stdout(cache_cli(wasm, root, [], env={ "value": "baz" }), "baz\n")
+}
+
+///|
+async fn cache_environment_variables_are_resolved(wasm : String) -> Unit {
+  let root = @fs.tmpdir(prefix="moonjust-cache-undefined")
+  defer @fs.remove(root, recursive=true)
+  @fs.write_text(
+    root + "/justfile",
+    "[cache(environment = undefined)]\n[script('sh')]\nfoo:\n  echo bar\n",
+  )
+  let result = cache_cli(wasm, root, [])
+  assert_eq(result.exit_code, 1)
+  assert_eq(result.stdout_text(), "")
+  assert_eq(
+    result.stderr_text(),
+    "error: variable `undefined` not defined\n ——▶ justfile:1:22\n  │\n1 │ [cache(environment = undefined)]\n  │                      ^^^^^^^^^\n",
+  )
+}
+
+///|
+async fn selected_environment_values(wasm : String) -> Unit {
+  let root = @fs.tmpdir(prefix="moonjust-cache-values")
+  defer @fs.remove(root, recursive=true)
+  let file = root + "/justfile"
+  @fs.write_text(
+    file,
+    (
+      #|set lists
+      #|name := 'MOONJUST_CONTRACT_SELECTED'
+      #|[cache(environment=[name, name])]
+      #|[script]
+      #|foo:
+      #|  echo "value=${MOONJUST_CONTRACT_SELECTED-unset}"
+      #|
+    ),
+  )
+  expect_stdout(cache_cli(wasm, root, []), "value=unset\n")
+  expect_stdout(
+    cache_cli(wasm, root, [], env={ "MOONJUST_CONTRACT_SELECTED": "" }),
+    "value=\n",
+  )
+  expect_stdout(cache_cli(wasm, root, []), "")
+  // A scalar selection denotes the same key as the deduplicated list.
+  @fs.write_text(
+    file,
+    @fs.read_text(file).replace_all(old="[name, name]", new="name"),
+  )
+  expect_stdout(
+    cache_cli(wasm, root, [], env={ "MOONJUST_CONTRACT_SELECTED": "" }),
+    "",
+  )
+  // Invalid bytes must not collide with a valid empty value.
+  if !(@async.platform is Windows) {
+    let non_unicode = @process.run(
+      "sh",
+      [
+        "-c", "export MOONJUST_CONTRACT_SELECTED=$(printf '\\377'); exec \"$@\"",
+        "sh", "moonrun", wasm, "--", "--unstable",
+      ],
+      cwd=root,
+      stdout=Collect,
+      stderr=Collect,
+    )
+    assert_eq(non_unicode.exit_code, 1)
+    assert_true(
+      non_unicode
+      .stderr_text()
+      .contains("environment variable `MOONJUST_CONTRACT_SELECTED` not unicode"),
+    )
+  }
+  // An explicit unexport wins over the inherited value.
+  @fs.write_text(
+    file,
+    "unexport MOONJUST_CONTRACT_SELECTED\n" + @fs.read_text(file),
+  )
+  expect_stdout(
+    cache_cli(wasm, root, [], env={ "MOONJUST_CONTRACT_SELECTED": "ambient" }),
+    "",
+  )
+  @fs.write_text(
+    file,
+    (
+      #|set dotenv-load
+      #|set dotenv-override
+      #|export X := 'global'
+      #|[env('X', 'attribute')]
+      #|[cache(environment='X')]
+      #|[script]
+      #|foo $X:
+      #|  echo "$X"
+      #|
+    ),
+  )
+  @fs.write_text(root + "/.env", "X=dotenv\n")
+  expect_stdout(cache_cli(wasm, root, ["foo", "parameter"]), "attribute\n")
+  expect_stdout(cache_cli(wasm, root, ["X=changed", "foo", "another"]), "")
+  @fs.write_text(
+    file, "[cache(environment=error('must not run'))]\n[script]\nfoo:\n  echo bypass\n",
+  )
+  expect_stdout(cache_cli(wasm, root, ["--no-cache"]), "bypass\n")
+  expect_stdout(cache_cli(wasm, root, ["--dry-run"]), "")
+}
+
+///|
+async fn cache_attribute_dump(wasm : String) -> Unit {
+  let root = @fs.tmpdir(prefix="moonjust-cache-dump")
+  defer @fs.remove(root, recursive=true)
+  @fs.write_text(
+    root + "/justfile",
+    "set lists\nname := 'X'\n[cache(outputs=['a'],extra='x',environment=[name],inputs=[])]\n[script]\nfoo:\n  touch a\n  echo foo\n",
+  )
+  let dump = cache_cli(wasm, root, ["--dump"])
+  assert_eq(dump.exit_code, 0)
+  assert_true(
+    dump
+    .stdout_text()
+    .contains(
+      "[cache(environment=[name], extra='x', inputs=[], outputs=['a'])]",
+    ),
+  )
+  let serialized = cache_cli(wasm, root, ["--dump", "--dump-format", "json"])
+  assert_eq(serialized.exit_code, 0)
+  guard @json.parse(serialized.stdout_text())
+    is { "recipes": { "foo": { "attributes": attributes, .. }, .. }, .. } else {
+    fail("missing foo recipe attributes in JSON dump")
+  }
+  let expected : Json = [
+    {
+      "cache": {
+        "environment": ["list", ["variable", "name"]],
+        "extra": "x",
+        "inputs": ["list"],
+        "outputs": ["list", "a"],
+      },
+    },
+    { "script": Json::null() },
+  ]
+  assert_eq(attributes, expected)
+  for flag in ["--list", "--dump"] {
+    let gated = cache_cli(wasm, root, [flag], unstable=false)
+    assert_eq(gated.exit_code, 1)
+    assert_true(
+      gated
+      .stderr_text()
+      .has_prefix("error: cached recipes are currently unstable"),
+    )
+  }
+  expect_stdout(cache_cli(wasm, root, ["--summary"], unstable=false), "foo\n")
+  let file = root + "/justfile"
+  @fs.write_text(file, "set unstable\n" + @fs.read_text(file))
+  expect_stdout(cache_cli(wasm, root, [], unstable=false), "foo\n")
+}
+
+///|
 async fn main {
   let wasm = @fs.realpath("_build/wasm/release/build/MoonJust.wasm")
+  environment_variables_may_be_removed_from_cache_key(wasm)
+  environment_variables_may_be_added_to_cache_key(wasm)
+  environment_may_be_expression(wasm)
+  cache_environment_variables_are_resolved(wasm)
+  selected_environment_values(wasm)
+  cache_attribute_dump(wasm)
   let root = @fs.tmpdir(prefix="moonjust-cache-contract")
   defer @fs.remove(root, recursive=true)
   let cache = root + "/.justcache"

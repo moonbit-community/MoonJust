@@ -12,8 +12,10 @@ async fn validate_inventory(
   if manifest.schema_version != 3 {
     failures.push("compatibility manifest schema_version must be 3")
   }
-  if manifest.upstream != "just 1.57.0" {
-    failures.push("compatibility manifest upstream must be `just 1.57.0`")
+  if manifest.upstream != @testkit.ORACLE_IDENTITY {
+    failures.push(
+      "compatibility manifest upstream must be " + @testkit.ORACLE_IDENTITY,
+    )
   }
   let manifest_upstream : Set[String] = Set([])
   for error in spec_index_shape_errors(spec_text) {
@@ -21,6 +23,12 @@ async fn validate_inventory(
   }
   for name, details in metadata {
     let case_dir = join(cases_root, name)
+    if details.closed_stdout &&
+      (details.merged || details.live_prefix is Some(_)) {
+      failures.push(
+        name + ": closed stdout cannot also be observed as a stream",
+      )
+    }
     for error in fixture_structure_errors(name, case_dir) {
       failures.push(error)
     }
@@ -52,7 +60,9 @@ async fn validate_inventory(
         details.upstream_tests.is_empty() &&
         details.allowed_difference == Some("product-identity") &&
         details.candidate_stdout_sha256 is Some(_)
-      if !identity && refusal_digest(name, details) is None {
+      if !identity &&
+        !windows_exit_status_probe(name, details) &&
+        refusal_digest(name, details) is None {
         failures.push(name + ": difference is not on the reviewed allowlist")
       }
     }

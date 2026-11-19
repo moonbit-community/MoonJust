@@ -33,7 +33,7 @@ jobs:
 
   compatibility:
     needs: artifact
-    name: just 1.57 differential (${{ matrix.os }}, wasm)
+    name: just 1.59 differential (${{ matrix.os }}, wasm)
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +45,7 @@ jobs:
         with:
           version: latest
       - run: moon update
-      - run: cargo install just --version 1.57.0 --locked
+      - run: cargo install just --version 1.59.0 --locked
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: moonjust-wasm
@@ -60,6 +60,7 @@ jobs:
           if-no-files-found: error
 
   compatibility-merge:
+    # GitHub branch protection currently requires this exact check name.
     name: just 1.57 differential
     if: always()
     needs: [artifact, compatibility]

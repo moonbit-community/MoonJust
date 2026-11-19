@@ -221,7 +221,7 @@ pub fn ShellConfiguration::arguments(
 ///|
 /// Resolve CLI and justfile shell settings with upstream precedence. Supplying
 /// CLI shell arguments without a CLI shell deliberately selects `sh`, even on
-/// Windows, matching just 1.57.0.
+/// Windows.
 pub fn resolve_shell(
   platform : PlatformConfiguration,
   cli_shell~ : String? = None,

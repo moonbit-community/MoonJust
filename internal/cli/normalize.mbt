@@ -6,6 +6,7 @@ priv struct NormalizedArgv {
   variable_overrides : Array[(String, String)]
   shell_arguments : Array[String]?
   early_exit : Bool
+  query_argument_conflict : Bool
   highlight : String?
 }
 
@@ -29,7 +30,7 @@ fn option_occurrences(
     let name = "-\{short}"
     guard option_index.get(name) is Some(spec) else { raise Unsupported(name) }
     if spec.action is (Value | Append | OverridePair) ||
-      spec.operands is External {
+      spec.operands is (External | QueryPath) {
       let rest = String::from_iter(chars)
       let inline = if rest.is_empty() {
         None
@@ -62,7 +63,7 @@ fn collect_positionals(
 
 ///|
 /// Collect global options separately so core argparse never interprets a
-/// recipe argument as an option. Query paths may be interleaved with options.
+/// recipe argument as an option. Each query option consumes its own path.
 fn normalize_argv(
   argv : ArrayView[String],
 ) -> NormalizedArgv raise CliParseError {
@@ -74,6 +75,7 @@ fn normalize_argv(
   let mut early_exit = false
   let positional_overrides = []
   let mut command : ArgSpec? = None
+  let mut query_argument_conflict = false
   let mut index = 0
   while index < argv.length() {
     let token = argv[index]
@@ -83,17 +85,15 @@ fn normalize_argv(
       break
     }
     if token == "--" {
+      query_argument_conflict = command is Some({ operands: QueryPath, .. }) &&
+        index < argv.length()
       positional.append(argv[index:])
       break
     }
     if !token.has_prefix("-") || token == "-" {
       if command is Some({ operands: QueryPath, .. }) {
-        collect_positionals(
-          argv[index - 1:index],
-          positional,
-          positional_overrides,
-        )
-        continue
+        query_argument_conflict = true
+        break
       }
       collect_positionals(argv[index - 1:], positional, positional_overrides)
       break
@@ -109,6 +109,29 @@ fn normalize_argv(
       }
       match spec.action {
         Flag | Count => {
+          if spec.operands is QueryPath {
+            options.push(spelling)
+            match inline {
+              Some(value) =>
+                collect_positionals([value], positional, positional_overrides)
+              None => {
+                let start = index
+                while argv.get(index) is Some(value) &&
+                      (value == "-" || !value.has_prefix("-")) {
+                  index += 1
+                }
+                if start == index && name == "show" {
+                  raise missing_value(spec)
+                }
+                collect_positionals(
+                  argv[start:index],
+                  positional,
+                  positional_overrides,
+                )
+              }
+            }
+            continue
+          }
           if spec.operands is External {
             options.push(spelling)
             if inline is Some(value) {
@@ -137,6 +160,18 @@ fn normalize_argv(
           )
         }
         Value | Append | OverridePair => {
+          if inline is None &&
+            (name == "justfile-name" || name == "working-directory") {
+            let next = argv.get(index)
+            if next is None ||
+              (next is Some(token) && token != "-" && token.has_prefix("-")) {
+              if next is Some(token) && token != "--" {
+                // Preserve unknown-option errors when the following token is not a value.
+                ignore(option_occurrences(token))
+              }
+              raise missing_value(spec)
+            }
+          }
           let value = match inline {
             Some(value) => value
             None => {
@@ -179,6 +214,7 @@ fn normalize_argv(
     variable_overrides,
     shell_arguments,
     early_exit,
+    query_argument_conflict,
     highlight: highlight_index.map(i => options[i]),
   }
 }

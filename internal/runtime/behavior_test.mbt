@@ -7,13 +7,16 @@ fn runtime_host() -> @host_testkit.FakeHost raise {
 }
 
 ///|
-fn runtime_source(text : String) -> @semantic.Compilation raise {
+fn runtime_source(
+  text : String,
+  allow_unstable~ : Bool = false,
+) -> @semantic.Compilation raise {
   let source = @source.Source::from_text(
     @source.SourceId::new(710),
     "justfile",
     text,
   )
-  @semantic.compile(@parser.parse(source))
+  @semantic.compile(@parser.parse(source), allow_unstable~)
 }
 
 ///|
@@ -25,13 +28,13 @@ async fn runtime_graph(
 ) -> @planner.ExecutionPlan {
   let cwd = host.current_dir()
   let shell = @environment.ShellConfiguration::new("sh", ["-cu"])
-  let compilation = runtime_source(source)
+  let compilation = runtime_source(source, allow_unstable=options.unstable())
   @planner.plan_recipe_graph_async(
     host,
     host,
     compilation,
     [@planner.RecipeRequest::new("run")],
-    @evaluator.Environment::new(),
+    @evaluator.evaluate_compilation(compilation),
     @evaluator.EvaluationContext::new(
       cwd~,
       lists=compilation.settings().bool("lists"),
@@ -82,6 +85,51 @@ async test "live execution emits command echoes and both child streams in order"
 priv struct TestProcess(
   async (@host.CommandSpec) -> @host.ProcessResult noraise,
 )
+
+///|
+async fn expect_timestamped_run(source : String, expected : Bytes) -> Unit {
+  let host = runtime_host()
+  host.set_clock_millis(37_230_456L)
+  let plan = runtime_graph(host, source)
+  let process = TestProcess(_ => @host.ProcessResult::new(0, b"foo\n", b""))
+  let result = @runtime.execute_plan_live(process, host, host, host, plan, (
+    _,
+    _,
+  ) => ())
+  assert_eq(result.commands(), 1)
+  assert_eq(host.output_events().to_owned(), [
+    (Stderr, expected),
+    (Stdout, b"foo\n"),
+  ])
+}
+
+///|
+async test "upstream timestamps::attribute" {
+  expect_timestamped_run(
+    "[timestamp]\nrun:\n  echo foo\n", b"[10:20:30] echo foo\n",
+  )
+}
+
+///|
+async test "upstream timestamps::attribute_format" {
+  expect_timestamped_run(
+    "[timestamp('%H:%M:%S%.3f')]\nrun:\n  echo foo\n", b"[10:20:30.456] echo foo\n",
+  )
+}
+
+///|
+async test "upstream timestamps::attribute_format_expression" {
+  expect_timestamped_run(
+    "format := '%H:%M:%S' + '%.3f'\n[timestamp(format)]\nrun:\n  echo foo\n", b"[10:20:30.456] echo foo\n",
+  )
+}
+
+///|
+async test "upstream timestamps::attribute_script" {
+  expect_timestamped_run(
+    "[timestamp]\nrun:\n  #!/bin/sh\n  echo foo\n", b"[10:20:30] run\n",
+  )
+}
 
 ///|
 impl @host.HostProcess for TestProcess with fn run_process(self, command) -> @host.ProcessResult raise @host.HostError {

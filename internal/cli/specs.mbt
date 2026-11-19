@@ -25,6 +25,7 @@ priv struct ArgSpec {
   long_alias : String?
   command : CommandKind?
   operands : CommandOperands
+  usage_suffix : String?
   requires_any : ArrayView[String]
   about : String
   env : String?
@@ -42,6 +43,7 @@ fn arg(
   long_alias? : String,
   command? : CommandKind,
   operands~ : CommandOperands = SearchOnly,
+  usage_suffix? : String,
   requires_any~ : ArrayView[String] = [],
   about~ : String,
   env? : String,
@@ -57,6 +59,7 @@ fn arg(
     long_alias,
     command,
     operands,
+    usage_suffix,
     requires_any,
     about,
     env,
@@ -92,6 +95,7 @@ let argument_specs : Array[ArgSpec] = [
     "list",
     Flag,
     command=ListCommand,
+    usage_suffix=" [<MODULE>...]",
     operands=QueryPath,
     short='l',
     about="List available recipes",
@@ -100,6 +104,7 @@ let argument_specs : Array[ArgSpec] = [
     "show",
     Flag,
     command=ShowCommand,
+    usage_suffix=" <RECIPE_PATH>...",
     operands=QueryPath,
     short='s',
     about="Show a recipe",
@@ -109,8 +114,9 @@ let argument_specs : Array[ArgSpec] = [
     "usage",
     Flag,
     command=UsageCommand,
+    usage_suffix=" [<PATH>...]",
     operands=QueryPath,
-    about="Print recipe usage",
+    about="Print usage for a recipe, a module, or all root recipes",
   ),
   arg("variables", Flag, command=VariablesCommand, about="List variables"),
   arg("dump", Flag, command=DumpCommand, about="Print justfile"),
@@ -136,6 +142,7 @@ let argument_specs : Array[ArgSpec] = [
     "clean",
     Flag,
     command=CleanCommand,
+    usage_suffix=" [<RECIPE_PATH>...]",
     operands=QueryPath,
     about="Clear recipe cache",
   ),
@@ -143,6 +150,7 @@ let argument_specs : Array[ArgSpec] = [
     "command",
     Flag,
     command=CommandCommand,
+    usage_suffix=" <COMMAND>...",
     operands=External,
     short='c',
     about="Run an arbitrary command",
@@ -185,6 +193,7 @@ let argument_specs : Array[ArgSpec] = [
   arg(
     "dotenv-command",
     Append,
+    usage_suffix=" <COMMAND>",
     about="Load environment from command",
     env="JUST_DOTENV_COMMAND",
     conflicts=["dotenv-filename", "dotenv-path", "no-dotenv"],
@@ -198,6 +207,7 @@ let argument_specs : Array[ArgSpec] = [
   arg(
     "dump-format",
     Value,
+    usage_suffix=" <FORMAT>",
     choices=["json", "just"],
     about="Dump format",
     env="JUST_DUMP_FORMAT",
@@ -206,6 +216,7 @@ let argument_specs : Array[ArgSpec] = [
   arg(
     "evaluate-format",
     Value,
+    usage_suffix=" <FORMAT>",
     choices=["just", "shell"],
     about="Evaluate format",
     env="JUST_EVALUATE_FORMAT",
@@ -219,7 +230,13 @@ let argument_specs : Array[ArgSpec] = [
     env="JUST_GROUP",
   ),
   arg("indentation", Value, about="Recipe indentation", env="JUST_INDENTATION"),
-  arg("jobs", Value, about="Maximum parallel jobs", env="JUST_JOBS"),
+  arg(
+    "jobs",
+    Value,
+    usage_suffix=" <N>",
+    about="Maximum parallel jobs",
+    env="JUST_JOBS",
+  ),
   arg(
     "justfile",
     Value,
@@ -227,16 +244,37 @@ let argument_specs : Array[ArgSpec] = [
     about="Use justfile or - for stdin",
     env="JUST_JUSTFILE",
   ),
-  arg("justfile-name", Value, about="Search filename", env="JUST_JUSTFILE_NAME"),
-  arg("list-heading", Value, about="List heading", env="JUST_LIST_HEADING", defaults=[
-    "Available recipes:\n",
-  ]),
-  arg("list-prefix", Value, about="List item prefix", env="JUST_LIST_PREFIX", defaults=[
-    "    ",
-  ]),
+  arg(
+    "justfile-name",
+    Append,
+    usage_suffix=" <NAME>",
+    about="Search for these filenames (repeatable, comma-separated)",
+    env="JUST_JUSTFILE_NAME",
+  ),
+  arg(
+    "list-heading",
+    Value,
+    usage_suffix=" <TEXT>",
+    about="List heading",
+    env="JUST_LIST_HEADING",
+    defaults=["Available recipes:\n"],
+  ),
+  arg(
+    "list-prefix",
+    Value,
+    usage_suffix=" <TEXT>",
+    about="List item prefix",
+    env="JUST_LIST_PREFIX",
+    defaults=["    "],
+  ),
   arg("shell", Value, about="Recipe shell"),
   arg("shell-arg", Append, about="Shell argument"),
-  arg("set", OverridePair, about="Override variable"),
+  arg(
+    "set",
+    OverridePair,
+    usage_suffix=" <VARIABLE> <VALUE>",
+    about="Override variable",
+  ),
   arg("tempdir", Value, about="Temporary directory", env="JUST_TEMPDIR"),
   arg(
     "timestamp-format",
@@ -249,9 +287,8 @@ let argument_specs : Array[ArgSpec] = [
     "working-directory",
     Value,
     short='d',
-    about="Working directory",
+    about="Set the working directory and start justfile discovery there",
     env="JUST_WORKING_DIRECTORY",
-    requires=["justfile"],
   ),
   arg(
     "allow-missing",

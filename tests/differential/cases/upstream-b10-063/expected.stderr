@@ -1,4 +1,4 @@
-error: call to function `env` failed: environment variable `ZADDY` not present
+error: environment variable `ZADDY` not present
  ——▶ justfile:4:10
   │
 4 │   echo {{env('ZADDY')}}

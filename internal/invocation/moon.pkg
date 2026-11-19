@@ -15,5 +15,12 @@ supported_targets = "wasm"
 
 import {
   "ZSeanYves/MoonJust/internal/path",
-  "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/host",
+  "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
+  "ZSeanYves/MoonJust/internal/project",
+  "moonbitlang/core/async",
 } for "test"
+
+options(
+  "allow-experimental-packages": true,
+)

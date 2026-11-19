@@ -21,6 +21,7 @@ pub async fn[
       effects,
       plan.steps(),
       plan.options(),
+      plan.options().timestamp(),
       b""[:],
     )
   }

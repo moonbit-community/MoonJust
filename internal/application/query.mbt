@@ -31,12 +31,34 @@ async fn[T : @host.HostTerminal] default_list_response(
   }
   validate_project_variable_overrides(project, arguments)
   let color = selected_color_active(terminal_host, arguments, Stdout)
-  let globals = evaluate_project_globals(project, arguments)
   let request = @query.QueryRequest::default_list(path, arguments)
-  let result = @query.render(request, snapshot.graph(), project, color, globals) catch {
+  let result = render_query(
+    request,
+    snapshot.graph(),
+    project,
+    color,
+    arguments,
+  )
+  Some(query_response(result))
+}
+
+///|
+fn render_query(
+  request : @query.QueryRequest,
+  graph : @loader.LoadedGraph,
+  project : @semantic.ProjectCompilation,
+  color : Bool,
+  arguments : @cli.CliArguments,
+) -> @query.QueryResult raise ApplicationError {
+  let overrides = Map([])
+  if !arguments.variable_overrides().is_empty() {
+    for path in project.module_paths() {
+      overrides[path] = project_variable_overrides(project, path, arguments)
+    }
+  }
+  @query.render(request, graph, project, color, overrides~) catch {
     error => raise application_query_error(error)
   }
-  Some(query_response(result))
 }
 
 ///|
@@ -73,7 +95,8 @@ async fn[
       None => {
         let project = compile_loaded_graph(
           graph,
-          allow_unstable=arguments.flag("unstable"),
+          allow_unstable=arguments.flag("unstable") ||
+            arguments.command() == SummaryCommand,
           platform=semantic_platform,
         )
         perf_detail_mark("query.compile")
@@ -82,14 +105,7 @@ async fn[
         let request = @query.build_query(project, arguments) catch {
           error => raise application_query_error(error)
         }
-        let globals = if request.needs_globals() {
-          evaluate_project_globals(project, arguments)
-        } else {
-          Map([])
-        }
-        let result = @query.render(request, graph, project, color, globals) catch {
-          error => raise application_query_error(error)
-        }
+        let result = render_query(request, graph, project, color, arguments)
         perf_detail_mark("query.render")
         result
       }

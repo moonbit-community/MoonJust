@@ -9,7 +9,8 @@ pub struct ExecutionOptions {
   verbose : Bool
   verbosity : Int32
   time : Bool
-  timestamp : String?
+  timestamp_enabled : Bool
+  timestamp_format : String
   command_color : CommandColor?
   jobs : Int32
   cache_enabled : Bool
@@ -29,28 +30,15 @@ pub fn ExecutionOptions::new(
   timestamp? : String,
   command_color? : CommandColor,
 ) -> ExecutionOptions {
-  {
+  ExecutionOptions::from_values(
     dry_run,
     quiet,
-    assume_yes: false,
-    echo_quiet: false,
     verbose,
-    verbosity: if verbose {
-      1
-    } else {
-      0
-    },
     time,
-    timestamp,
+    timestamp is Some(_),
+    timestamp.unwrap_or("%H:%M:%S"),
     command_color,
-    jobs: 1,
-    cache_enabled: true,
-    unstable: false,
-    no_dependencies: false,
-    explain: false,
-    color_enabled: command_color is Some(_),
-    guards: false,
-  }
+  )
 }
 
 ///|
@@ -59,7 +47,8 @@ pub fn ExecutionOptions::from_values(
   quiet : Bool,
   verbose : Bool,
   time : Bool,
-  timestamp : String?,
+  timestamp_enabled : Bool,
+  timestamp_format : String,
   command_color : CommandColor?,
 ) -> ExecutionOptions {
   {
@@ -74,7 +63,8 @@ pub fn ExecutionOptions::from_values(
       0
     },
     time,
-    timestamp,
+    timestamp_enabled,
+    timestamp_format,
     command_color,
     jobs: 1,
     cache_enabled: true,
@@ -209,7 +199,11 @@ pub fn ExecutionOptions::time(self : ExecutionOptions) -> Bool {
 
 ///|
 pub fn ExecutionOptions::timestamp(self : ExecutionOptions) -> String? {
-  self.timestamp
+  if self.timestamp_enabled {
+    Some(self.timestamp_format)
+  } else {
+    None
+  }
 }
 
 ///|

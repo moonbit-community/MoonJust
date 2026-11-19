@@ -33,6 +33,7 @@ pub(all) suberror SemanticError {
     actual~ : Int32,
     span~ : @source.Span,
   )
+  CachedRecipesUnstable(span~ : @source.Span)
   UserFunctionsUnstable(span~ : @source.Span)
   ListsUnstable(span~ : @source.Span)
   GuardAndInfallibleSigil(span~ : @source.Span)
@@ -123,6 +124,7 @@ pub fn SemanticError::code(self : SemanticError) -> String {
     DuplicateFunctionParameter(_) => "MJ-SEM-0015"
     UndefinedFunction(_) => "MJ-SEM-0016"
     FunctionArgumentCount(_) => "MJ-SEM-0017"
+    CachedRecipesUnstable(_) => "MJ-SEM-0039"
     UserFunctionsUnstable(_) => "MJ-SEM-0018"
     ListsUnstable(_) => "MJ-SEM-0019"
     GuardAndInfallibleSigil(_) => "MJ-SEM-0019"
@@ -174,7 +176,7 @@ pub fn SemanticError::span(self : SemanticError) -> @source.Span {
     DuplicateFunctionParameter(span~, ..) => span
     UndefinedFunction(span~, ..) => span
     FunctionArgumentCount(span~, ..) => span
-    UserFunctionsUnstable(span~) => span
+    CachedRecipesUnstable(span~) | UserFunctionsUnstable(span~) => span
     ListsUnstable(span~) => span
     GuardAndInfallibleSigil(span~) => span
     InvalidIndentation(span~, ..) => span
@@ -240,6 +242,8 @@ pub fn SemanticError::message(self : SemanticError) -> String {
       (if actual == 1 { " argument" } else { " arguments" }) +
       " but takes " +
       expected
+    CachedRecipesUnstable(_) =>
+      "cached recipes are currently unstable, invoke `just` with `--unstable`, set the `JUST_UNSTABLE` environment variable, or add `set unstable` to your `justfile` to enable unstable features"
     UserFunctionsUnstable(_) =>
       "user-defined functions are currently unstable, invoke `just` with `--unstable`, set the `JUST_UNSTABLE` environment variable, or add `set unstable` to your `justfile` to enable unstable features"
     ListsUnstable(_) =>

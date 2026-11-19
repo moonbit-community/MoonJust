@@ -9,4 +9,4 @@ under CC0-1.0. MoonJust is not affiliated with or endorsed by the upstream
 project or its maintainers.
 
 The behavior corpus under tests/differential is maintained as executable
-compatibility data for the just 1.57 command-line contract.
+compatibility data for the just 1.59 command-line contract.

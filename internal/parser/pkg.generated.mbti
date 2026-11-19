@@ -57,6 +57,8 @@ pub(all) suberror ParserError {
   InvalidAttributeArity(name~ : String, actual~ : Int32, span~ : @source.Span)
   InvalidAttributeArgument(name~ : String, span~ : @source.Span)
   PositionalAttributeAfterKeyword(span~ : @source.Span)
+  DuplicateAttributeKey(attribute~ : String, key~ : String, span~ : @source.Span)
+  MissingAttributeKeyValue(key~ : String, span~ : @source.Span)
   UnknownAttributeKey(attribute~ : String, key~ : String, span~ : @source.Span)
   ExtraneousAttribute(span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int32, span~ : @source.Span)

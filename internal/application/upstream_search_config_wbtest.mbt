@@ -351,6 +351,18 @@ async test "upstream config::tests::subcommand_show_search_directory" {
 }
 
 ///|
+async test "upstream config::tests::subcommand_usage_search_directory" {
+  let (selected, input) = query_search_prefix(
+    UpstreamDirectoryHost::new([]),
+    upstream_application_arguments(["--usage", "foo/bar"]),
+    upstream_project_input("/project/current"),
+  )
+  assert_eq(selected.command(), UsageCommand)
+  assert_eq(input.cwd().as_string(), "/project/current/foo")
+  assert_eq(selected.positional(), ["bar"])
+}
+
+///|
 impl @host.HostFs for UpstreamDirectoryHost with fn read_source(
   _self,
   path,

@@ -12,22 +12,6 @@ fn format_datetime(
     format,
     utc=function_name == "datetime_utc",
   ) catch {
-    error => {
-      let detail = match error {
-        Invalid =>
-          "failed to parse time format string `" +
-          format +
-          "`: bad or unsupported format string"
-        Unformattable =>
-          "failed to format time with format string `" + format + "`"
-        OutOfRange => "clock value is out of range"
-      }
-      raise Builtin(
-        Failure(
-          message="call to function `" + function_name + "` failed: " + detail,
-        ),
-        span~,
-      )
-    }
+    error => raise Builtin(Failure(message=error.message(format)), span~)
   }
 }

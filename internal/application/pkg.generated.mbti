@@ -54,7 +54,7 @@ pub(all) suberror ApplicationError {
   InteractiveInvocation(kind~ : String, command~ : String, detail~ : String)
   InteractiveProcess(kind~ : String, command~ : String, termination~ : @host.ProcessTermination)
   DotenvCommand(command~ : String, exit_code~ : Int32)
-  WriteJustfile(path~ : @path.PathValue, detail~ : String)
+  WriteJustfile(path~ : String, detail~ : String)
   AlreadyExists(@path.PathValue)
   Query(String)
   UnsupportedCommand(String)

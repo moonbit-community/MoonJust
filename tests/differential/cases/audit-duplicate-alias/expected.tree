@@ -1,0 +1,14 @@
+dir	./home
+file	./left	20
+
+alias a := target1
+
+file	./right	19
+alias a := target2
+
+file	./justfile	52
+target1:
+target2:
+import 'right'
+alias a := target1
+

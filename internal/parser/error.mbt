@@ -19,6 +19,12 @@ pub(all) suberror ParserError {
   InvalidAttributeArity(name~ : String, actual~ : Int32, span~ : @source.Span)
   InvalidAttributeArgument(name~ : String, span~ : @source.Span)
   PositionalAttributeAfterKeyword(span~ : @source.Span)
+  DuplicateAttributeKey(
+    attribute~ : String,
+    key~ : String,
+    span~ : @source.Span,
+  )
+  MissingAttributeKeyValue(key~ : String, span~ : @source.Span)
   UnknownAttributeKey(attribute~ : String, key~ : String, span~ : @source.Span)
   ExtraneousAttribute(span~ : @source.Span)
   RecursionLimitExceeded(limit~ : Int32, span~ : @source.Span)
@@ -41,7 +47,9 @@ pub fn ParserError::code(self : ParserError) -> String {
     InvalidAttributeArity(_) => "MJ-PARSE-0007"
     InvalidAttributeArgument(_) => "MJ-PARSE-0008"
     PositionalAttributeAfterKeyword(_) => "MJ-PARSE-0008"
-    UnknownAttributeKey(_) => "MJ-PARSE-0009"
+    DuplicateAttributeKey(_)
+    | MissingAttributeKeyValue(_)
+    | UnknownAttributeKey(_) => "MJ-PARSE-0009"
     ExtraneousAttribute(_) => "MJ-PARSE-0015"
     RecursionLimitExceeded(_) => "MJ-PARSE-0010"
     NodeLimitExceeded(_) => "MJ-PARSE-0011"
@@ -65,7 +73,9 @@ pub fn ParserError::span(self : ParserError) -> @source.Span {
     InvalidAttributeArity(span~, ..) => span
     InvalidAttributeArgument(span~, ..) => span
     PositionalAttributeAfterKeyword(span~) => span
-    UnknownAttributeKey(span~, ..) => span
+    DuplicateAttributeKey(span~, ..)
+    | MissingAttributeKeyValue(span~, ..)
+    | UnknownAttributeKey(span~, ..) => span
     ExtraneousAttribute(span~) => span
     RecursionLimitExceeded(span~, ..) => span
     NodeLimitExceeded(span~, ..) => span
@@ -100,7 +110,7 @@ pub fn ParserError::message(self : ParserError) -> String {
     UnknownAttribute(name~, ..) => "unknown attribute `" + name + "`"
     InvalidAttributeArity(name~, actual~, ..) => {
       let expected = match name {
-        "confirm" | "doc" => "at most 1 argument"
+        "confirm" | "doc" | "timestamp" => "at most 1 argument"
         "metadata" => "at least 1 argument"
         "extension" | "group" | "working-directory" => "1 argument"
         "env" => "2 arguments"
@@ -119,6 +129,10 @@ pub fn ParserError::message(self : ParserError) -> String {
       "attribute `" + name + "` requires a string literal argument"
     PositionalAttributeAfterKeyword(_) =>
       "positional attribute arguments cannot follow keyword attribute arguments"
+    DuplicateAttributeKey(attribute~, key~, ..) =>
+      "duplicate key `\{key}` for `\{attribute}` attribute"
+    MissingAttributeKeyValue(key~, ..) =>
+      "attribute key `\{key}` requires value"
     UnknownAttributeKey(attribute~, key~, ..) =>
       "unknown key `" + key + "` for `" + attribute + "` attribute"
     ExtraneousAttribute(_) => "extraneous attribute"

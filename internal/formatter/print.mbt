@@ -85,7 +85,9 @@ fn expression_text_with_parent(
       builder.write_string("f")
       builder.write_string(start.raw())
       for part in parts {
+        builder.write_char(' ')
         builder.write_string(expression_text(part.expression()))
+        builder.write_char(' ')
         builder.write_string(part.literal().raw())
       }
       builder.to_string()

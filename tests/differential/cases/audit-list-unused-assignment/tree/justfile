@@ -1,0 +1,3 @@
+x := style('bold')
+hello:
+  echo hello

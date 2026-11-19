@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+test "$1" = '--multi'
+test "$2" = '--preview'
+test "$3" = 'just --unstable --color always --show {}'
+test "$JUST_JUSTFILE" = "$PWD/project's recipes.just"
+just --unstable --color always --show foo > preview
+echo foo

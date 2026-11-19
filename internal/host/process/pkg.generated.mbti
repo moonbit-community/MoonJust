@@ -4,10 +4,13 @@ package "ZSeanYves/MoonJust/internal/host/process"
 import {
   "ZSeanYves/MoonJust/internal/host",
   "moonbitlang/core/async",
+  "moonbitlang/core/async/io",
 }
 
 // Values
 pub fn configure_cancellation_signals() -> Unit
+
+pub async fn write_stdout(BytesView) -> Unit raise @io.WriterError
 
 // Errors
 

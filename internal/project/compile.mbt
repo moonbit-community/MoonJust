@@ -9,95 +9,59 @@ pub(all) suberror ProjectError {
 }
 
 ///|
-type ImportKey = (@path.PathValue, @source.Span, @modulepath.ModulePath)
-
-///|
-fn index_imports(
-  files : ArrayView[@loader.LoadedSource],
-) -> Map[ImportKey, Int32] {
-  let children = Map([])
-  for index, loaded in files {
-    if loaded.relation() == ImportedSource &&
-      loaded.parent() is Some(parent) &&
-      loaded.import_span() is Some(span) {
-      children[(parent, span, loaded.module_path())] = index
-    }
-  }
-  children
-}
-
-///|
-fn module_sources(
-  files : ArrayView[@loader.LoadedSource],
+fn module_items(
+  graph : @loader.LoadedGraph,
   owner : Int32,
-  children : Map[ImportKey, Int32],
-) -> Array[(@loader.LoadedSource, Int32)] {
-  let sources = []
-  let visited : Set[Int32] = Set([])
+) -> (Array[@syntax.Item], Array[@semantic.ImportSource]) {
+  let files = graph.files()
+  let depths : Map[Int32, Int32] = Map([])
+  let postorder = []
+  // The upstream compiler fixes a file's depth and import path when it first
+  // pops that file. A repeated import can reach it at a different depth.
   fn visit(index : Int32, depth : Int32) -> Unit {
-    if visited.contains(index) {
+    if depths.contains(index) {
       return
     }
-    visited.add(index)
-    let file = files[index]
-    sources.push((file, depth))
-    for item in file.ast().items() {
-      if item is Import(value) &&
-        children.get((file.path(), value.span(), file.module_path()))
-        is Some(child) {
-        visit(child, depth + 1)
-      }
+    depths[index] = depth
+    for child in graph.imports_from(index).rev_iter() {
+      visit(child, depth + 1)
     }
+    postorder.push(index)
   }
   visit(owner, 0)
-  sources
-}
-
-///|
-fn override_key(item : @syntax.Item) -> String? {
-  match item {
-    Recipe(recipe) => Some("recipe\u{0000}" + recipe.name())
-    Assignment(assignment) => Some("variable\u{0000}" + assignment.name())
-    _ => None
-  }
-}
-
-///|
-fn merge_imports(
-  sources : ArrayView[(@loader.LoadedSource, Int32)],
-) -> Array[@syntax.Item] {
-  // Equal-depth declarations all reach the semantic duplicate checks. Filtering
-  // the original traversal in a second pass preserves their diagnostic order.
-  let shallowest : Map[String, Int32] = Map([])
-  if sources.length() > 1 {
-    for (file, depth) in sources {
-      for item in file.ast().items() {
-        if override_key(item) is Some(key) {
-          match shallowest.get(key) {
-            Some(previous) if previous <= depth => ()
-            _ => shallowest[key] = depth
-          }
-        }
-      }
-    }
-  }
-  let merged = []
-  for (file, depth) in sources {
-    for item in file.ast().items() {
+  let items : Array[@syntax.Item] = []
+  for index in postorder.rev_iter() {
+    for item in files[index].ast().items() {
       match item {
-        Import(_) | Module(_) => ()
-        _ => {
-          if depth > 0 &&
-            override_key(item) is Some(key) &&
-            shallowest[key] < depth {
-            continue
+        Import(_) =>
+          while items.last() is Some(Attribute(_)) {
+            ignore(items.pop())
           }
-          merged.push(item)
-        }
+        Module(_) => ()
+        _ => items.push(item)
       }
     }
   }
-  merged
+  // The analyzer schedules a file once, when it sees the import. Its stack
+  // determines the tie-breaker, while listings retain textual import order.
+  let imports : Array[@semantic.ImportSource] = []
+  let stack = [owner]
+  let scheduled = Set([owner])
+  while stack.pop() is Some(index) {
+    let file = files[index]
+    imports.push({
+      source: file.source(),
+      depth: depths[index],
+      items: file.ast().items(),
+    })
+    for child in graph.imports_from(index) {
+      if !scheduled.contains(child) {
+        scheduled.add(child)
+        stack.push(child)
+      }
+    }
+  }
+  (items, imports)
 }
 
 ///|
@@ -152,7 +116,7 @@ fn validate_names(
   for loaded in files {
     let prefix = loaded.module_path().as_string() + "\u{0000}"
     for item in loaded.ast().items() {
-      let entry : (String, String)? = match item {
+      let entry : (String, String, @source.Span)? = match item {
         Module(definition) if @semantic.platform_attributes_match(
             definition.attributes(),
             platform,
@@ -167,7 +131,7 @@ fn validate_names(
             }
           }
           if present || !definition.optional() {
-            Some((definition.name(), "module"))
+            Some((definition.name(), "module", definition.name_span()))
           } else {
             None
           }
@@ -175,29 +139,15 @@ fn validate_names(
         Recipe(recipe) if @semantic.platform_attributes_match(
             recipe.attributes(),
             platform,
-          ) => Some((recipe.name(), "recipe"))
+          ) => Some((recipe.name(), "recipe", recipe.name_span))
         Alias(definition) if @semantic.platform_attributes_match(
             definition.attributes(),
             platform,
-          ) => Some((definition.name(), "alias"))
+          ) => Some((definition.name(), "alias", definition.name_span))
         _ => None
       }
-      guard entry is Some((name, kind)) else { continue }
+      guard entry is Some((name, kind, span)) else { continue }
       let key = prefix + name
-      let offset = if kind == "module" {
-        4
-      } else if kind == "alias" {
-        6
-      } else {
-        0
-      }
-      let span = @source.Span::new(
-        item.span().source_id(),
-        item.span().start_byte() + offset,
-        item.span().start_byte() + offset + name.length(),
-      ) catch {
-        _ => item.span()
-      }
       match definitions.get(key) {
         Some((previous, first)) if previous != kind || kind == "module" =>
           raise Semantic(
@@ -287,12 +237,11 @@ pub fn compile_loaded_graph(
     }
   }
   validate_names(files, platform)
-  let children = index_imports(files)
   for index, loaded in files {
     if loaded.relation() != RootSource && loaded.relation() != ModuleSource {
       continue
     }
-    let items = merge_imports(module_sources(files, index, children))
+    let (items, imports) = module_items(graph, index)
     let ast = @syntax.Ast::new(
       loaded.ast().source_id(),
       items,
@@ -300,6 +249,7 @@ pub fn compile_loaded_graph(
     )
     let compilation = @semantic.compile(
       ast,
+      imports~,
       platform~,
       allow_unstable~,
       defer_recipe_linking=true,

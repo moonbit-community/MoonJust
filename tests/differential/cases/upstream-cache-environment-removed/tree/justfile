@@ -1,0 +1,8 @@
+set lists
+
+export value := 'default'
+
+[cache(environment=[])]
+[script]
+foo:
+  echo $value

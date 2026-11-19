@@ -2,7 +2,7 @@
 /// Search policy for a justfile lookup.
 #derive(Eq, Debug)
 pub(all) struct SearchOptions {
-  filename : String
+  filenames : ArrayView[String]
   ceiling : @path.PathValue?
   explicit : @path.PathValue?
   global : @path.PathValue?
@@ -10,17 +10,17 @@ pub(all) struct SearchOptions {
 
 ///|
 pub fn SearchOptions::new(
-  filename~ : String = "justfile",
+  filenames~ : ArrayView[String] = [],
   ceiling~ : @path.PathValue? = None,
   explicit~ : @path.PathValue? = None,
   global~ : @path.PathValue? = None,
 ) -> SearchOptions {
-  { filename, ceiling, explicit, global, }
-}
-
-///|
-pub fn SearchOptions::filename(self : SearchOptions) -> String {
-  self.filename
+  let filenames = if filenames.is_empty() {
+    ["justfile", ".justfile"][:]
+  } else {
+    filenames
+  }
+  { filenames, ceiling, explicit, global, }
 }
 
 ///|
@@ -67,11 +67,24 @@ pub(all) struct LoadedSource {
 #derive(Debug)
 pub struct LoadedGraph {
   files : Array[LoadedSource]
+  imports : Map[Int32, Array[Int32]]
 }
 
 ///|
 pub fn LoadedGraph::files(self : LoadedGraph) -> ArrayView[LoadedSource] {
   self.files[:]
+}
+
+///|
+/// Resolved imports in declaration order, including edges to previously loaded files.
+pub fn LoadedGraph::imports_from(
+  self : LoadedGraph,
+  index : Int32,
+) -> ArrayView[Int32] {
+  match self.imports.get(index) {
+    Some(children) => children[:]
+    None => []
+  }
 }
 
 ///|
@@ -278,28 +291,15 @@ fn source_from_file_bytes(
 async fn[T : @host.HostFs] find_candidate(
   host : T,
   directory : @path.PathValue,
-  filename : String,
+  expected : ArrayView[String],
 ) -> @path.PathValue? raise LoaderError {
   let entries = @host.HostFs::read_dir(host, directory) catch {
     error => raise Host(error)
   }
-  let expected = lower_ascii(filename)
   let found : Array[String] = []
   for entry in entries {
-    if lower_ascii(entry) == expected ||
-      (filename == "justfile" && lower_ascii(entry) == ".justfile") {
-      let child = @path.PathValue::new(entry, directory.flavor()) catch {
-        _ => raise Host(InvalidInput("invalid directory entry"))
-      }
-      let path = directory.join(child) catch {
-        _ => raise Host(InvalidInput("path flavor mismatch"))
-      }
-      let exists = @host.HostFs::file_exists(host, path) catch {
-        error => raise Host(error)
-      }
-      if exists {
-        found.push(entry)
-      }
+    if expected.contains(lower_ascii(entry)) {
+      found.push(entry)
     }
   }
   found.sort_by(filename_lexical_compare)

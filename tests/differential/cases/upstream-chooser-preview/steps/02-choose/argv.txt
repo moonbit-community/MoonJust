@@ -1,0 +1,3 @@
+--choose
+-f
+project's recipes.just

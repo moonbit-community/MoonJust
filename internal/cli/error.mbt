@@ -78,7 +78,7 @@ pub fn ApplicationFailure::diagnostic(
 }
 
 ///|
-/// Map a failure to the exit status used by upstream `just` 1.57.0.
+/// Map a failure to the exit status used by upstream `just`.
 pub fn ApplicationFailure::exit_code(self : ApplicationFailure) -> Int32 {
   match self.kind {
     Usage => 2

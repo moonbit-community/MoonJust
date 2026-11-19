@@ -246,6 +246,7 @@ pub fn Attribute::span(self : Attribute) -> @source.Span {
 #derive(Eq, Debug)
 pub(all) struct Assignment {
   name : String
+  name_span : @source.Span
   value : Expression
   exported : Bool
   eager : Bool
@@ -256,13 +257,14 @@ pub(all) struct Assignment {
 ///|
 pub fn Assignment::new(
   name : String,
+  name_span~ : @source.Span,
   value : Expression,
   exported : Bool,
   eager : Bool,
   span : @source.Span,
   attributes~ : Array[Attribute] = [],
 ) -> Assignment {
-  { name, value, exported, eager, attributes, span, }
+  { name, name_span, value, exported, eager, attributes, span, }
 }
 
 ///|
@@ -374,6 +376,7 @@ pub fn FunctionDefinition::span(self : FunctionDefinition) -> @source.Span {
 #derive(Eq, Debug)
 pub(all) struct Alias {
   name : String
+  name_span : @source.Span
   target : String
   attributes : Array[Attribute]
   span : @source.Span
@@ -382,11 +385,12 @@ pub(all) struct Alias {
 ///|
 pub fn Alias::new(
   name : String,
+  name_span~ : @source.Span,
   target : String,
   span : @source.Span,
   attributes~ : Array[Attribute] = [],
 ) -> Alias {
-  { name, target, attributes, span, }
+  { name, name_span, target, attributes, span, }
 }
 
 ///|
@@ -530,6 +534,7 @@ pub fn Module::span(self : Module) -> @source.Span {
 #derive(Eq, Debug)
 pub(all) struct Recipe {
   name : String
+  name_span : @source.Span
   quiet : Bool
   parameters : Array[Parameter]
   dependencies : Array[Dependency]
@@ -543,6 +548,7 @@ pub(all) struct Recipe {
 ///|
 pub fn Recipe::new(
   name : String,
+  name_span~ : @source.Span,
   quiet : Bool,
   parameters : Array[Parameter],
   dependencies : Array[Dependency],
@@ -554,6 +560,7 @@ pub fn Recipe::new(
 ) -> Recipe {
   {
     name,
+    name_span,
     quiet,
     parameters,
     dependencies,

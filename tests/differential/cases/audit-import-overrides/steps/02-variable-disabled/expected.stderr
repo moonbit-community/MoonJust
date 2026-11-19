@@ -1,0 +1,5 @@
+error: variable `v` has multiple definitions
+ ——▶ right:1:1
+  │
+1 │ v := 'second'
+  │ ^

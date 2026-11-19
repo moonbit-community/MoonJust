@@ -18,8 +18,9 @@ pub async fn[T : @host.HostFs] discover(
     None => ()
   }
   let mut current = start
+  let expected = options.filenames.map(lower_ascii)
   while true {
-    let candidate = find_candidate(host, current, options.filename()) catch {
+    let candidate = find_candidate(host, current, expected) catch {
       Host(NotFound(path)) => raise MissingSearchDirectory(path)
       error => raise error
     }
@@ -48,7 +49,7 @@ pub async fn[T : @host.HostFs] discover(
     }
     None => ()
   }
-  raise NoJustfileFound(start~, filename=options.filename())
+  raise NoJustfileFound(start~)
 }
 
 ///|

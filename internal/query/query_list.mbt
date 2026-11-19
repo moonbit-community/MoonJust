@@ -39,18 +39,10 @@ fn list_body(
   module_path : @modulepath.ModulePath,
   options : ListOptions,
   color : Bool,
-  globals : Map[@modulepath.ModulePath, @evaluator.Environment],
+  values : MetadataValues,
 ) -> String raise QueryError {
   let compilation = project.module_compilation(module_path).unwrap()
-  guard loaded_for_module(graph, module_path) is Some(loaded) else {
-    raise Query(
-      "source for module `" + module_path.as_string() + "` is unavailable",
-    )
-  }
-  let docs = recipe_docs(loaded.ast())
-  let list_environment = globals
-    .get(module_path)
-    .unwrap_or(@evaluator.Environment::new())
+  let docs = module_recipe_comments(graph, module_path)
   let hidden_aliases : Array[String] = []
   for symbol in compilation.symbols() {
     if symbol.kind() is Alias &&
@@ -58,28 +50,11 @@ fn list_body(
       hidden_aliases.push(symbol.name())
     }
   }
-  if module_path.is_root() {
-    for group in options.filter.groups {
-      let mut found = false
-      for name in compilation.recipe_names() {
-        if project.recipe_disabled(module_path, name) {
-          continue
-        }
-        match compilation.recipe_attributes(name) {
-          Some(attributes) if attributes.groups().contains(group) =>
-            found = true
-          _ => ()
-        }
-      }
-      if !found {
-        raise Query("justfile does not contain group `" + group + "`")
-      }
-    }
-  }
   let rows : Array[ListRow] = []
   let mut maximum = 0
   let alias_style = options.alias_style
-  for name in visible_recipe_names(compilation, options.filter) {
+  for
+    name in visible_recipe_names(compilation, { ..options.filter, groups: [], }) {
     if project.recipe_disabled(module_path, name) {
       continue
     }
@@ -87,32 +62,12 @@ fn list_body(
     guard compilation.recipe_attributes(name) is Some(attributes) else {
       continue
     }
-    let signature = recipe_signature(recipe)
+    let signature = recipe_signature(recipe, name, false)
     let signature_width = display_width(signature)
     if signature_width <= 50 {
       maximum = Int32::max(maximum, signature_width)
     }
-    let doc = if attributes.names().contains("doc") {
-      match attributes.doc_expression() {
-        Some(expression) => {
-          let value = @evaluator.evaluate(
-            expression,
-            environment=list_environment,
-          ) catch {
-            error => raise Evaluation(error)
-          }
-          let text = value.to_string()
-          if text.trim().is_empty() {
-            None
-          } else {
-            Some(text)
-          }
-        }
-        None => None
-      }
-    } else {
-      docs.get(name)
-    }
+    let doc = recipe_metadata_doc(recipe, docs, values)
     let aliases = if options.hide_aliases {
       []
     } else {
@@ -131,7 +86,7 @@ fn list_body(
     rows.push({
       name,
       signature,
-      rendered_signature: styled_recipe_signature(recipe, color),
+      rendered_signature: recipe_signature(recipe, name, color),
       doc,
       aliases,
       groups: attributes.groups().to_owned(),
@@ -144,16 +99,29 @@ fn list_body(
         !hidden_aliases.contains(symbol.name()) &&
         !symbol.name().has_prefix("_") &&
         !compilation.alias_private(symbol.name()) {
-        guard compilation.alias_target(symbol.name()) is Some(target) else {
-          continue
-        }
-        if target.contains("::") {
-          maximum = Int32::max(maximum, display_width(symbol.name()))
+        if project.resolve_recipe(module_path, symbol.name()) is Some(target) &&
+          target.module_path() != module_path {
+          let recipe = project
+            .module_compilation(target.module_path())
+            .unwrap()
+            .recipe(target.recipe_name())
+            .unwrap()
+          let signature = recipe_signature(recipe, symbol.name(), false)
+          let width = display_width(signature)
+          if width <= 50 {
+            maximum = Int32::max(maximum, width)
+          }
           rows.push({
             name: symbol.name(),
-            signature: symbol.name(),
-            rendered_signature: symbol.name(),
-            doc: Some("alias for `" + target + "`"),
+            signature,
+            rendered_signature: recipe_signature(recipe, symbol.name(), color),
+            doc: Some(
+              "alias for `" +
+              target.module_path().as_string() +
+              "::" +
+              target.recipe_name() +
+              "`",
+            ),
             aliases: [],
             groups: [],
             nested: None,
@@ -170,27 +138,28 @@ fn list_body(
   for child in children {
     let name = child.components().last().unwrap()
     let signature = if options.submodules { name + ":" } else { name + " ..." }
-    maximum = Int32::max(maximum, display_width(signature))
-    let doc = match evaluated_module_attribute(project, child, globals, "doc") {
-      Some(value) if !value.trim().is_empty() => Some(value)
-      Some(_) => None
-      None if project
-        .module_declaration_attributes(child)
-        .any(fn(attribute) { attribute.name() == "doc" }) => None
-      None => project.module_declaration_doc(child)
+    if !options.submodules && display_width(signature) <= 50 {
+      maximum = Int32::max(maximum, display_width(signature))
     }
+    let mut doc = project.module_declaration_doc(child)
     let module_groups : Array[String] = []
     for attribute in project.module_declaration_attributes(child) {
-      if attribute.name() == "group" {
-        match evaluated_module_attribute(project, child, globals, "group") {
-          Some(group) if !module_groups.contains(group) =>
+      match attribute.name() {
+        "doc" => doc = attribute_text_value(attribute, values)
+        "group" =>
+          if attribute_text_value(attribute, values) is Some(group) &&
+            !module_groups.contains(group) {
             module_groups.push(group)
-          _ => ()
-        }
+          }
+        _ => ()
       }
     }
     let nested = if options.submodules {
-      Some(list_body(graph, project, child, options, color, globals))
+      let child_options = {
+        ..options,
+        filter: { ..options.filter, groups: [], },
+      }
+      Some(list_body(graph, project, child, child_options, color, values))
     } else {
       None
     }
@@ -198,7 +167,11 @@ fn list_body(
       name,
       signature,
       rendered_signature: signature,
-      doc,
+      doc: if options.submodules {
+        None
+      } else {
+        doc
+      },
       aliases: [],
       groups: module_groups,
       nested,
@@ -225,6 +198,9 @@ fn list_body(
     }
   } else {
     for group in options.filter.groups {
+      if !groups.contains(group) {
+        raise Query("justfile does not contain group `" + group + "`")
+      }
       sections.push(Some(group))
     }
   }

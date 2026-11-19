@@ -73,10 +73,11 @@ fn expected_execution(
 ) -> String {
   match kind {
     "repository-only" | "excluded-completion" | "excluded-signal" => "excluded"
-    "differential" if required != "all" &&
+    "differential" | "host-limited" if required != "all" &&
       required != platform &&
       !(required == "unix" && ["macos", "linux"].contains(platform)) =>
       "deferred-platform"
+    "host-limited" => "deferred-host"
     _ => "executed"
   }
 }
@@ -108,6 +109,10 @@ fn parse_row(
   }
   let reason = string_field(fields, "difference_reason").unwrap_or("")
   let valid_kind = match evidence_kind {
+    "host-limited" =>
+      status == evidence_kind &&
+      @testkit.deferred_host_behavior(upstream_id) ==
+      Some((required_platform, scope))
     "differential" =>
       status == "differential-exact" ||
       status == "differential-known-difference"
@@ -181,8 +186,12 @@ fn parse_report(
     errors.push(path + ": report root is not an object")
     return None
   }
-  guard int_field(fields, "schema_version") == Some(4) else {
-    errors.push(path + ": report schema must be 4")
+  guard int_field(fields, "schema_version") == Some(5) else {
+    errors.push(path + ": report schema must be 5")
+    return None
+  }
+  guard string_field(fields, "upstream") == Some(@testkit.ORACLE_IDENTITY) else {
+    errors.push(path + ": unexpected upstream version")
     return None
   }
   guard string_field(fields, "runner_os") is Some(runner_os) &&
@@ -191,11 +200,15 @@ fn parse_report(
     int_field(fields, "failures") is Some(failures) &&
     int_field(fields, "differential_known_difference") is Some(known) &&
     int_field(fields, "product_identity_difference") is Some(identity) &&
+    int_field(fields, "supplemental_host_differences") is Some(host_differences) &&
     fields.get("rows") is Some(Array(values)) else {
     errors.push(path + ": report is missing a required summary field")
     return None
   }
   let rows : Array[CoverageRow] = []
+  if host_differences != (if runner_os == "windows" { 1 } else { 0 }) {
+    errors.push(path + ": unexpected supplemental host difference count")
+  }
   for row in values {
     match parse_row(row, errors, path) {
       Some(value) => {
@@ -230,6 +243,10 @@ fn parse_report(
   if int_field(fields, "repository_only") !=
     Some(rows.filter(r => r.evidence_kind == "repository-only").length()) {
     errors.push(path + ": summary disagrees with repository-only rows")
+  }
+  if int_field(fields, "host_limited") !=
+    Some(rows.filter(row => row.evidence_kind == "host-limited").length()) {
+    errors.push(path + ": summary disagrees with host-limited rows")
   }
   Some({
     runner_os,
@@ -288,7 +305,7 @@ async fn main {
   let platforms : Set[String] = Set([])
   let rows_by_id : Map[String, Array[(String, CoverageRow)]] = Map([])
   let inventory = Set::from_iter(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/test-list.txt")
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/test-list.txt")
     .split("\n")
     .map(id => id.trim().to_owned())
     .filter(id => !id.is_empty()),
@@ -301,8 +318,10 @@ async fn main {
     if report.target != target {
       errors.push(report.runner_os + ": report target does not match")
     }
-    if report.upstream_total != 2417 {
-      errors.push(report.runner_os + ": upstream_total must be 2417")
+    if report.upstream_total != inventory.length() {
+      errors.push(
+        report.runner_os + ": upstream_total differs from the pinned inventory",
+      )
     }
     if report.failures != 0 ||
       report.known_differences !=
@@ -333,8 +352,10 @@ async fn main {
         rows_by_id[row.upstream_id] = observations
       }
     }
-    if seen.length() != 2417 {
-      errors.push(report.runner_os + ": report does not contain 2417 rows")
+    if seen.length() != inventory.length() {
+      errors.push(
+        report.runner_os + ": row count differs from the pinned inventory",
+      )
     }
   }
   for required in ["linux", "macos", "windows"] {
@@ -351,6 +372,7 @@ async fn main {
   let mut repository_only = 0
   let mut completion = 0
   let mut signal = 0
+  let mut host_limited = 0
   for upstream_id, observations in rows_by_id {
     guard observations.get(0) is Some((_, first)) else { continue }
     for observation in observations {
@@ -379,27 +401,29 @@ async fn main {
       "repository-only" => repository_only += 1
       "excluded-completion" => completion += 1
       "excluded-signal" => signal += 1
+      "host-limited" => host_limited += 1
       _ => errors.push(upstream_id + ": unclassified evidence")
     }
   }
-  if rows_by_id.length() != 2417 {
-    errors.push(
-      "merged report does not contain 2417 unique upstream identities",
-    )
+  if rows_by_id.length() != inventory.length() {
+    errors.push("merged identity count differs from the pinned inventory")
   }
-  if differential != 1446 ||
-    specs != 906 ||
+  if differential != 1460 ||
+    specs != 929 ||
     smoke != 4 ||
     documents != 3 ||
     repository_only != 3 ||
-    completion != 34 ||
+    completion != 39 ||
+    host_limited != 2 ||
     signal != 21 {
     errors.push(
       "merged evidence category totals do not match the pinned inventory",
     )
   }
   reject_invalid_evidence(errors)
-  let report = "{\"schema_version\":4,\"target\":" +
+  let report = "{\"schema_version\":5,\"upstream\":" +
+    json_string(@testkit.ORACLE_IDENTITY) +
+    ",\"target\":" +
     json_string(target) +
     ",\"platforms\":[\"linux\",\"macos\",\"windows\"],\"upstream_total\":" +
     rows_by_id.length().to_string() +
@@ -426,10 +450,13 @@ async fn main {
     ",\"repository_only\":" +
     repository_only.to_string() +
     ",\"product_identity_difference\":2" +
+    ",\"supplemental_host_differences\":1" +
     ",\"excluded_completion\":" +
     completion.to_string() +
     ",\"excluded_signal\":" +
     signal.to_string() +
+    ",\"host_limited\":" +
+    host_limited.to_string() +
     ",\"deferred_platform\":0,\"unclassified\":0,\"failures\":0}\n"
   match output {
     Some(path) => @fs.write_binary(path, @utf8.encode(report))

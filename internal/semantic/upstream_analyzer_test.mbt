@@ -194,7 +194,7 @@ test "upstream analyzer::tests::duplicate_alias" {
       assert_eq(name, "foo")
       assert_eq(first_kind, "alias")
       assert_eq(second_kind, "alias")
-      assert_eq(first.start_byte(), 0)
+      assert_eq(first.start_byte(), 6)
       assert_eq(second.start_byte(), 23)
       assert_eq(second.length(), 3)
     }
@@ -236,7 +236,7 @@ test "upstream analyzer::tests::alias_shadows_recipe_before" {
       assert_eq(name, "foo")
       assert_eq(first_kind, "alias")
       assert_eq(second_kind, "recipe")
-      assert_eq(first.start_byte(), 17)
+      assert_eq(first.start_byte(), 23)
       assert_eq(second.start_byte(), 34)
       assert_eq(second.length(), 3)
     }

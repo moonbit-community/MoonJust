@@ -1,4 +1,25 @@
 ///|
+/// Host limits are reported outside successful comparisons. Keep each entry
+/// tied to an upstream identity and its affected operating system.
+pub fn deferred_host_behavior(upstream : String) -> (String, String)? {
+  match upstream {
+    "function::tests::dir_not_unicode" =>
+      Some(
+        (
+          "unix", "the Wasm environment API omits values containing invalid UTF-8 before directory builtins can inspect them",
+        ),
+      )
+    "non_unicode::non_unicode_invocation_directory_is_an_error" =>
+      Some(
+        (
+          "linux", "moonrun cannot return a byte-valued Unix working directory to the Wasm guest",
+        ),
+      )
+    _ => None
+  }
+}
+
+///|
 pub fn allowed_stderr_digest(
   upstream : String,
   fixture : String,

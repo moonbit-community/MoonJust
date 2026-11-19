@@ -104,17 +104,6 @@ async fn[
 ) -> ExecutionSummary raise LiveRuntimeError {
   let key = live_cache_key(scripts, directive)
   let digest = key.digest()
-  if options.verbose() {
-    ignore(
-      emit_live(
-        output,
-        Stderr,
-        running_message(directive.recipe(), options.color_enabled())[:],
-        0,
-      ),
-    )
-  }
-  ignore(emit_live(output, Stderr, task.preamble(), 0))
   if options.verbosity() >= 2 {
     ignore(
       emit_live(
@@ -194,6 +183,7 @@ async fn[
     effects,
     task.steps(),
     options,
+    None,
     b""[:],
   )
   if options.verbosity() >= 2 {
@@ -247,20 +237,41 @@ async fn[
   task : @planner.ExecutionTask,
   plan : @planner.ExecutionPlan,
 ) -> ExecutionSummary raise LiveRuntimeError {
+  let options = plan.options()
+  if options.verbose() &&
+    (!task.steps().is_empty() || task.deferred_script is Some(_)) {
+    ignore(
+      emit_live(
+        output,
+        Stderr,
+        running_message(task.recipe(), options.color_enabled())[:],
+        0,
+      ),
+    )
+  }
+  ignore(emit_live(output, Stderr, task.preamble(), 0))
+  let format = match task.timestamp {
+    Some(resolve) =>
+      Some(resolve() catch { error => raise live_failure(error, 0) })
+    None => options.timestamp()
+  }
+  let task = match task.deferred_script {
+    Some((name, prepare)) => {
+      let banner = @planner.script_timestamp(effects, options, format, name) catch {
+        error => raise live_failure(error, 0)
+      }
+      ignore(emit_live(output, Stderr, banner, 0))
+      let (script, echo, cache) = prepare() catch {
+        error => raise live_failure(error, 0)
+      }
+      ignore(emit_live(output, Stderr, echo, 0))
+      task.with_script(script, b"", cache)
+    }
+    None => task
+  }
   guard task.cache() is Some(directive) &&
     plan.options().cache_enabled() &&
     !plan.options().dry_run() else {
-    if plan.options().verbose() && !task.steps().is_empty() {
-      ignore(
-        emit_live(
-          output,
-          Stderr,
-          running_message(task.recipe(), plan.options().color_enabled())[:],
-          0,
-        ),
-      )
-    }
-    ignore(emit_live(output, Stderr, task.preamble(), 0))
     return try
       execute_live_steps(
         process,
@@ -269,6 +280,7 @@ async fn[
         effects,
         task.steps(),
         plan.options(),
+        format,
         b""[:],
       )
     catch {

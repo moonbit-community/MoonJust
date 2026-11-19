@@ -17,6 +17,7 @@ pub fn setting_specs() -> ArrayView[SettingSpec]
 #derive(Eq, @debug.Debug)
 pub(all) struct Alias {
   name : String
+  name_span : @source.Span
   target : String
   attributes : Array[Attribute]
   span : @source.Span
@@ -25,7 +26,7 @@ pub fn Alias::attributes(Self) -> ArrayView[Attribute]
 #deprecated
 pub fn Alias::equal(Self, Self) -> Bool
 pub fn Alias::name(Self) -> String
-pub fn Alias::new(String, String, @source.Span, attributes? : Array[Attribute]) -> Self
+pub fn Alias::new(String, name_span~ : @source.Span, String, @source.Span, attributes? : Array[Attribute]) -> Self
 #deprecated
 pub fn Alias::not_equal(Self, Self) -> Bool
 pub fn Alias::span(Self) -> @source.Span
@@ -36,6 +37,7 @@ pub fn Alias::to_repr(Self) -> @debug.Repr
 #derive(Eq, @debug.Debug)
 pub(all) struct Assignment {
   name : String
+  name_span : @source.Span
   value : Expression
   exported : Bool
   eager : Bool
@@ -48,7 +50,7 @@ pub fn Assignment::eager(Self) -> Bool
 pub fn Assignment::equal(Self, Self) -> Bool
 pub fn Assignment::exported(Self) -> Bool
 pub fn Assignment::name(Self) -> String
-pub fn Assignment::new(String, Expression, Bool, Bool, @source.Span, attributes? : Array[Attribute]) -> Self
+pub fn Assignment::new(String, name_span~ : @source.Span, Expression, Bool, Bool, @source.Span, attributes? : Array[Attribute]) -> Self
 #deprecated
 pub fn Assignment::not_equal(Self, Self) -> Bool
 pub fn Assignment::span(Self) -> @source.Span
@@ -317,6 +319,7 @@ pub fn Parameter::variadic_minimum(Self) -> Int32
 #derive(Eq, @debug.Debug)
 pub(all) struct Recipe {
   name : String
+  name_span : @source.Span
   quiet : Bool
   parameters : Array[Parameter]
   dependencies : Array[Dependency]
@@ -332,7 +335,7 @@ pub fn Recipe::dependencies(Self) -> ArrayView[Dependency]
 pub fn Recipe::equal(Self, Self) -> Bool
 pub fn Recipe::lines(Self) -> ArrayView[RecipeLine]
 pub fn Recipe::name(Self) -> String
-pub fn Recipe::new(String, Bool, Array[Parameter], Array[Dependency], Array[Dependency], Array[RecipeLine], Array[Attribute], @source.Span, trailing_comment? : String) -> Self
+pub fn Recipe::new(String, name_span~ : @source.Span, Bool, Array[Parameter], Array[Dependency], Array[Dependency], Array[RecipeLine], Array[Attribute], @source.Span, trailing_comment? : String) -> Self
 #deprecated
 pub fn Recipe::not_equal(Self, Self) -> Bool
 pub fn Recipe::parameters(Self) -> ArrayView[Parameter]

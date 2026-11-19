@@ -318,18 +318,13 @@ fn require_context_path(
 
 ///|
 fn require_function_path(
-  name : String,
   value : @path.PathValue?,
   missing : String,
   span : @source.Span,
 ) -> @path.PathValue raise EvaluationError {
   match value {
     Some(path) => path
-    None =>
-      raise Builtin(
-        Failure(message="call to function `" + name + "` failed: " + missing),
-        span~,
-      )
+    None => raise Builtin(Failure(message=missing), span~)
   }
 }
 
@@ -465,15 +460,13 @@ fn context_builtin(
         ["1"] | ["true"] => true
         [value] =>
           raise Builtin(
-            Failure(
-              message="call to function `bool` failed: `\{value}` is not a valid boolean string",
-            ),
+            Failure(message="`\{value}` is not a valid boolean string"),
             span~,
           )
         _ =>
           raise Builtin(
             Failure(
-              message="call to function `bool` failed: multi-element lists cannot be converted into booleans",
+              message="multi-element lists cannot be converted into booleans",
             ),
             span~,
           )
@@ -602,12 +595,7 @@ fn context_builtin(
         keys.map(fn(key) { "`" + key + "`" }).join(" and ") +
         " not present"
       }
-      raise Builtin(
-        Failure(
-          message="call to function `" + requested + "` failed: " + description,
-        ),
-        span~,
-      )
+      raise Builtin(Failure(message=description), span~)
     }
     "absolute_path" =>
       if context.lists {
@@ -644,7 +632,6 @@ fn context_builtin(
     "runtime_directory" =>
       String(
         require_function_path(
-          name,
           context.runtime_directory,
           "runtime directory not found",
           span,
@@ -661,7 +648,6 @@ fn context_builtin(
     "executable_directory" =>
       String(
         require_function_path(
-          name,
           context.executable_directory,
           "executable directory not found",
           span,
@@ -711,7 +697,7 @@ fn context_builtin(
           None =>
             raise Builtin(
               Failure(
-                message="call to function `recipe_name` failed: `recipe_name()` can only be used within a recipe",
+                message="`recipe_name()` can only be used within a recipe",
               ),
               span~,
             )

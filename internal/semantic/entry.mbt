@@ -1,7 +1,5 @@
 ///|
-fn compile_plain_empty_recipes(
-  ast : @syntax.Ast,
-) -> Compilation? raise SemanticError {
+fn compile_plain_empty_recipes(ast : @syntax.Ast) -> Compilation? {
   let recipes : Array[@syntax.Recipe] = []
   let recipe_names : Array[String] = []
   let recipe_map : Map[String, @syntax.Recipe] = Map([])
@@ -15,22 +13,14 @@ fn compile_plain_empty_recipes(
         recipe.lines().is_empty() &&
         recipe.attributes().is_empty() => {
         let name = recipe.name()
-        match recipe_map.get(name) {
-          Some(first) =>
-            raise DuplicateRecipe(
-              name~,
-              first=first.span(),
-              second=semantic_name_span(recipe.span(), name),
-            )
-          None => ()
+        if recipe_map.contains(name) {
+          return None
         }
         recipes.push(recipe)
         recipe_names.push(name)
         recipe_map[name] = recipe
         attributes[name] = empty_recipe_attributes()
-        symbols.push(
-          Symbol::new(name, Recipe, semantic_name_span(recipe.span(), name)),
-        )
+        symbols.push(Symbol::new(name, Recipe, recipe.name_span))
       }
       Blank(_) | TrailingComment(_) => ()
       _ => return None
@@ -61,6 +51,7 @@ fn compile_plain_empty_recipes(
 /// Compile an AST into an immutable, ordered semantic model.
 pub fn compile(
   ast : @syntax.Ast,
+  imports~ : ArrayView[ImportSource] = [],
   platform~ : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
   allow_unstable~ : Bool = false,
   defer_recipe_linking~ : Bool = false,
@@ -69,7 +60,7 @@ pub fn compile(
     Some(compilation) => return compilation
     None => ()
   }
-  compile_full(ast, platform~, allow_unstable~, defer_recipe_linking~)
+  compile_full(ast, imports~, platform~, allow_unstable~, defer_recipe_linking~)
 }
 
 ///|

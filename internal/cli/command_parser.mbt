@@ -112,6 +112,9 @@ fn valid_override_path(path : String) -> Bool {
 ///|
 fn valid_query_module_path(arguments : ArrayView[String]) -> Bool {
   for argument in arguments {
+    if argument.is_empty() {
+      return false
+    }
     if argument.contains("/") || argument == "." || argument == ".." {
       continue
     }

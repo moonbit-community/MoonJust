@@ -23,7 +23,7 @@ pub(all) suberror ApplicationError {
     termination~ : @host.ProcessTermination,
   )
   DotenvCommand(command~ : String, exit_code~ : Int32)
-  WriteJustfile(path~ : @path.PathValue, detail~ : String)
+  WriteJustfile(path~ : String, detail~ : String)
   AlreadyExists(@path.PathValue)
   Query(String)
   UnsupportedCommand(String)
@@ -127,7 +127,7 @@ fn ApplicationError::message(self : ApplicationError) -> String {
       "` failed: process exited with status code " +
       exit_code.to_string()
     WriteJustfile(path~, detail~) =>
-      "error: failed to write justfile to `" + path.as_string() + "`: " + detail
+      "error: failed to write justfile to `" + path + "`: " + detail
     AlreadyExists(path) =>
       "error: justfile `\{path.as_string()}` already exists"
     Query(message) => "error: \{message}"
@@ -229,7 +229,11 @@ fn render_application_error(
   }
   match error {
     Load(ImportCycle(_))
-    | Semantic(UserFunctionsUnstable(_) | ListsUnstable(_))
+    | Semantic(
+      CachedRecipesUnstable(_)
+      | UserFunctionsUnstable(_)
+      | ListsUnstable(_),
+    )
     | Planner(CachedRecipesUnstable) => return error.message()
     Evaluation(
       UnknownOverrides(..)

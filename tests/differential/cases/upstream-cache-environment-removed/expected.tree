@@ -1,0 +1,14 @@
+dir	./home
+file	./justfile	90
+set lists
+
+export value := 'default'
+
+[cache(environment=[])]
+[script]
+foo:
+  echo $value
+
+dir	./.justcache
+file	./.justcache/<CACHE_KEY-foo>.json	16
+{"recipe":"foo"}

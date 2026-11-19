@@ -1,5 +1,5 @@
 ///|
-/// Token categories emitted by the `just` 1.57.0-compatible lexer.
+/// Token categories emitted by the justfile lexer.
 #derive(Eq, Compare, Hash, Debug)
 pub(all) enum TokenKind {
   AmpersandAmpersand

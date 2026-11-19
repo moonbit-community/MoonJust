@@ -357,13 +357,6 @@ test "upstream config::tests::subcommand_variables" {
 }
 
 ///|
-test "upstream config::tests::subcommand_usage_search_directory" {
-  let parsed = try! upstream_cli(["--usage", "child"])
-  assert_eq(parsed.command(), UsageCommand)
-  assert_eq(parsed.positional(), ["child"])
-}
-
-///|
 test "upstream config::tests::subcommand_evaluate_overrides" {
   let parsed = try! upstream_cli(["--evaluate", "x=y"])
   assert_eq(parsed.command(), EvaluateCommand)

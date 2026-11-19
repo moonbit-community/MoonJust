@@ -391,6 +391,7 @@ fn Parser::parse_recipe(
   }
   @syntax.Recipe::new(
     name,
+    name_span=name_token.span(),
     quiet,
     parameters,
     dependencies,

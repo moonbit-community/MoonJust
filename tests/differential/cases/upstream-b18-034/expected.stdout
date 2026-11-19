@@ -1,6 +1,6 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH just 1  "just 1.57.0" 
+.TH just 1  "just 1.59.0" 
 .SH NAME
 just \- 🤖 Just a command runner \- https://github.com/casey/just
 .SH SYNOPSIS
@@ -146,10 +146,9 @@ Run at most <N> recipes simultaneously with the [parallel] attribute
 Use <JUSTFILE> as justfile or `\-` to read from standard input
 .TP
 \fB\-\-justfile\-name\fR \fI<NAME>\fR
-Search for justfile named <NAME>
+Search for justfile named <NAME>, accepts multiple `,`\-separated values and may be repeated
 .TP
-\fB\-\-list\-heading\fR \fI<TEXT>\fR [default: Available recipes:
-]
+\fB\-\-list\-heading\fR \fI<TEXT>\fR [default: Available recipes:\\n]
 Print <TEXT> before list
 .TP
 \fB\-\-list\-prefix\fR \fI<TEXT>\fR [default:     ]
@@ -213,7 +212,7 @@ Enable unstable features
 Use verbose output
 .TP
 \fB\-d\fR, \fB\-\-working\-directory\fR \fI<WORKING_DIRECTORY>\fR
-Use <WORKING\-DIRECTORY> as working directory. \-\-justfile must also be set
+Use <WORKING\-DIRECTORY> as working directory
 .TP
 \fB\-\-yes\fR
 Automatically confirm all recipes.
@@ -294,12 +293,12 @@ Show recipe at <RECIPE_PATH>
 \fB\-\-summary\fR
 List names of available recipes
 .TP
-\fB\-\-usage\fR \fI<RECIPE_PATH>...\fR
-Print usage information for recipe at <RECIPE_PATH>
+\fB\-\-usage\fR [\fI<PATH>...\fR]
+Print usage information for recipe at <PATH> or all recipes in module at <PATH>, defaulting to all recipes in the root justfile
 .TP
 \fB\-\-variables\fR
 List names of variables
 .SH VERSION
-v1.57.0
+v1.59.0
 .SH AUTHORS
 Casey Rodarmor <casey@rodarmor.com>

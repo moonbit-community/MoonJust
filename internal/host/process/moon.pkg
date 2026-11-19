@@ -4,6 +4,8 @@ import {
   "moonbitlang/core/async/fs" @async_fs,
   "moonbitlang/core/async/process" @async_process,
   "moonbitlang/core/async/signal",
+  "moonbitlang/core/async/io",
+  "moonbitlang/core/async/os_error",
   "moonbitlang/core/async/stdio",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",

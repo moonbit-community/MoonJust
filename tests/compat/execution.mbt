@@ -20,6 +20,12 @@ fn target_environment(
   platform : String,
 ) -> Map[String, String] {
   let environment = base.copy()
+  // Windows PowerShell needs SystemRoot to initialize its crypto provider.
+  if platform == "windows" && inputs.contains("SystemRoot") {
+    if @env.get_env_var("SystemRoot") is Some(root) {
+      environment["SystemRoot"] = root
+    }
+  }
   if platform == "windows" && !architecture.is_empty() {
     // The isolated fixture environment must retain the platform facts that
     // native just obtains from the Windows process environment/API.
@@ -68,6 +74,7 @@ async fn run_steps(
   root : String,
   cwd : String,
   rules : ArrayView[String],
+  closed_stdout~ : Bool,
   architecture : String,
   cpu_count : String,
   wasm_reentry : String,
@@ -95,6 +102,7 @@ async fn run_steps(
       program,
       args,
       stdin~,
+      closed_stdout~,
       cwd~,
       extra_env=env,
       inherit_env=false,
@@ -146,6 +154,7 @@ async fn run_side(
       root,
       cwd,
       metadata.normalizations,
+      closed_stdout=metadata.closed_stdout,
       architecture,
       cpu_count,
       wasm_reentry,
@@ -203,6 +212,7 @@ async fn run_side(
         program,
         args,
         stdin~,
+        closed_stdout=metadata.closed_stdout,
         cwd~,
         extra_env=env,
         inherit_env=false,
@@ -267,7 +277,10 @@ async fn run_side(
 async fn official_is_pinned(program : @testkit.PreparedProgram) -> Bool {
   let result = @testkit.run_prepared_bytes(program, ["--version"])
   result.status == 0 &&
-  @testkit.bytes_equal(result.stdout, b"just 1.57.0\n") &&
+  @testkit.bytes_equal(
+    result.stdout,
+    @utf8.encode(@testkit.ORACLE_IDENTITY + "\n"),
+  ) &&
   result.stderr.is_empty()
 }
 

@@ -99,8 +99,10 @@ test "upstream shebang::tests::include_shebang_line_other" {
 
 ///|
 test "upstream executor::tests::needs_bom" {
+  let windows = @host.PlatformInfo::new(Windows, None, Windows)
+  let unix = @host.PlatformInfo::new(Linux, None, Unix)
   for
-    expected in [
+    (program, windows_bom) in [
       ("powershell", true),
       ("powershell.exe", true),
       ("pwsh", true),
@@ -111,7 +113,11 @@ test "upstream executor::tests::needs_bom" {
       ("/bin/sh", false),
       ("python", false),
     ] {
-    assert_eq(needs_bom(expected.0), expected.1)
+    // Exercise both ways of selecting the interpreter. Windows PowerShell
+    // needs the BOM to decode UTF-8, while a Unix kernel reads the shebang
+    // from byte zero.
+    assert_script_bom(program, windows, windows_bom)
+    assert_script_bom(program, unix, false)
   }
 }
 
@@ -147,4 +153,36 @@ test "upstream misc::windows_interpreter_path_no_base" {
       @host.PlatformInfo::new(Windows, Some("test"), Windows),
     ),
   )
+}
+
+///|
+fn assert_script_bom(
+  program : String,
+  platform : @host.PlatformInfo,
+  expected : Bool,
+) -> Unit raise {
+  let cwd = @path.PathValue::new(".", platform.path_flavor())
+  let env = @evaluator.Environment::new()
+  for
+    (source, interpreter) in [
+      ("foo:\n  #!" + program + "\n  echo ok\n", "sh"),
+      ("[script]\nfoo:\n  echo ok\n", program),
+    ] {
+    let config = ScriptConfiguration::new(
+      @environment.ShellConfiguration::new(interpreter, []),
+      cwd,
+      platform,
+    )
+    let planned = plan_script_recipe(
+      upstream_script_recipe(source),
+      env,
+      cwd,
+      config,
+    )
+    assert_eq(
+      planned.contents()[:3].to_owned() == b"\xef\xbb\xbf",
+      expected,
+      msg=source,
+    )
+  }
 }

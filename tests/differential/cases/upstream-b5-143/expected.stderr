@@ -1,4 +1,4 @@
-error: call to function `choose` failed: failed to parse `foo` as positive integer: invalid digit found in string
+error: failed to parse `foo` as positive integer: invalid digit found in string
  ——▶ justfile:1:6
   │
 1 │ x := choose('foo', HEX)

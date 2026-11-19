@@ -89,6 +89,9 @@ fn coverage_status(
   // Concrete MoonBit assertion files are executable spec evidence. The large
   // Rust source snapshot is audit evidence only and must not inflate coverage.
   if specs.get(upstream_test) is Some(spec) {
+    if @testkit.deferred_host_behavior(upstream_test) is Some((_, reason)) {
+      return ("host-limited", spec.fixture, spec.anchor, reason)
+    }
     if exclusion(upstream_test) is Some((kind, reason)) {
       return (kind, spec.fixture, spec.anchor, reason)
     }
@@ -190,7 +193,7 @@ async fn validate_upstream_anchor(
   guard location_parts(anchor) is Some((relative, line_number)) else {
     return Some(upstream_test + ": invalid upstream source anchor")
   }
-  let source = "tests/compatibility/upstream/just-1.57.0/source/" + relative
+  let source = "tests/compatibility/upstream/just-1.59.0/source/" + relative
   guard @fs.exists(source) else {
     return Some(upstream_test + ": upstream source file is missing: " + source)
   }

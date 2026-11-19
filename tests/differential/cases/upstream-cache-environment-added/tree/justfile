@@ -1,0 +1,5 @@
+set lists
+[cache(environment=['value'])]
+[script]
+foo:
+  echo $value

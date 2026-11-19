@@ -3,6 +3,7 @@ import {
   "moonbitlang/core/async",
   "moonbitlang/core/async/fs",
   "moonbitlang/core/async/process",
+  "moonbitlang/core/env",
 }
 ----
 
@@ -19,8 +20,134 @@ async fn metadata(file : String) -> String {
 }
 
 ///|
+async fn broken_pipe_is_ignored(wasm : String, cwd : String) -> Unit {
+  let (reader, writer) = @process.read_from_process()
+  reader.close()
+  defer writer.close()
+  let result = @process.run(
+    "moonrun",
+    [wasm, "--", "--list"],
+    cwd~,
+    stdin=Empty,
+    stdout=Shared(writer),
+    stderr=Collect,
+  )
+  assert_eq(result.exit_code, 0, msg=result.stderr_text())
+  assert_eq(result.stderr_text(), "")
+  if !(@async.platform is Windows) {
+    // fd 1 refers to a read-only descriptor, so the write fails with EBADF.
+    let bad_fd = @process.run(
+      "sh",
+      ["-c", "exec \"$@\" 1<justfile", "sh", "moonrun", wasm, "--", "--list"],
+      cwd~,
+      stdout=Collect,
+      stderr=Collect,
+    )
+    assert_true(bad_fd.exit_code != 0)
+    assert_false(bad_fd.stderr_text().is_empty())
+  }
+}
+
+///|
+async fn timestamp_and_shebang(
+  program : String,
+  prefix : Array[String],
+) -> Unit {
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonjust-timestamp"))
+  defer @fs.remove(root, recursive=true)
+  async fn cli(args : Array[String]) -> @process.ProcessResult {
+    @process.run(
+      program,
+      [..prefix, ..args],
+      cwd=root,
+      extra_env={ "TZ": "UTC+5" },
+      stdout=Collect,
+      stderr=Collect,
+    )
+  }
+  let file = root + "/justfile"
+  @fs.write_text(file, "run:\n    echo ran\n")
+  let timestamped = cli(["--timestamp", "--timestamp-format", "%z", "run"])
+  assert_eq(timestamped.exit_code, 0)
+  assert_eq(timestamped.stdout_text(), "ran\n")
+  assert_eq(timestamped.stderr_text(), "[-0500] echo ran\n")
+  @fs.write_text(file, "[timestamp]\nrun:\n  @echo ran\n")
+  let bare = cli(["--timestamp-format", "cli", "run"])
+  assert_eq(bare.exit_code, 0, msg=bare.stderr_text())
+  assert_eq(bare.stdout_text(), "ran\n")
+  assert_eq(bare.stderr_text(), "[cli] echo ran\n")
+  // Format expressions run once when a recipe starts, after its dependencies.
+  @fs.write_text(
+    file,
+    (
+      #|setup:
+      #|  @echo recipe > stamp
+      #|[timestamp(`cat stamp; printf x >> evaluations`)]
+      #|run: setup
+      #|  @echo one
+      #|  @echo two
+    ),
+  )
+  let lines = cli(["--timestamp-format", "cli", "run"])
+  assert_eq(lines.exit_code, 0, msg=lines.stderr_text())
+  assert_eq(lines.stderr_text(), "[recipe] echo one\n[recipe] echo two\n")
+  assert_eq(lines.stdout_text(), "one\ntwo\n")
+  assert_eq(@fs.read_text(root + "/evaluations"), "x")
+  @fs.write_text(
+    file,
+    (
+      #|[timestamp(`printf x >> evaluations; printf script`)]
+      #|run:
+      #|  #!/bin/sh
+      #|  echo {{`cat evaluations`}}
+    ),
+  )
+  let script = cli(["--quiet", "--timestamp", "--timestamp-format", "%Q", "run"])
+  assert_eq(script.exit_code, 0, msg=script.stderr_text())
+  assert_eq(script.stderr_text(), "[script] run\n")
+  assert_eq(script.stdout_text(), "xx\n")
+  @fs.write_text(file, "[timestamp(format='x')]\nrun:\n  @echo ok\n")
+  let invalid = cli(["run"])
+  assert_eq(invalid.exit_code, 1)
+  assert_eq(invalid.stdout_text(), "")
+  assert_eq(
+    invalid.stderr_text(),
+    (
+      #|error: expected '&&', '!=', '!~', '||', ',', '==', '=~', '(', ')', '+', '++', or '/', but found '='
+      #| ——▶ justfile:1:18
+      #|  │
+      #|1 │ [timestamp(format='x')]
+      #|  │                  ^
+      #|
+    ),
+  )
+  @fs.write_text(
+    file, "[timestamp('cache')]\n[cache]\n[script]\nrun:\n  echo ran\n",
+  )
+  for output in ["ran\n", ""] {
+    let cached = cli(["--unstable", "run"])
+    assert_eq(cached.exit_code, 0, msg=cached.stderr_text())
+    assert_eq(cached.stdout_text(), output)
+    assert_eq(cached.stderr_text(), "[cache] run\n")
+  }
+  // A Unix kernel must see #! at byte zero to execute the script directly.
+  @fs.symlink(target="/bin/bash", root + "/pwsh")
+  @fs.write_text(
+    file, "run:\n  #!{{justfile_directory()}}/pwsh\n  cat \"$0\"\n",
+  )
+  let shebang = cli(["run"])
+  assert_eq(shebang.exit_code, 0, msg=shebang.stderr_text())
+  assert_eq(shebang.stdout_text(), "#!" + root + "/pwsh\n\ncat \"$0\"\n")
+  assert_eq(shebang.stderr_text(), "")
+}
+
+///|
 async fn main {
   let wasm = @fs.realpath("_build/wasm/release/build/MoonJust.wasm")
+  timestamp_and_shebang("moonrun", [wasm, "--"])
+  if @env.args()[1:] is [oracle] {
+    timestamp_and_shebang(@fs.realpath(oracle), [])
+  }
   let root = @fs.realpath(@fs.tmpdir(prefix="moonjust-contract"))
   defer @fs.remove(root, recursive=true)
   let policy = root + "/policy.toml"
@@ -38,17 +165,7 @@ async fn main {
   }
   let file = root + "/justfile"
   @fs.write_text(file, "run:\n    echo ran\n")
-  let timestamped = @process.run(
-    "moonrun",
-    [wasm, "--", "--timestamp", "--timestamp-format", "%z", "run"],
-    extra_env={ "TZ": "UTC+5" },
-    cwd=root,
-    stdout=Collect,
-    stderr=Collect,
-  )
-  assert_eq(timestamped.exit_code, 0)
-  assert_eq(timestamped.stdout_text(), "ran\n")
-  assert_eq(timestamped.stderr_text(), "[-0500] echo ran\n")
+  broken_pipe_is_ignored(wasm, root)
   @fs.write_text(
     file, "set unstable\nset lists\nvalue := style(['stdout','red'],'hello')\n",
   )

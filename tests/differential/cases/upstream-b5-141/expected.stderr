@@ -1,4 +1,4 @@
-error: call to function `choose` failed: empty alphabet
+error: empty alphabet
  ——▶ justfile:1:6
   │
 1 │ x := choose('10', '')

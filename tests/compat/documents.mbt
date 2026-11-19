@@ -1,5 +1,5 @@
 ///|
-const DOCUMENT_ROOT = "tests/compatibility/upstream/just-1.57.0/source"
+const DOCUMENT_ROOT = "tests/compatibility/upstream/just-1.59.0/source"
 
 ///|
 priv enum DocumentContract {
@@ -133,8 +133,8 @@ async fn check_document(
       let blocks = readme_just_blocks(
         @fs.read_text(join(DOCUMENT_ROOT, "README.md")),
       )
-      guard blocks.length() == 192 else {
-        fail("expected 192 just fences in the pinned README")
+      guard blocks.length() == 195 else {
+        fail("expected 195 just fences in the pinned README")
       }
       for (line, source) in blocks {
         dump(
@@ -164,7 +164,7 @@ async fn check_document(
       guard reference.status == 0 &&
         reference.stderr.is_empty() &&
         @crypto.bytes_to_hex_string(@crypto.sha256(reference.stdout)) ==
-        "f904802597ddf0e88788a07882ca69b693e1e941caec508e8817bd5f22ae1f38" else {
+        "0dce88c74adb5a3d4b3418a66bd3a75be54fd85f9eee7de44de5f593b87462a2" else {
         fail("official --changelog differs from pinned CHANGELOG.md")
       }
       let actual = document_command(candidate, "justfile", b"", ["--changelog"])

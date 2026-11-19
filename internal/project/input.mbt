@@ -4,6 +4,7 @@
 #derive(Debug)
 pub struct ProjectInput {
   cwd : @path.PathValue
+  invocation_directory : @path.PathValue
   stdin : Bytes
   source_id : @source.SourceId
   global_justfile : @path.PathValue?
@@ -18,6 +19,7 @@ pub fn ProjectInput::new(
 ) -> ProjectInput {
   {
     cwd,
+    invocation_directory: cwd,
     stdin,
     source_id,
     global_justfile: None,
@@ -32,9 +34,7 @@ pub fn ProjectInput::with_global_justfile(
   project_directory : @path.PathValue,
 ) -> ProjectInput {
   {
-    cwd: self.cwd,
-    stdin: self.stdin,
-    source_id: self.source_id,
+    ..self,
     global_justfile: Some(justfile),
     global_project_directory: Some(project_directory),
   }
@@ -45,13 +45,14 @@ pub fn ProjectInput::with_cwd(
   self : ProjectInput,
   cwd : @path.PathValue,
 ) -> ProjectInput {
-  {
-    cwd,
-    stdin: self.stdin,
-    source_id: self.source_id,
-    global_justfile: self.global_justfile,
-    global_project_directory: self.global_project_directory,
-  }
+  { ..self, cwd, }
+}
+
+///|
+pub fn ProjectInput::invocation_directory(
+  self : ProjectInput,
+) -> @path.PathValue {
+  self.invocation_directory
 }
 
 ///|

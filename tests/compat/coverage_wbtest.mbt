@@ -163,6 +163,8 @@ test "byte contract detects status output error tail and tree changes" {
     cwd: "",
     platform: None,
     merged: false,
+    closed_stdout: false,
+    verify_snapshot: false,
     live_prefix: None,
     live_timeout_ms: 1,
     normalizations: [],
@@ -258,9 +260,42 @@ test "allowlisted formatting must refuse unchanged, not just return a known code
 }
 
 ///|
-async test "schema 4 distinguishes document contracts, local smoke and repository evidence" {
+async test "Windows host exit probe permits only its observed exit status difference" {
+  let fixture = "windows-negative-exit-code"
+  let details = parse_manifest(@fs.read_text("tests/differential/cases.toml")).cases[fixture]
+  let oracle : CaseResult = {
+    status: -65536,
+    stdout: b"",
+    stderr: b"original diagnostic",
+    merged: None,
+    tree: b"",
+    live: true,
+    steps: [],
+  }
+  fn allowed(candidate : CaseResult) -> Bool {
+    expected_difference_allowed(
+      fixture,
+      difference_fields(oracle, candidate, details),
+      candidate,
+      oracle,
+      b"",
+      details,
+    )
+  }
+  assert_true(allowed({ ..oracle, status: 1, }))
+  assert_false(allowed(oracle))
+  assert_false(allowed({ ..oracle, status: 255, }))
+  assert_false(allowed({ ..oracle, status: 1, stderr: b"another error", }))
+  assert_false(windows_exit_status_probe("another-fixture", details))
+  assert_false(
+    windows_exit_status_probe(fixture, { ..details, verify_snapshot: false, }),
+  )
+}
+
+///|
+async test "schema 5 distinguishes document contracts, local smoke and repository evidence" {
   let specs = parse_spec_index(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/spec-index.txt"),
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/spec-index.txt"),
   )
   let readme = "readme::readme"
   let completion = "config::tests::subcommand_conflict_completions"
@@ -281,6 +316,7 @@ async test "schema 4 distinguishes document contracts, local smoke and repositor
     empty,
     failures=0,
     product_identity=0,
+    supplemental_host_differences=0,
     platform="macos",
     target="wasm",
     reentry="",
@@ -328,10 +364,10 @@ async test "snapshot provenance is bound to its indexed line" {
 ///|
 async test "all completion and signal exclusions carry verified pinned source anchors" {
   let specs = parse_spec_index(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/spec-index.txt"),
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/spec-index.txt"),
   )
   let names = upstream_test_names(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/test-list.txt"),
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/test-list.txt"),
   )
   let mut completions = 0
   let mut signals = 0
@@ -346,6 +382,6 @@ async test "all completion and signal exclusions carry verified pinned source an
       signals += 1
     }
   }
-  assert_eq(completions, 34)
+  assert_eq(completions, 39)
   assert_eq(signals, 21)
 }

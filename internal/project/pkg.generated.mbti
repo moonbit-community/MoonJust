@@ -14,6 +14,8 @@ import {
 // Values
 pub fn compile_loaded_graph(@loader.LoadedGraph, allow_unstable? : Bool, platform? : @semantic.TargetPlatform) -> @semantic.ProjectCompilation raise ProjectError
 
+pub async fn[T : @host.HostFs] discover_directories(T, ProjectInput, @loader.SearchOptions, @path.PathValue?) -> @workdir.WorkingDirectoryModel raise ProjectError
+
 pub async fn[T : @host.HostFs] load_snapshot(T, ProjectLoadRequest, allow_unstable? : Bool) -> ProjectSnapshot raise ProjectError
 
 pub async fn[T : @host.HostFs] load_sources(T, ProjectLoadRequest) -> ProjectSources raise ProjectError
@@ -33,6 +35,7 @@ pub fn ProjectError::to_repr(Self) -> @debug.Repr
 #derive(@debug.Debug)
 pub struct ProjectInput {
   cwd : @path.PathValue
+  invocation_directory : @path.PathValue
   stdin : Bytes
   source_id : @source.SourceId
   global_justfile : @path.PathValue?
@@ -41,6 +44,7 @@ pub struct ProjectInput {
 pub fn ProjectInput::cwd(Self) -> @path.PathValue
 pub fn ProjectInput::global_justfile(Self) -> @path.PathValue?
 pub fn ProjectInput::global_project_directory(Self) -> @path.PathValue?
+pub fn ProjectInput::invocation_directory(Self) -> @path.PathValue
 pub fn ProjectInput::new(@path.PathValue, stdin? : Bytes, source_id? : @source.SourceId) -> Self
 pub fn ProjectInput::source_id(Self) -> @source.SourceId
 pub fn ProjectInput::stdin(Self) -> BytesView
@@ -52,12 +56,12 @@ pub struct ProjectLoadRequest {
   input : ProjectInput
   selection : SourceSelection
   working_directory : @path.PathValue?
-  filename : String
+  filenames : ArrayView[String]
   ceiling : @path.PathValue?
   platform : @semantic.TargetPlatform
   environment : ArrayView[(String, String)]
 }
-pub fn ProjectLoadRequest::new(ProjectInput, SourceSelection, String, @semantic.TargetPlatform, ArrayView[(String, String)], working_directory? : @path.PathValue, ceiling? : @path.PathValue) -> Self
+pub fn ProjectLoadRequest::new(ProjectInput, SourceSelection, ArrayView[String], @semantic.TargetPlatform, ArrayView[(String, String)], working_directory? : @path.PathValue, ceiling? : @path.PathValue) -> Self
 
 pub struct ProjectSnapshot {
   graph : @loader.LoadedGraph

@@ -1,5 +1,5 @@
 name: Compatibility difference
-description: Report a behavioral difference from just 1.57
+description: Report a behavioral difference from just 1.59
 title: "[compat]: "
 labels:
   - compat:B

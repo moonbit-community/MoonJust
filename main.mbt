@@ -13,7 +13,7 @@ fn command_may_spawn_process(command : @cli.CommandKind) -> Bool {
 ///|
 async fn emit_response(response : @cli.ApplicationResponse) -> Unit {
   if !response.stdout().is_empty() {
-    @stdio.stdout.write(response.stdout())
+    @host_process.write_stdout(response.stdout())
   }
   if !response.stderr().is_empty() {
     @stdio.stderr.write(response.stderr())

@@ -1,0 +1,12 @@
+dir	./home
+file	./left	13
+v := 'first'
+
+file	./right	14
+v := 'second'
+
+file	./justfile	59
+set allow-duplicate-variables
+import 'right'
+import 'left'
+

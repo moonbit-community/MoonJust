@@ -72,6 +72,7 @@ async fn[
   environment : @evaluator.Environment,
   context : @evaluator.EvaluationContext,
   shell : @environment.ShellConfiguration,
+  dry_run~ : Bool = false,
 ) -> @value.Value raise ExecutionError {
   @evaluator.evaluate_with_async_effects(
     process,
@@ -80,6 +81,7 @@ async fn[
     context,
     @evaluator.EffectShell::new(shell.program(), shell.arguments().to_owned()),
     environment~,
+    dry_run~,
   ) catch {
     error => raise Evaluation(error)
   }
@@ -203,17 +205,16 @@ async fn[
 async fn[
   P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
-] recipe_process_environment(
+] recipe_environment_attributes(
   process : P,
   host : H,
   attributes : @semantic.RecipeAttributes?,
   scope : @evaluator.Environment,
   context : @evaluator.EvaluationContext,
   shell : @environment.ShellConfiguration,
-  base : ArrayView[(String, String)],
   recipe : @syntax.Recipe,
 ) -> Array[(String, String)] raise ExecutionError {
-  let result = environment_with_exports(base, scope)
+  let result : Array[(String, String)] = []
   guard attributes is Some(value) else { return result }
   for entry in value.env() {
     let evaluated_key = evaluate_recipe_expression(
@@ -241,23 +242,26 @@ async fn[
       context,
       shell,
     )
-    let mut replaced = false
-    for index, existing in result {
-      if existing.0 == key {
-        if evaluated.elements().is_empty() {
-          ignore(result.remove(index))
-        } else {
-          result[index] = (key, evaluated.to_string())
-        }
-        replaced = true
-        break
-      }
-    }
-    if !replaced && !evaluated.elements().is_empty() {
+    if !evaluated.elements().is_empty() {
       result.push((key, evaluated.to_string()))
     }
   }
   result
+}
+
+///|
+fn with_recipe_env(
+  base : Array[(String, String)],
+  attrs : Array[(String, String)],
+) -> Array[(String, String)] {
+  if attrs.is_empty() {
+    return base
+  }
+  let env = Map::from_array(base)
+  for (key, value) in attrs {
+    env[key] = value
+  }
+  env.iter().collect()
 }
 
 ///|

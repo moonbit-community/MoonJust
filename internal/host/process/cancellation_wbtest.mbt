@@ -65,3 +65,15 @@ async test "observed process wait preserves normal exit status" {
     }
   })
 }
+
+///|
+test "completed child status uses the host's exit code convention" {
+  let command = @host.CommandSpec::new("child", [])
+  if windows_process_runtime() {
+    let result = process_result(command, Completed(-65536), b"", b"")
+    assert_true(result.termination() is Exited(-65536))
+  } else {
+    let result = process_result(command, Completed(-15), b"", b"")
+    assert_true(result.termination() is Signaled(Terminate))
+  }
+}

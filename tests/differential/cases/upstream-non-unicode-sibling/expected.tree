@@ -1,0 +1,16 @@
+dir	./child
+file	./child/justfile	15
+foo:
+ echo bar
+
+dir	./home
+file	./justfile	151
+probe:
+    #!/bin/sh
+    set -eu
+    cd child
+    name=$(printf 'foo\377')
+    touch "$name"
+    trap 'rm -f "$name"' EXIT
+    '{{just_executable()}}'
+

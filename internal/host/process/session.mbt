@@ -57,7 +57,7 @@ async fn write_stdio(
   defer mutex.release()
   try {
     match stream {
-      Stdout => @stdio.stdout.write(bytes)
+      Stdout => write_stdout(bytes)
       Stderr => @stdio.stderr.write(bytes)
     }
     bytes.length()

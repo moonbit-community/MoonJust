@@ -1,4 +1,4 @@
-error: call to function `semver_matches` failed: invalid semver version: invalid leading zero in pre-release identifier
+error: invalid semver version: invalid leading zero in pre-release identifier
  ——▶ justfile:1:10
   │
 1 │ value := semver_matches('1.0.0-01','*')

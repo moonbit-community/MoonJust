@@ -188,7 +188,7 @@ fn version_greater(
 
 ///|
 /// Upstream just version used by minimum-version and the just_version() builtin.
-pub const JUST_COMPATIBILITY_VERSION : String = "1.57.0"
+pub const JUST_COMPATIBILITY_VERSION : String = "1.59.0"
 
 ///|
 let compatibility_version_parts : (Int32, Int32, Int32) = version_parts(

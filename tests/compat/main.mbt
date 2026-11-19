@@ -44,13 +44,13 @@ async fn main {
     "tests/differential/cases.toml",
   )
   let upstream_list = option(args, "--upstream-list").unwrap_or(
-    "tests/compatibility/upstream/just-1.57.0/test-list.txt",
+    "tests/compatibility/upstream/just-1.59.0/test-list.txt",
   )
   let report_path = option(args, "--coverage-report")
   let execution_target = option(args, "--execution-target").unwrap_or("wasm")
   let spec_text = read_text(
     option(args, "--spec-index").unwrap_or(
-      "tests/compatibility/upstream/just-1.57.0/spec-index.txt",
+      "tests/compatibility/upstream/just-1.59.0/spec-index.txt",
     ),
   )
   let spec_index = parse_spec_index(spec_text)
@@ -66,6 +66,7 @@ async fn main {
   let mut matched = 0
   let mut known = 0
   let mut product_identity = 0
+  let mut supplemental_host_differences = 0
   let mut selected_found = false
   let failures : Array[String] = []
   let executed : Set[String] = Set([])
@@ -114,7 +115,9 @@ async fn main {
     None => failures.push("moon.mod does not declare a product version")
   }
   if !official_is_pinned(official) {
-    failures.push("official oracle must report exactly `just 1.57.0`")
+    failures.push(
+      "official oracle must report exactly " + @testkit.ORACLE_IDENTITY,
+    )
   }
   validate_inventory(
     parsed_manifest, cases_root, upstream_names, spec_index, spec_text, failures,
@@ -156,6 +159,8 @@ async fn main {
         cwd: "",
         platform: None,
         merged: false,
+        closed_stdout: false,
+        verify_snapshot: false,
         live_prefix: None,
         live_timeout_ms: 1000,
         id: "",
@@ -218,11 +223,18 @@ async fn main {
       normalize_snapshot(snapshot, official.subject(), details.normalizations)
     })
     match expected_snapshot_result {
-      Some(snapshot) if verify_snapshots && !record_expected => {
+      Some(snapshot) if (details.verify_snapshot || verify_snapshots) &&
+        !record_expected => {
         let snapshot_differences = difference_fields(
           snapshot, official_result, details,
         )
         if !snapshot_differences.is_empty() {
+          write_difference_details(
+            name, snapshot_differences, snapshot, official_result,
+          )
+          for upstream_test in details.upstream_tests {
+            failed_upstream.add(upstream_test)
+          }
           failures.push(
             name +
             ": recorded official result differs in [" +
@@ -287,6 +299,8 @@ async fn main {
       ) {
       if details.allowed_difference == Some("product-identity") {
         product_identity += 1
+      } else if windows_exit_status_probe(name, details) {
+        supplemental_host_differences += 1
       } else {
         known += 1
         for upstream_test in details.upstream_tests {
@@ -327,6 +341,7 @@ async fn main {
     documents_passed,
     failures=failures.length(),
     product_identity~,
+    supplemental_host_differences~,
     platform~,
     target=execution_target,
     reentry=if wasm_reentry.is_empty() {
@@ -347,13 +362,13 @@ async fn main {
     @stdio.stderr.text.write("FAIL  " + failure + "\n")
   }
   @stdio.stdout.text.write(
-    "matched=\{matched} known_differences=\{known} product_identity_difference=\{product_identity} failures=\{report.failures}" +
+    "matched=\{matched} known_differences=\{known} product_identity_difference=\{product_identity} supplemental_host_differences=\{supplemental_host_differences} failures=\{report.failures}" +
     " upstream_total=\{report.upstream_total} differential_declared=\{report.differential_declared}" +
     " differential_executed=\{report.differential_executed} differential_exact=\{report.differential_exact}" +
     " differential_known_difference=\{report.differential_known_difference} moonbit_spec_executed=\{report.moonbit_spec_executed}" +
     " local_smoke_executed=\{report.local_smoke_executed} document_oracle_executed=\{report.document_oracle_executed}" +
     " repository_only=\{report.repository_only} excluded_completion=\{report.excluded_completion}" +
-    " excluded_signal=\{report.excluded_signal} deferred_platform=\{report.deferred_platform} unclassified=\{report.unclassified}\n",
+    " excluded_signal=\{report.excluded_signal} host_limited=\{report.host_limited} deferred_platform=\{report.deferred_platform} unclassified=\{report.unclassified}\n",
   )
   if !failures.is_empty() {
     @env.exit(1)

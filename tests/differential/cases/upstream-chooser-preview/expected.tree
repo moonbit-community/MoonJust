@@ -1,0 +1,28 @@
+dir	./bin
+file	./bin/fzf	234
+#!/bin/sh
+set -eu
+test "$1" = '--multi'
+test "$2" = '--preview'
+test "$3" = 'just --unstable --color always --show {}'
+test "$JUST_JUSTFILE" = "$PWD/project's recipes.just"
+just --unstable --color always --show foo > preview
+echo foo
+
+dir	./home
+file	./preview	19
+foo:
+    @echo foo
+
+file	./project's recipes.just	214
+set shell := ['sh', '-cu', 'PATH="$PWD/bin:$PATH"; export PATH; exec sh -cu "$1"', 'sh']
+_setup:
+    @chmod +x bin/fzf
+    @ln -s "{{just_executable()}}" bin/just
+
+foo:
+    @echo foo
+
+_cleanup:
+    @rm -f bin/just
+

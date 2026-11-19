@@ -116,7 +116,7 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] format_response(
         ) catch {
           PermissionDenied(_, detail=_) =>
             raise WriteJustfile(
-              path=loaded.path(),
+              path=loaded.path().as_string(),
               detail=write_permission_detail(loaded.path()),
             )
           error => raise Host(error)
@@ -141,51 +141,34 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response(
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
 ) -> @cli.ApplicationResponse raise ApplicationError {
-  if arguments.positional().length() > 1 {
-    raise Query(
-      "`--init` used with unexpected argument: `" +
-      arguments.positional()[1] +
-      "`",
-    )
+  if arguments.positional().get(0) is Some(argument) {
+    raise Query("`--init` used with unexpected argument: `" + argument + "`")
   }
   let path = match arguments.value("justfile") {
     Some("-") =>
       raise Query("cannot use justfile from standard input with `--init`")
-    Some(value) => {
-      let path = @path.PathValue::new(value, context.cwd().flavor()) catch {
+    Some(value) =>
+      context.cwd().join_text(value) catch {
         error => raise Path(error)
       }
-      if path.is_absolute() {
-        path
-      } else {
-        context.cwd().join(path) catch {
-          error => raise Path(error)
-        }
-      }
-    }
     None => {
-      let directory = match arguments.positional().get(0) {
-        Some(value) => {
-          let path = @path.PathValue::new(value, context.cwd().flavor()) catch {
+      let directory = match arguments.value("working-directory") {
+        Some(value) =>
+          context.cwd().join_text(value) catch {
             error => raise Path(error)
           }
-          if path.is_absolute() {
-            path
-          } else {
-            context.cwd().join(path) catch {
-              error => raise Path(error)
-            }
-          }
-        }
         None =>
           global_project_root(
             host,
             context.cwd(),
-            ceiling_argument(arguments, context.cwd()),
+            ceiling_argument(arguments, context.invocation_directory()),
           )
       }
+      let options = @loader.SearchOptions::new(
+        filenames=arguments.values("justfile-name"),
+      )
       let filename = @path.PathValue::new(
-        arguments.value("justfile-name").unwrap_or("justfile"),
+        options.filenames[0],
         context.cwd().flavor(),
       ) catch {
         error => raise Path(error)
@@ -198,12 +181,22 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response(
   let exists = @host.HostFs::file_exists(host, path) catch {
     error => raise Host(error)
   }
+  let display_path = if arguments.value("justfile") is None &&
+    arguments.values("justfile-name").get(0) == Some("") &&
+    !path.as_string().has_suffix(path.flavor().separator().to_string()) {
+    path.as_string() + path.flavor().separator().to_string()
+  } else {
+    path.as_string()
+  }
   if exists {
     let metadata = @host.HostFs::metadata(host, path) catch {
       error => raise Host(error)
     }
     if metadata.is_directory() {
-      raise WriteJustfile(path~, detail=write_directory_detail(path))
+      raise WriteJustfile(
+        path=display_path,
+        detail=write_directory_detail(path),
+      )
     }
     raise AlreadyExists(path)
   }
@@ -213,8 +206,20 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response(
     @utf8.encode(INIT_TEMPLATE),
     false,
   ) catch {
+    NotFound(_) =>
+      raise WriteJustfile(
+        path=display_path,
+        detail=if path.flavor() == Windows {
+          "The system cannot find the path specified. (os error 3)"
+        } else {
+          "No such file or directory (os error 2)"
+        },
+      )
     PermissionDenied(_, detail=_) =>
-      raise WriteJustfile(path~, detail=write_permission_detail(path))
+      raise WriteJustfile(
+        path=display_path,
+        detail=write_permission_detail(path),
+      )
     error => raise Host(error)
   }
   @cli.ApplicationResponse::success(
@@ -229,6 +234,7 @@ pub async fn[T : @host.HostFs + @host.HostAtomicFs, H : @host.HostTerminal] exec
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
 ) -> @cli.ApplicationResponse raise ApplicationError {
+  let (arguments, context) = search_prefixed_invocation(arguments, context)
   match arguments.command() {
     CheckCommand => {
       let loaded = load_input(host, arguments, context)

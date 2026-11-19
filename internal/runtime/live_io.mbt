@@ -68,6 +68,7 @@ async fn[
   effects : H,
   steps : ArrayView[@planner.PlannedStep],
   options : @planner.ExecutionOptions,
+  timestamp_format : String?,
   initial_stderr : BytesView,
 ) -> ExecutionSummary raise LiveRuntimeError {
   let mut commands = 0
@@ -106,14 +107,6 @@ async fn[
         )
       }
       Script(script, echo) => {
-        let timestamp = @planner.script_timestamp(
-          effects,
-          options,
-          script.recipe(),
-        ) catch {
-          error => raise live_failure(error, commands)
-        }
-        ignore(emit_live(output, Stderr, timestamp, commands))
         ignore(emit_live(output, Stderr, echo, commands))
         if options.dry_run() ||
           (initial_stderr.is_empty() && script.contents().is_empty()) {
@@ -144,7 +137,7 @@ async fn[
       }
       Line(line) => {
         let (command, echo) = @planner.materialize_line_async(
-          process, effects, line,
+          process, effects, line, timestamp_format,
         ) catch {
           error => raise live_failure(error, commands)
         }

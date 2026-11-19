@@ -10,6 +10,7 @@ async fn[T : @host.HostFs + @host.HostCacheStore] execute_clean_command(
   if arguments.command() != CleanCommand {
     raise UnsupportedCommand("cache clean")
   }
+  let (arguments, context) = search_prefixed_invocation(arguments, context)
   let recipe_prefix = if arguments.positional().is_empty() {
     None
   } else {

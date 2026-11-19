@@ -1,7 +1,7 @@
 ///|
 test "parse invocation preserves command values and positionals" {
   let parsed = try! @cli.parse_arguments(
-    ["--list", "--group", "ci", "build"],
+    ["--group", "ci", "--list", "build"],
     Map([]),
   )
   assert_eq(parsed.command(), ListCommand)

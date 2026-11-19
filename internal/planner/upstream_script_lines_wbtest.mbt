@@ -136,13 +136,17 @@ test "upstream script::shebang_line_numbers_windows" {
 ///|
 test "upstream shebang::cmd" {
   assert_eq(inferred_extension("cmd"), ".bat")
-  assert_false(needs_bom("cmd"))
+  assert_false(
+    needs_bom("cmd", @host.PlatformInfo::new(Windows, None, Windows)),
+  )
 }
 
 ///|
 test "upstream shebang::cmd_exe" {
   assert_eq(inferred_extension("cmd.exe"), ".bat")
-  assert_false(needs_bom("cmd.exe"))
+  assert_false(
+    needs_bom("cmd.exe", @host.PlatformInfo::new(Windows, None, Windows)),
+  )
 }
 
 ///|
@@ -157,23 +161,52 @@ test "upstream shebang::multi_line_cmd_shebangs_are_removed" {
 ///|
 test "upstream shebang::powershell" {
   assert_eq(inferred_extension("powershell"), ".ps1")
-  assert_true(needs_bom("powershell"))
+  assert_true(
+    needs_bom("powershell", @host.PlatformInfo::new(Windows, None, Windows)),
+  )
 }
 
 ///|
 test "upstream shebang::powershell_exe" {
   assert_eq(inferred_extension("powershell.exe"), ".ps1")
-  assert_true(needs_bom("powershell.exe"))
+  assert_true(
+    needs_bom("powershell.exe", @host.PlatformInfo::new(Windows, None, Windows)),
+  )
 }
 
 ///|
 test "upstream shebang::powershell_utf8" {
-  let contents = script_bytes(
-    upstream_script_recipe("foo:\n  echo ok\n"),
-    ["echo ok"],
-    true,
-    false,
-    false,
+  let cwd = @path.PathValue::new("C:\\work", Windows)
+  let config = ScriptConfiguration::new(
+    @environment.ShellConfiguration::new("powershell.exe", []),
+    cwd,
+    @host.PlatformInfo::new(Windows, None, Windows),
   )
-  assert_true(contents[0] == 0xef && contents[1] == 0xbb && contents[2] == 0xbf)
+  let planned = plan_script_recipe(
+    upstream_script_recipe("[script]\nfoo:\n  echo ä\n"),
+    @evaluator.Environment::new(),
+    cwd,
+    config,
+  )
+  assert_eq(
+    planned.contents().to_owned(),
+    @utf8.encode("\u{feff}\n\necho ä\n"),
+  )
+}
+
+///|
+test "upstream shebang::powershell_shebang_on_unix_has_no_bom" {
+  let cwd = @path.PathValue::new("/work", Unix)
+  let config = ScriptConfiguration::new(
+    @environment.ShellConfiguration::new("sh", []),
+    cwd,
+    @host.PlatformInfo::new(Linux, None, Unix),
+  )
+  let planned = plan_script_recipe(
+    upstream_script_recipe("foo:\n  #!/work/pwsh\n  echo bar\n"),
+    @evaluator.Environment::new(),
+    cwd,
+    config,
+  )
+  assert_eq(planned.contents().to_owned(), b"#!/work/pwsh\n\necho bar\n")
 }

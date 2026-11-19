@@ -1,4 +1,26 @@
 ///|
+async fn[T : @host.HostFs] read_justfile(
+  host : T,
+  path : @path.PathValue,
+) -> Bytes raise LoaderError {
+  @host.HostFs::read_source(
+    host,
+    path,
+    @lexer.LexerLimits::default().max_source_bytes(),
+  ) catch {
+    error => {
+      let metadata = @host.HostFs::metadata(host, path) catch {
+        _ => raise Host(error)
+      }
+      if metadata.is_directory() {
+        raise SourceIsDirectory(path)
+      }
+      raise Host(error)
+    }
+  }
+}
+
+///|
 /// Read one source through the bounded production host capability.
 pub async fn[T : @host.HostFs] load(
   host : T,
@@ -6,13 +28,7 @@ pub async fn[T : @host.HostFs] load(
   source_id : @source.SourceId,
   environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
-  let bytes = @host.HostFs::read_source(
-    host,
-    path,
-    @lexer.LexerLimits::default().max_source_bytes(),
-  ) catch {
-    error => raise Host(error)
-  }
+  let bytes = read_justfile(host, path)
   let source = source_from_file_bytes(bytes, source_id, path)
   let ast = parse_loaded_source(source, environment~)
   let canonical_path = @host.HostFs::canonicalize(host, path) catch {
@@ -63,13 +79,7 @@ async fn[T : @host.HostFs] load_cached(
       }
     }
     None => {
-      let bytes = @host.HostFs::read_source(
-        host,
-        path,
-        @lexer.LexerLimits::default().max_source_bytes(),
-      ) catch {
-        error => raise Host(error)
-      }
+      let bytes = read_justfile(host, path)
       let source = source_from_file_bytes(bytes, source_id, path)
       let ast = parse_loaded_source(source, environment~)
       let loaded = {
@@ -102,10 +112,11 @@ async fn[T : @host.HostFs] build_graph(
   let files : Array[LoadedSource] = []
   let source_cache : Map[String, Bytes] = Map([])
   let canonical_cache : Map[String, @path.PathValue] = Map([])
-  let metadata_cache : Map[String, @host.FileMetadata] = Map([])
+  let directory_cache : Map[@path.PathValue, Set[String]] = Map([])
   let active : Set[GraphNodeKey] = Set([])
   let active_paths : Set[@path.PathValue] = Set([])
-  let visited : Set[GraphNodeKey] = Set([])
+  let visited : Map[GraphNodeKey, Int32] = Map([])
+  let imports : Map[Int32, Array[Int32]] = Map([])
   let active_stack : Array[@path.PathValue] = []
   async fn visit(
     path : @path.PathValue,
@@ -115,7 +126,7 @@ async fn[T : @host.HostFs] build_graph(
     relation : SourceRelation,
     module_path : @modulepath.ModulePath,
     module_directory : @path.PathValue,
-  ) -> Unit raise LoaderError {
+  ) -> Int32 raise LoaderError {
     let canonical = if parent is None {
       root_source.canonical_path()
     } else {
@@ -135,8 +146,8 @@ async fn[T : @host.HostFs] build_graph(
     if active.contains(key) || active_paths.contains(canonical) {
       raise ImportCycle(path~, chain=active_stack.copy(), span=import_span)
     }
-    if visited.contains(key) {
-      return
+    if visited.get(key) is Some(index) {
+      return index
     }
     if files.length() >= limits.max_files {
       raise Host(InvalidInput("import graph file limit exceeded"))
@@ -172,7 +183,9 @@ async fn[T : @host.HostFs] build_graph(
         parent, import_span, relation, module_path, module_directory,
       )
     }
+    let index = files.length()
     files.push(loaded)
+    let children = []
     let mut pending_attributes : Array[@syntax.Attribute] = []
     for item in loaded.ast().items() {
       match item {
@@ -199,7 +212,7 @@ async fn[T : @host.HostFs] build_graph(
                 source=loaded.source(),
               )
             }
-            visit(
+            let target = visit(
               child,
               @source.SourceId::new(source_id.value() + files.length()),
               Some(path),
@@ -208,6 +221,7 @@ async fn[T : @host.HostFs] build_graph(
               module_path,
               module_directory,
             )
+            children.push(target)
           }
         }
         Module(value) => {
@@ -221,7 +235,7 @@ async fn[T : @host.HostFs] build_graph(
               path,
               value,
               environment~,
-              metadata_cache~,
+              directory_cache~,
               source=loaded.source(),
             ) {
             None => ()
@@ -237,6 +251,7 @@ async fn[T : @host.HostFs] build_graph(
                 },
                 source_directory(child),
               )
+              |> ignore
           }
         }
         _ => pending_attributes = []
@@ -245,7 +260,11 @@ async fn[T : @host.HostFs] build_graph(
     active.remove(key)
     active_paths.remove(canonical)
     active_stack.pop() |> ignore
-    visited.add(key)
+    visited[key] = index
+    if !children.is_empty() {
+      imports[index] = children
+    }
+    index
   }
   visit(
     root,
@@ -256,7 +275,8 @@ async fn[T : @host.HostFs] build_graph(
     @modulepath.ModulePath::root(),
     source_directory(root),
   )
-  { files, }
+  |> ignore
+  { files, imports, }
 }
 
 ///|
@@ -286,7 +306,7 @@ pub async fn[T : @host.HostFs] load_graph(
 ) -> LoadedGraph raise LoaderError {
   let root_source = load(host, root, source_id, environment~)
   if limits.max_files > 0 && !async_graph_expansion_required(root_source) {
-    return { files: [root_source], }
+    return { files: [root_source], imports: Map([]), }
   }
   build_graph(host, root_source, source_id, limits, platform, environment)
 }

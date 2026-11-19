@@ -4,6 +4,8 @@ priv struct CaseMetadata {
   cwd : String
   platform : String?
   merged : Bool
+  closed_stdout : Bool
+  verify_snapshot : Bool
   live_prefix : String?
   live_timeout_ms : Int32
   normalizations : Array[String]
@@ -54,6 +56,8 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
   let mut cwd = ""
   let mut platform : String? = None
   let mut merged = false
+  let mut closed_stdout = false
+  let mut verify_snapshot = false
   let mut live_prefix : String? = None
   let mut live_timeout_ms = 1000
   let mut normalizations : Array[String] = []
@@ -72,6 +76,8 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
           cwd,
           platform,
           merged,
+          closed_stdout,
+          verify_snapshot,
           live_prefix,
           live_timeout_ms,
           normalizations,
@@ -95,6 +101,8 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
       cwd = ""
       platform = None
       merged = false
+      closed_stdout = false
+      verify_snapshot = false
       live_prefix = None
       live_timeout_ms = 1000
       normalizations = []
@@ -121,6 +129,10 @@ fn parse_manifest(text : String) -> CompatibilityManifest {
     } else if line.has_prefix("compare =") {
       merged = line.contains("\"merged\"")
       compare = quoted_values(line)
+    } else if line == "closed_stdout = true" {
+      closed_stdout = true
+    } else if line == "verify_snapshot = true" {
+      verify_snapshot = true
     } else if line.has_prefix("live_prefix =") {
       live_prefix = quoted_value(line)
     } else if line.has_prefix("live_timeout_ms =") {
