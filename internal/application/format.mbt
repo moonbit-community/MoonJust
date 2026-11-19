@@ -147,23 +147,14 @@ async fn[T : @host.HostFs + @host.HostAtomicFs] init_response(
   let path = match arguments.value("justfile") {
     Some("-") =>
       raise Query("cannot use justfile from standard input with `--init`")
-    Some(value) => {
-      let path = @path.PathValue::new(value, context.cwd().flavor()) catch {
+    Some(value) =>
+      context.cwd().join_text(value) catch {
         error => raise Path(error)
       }
-      if path.is_absolute() {
-        path
-      } else {
-        context.cwd().join(path) catch {
-          error => raise Path(error)
-        }
-      }
-    }
     None => {
-      let directory = match
-        working_directory_argument(arguments, context.cwd().flavor()) {
-        Some(path) =>
-          context.cwd().join(path) catch {
+      let directory = match arguments.value("working-directory") {
+        Some(value) =>
+          context.cwd().join_text(value) catch {
             error => raise Path(error)
           }
         None =>

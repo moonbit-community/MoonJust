@@ -318,7 +318,7 @@ comparison::regex_mismatch_with_empty_pattern_list_is_true	internal/evaluator/up
 comparison::regex_mismatch_with_list_is_false_if_any_pattern_matches	internal/evaluator/upstream_comparison_test.mbt:158	upstream comparison::regex_mismatch_with_list_is_false_if_any_pattern_matches	tests/comparison.rs:104
 comparison::regex_mismatch_with_list_is_true_if_no_pattern_matches	internal/evaluator/upstream_comparison_test.mbt:163	upstream comparison::regex_mismatch_with_list_is_true_if_no_pattern_matches	tests/comparison.rs:99
 comparison::value_comparison_requires_lists_setting	tests/compatibility/upstream/just-1.59.0/source/tests/comparison.rs:134		tests/comparison.rs:134
-compiler::tests::find_module_file	internal/loader/upstream_compiler_wbtest.mbt:15	upstream compiler::tests::find_module_file	src/compiler.rs:314
+compiler::tests::find_module_file	internal/loader/upstream_compiler_wbtest.mbt:2	upstream compiler::tests::find_module_file	src/compiler.rs:314
 compiler::tests::recursive_includes_fail	tests/compatibility/upstream/just-1.59.0/source/src/compiler.rs:294		src/compiler.rs:294
 completions::aliases_completed_with_environment_variable	tests/compatibility/upstream/just-1.59.0/source/tests/completions.rs:359		tests/completions.rs:359
 completions::aliases_completed_with_flag	tests/compatibility/upstream/just-1.59.0/source/tests/completions.rs:343		tests/completions.rs:343
@@ -373,22 +373,22 @@ conditional::undefined_rhs	tests/compatibility/upstream/just-1.59.0/source/tests
 conditional::undefined_then	tests/compatibility/upstream/just-1.59.0/source/tests/conditional.rs:120		tests/conditional.rs:120
 conditional::unexpected_op	tests/compatibility/upstream/just-1.59.0/source/tests/conditional.rs:166		tests/conditional.rs:166
 config::tests::arguments	internal/cli/upstream_config_test.mbt:27	upstream config::tests::arguments	src/config.rs:987
-config::tests::changelog_arguments	internal/cli/upstream_config_test.mbt:450	upstream config::tests::changelog_arguments	src/config.rs:1217
+config::tests::changelog_arguments	internal/cli/upstream_config_test.mbt:443	upstream config::tests::changelog_arguments	src/config.rs:1217
 config::tests::color_always	internal/cli/upstream_config_test.mbt:39	upstream config::tests::color_always	src/config.rs:541
 config::tests::color_auto	internal/cli/upstream_config_test.mbt:47	upstream config::tests::color_auto	src/config.rs:547
-config::tests::color_bad_value	internal/cli/upstream_config_test.mbt:396	upstream config::tests::color_bad_value	src/config.rs:553
+config::tests::color_bad_value	internal/cli/upstream_config_test.mbt:389	upstream config::tests::color_bad_value	src/config.rs:553
 config::tests::color_default	internal/cli/upstream_config_test.mbt:34	upstream config::tests::color_default	src/config.rs:529
 config::tests::color_never	internal/cli/upstream_config_test.mbt:52	upstream config::tests::color_never	src/config.rs:535
 config::tests::completions_argument	tests/compatibility/upstream/just-1.59.0/source/src/config.rs:1188		src/config.rs:1188
-config::tests::default_config	internal/cli/upstream_config_test.mbt:497	upstream config::tests::default_config	src/config.rs:524
-config::tests::default_config_matches_parsed_config	internal/cli/upstream_config_test.mbt:505	upstream config::tests::default_config_matches_parsed_config	src/config.rs:1318
-config::tests::dotenv_both_filename_and_path	internal/cli/upstream_config_test.mbt:489	upstream config::tests::dotenv_both_filename_and_path	src/config.rs:671
+config::tests::default_config	internal/cli/upstream_config_test.mbt:490	upstream config::tests::default_config	src/config.rs:524
+config::tests::default_config_matches_parsed_config	internal/cli/upstream_config_test.mbt:498	upstream config::tests::default_config_matches_parsed_config	src/config.rs:1318
+config::tests::dotenv_both_filename_and_path	internal/cli/upstream_config_test.mbt:482	upstream config::tests::dotenv_both_filename_and_path	src/config.rs:671
 config::tests::dotenv_command_conflicts_with_filename	tests/compatibility/upstream/just-1.59.0/source/src/config.rs:676		src/config.rs:676
 config::tests::dotenv_command_conflicts_with_no_dotenv	tests/compatibility/upstream/just-1.59.0/source/src/config.rs:686		src/config.rs:686
 config::tests::dotenv_command_conflicts_with_path	tests/compatibility/upstream/just-1.59.0/source/src/config.rs:681		src/config.rs:681
 config::tests::dry_run_default	internal/cli/upstream_config_test.mbt:60	upstream config::tests::dry_run_default	src/config.rs:558
 config::tests::dry_run_long	internal/cli/upstream_config_test.mbt:66	upstream config::tests::dry_run_long	src/config.rs:564
-config::tests::dry_run_quiet	internal/cli/upstream_config_test.mbt:455	upstream config::tests::dry_run_quiet	src/config.rs:576
+config::tests::dry_run_quiet	internal/cli/upstream_config_test.mbt:448	upstream config::tests::dry_run_quiet	src/config.rs:576
 config::tests::dry_run_short	internal/cli/upstream_config_test.mbt:71	upstream config::tests::dry_run_short	src/config.rs:570
 config::tests::dump_arguments	internal/cli/upstream_config_test.mbt:127	upstream config::tests::dump_arguments	src/config.rs:1227
 config::tests::edit_arguments	internal/cli/upstream_config_test.mbt:132	upstream config::tests::edit_arguments	src/config.rs:1237
@@ -414,8 +414,8 @@ config::tests::quiet_short	internal/cli/upstream_config_test.mbt:87	upstream con
 config::tests::search_config_default	internal/application/upstream_search_config_wbtest.mbt:210	upstream config::tests::search_config_default	src/config.rs:1075
 config::tests::search_config_from_working_directory	internal/application/release_search_wbtest.mbt:34	upstream config::tests::search_config_from_working_directory	src/config.rs:1090
 config::tests::search_config_from_working_directory_and_justfile	internal/application/upstream_search_config_wbtest.mbt:216	upstream config::tests::search_config_from_working_directory_and_justfile	src/config.rs:1081
-config::tests::search_config_justfile_long	internal/cli/upstream_config_test.mbt:438	upstream config::tests::search_config_justfile_long	src/config.rs:1098
-config::tests::search_config_justfile_short	internal/cli/upstream_config_test.mbt:444	upstream config::tests::search_config_justfile_short	src/config.rs:1106
+config::tests::search_config_justfile_long	internal/cli/upstream_config_test.mbt:431	upstream config::tests::search_config_justfile_long	src/config.rs:1098
+config::tests::search_config_justfile_short	internal/cli/upstream_config_test.mbt:437	upstream config::tests::search_config_justfile_short	src/config.rs:1106
 config::tests::search_config_justfile_stdin_long	internal/application/upstream_search_config_wbtest.mbt:233	upstream config::tests::search_config_justfile_stdin_long	src/config.rs:1114
 config::tests::search_config_justfile_stdin_short	internal/application/upstream_search_config_wbtest.mbt:240	upstream config::tests::search_config_justfile_stdin_short	src/config.rs:1120
 config::tests::search_config_justfile_stdin_with_working_directory	internal/application/upstream_search_config_wbtest.mbt:247	upstream config::tests::search_config_justfile_stdin_with_working_directory	src/config.rs:1126
@@ -426,7 +426,7 @@ config::tests::search_directory_conflict_working_directory	internal/application/
 config::tests::search_directory_deep	internal/application/upstream_search_config_wbtest.mbt:276	upstream config::tests::search_directory_deep	src/config.rs:1159
 config::tests::search_directory_parent	internal/application/upstream_search_config_wbtest.mbt:261	upstream config::tests::search_directory_parent	src/config.rs:1134
 config::tests::search_directory_parent_with_recipe	internal/application/upstream_search_config_wbtest.mbt:266	upstream config::tests::search_directory_parent_with_recipe	src/config.rs:1142
-config::tests::set_bad	internal/cli/upstream_config_test.mbt:404	upstream config::tests::set_bad	src/config.rs:736
+config::tests::set_bad	internal/cli/upstream_config_test.mbt:397	upstream config::tests::set_bad	src/config.rs:736
 config::tests::set_default	internal/cli/upstream_config_test.mbt:150	upstream config::tests::set_default	src/config.rs:691
 config::tests::set_empty	internal/cli/upstream_config_test.mbt:155	upstream config::tests::set_empty	src/config.rs:709
 config::tests::set_one	internal/cli/upstream_config_test.mbt:161	upstream config::tests::set_one	src/config.rs:700
@@ -439,43 +439,43 @@ config::tests::shell_args_set	internal/cli/upstream_config_test.mbt:205	upstream
 config::tests::shell_args_set_and_clear	internal/cli/upstream_config_test.mbt:221	upstream config::tests::shell_args_set_and_clear	src/config.rs:1061
 config::tests::shell_args_set_hyphen	internal/cli/upstream_config_test.mbt:237	upstream config::tests::shell_args_set_hyphen	src/config.rs:1028
 config::tests::shell_args_set_multiple	internal/cli/upstream_config_test.mbt:213	upstream config::tests::shell_args_set_multiple	src/config.rs:1040
-config::tests::shell_args_set_multiple_and_clear	internal/cli/upstream_config_test.mbt:412	upstream config::tests::shell_args_set_multiple_and_clear	src/config.rs:1068
-config::tests::shell_args_set_word	internal/cli/upstream_config_test.mbt:422	upstream config::tests::shell_args_set_word	src/config.rs:1034
+config::tests::shell_args_set_multiple_and_clear	internal/cli/upstream_config_test.mbt:405	upstream config::tests::shell_args_set_multiple_and_clear	src/config.rs:1068
+config::tests::shell_args_set_word	internal/cli/upstream_config_test.mbt:415	upstream config::tests::shell_args_set_word	src/config.rs:1034
 config::tests::shell_default	internal/cli/upstream_config_test.mbt:245	upstream config::tests::shell_default	src/config.rs:741
 config::tests::shell_set	internal/cli/upstream_config_test.mbt:250	upstream config::tests::shell_set	src/config.rs:748
 config::tests::subcommand_completions	tests/compatibility/upstream/just-1.59.0/source/src/config.rs:850		src/config.rs:850
 config::tests::subcommand_completions_invalid	tests/compatibility/upstream/just-1.59.0/source/src/config.rs:862		src/config.rs:862
 config::tests::subcommand_completions_uppercase	tests/compatibility/upstream/just-1.59.0/source/src/config.rs:856		src/config.rs:856
-config::tests::subcommand_conflict_changelog	internal/cli/upstream_config_test.mbt:512	upstream config::tests::subcommand_conflict_changelog	src/config.rs:800
-config::tests::subcommand_conflict_choose	internal/cli/upstream_config_test.mbt:520	upstream config::tests::subcommand_conflict_choose	src/config.rs:845
-config::tests::subcommand_conflict_completions	internal/cli/upstream_config_test.mbt:528	upstream config::tests::subcommand_conflict_completions	src/config.rs:835	Checks MoonJust rejects --list --completions as Unsupported("--completions"). The upstream clap assertion only requires a parse error.
-config::tests::subcommand_conflict_dump	internal/cli/upstream_config_test.mbt:430	upstream config::tests::subcommand_conflict_dump	src/config.rs:810
-config::tests::subcommand_conflict_evaluate	internal/cli/upstream_config_test.mbt:537	upstream config::tests::subcommand_conflict_evaluate	src/config.rs:825
-config::tests::subcommand_conflict_fmt	internal/cli/upstream_config_test.mbt:545	upstream config::tests::subcommand_conflict_fmt	src/config.rs:815
-config::tests::subcommand_conflict_init	internal/cli/upstream_config_test.mbt:553	upstream config::tests::subcommand_conflict_init	src/config.rs:820
-config::tests::subcommand_conflict_show	internal/cli/upstream_config_test.mbt:561	upstream config::tests::subcommand_conflict_show	src/config.rs:830
-config::tests::subcommand_conflict_summary	internal/cli/upstream_config_test.mbt:569	upstream config::tests::subcommand_conflict_summary	src/config.rs:805
-config::tests::subcommand_conflict_variables	internal/cli/upstream_config_test.mbt:463	upstream config::tests::subcommand_conflict_variables	src/config.rs:840
+config::tests::subcommand_conflict_changelog	internal/cli/upstream_config_test.mbt:505	upstream config::tests::subcommand_conflict_changelog	src/config.rs:800
+config::tests::subcommand_conflict_choose	internal/cli/upstream_config_test.mbt:513	upstream config::tests::subcommand_conflict_choose	src/config.rs:845
+config::tests::subcommand_conflict_completions	internal/cli/upstream_config_test.mbt:521	upstream config::tests::subcommand_conflict_completions	src/config.rs:835	Checks MoonJust rejects --list --completions as Unsupported("--completions"). The upstream clap assertion only requires a parse error.
+config::tests::subcommand_conflict_dump	internal/cli/upstream_config_test.mbt:423	upstream config::tests::subcommand_conflict_dump	src/config.rs:810
+config::tests::subcommand_conflict_evaluate	internal/cli/upstream_config_test.mbt:530	upstream config::tests::subcommand_conflict_evaluate	src/config.rs:825
+config::tests::subcommand_conflict_fmt	internal/cli/upstream_config_test.mbt:538	upstream config::tests::subcommand_conflict_fmt	src/config.rs:815
+config::tests::subcommand_conflict_init	internal/cli/upstream_config_test.mbt:546	upstream config::tests::subcommand_conflict_init	src/config.rs:820
+config::tests::subcommand_conflict_show	internal/cli/upstream_config_test.mbt:554	upstream config::tests::subcommand_conflict_show	src/config.rs:830
+config::tests::subcommand_conflict_summary	internal/cli/upstream_config_test.mbt:562	upstream config::tests::subcommand_conflict_summary	src/config.rs:805
+config::tests::subcommand_conflict_variables	internal/cli/upstream_config_test.mbt:456	upstream config::tests::subcommand_conflict_variables	src/config.rs:840
 config::tests::subcommand_default	internal/cli/upstream_config_test.mbt:258	upstream config::tests::subcommand_default	src/config.rs:791
 config::tests::subcommand_dump	internal/cli/upstream_config_test.mbt:263	upstream config::tests::subcommand_dump	src/config.rs:867
 config::tests::subcommand_edit	internal/cli/upstream_config_test.mbt:268	upstream config::tests::subcommand_edit	src/config.rs:879
 config::tests::subcommand_evaluate	internal/cli/upstream_config_test.mbt:273	upstream config::tests::subcommand_evaluate	src/config.rs:885
-config::tests::subcommand_evaluate_overrides	internal/cli/upstream_config_test.mbt:367	upstream config::tests::subcommand_evaluate_overrides	src/config.rs:895
-config::tests::subcommand_evaluate_overrides_with_argument	internal/cli/upstream_config_test.mbt:374	upstream config::tests::subcommand_evaluate_overrides_with_argument	src/config.rs:905
+config::tests::subcommand_evaluate_overrides	internal/cli/upstream_config_test.mbt:360	upstream config::tests::subcommand_evaluate_overrides	src/config.rs:895
+config::tests::subcommand_evaluate_overrides_with_argument	internal/cli/upstream_config_test.mbt:367	upstream config::tests::subcommand_evaluate_overrides_with_argument	src/config.rs:905
 config::tests::subcommand_json	internal/cli/upstream_config_test.mbt:278	upstream config::tests::subcommand_json	src/config.rs:873
-config::tests::subcommand_list_arguments	internal/cli/upstream_config_test.mbt:382	upstream config::tests::subcommand_list_arguments	src/config.rs:927
+config::tests::subcommand_list_arguments	internal/cli/upstream_config_test.mbt:375	upstream config::tests::subcommand_list_arguments	src/config.rs:927
 config::tests::subcommand_list_long	internal/cli/upstream_config_test.mbt:283	upstream config::tests::subcommand_list_long	src/config.rs:915
 config::tests::subcommand_list_search_directory	internal/application/upstream_search_config_wbtest.mbt:328	upstream config::tests::subcommand_list_search_directory	src/config.rs:953
 config::tests::subcommand_list_short	internal/cli/upstream_config_test.mbt:288	upstream config::tests::subcommand_list_short	src/config.rs:921
-config::tests::subcommand_overrides_and_arguments	internal/cli/upstream_config_test.mbt:471	upstream config::tests::subcommand_overrides_and_arguments	src/config.rs:1297
+config::tests::subcommand_overrides_and_arguments	internal/cli/upstream_config_test.mbt:464	upstream config::tests::subcommand_overrides_and_arguments	src/config.rs:1297
 config::tests::subcommand_show_long	internal/cli/upstream_config_test.mbt:293	upstream config::tests::subcommand_show_long	src/config.rs:933
-config::tests::subcommand_show_multiple_args	internal/cli/upstream_config_test.mbt:389	upstream config::tests::subcommand_show_multiple_args	src/config.rs:945
+config::tests::subcommand_show_multiple_args	internal/cli/upstream_config_test.mbt:382	upstream config::tests::subcommand_show_multiple_args	src/config.rs:945
 config::tests::subcommand_show_search_directory	internal/application/upstream_search_config_wbtest.mbt:342	upstream config::tests::subcommand_show_search_directory	src/config.rs:962
 config::tests::subcommand_show_short	internal/cli/upstream_config_test.mbt:298	upstream config::tests::subcommand_show_short	src/config.rs:939
 config::tests::subcommand_summary	internal/cli/upstream_config_test.mbt:303	upstream config::tests::subcommand_summary	src/config.rs:980
-config::tests::subcommand_usage_search_directory	internal/cli/upstream_config_test.mbt:360	upstream config::tests::subcommand_usage_search_directory	src/config.rs:971
+config::tests::subcommand_usage_search_directory	internal/application/upstream_search_config_wbtest.mbt:354	upstream config::tests::subcommand_usage_search_directory	src/config.rs:971
 config::tests::summary_arguments	internal/cli/upstream_config_test.mbt:348	upstream config::tests::summary_arguments	src/config.rs:1287
-config::tests::summary_overrides	internal/cli/upstream_config_test.mbt:481	upstream config::tests::summary_overrides	src/config.rs:1308
+config::tests::summary_overrides	internal/cli/upstream_config_test.mbt:474	upstream config::tests::summary_overrides	src/config.rs:1308
 config::tests::unsorted_default	internal/cli/upstream_config_test.mbt:308	upstream config::tests::unsorted_default	src/config.rs:635
 config::tests::unsorted_long	internal/cli/upstream_config_test.mbt:313	upstream config::tests::unsorted_long	src/config.rs:641
 config::tests::unsorted_short	internal/cli/upstream_config_test.mbt:318	upstream config::tests::unsorted_short	src/config.rs:647
@@ -1049,22 +1049,22 @@ invocation_parser::tests::default_recipe_requires_arguments	internal/invocation/
 invocation_parser::tests::long_argument	internal/invocation/upstream_parser_test.mbt:83	invocation long_argument	src/invocation_parser.rs:622
 invocation_parser::tests::long_argument_terminator	internal/invocation/upstream_parser_test.mbt:118	invocation long_argument_terminator	src/invocation_parser.rs:679
 invocation_parser::tests::long_argument_with_positional	internal/invocation/upstream_parser_test.mbt:106	invocation long_argument_with_positional	src/invocation_parser.rs:659
-invocation_parser::tests::module_alias	internal/invocation/upstream_project_parser_test.mbt:139	upstream invocation_parser::tests::module_alias	src/invocation_parser.rs:420
-invocation_parser::tests::module_path_not_consumed	internal/invocation/upstream_project_parser_test.mbt:103	upstream invocation_parser::tests::module_path_not_consumed	src/invocation_parser.rs:503
+invocation_parser::tests::module_alias	internal/invocation/upstream_project_parser_test.mbt:106	upstream invocation_parser::tests::module_alias	src/invocation_parser.rs:420
+invocation_parser::tests::module_path_not_consumed	internal/invocation/upstream_project_parser_test.mbt:70	upstream invocation_parser::tests::module_path_not_consumed	src/invocation_parser.rs:503
 invocation_parser::tests::multiple_unknown	internal/invocation/upstream_parser_test.mbt:52	invocation multiple_unknown	src/invocation_parser.rs:389
-invocation_parser::tests::no_default_recipe	internal/invocation/upstream_project_parser_test.mbt:150	upstream invocation_parser::tests::no_default_recipe	src/invocation_parser.rs:566
+invocation_parser::tests::no_default_recipe	internal/invocation/upstream_project_parser_test.mbt:134	upstream invocation_parser::tests::no_default_recipe	src/invocation_parser.rs:566
 invocation_parser::tests::no_recipes	internal/invocation/upstream_parser_test.mbt:131	invocation no_recipes	src/invocation_parser.rs:525
-invocation_parser::tests::recipe_in_absent_optional_module	internal/invocation/upstream_project_parser_test.mbt:114	upstream invocation_parser::tests::recipe_in_absent_optional_module	src/invocation_parser.rs:484
-invocation_parser::tests::recipe_in_submodule	internal/invocation/upstream_project_parser_test.mbt:69	upstream invocation_parser::tests::recipe_in_submodule	src/invocation_parser.rs:402
-invocation_parser::tests::recipe_in_submodule_path_unknown	internal/invocation/upstream_project_parser_test.mbt:81	upstream invocation_parser::tests::recipe_in_submodule_path_unknown	src/invocation_parser.rs:461
-invocation_parser::tests::recipe_in_submodule_unknown	internal/invocation/upstream_project_parser_test.mbt:92	upstream invocation_parser::tests::recipe_in_submodule_unknown	src/invocation_parser.rs:442
+invocation_parser::tests::recipe_in_absent_optional_module	internal/invocation/upstream_project_parser_test.mbt:81	upstream invocation_parser::tests::recipe_in_absent_optional_module	src/invocation_parser.rs:484
+invocation_parser::tests::recipe_in_submodule	internal/invocation/upstream_project_parser_test.mbt:36	upstream invocation_parser::tests::recipe_in_submodule	src/invocation_parser.rs:402
+invocation_parser::tests::recipe_in_submodule_path_unknown	internal/invocation/upstream_project_parser_test.mbt:48	upstream invocation_parser::tests::recipe_in_submodule_path_unknown	src/invocation_parser.rs:461
+invocation_parser::tests::recipe_in_submodule_unknown	internal/invocation/upstream_project_parser_test.mbt:59	upstream invocation_parser::tests::recipe_in_submodule_unknown	src/invocation_parser.rs:442
 invocation_parser::tests::repeatable_long_option	internal/invocation/upstream_parser_test.mbt:95	invocation repeatable_long_option	src/invocation_parser.rs:639
 invocation_parser::tests::single_argument_count_mismatch	internal/invocation/upstream_parser_test.mbt:30	invocation single_argument_count_mismatch	src/invocation_parser.rs:360
 invocation_parser::tests::single_no_arguments	internal/invocation/upstream_parser_test.mbt:10	invocation single_no_arguments	src/invocation_parser.rs:338
 invocation_parser::tests::single_unknown	internal/invocation/upstream_parser_test.mbt:41	invocation single_unknown	src/invocation_parser.rs:376
 invocation_parser::tests::single_with_argument	internal/invocation/upstream_parser_test.mbt:19	invocation single_with_argument	src/invocation_parser.rs:349
-invocation_parser::tests::trailing_separator_not_last_argument	internal/invocation/upstream_project_parser_test.mbt:172	upstream invocation_parser::tests::trailing_separator_not_last_argument	src/invocation_parser.rs:721
-invocation_parser::tests::trailing_separator_runs_default_recipe	internal/invocation/upstream_project_parser_test.mbt:183	upstream invocation_parser::tests::trailing_separator_runs_default_recipe	src/invocation_parser.rs:699
+invocation_parser::tests::trailing_separator_not_last_argument	internal/invocation/upstream_project_parser_test.mbt:156	upstream invocation_parser::tests::trailing_separator_not_last_argument	src/invocation_parser.rs:721
+invocation_parser::tests::trailing_separator_runs_default_recipe	internal/invocation/upstream_project_parser_test.mbt:167	upstream invocation_parser::tests::trailing_separator_runs_default_recipe	src/invocation_parser.rs:699
 json::alias	internal/application/upstream_json_wbtest.mbt:37	upstream json::alias	tests/json.rs:169
 json::arg_flag	internal/application/upstream_json_wbtest.mbt:121	upstream json::arg_flag	tests/json.rs:1508
 json::arg_help	internal/application/upstream_json_wbtest.mbt:88	upstream json::arg_help	tests/json.rs:1600

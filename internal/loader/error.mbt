@@ -7,6 +7,7 @@ pub(all) suberror LoaderError {
   MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
+  SourceIsDirectory(@path.PathValue)
   ImportFileMissing(span~ : @source.Span, source~ : @source.Source)
   Host(@host.HostError)
   InvalidSource(@source.SourceError)
@@ -37,6 +38,7 @@ pub fn LoaderError::code(self : LoaderError) -> String {
     MissingSearchDirectory(_) => "MJ-LOAD-0011"
     AmbiguousJustfile(_) => "MJ-LOAD-0009"
     ExplicitFileMissing(_) => "MJ-LOAD-0002"
+    SourceIsDirectory(_) => "MJ-LOAD-0012"
     ImportFileMissing(_) => "MJ-LOAD-0010"
     Host(_) => "MJ-LOAD-0003"
     InvalidSource(_) => "MJ-LOAD-0004"
@@ -56,6 +58,7 @@ pub fn LoaderError::span(self : LoaderError) -> @source.Span? {
     MissingSearchDirectory(_) => None
     AmbiguousJustfile(_) => None
     ExplicitFileMissing(_) => None
+    SourceIsDirectory(_) => None
     ImportFileMissing(span~, ..) => Some(span)
     Host(_) => None
     InvalidSource(_) => None
@@ -81,6 +84,14 @@ pub fn LoaderError::message(self : LoaderError) -> String {
       @diagnostic.join_list(found, "and", ticked=true)
     ExplicitFileMissing(path~) =>
       "explicit justfile is missing: " + path.as_string()
+    SourceIsDirectory(path) => {
+      let detail = if path.flavor() == Windows {
+        "Access is denied. (os error 5)"
+      } else {
+        "Is a directory (os error 21)"
+      }
+      "failed to read justfile at `" + path.as_string() + "`: " + detail
+    }
     ImportFileMissing(_) => "could not find source file for import"
     Host(_) => "host error while loading"
     InvalidSource(_) => "invalid source"
@@ -95,45 +106,15 @@ pub fn LoaderError::message(self : LoaderError) -> String {
     }
     ModuleFileMissing(module_name~, ..) =>
       "could not find source file for module `" + module_name + "`"
-    AmbiguousModuleFile(module_name~, found~, ..) => {
-      let directory_candidates : Array[String] = []
-      let direct_candidates : Array[String] = []
-      let separator = found
-        .get(0)
-        .map(fn(path) { path.flavor().separator().to_string() })
-        .unwrap_or("/")
-      for path in found {
-        let filename = path.file_name().unwrap_or(path.as_string())
-        let parent_is_module = match path.parent() {
-          Some(parent) => parent.file_name() == Some(module_name)
-          None => false
-        }
-        if filename == module_name + ".just" {
-          direct_candidates.push(filename)
-        } else if parent_is_module {
-          directory_candidates.push(module_name + separator + filename)
-        } else {
-          directory_candidates.push(path.as_string())
-        }
-      }
-      directory_candidates.sort_by(fn(left, right) {
-        let left_hidden = left.has_suffix(separator + ".justfile")
-        let right_hidden = right.has_suffix(separator + ".justfile")
-        if left_hidden && !right_hidden {
-          -1
-        } else if !left_hidden && right_hidden {
-          1
-        } else {
-          left.compare(right)
-        }
-      })
-      direct_candidates.sort()
-      directory_candidates.append(direct_candidates)
+    AmbiguousModuleFile(module_name~, found~, ..) =>
       "found multiple source files for module `" +
       module_name +
       "`: " +
-      directory_candidates.map(fn(path) { "`" + path + "`" }).join(" and ")
-    }
+      @diagnostic.join_list(
+        found.map(path => path.as_string()),
+        "and",
+        ticked=true,
+      )
   }
 }
 

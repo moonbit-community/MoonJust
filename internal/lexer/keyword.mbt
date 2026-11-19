@@ -1,5 +1,5 @@
 ///|
-/// Keywords recognized by the `just` 1.57.0 parser.
+/// Keywords recognized by the justfile parser.
 ///
 /// The lexer deliberately emits keywords as `Identifier`; parser clients may
 /// use `Keyword::from_lexeme` when grammar context requires a keyword.

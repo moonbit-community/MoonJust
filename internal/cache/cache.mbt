@@ -306,7 +306,7 @@ pub fn CacheKey::digest(self : CacheKey) -> String {
 }
 
 ///|
-/// Render the cache-key document emitted by just 1.57.0 for `-vv`.
+/// Render the cache-key document emitted by just for `-vv`.
 pub fn CacheKey::debug_json(self : CacheKey) -> String {
   let body : Array[Json] = []
   let body_lines : Array[String] = []

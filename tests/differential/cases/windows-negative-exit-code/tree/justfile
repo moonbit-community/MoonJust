@@ -1,0 +1,4 @@
+set shell := ['cmd.exe', '/c']
+
+run:
+  @exit /b -65536

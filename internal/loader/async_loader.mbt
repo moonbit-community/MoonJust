@@ -1,4 +1,26 @@
 ///|
+async fn[T : @host.HostFs] read_justfile(
+  host : T,
+  path : @path.PathValue,
+) -> Bytes raise LoaderError {
+  @host.HostFs::read_source(
+    host,
+    path,
+    @lexer.LexerLimits::default().max_source_bytes(),
+  ) catch {
+    error => {
+      let metadata = @host.HostFs::metadata(host, path) catch {
+        _ => raise Host(error)
+      }
+      if metadata.is_directory() {
+        raise SourceIsDirectory(path)
+      }
+      raise Host(error)
+    }
+  }
+}
+
+///|
 /// Read one source through the bounded production host capability.
 pub async fn[T : @host.HostFs] load(
   host : T,
@@ -6,13 +28,7 @@ pub async fn[T : @host.HostFs] load(
   source_id : @source.SourceId,
   environment~ : ArrayView[(String, String)] = [],
 ) -> LoadedSource raise LoaderError {
-  let bytes = @host.HostFs::read_source(
-    host,
-    path,
-    @lexer.LexerLimits::default().max_source_bytes(),
-  ) catch {
-    error => raise Host(error)
-  }
+  let bytes = read_justfile(host, path)
   let source = source_from_file_bytes(bytes, source_id, path)
   let ast = parse_loaded_source(source, environment~)
   let canonical_path = @host.HostFs::canonicalize(host, path) catch {
@@ -63,13 +79,7 @@ async fn[T : @host.HostFs] load_cached(
       }
     }
     None => {
-      let bytes = @host.HostFs::read_source(
-        host,
-        path,
-        @lexer.LexerLimits::default().max_source_bytes(),
-      ) catch {
-        error => raise Host(error)
-      }
+      let bytes = read_justfile(host, path)
       let source = source_from_file_bytes(bytes, source_id, path)
       let ast = parse_loaded_source(source, environment~)
       let loaded = {
@@ -102,7 +112,7 @@ async fn[T : @host.HostFs] build_graph(
   let files : Array[LoadedSource] = []
   let source_cache : Map[String, Bytes] = Map([])
   let canonical_cache : Map[String, @path.PathValue] = Map([])
-  let metadata_cache : Map[String, @host.FileMetadata] = Map([])
+  let directory_cache : Map[@path.PathValue, Set[String]] = Map([])
   let active : Set[GraphNodeKey] = Set([])
   let active_paths : Set[@path.PathValue] = Set([])
   let visited : Map[GraphNodeKey, Int32] = Map([])
@@ -225,7 +235,7 @@ async fn[T : @host.HostFs] build_graph(
               path,
               value,
               environment~,
-              metadata_cache~,
+              directory_cache~,
               source=loaded.source(),
             ) {
             None => ()

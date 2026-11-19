@@ -11,11 +11,13 @@ async fn[T : @host.HostFs] load_input_with_directories(
     }
     return (loaded, directories)
   }
+  let cwd = context.cwd()
   let working_directory = working_directory_argument(
     arguments,
-    context.cwd().flavor(),
+    cwd.flavor(),
+    base=context.invocation_directory(),
   )
-  match input_selection(arguments, context.cwd().flavor()) {
+  match input_selection(arguments, cwd.flavor(), base=cwd) {
     Stdin => {
       let directories = @workdir.WorkingDirectoryModel::from_stdin(
         context.cwd(),

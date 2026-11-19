@@ -95,7 +95,7 @@ fn LazyEnvironment::cycle(
   cycle.push(name)
   // Report the cycle from a stable root. Uppercase justfile constants may be
   // referenced before their textual definition, so the first evaluating frame
-  // is not necessarily the diagnostic root used by just 1.57. Rotate to the
+  // can differ from the diagnostic root. Rotate to the
   // lexicographically smallest member to make both name and span deterministic.
   let mut root = cycle[0]
   let mut root_index = 0

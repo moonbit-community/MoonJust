@@ -1,112 +1,30 @@
 ///|
-async fn[T : @host.HostFs] metadata_cached(
+/// Keep the names returned by the filesystem. An existence lookup alone can
+/// match a differently cased name on case-insensitive filesystems.
+async fn[T : @host.HostFs] module_directory_entries(
   host : T,
-  path : @path.PathValue,
-  cache : Map[String, @host.FileMetadata],
-) -> @host.FileMetadata raise LoaderError {
-  let key = path.as_string()
-  match cache.get(key) {
-    Some(value) => value
-    None => {
-      let value = @host.HostFs::metadata(host, path) catch {
-        error => raise Host(error)
-      }
-      cache[key] = value
-      value
-    }
-  }
-}
-
-///|
-async fn[T : @host.HostFs] push_existing_module_candidate(
-  host : T,
-  candidates : Array[@path.PathValue],
-  path : @path.PathValue,
-  metadata_cache~ : Map[String, @host.FileMetadata] = Map([]),
-) -> Unit raise LoaderError {
-  let exists = @host.HostFs::file_exists(host, path) catch {
-    error => raise Host(error)
-  }
-  if !exists {
-    return
-  }
-  let metadata = metadata_cached(host, path, metadata_cache)
-  if !metadata.is_file() {
-    return
-  }
-  let canonical = @host.HostFs::canonicalize(host, path) catch {
-    error => raise Host(error)
-  }
-  for candidate in candidates {
-    let existing = @host.HostFs::canonicalize(host, candidate) catch {
-      error => raise Host(error)
-    }
-    if existing == canonical {
-      return
-    }
-  }
-  candidates.push(path)
-}
-
-///|
-fn lowercase_ascii(value : String) -> String {
-  let builder = StringBuilder()
-  for character in value {
-    if character.is_ascii_uppercase() {
-      builder.write_char((character.to_int() + 32).to_char().unwrap())
-    } else {
-      builder.write_char(character)
-    }
-  }
-  builder.to_string()
-}
-
-///|
-async fn[T : @host.HostFs] push_module_directory_candidates(
-  host : T,
-  candidates : Array[@path.PathValue],
   directory : @path.PathValue,
-  metadata_cache~ : Map[String, @host.FileMetadata] = Map([]),
-) -> Unit raise LoaderError {
-  let exists = @host.HostFs::file_exists(host, directory) catch {
-    error => raise Host(error)
+  cache : Map[@path.PathValue, Set[String]],
+) -> Set[String] raise LoaderError {
+  if cache.get(directory) is Some(entries) {
+    return entries
   }
-  if exists {
-    let metadata = try metadata_cached(host, directory, metadata_cache) catch {
-      Host(NotFound(_)) => return
-      error => raise error
-    } noraise {
-      value => value
-    }
-    if !metadata.is_directory() {
-      return
+  let entries = @host.HostFs::read_dir(host, directory) catch {
+    NotFound(_) => []
+    error => {
+      // A regular file with the module directory's name contributes no entries.
+      let metadata = @host.HostFs::metadata(host, directory) catch {
+        _ => raise Host(error)
+      }
+      if metadata.is_directory() {
+        raise Host(error)
+      }
+      []
     }
   }
-  let entries = try @host.HostFs::read_dir(host, directory) catch {
-    NotFound(_) => return
-    error => raise Host(error)
-  } noraise {
-    values => values
-  }
-  for entry in entries {
-    let normalized = lowercase_ascii(entry)
-    if entry != "mod.just" &&
-      normalized != "justfile" &&
-      normalized != ".justfile" {
-      continue
-    }
-    let child = @path.PathValue::new(entry, directory.flavor()) catch {
-      _ => raise Host(InvalidInput("invalid module candidate"))
-    }
-    push_existing_module_candidate(
-      host,
-      candidates,
-      directory.join(child) catch {
-        _ => raise Host(InvalidInput("module candidate flavor mismatch"))
-      },
-      metadata_cache~,
-    )
-  }
+  let names = Set::from_iter(entries.iter())
+  cache[directory] = names
+  names
 }
 
 ///|
@@ -116,63 +34,70 @@ async fn[T : @host.HostFs] resolve_module_file(
   definition : @syntax.Module,
   source? : @source.Source,
   environment~ : ArrayView[(String, String)] = [],
-  metadata_cache~ : Map[String, @host.FileMetadata] = Map([]),
+  directory_cache~ : Map[@path.PathValue, Set[String]] = Map([]),
 ) -> @path.PathValue? raise LoaderError {
-  let directory = source_path.parent().unwrap_or(source_path)
-  let candidates : Array[@path.PathValue] = []
-  match definition.path() {
-    Some(literal) => {
-      let explicit = import_path(source_path, literal, environment~)
-      push_existing_module_candidate(
-        host,
-        candidates,
-        explicit,
-        metadata_cache~,
-      )
-      if candidates.is_empty() {
-        push_module_directory_candidates(
-          host,
-          candidates,
-          explicit,
-          metadata_cache~,
-        )
-      }
+  let parent = source_directory(source_path)
+  fn child(
+    directory : @path.PathValue,
+    name : String,
+  ) -> @path.PathValue raise LoaderError {
+    directory.join(@path.PathValue::new(name, directory.flavor())) catch {
+      _ => raise Host(InvalidInput("invalid module candidate"))
     }
-    None => {
-      let direct = @path.PathValue::new(
-        definition.name() + ".just",
-        directory.flavor(),
-      ) catch {
-        _ => raise Host(InvalidInput("invalid module candidate"))
+  }
+  let directory = match definition.path() {
+    Some(literal) => {
+      let path = import_path(source_path, literal, environment~)
+      let metadata = Some(@host.HostFs::metadata(host, path)) catch {
+        NotFound(_) => None
+        error => raise Host(error)
       }
-      push_existing_module_candidate(
-        host,
-        candidates,
-        directory.join(direct) catch {
-          _ => raise Host(InvalidInput("module candidate flavor mismatch"))
-        },
-        metadata_cache~,
-      )
-      let module_directory = directory.join(
-        @path.PathValue::new(definition.name(), directory.flavor()) catch {
-          _ => raise Host(InvalidInput("invalid module directory"))
-        },
-      ) catch {
-        _ => raise Host(InvalidInput("module directory flavor mismatch"))
+      if metadata is Some(value) && value.is_file() {
+        return Some(path)
       }
-      push_module_directory_candidates(
-        host,
-        candidates,
-        module_directory,
-        metadata_cache~,
-      )
+      path
+    }
+    None => child(parent, definition.name())
+  }
+  let candidates : Array[@path.PathValue] = []
+  let entries = module_directory_entries(host, directory, directory_cache)
+  for name in entries {
+    if name == "mod.just" ||
+      name.compare_ignore_ascii_case("justfile") == 0 ||
+      name.compare_ignore_ascii_case(".justfile") == 0 {
+      candidates.push(child(directory, name))
+    }
+  }
+  // Rust orders paths by components. The directory component "foo" precedes
+  // the sibling filename "foo.just"; all entries inside it share a parent.
+  candidates.sort_by(fn(a, b) { a.as_string().lexical_compare(b.as_string()) })
+  if definition.path() is None {
+    let direct = definition.name() + ".just"
+    if module_directory_entries(host, parent, directory_cache).contains(direct) {
+      candidates.push(child(parent, direct))
     }
   }
   if candidates.length() > 1 {
+    let base = parent.as_string()
+    let separator = parent.flavor().separator().to_string()
+    let prefix = if base.has_suffix(separator) {
+      base
+    } else {
+      base + separator
+    }
+    let found = candidates.map(path => {
+      match path.as_string().strip_prefix(prefix) {
+        Some(relative) =>
+          @path.PathValue::new(relative.to_owned(), path.flavor()) catch {
+            _ => raise Host(InvalidInput("invalid relative module candidate"))
+          }
+        None => path
+      }
+    })
     raise AmbiguousModuleFile(
       module_name=definition.name(),
       source~,
-      found=candidates,
+      found~,
       span=definition.name_span(),
     )
   }
@@ -183,16 +108,7 @@ async fn[T : @host.HostFs] resolve_module_file(
       raise ModuleFileMissing(
         module_name=definition.name(),
         source~,
-        span=@source.Span::new(
-          definition.span().source_id(),
-          definition.span().start_byte() +
-          (if definition.optional() { 5 } else { 4 }),
-          definition.span().start_byte() +
-          (if definition.optional() { 5 } else { 4 }) +
-          definition.name().length(),
-        ) catch {
-          _ => definition.span()
-        },
+        span=definition.name_span(),
       )
   }
 }

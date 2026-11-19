@@ -69,8 +69,22 @@ test "upstream format_string::un_indented_format_strings" {
 
 ///|
 test "upstream format_string::dump" {
-  assert_eq(try! eval_upstream_format("f''"), "")
-  assert_eq(try! eval_upstream_format("f''''''"), "")
-  assert_eq(try! eval_upstream_format("f'{{'a'}}b{{'c'}}d'"), "abcd")
-  assert_eq(try! eval_upstream_format("f'''{{'a'}}b{{'c'}}d'''"), "abcd")
+  fn check_dump(literal : String) -> Unit raise {
+    let expected = "foo := \{literal}\n"
+    for text in [expected, "foo:=\{literal}"] {
+      let source = @source.Source::from_text(
+        @source.SourceId::new(706),
+        "justfile",
+        text,
+      )
+      assert_eq(@formatter.format_source(source), expected, msg=text)
+    }
+  }
+  check_dump("f''")
+  check_dump("f''''''")
+  check_dump("f\"\"")
+  check_dump("f\"\"\"\"\"\"")
+  check_dump("f'{{ 'a' }}b{{ 'c' }}d'")
+  check_dump("f'''{{ 'a' }}b{{ 'c' }}d'''")
+  check_dump("f\"\"\"{{ 'a' }}b{{ 'c' }}d\"\"\"")
 }

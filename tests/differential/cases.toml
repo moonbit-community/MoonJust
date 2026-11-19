@@ -2,6 +2,16 @@ schema_version = 3
 upstream = "just 1.59.0"
 
 [[case]]
+id = "MJ-WINDOWS-NEGATIVE-EXIT-CODE"
+directory = "windows-negative-exit-code"
+owner_area = "runtime"
+platform = "windows"
+verify_snapshot = true
+status = "match"
+compare = ["status", "stdout", "stderr"]
+reason = "Windows child processes can return a signed 32-bit exit code."
+
+[[case]]
 id = "MJ-PRINT-BROKEN-PIPE"
 directory = "upstream-print-broken-pipe"
 verify_snapshot = true
@@ -1471,6 +1481,7 @@ reason = "Undefined function calls in recipe interpolation fail semantic validat
 [[case]]
 id = "MJ-COMPAT-0040"
 directory = "40-function-dotenv"
+verify_snapshot = true
 owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
@@ -1642,6 +1653,7 @@ reason = "-c is byte-compatible with the long command form."
 [[case]]
 id = "MJ-COMPAT-0057"
 directory = "57-command-dotenv"
+verify_snapshot = true
 owner_area = "planner"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]
@@ -9948,6 +9960,7 @@ reason = "Pinned just 1.57.0 source test migrated to executable MoonBit differen
 [[case]]
 id = "MJ-UPSTREAM-B7-062"
 directory = "upstream-b7-062"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 status = "match"
 compare = ["status", "stdout", "stderr", "tree"]

@@ -56,6 +56,7 @@ pub fn PathValue::hash(Self) -> Int32
 pub fn PathValue::hash_combine(Self, Hasher) -> Unit
 pub fn PathValue::is_absolute(Self) -> Bool
 pub fn PathValue::join(Self, Self) -> Self raise PathError
+pub fn PathValue::join_text(Self, String) -> Self raise PathError
 pub fn PathValue::new(String, PathFlavor) -> Self raise PathError
 #deprecated
 pub fn PathValue::not_equal(Self, Self) -> Bool

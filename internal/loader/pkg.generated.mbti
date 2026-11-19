@@ -40,6 +40,7 @@ pub(all) suberror LoaderError {
   MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
+  SourceIsDirectory(@path.PathValue)
   ImportFileMissing(span~ : @source.Span, source~ : @source.Source)
   Host(@host.HostError)
   InvalidSource(@source.SourceError)

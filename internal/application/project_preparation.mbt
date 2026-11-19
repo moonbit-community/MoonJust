@@ -1,17 +1,29 @@
 ///|
+fn search_argument_path(
+  value : String,
+  flavor : @path.PathFlavor,
+  base : @path.PathValue?,
+) -> @path.PathValue raise ApplicationError {
+  try {
+    match base {
+      Some(directory) if directory.is_absolute() => directory.join_text(value)
+      _ => @path.PathValue::new(value, flavor)
+    }
+  } catch {
+    error => raise Path(error)
+  }
+}
+
+///|
 fn input_selection(
   arguments : @cli.CliArguments,
   flavor : @path.PathFlavor,
+  base? : @path.PathValue,
 ) -> @cli.InputSelection raise ApplicationError {
   match arguments.value("justfile") {
     None => Search
     Some("-") => Stdin
-    Some(value) =>
-      File(
-        @path.PathValue::new(value, flavor) catch {
-          error => raise Path(error)
-        },
-      )
+    Some(value) => File(search_argument_path(value, flavor, base))
   }
 }
 
@@ -19,15 +31,11 @@ fn input_selection(
 fn working_directory_argument(
   arguments : @cli.CliArguments,
   flavor : @path.PathFlavor,
+  base? : @path.PathValue,
 ) -> @path.PathValue? raise ApplicationError {
   match arguments.value("working-directory") {
     None => None
-    Some(value) =>
-      Some(
-        @path.PathValue::new(value, flavor) catch {
-          error => raise Path(error)
-        },
-      )
+    Some(value) => Some(search_argument_path(value, flavor, base))
   }
 }
 
@@ -99,10 +107,9 @@ fn search_prefixed_invocation(
       "`--working-directory`, or `--justfile`",
     )
   }
-  let directory = @path.PathValue::new(directory_text, context.cwd().flavor()) catch {
-    error => raise Path(error)
-  }
-  let cwd = context.cwd().join(directory) catch { error => raise Path(error) }
+  let cwd = context.cwd().join_text(directory_text) catch {
+      error => raise Path(error)
+    }
   let positional : Array[String] = []
   match recipe {
     Some(name) => positional.push(name)
@@ -132,14 +139,16 @@ fn project_load_request(
   platform : @semantic.TargetPlatform,
   environment : ArrayView[(String, String)],
 ) -> @project.ProjectLoadRequest raise ApplicationError {
-  let selection = match input_selection(arguments, context.cwd().flavor()) {
+  let cwd = context.cwd()
+  let selection = match input_selection(arguments, cwd.flavor(), base=cwd) {
     Search => @project.SourceSelection::Search
     Stdin => Stdin
     File(path) => File(path)
   }
   let working_directory = working_directory_argument(
     arguments,
-    context.cwd().flavor(),
+    cwd.flavor(),
+    base=context.invocation_directory(),
   )
   let ceiling = ceiling_argument(arguments, context.invocation_directory())
   @project.ProjectLoadRequest::new(

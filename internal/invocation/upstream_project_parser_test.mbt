@@ -33,39 +33,6 @@ fn upstream_project(
 }
 
 ///|
-fn upstream_alias_project() -> @semantic.ProjectCompilation raise {
-  let root_source = @source.Source::from_text(
-    @source.SourceId::new(924),
-    "justfile",
-    "alias f := foo\n",
-  )
-  let root_ast = try! @parser.parse(root_source)
-  let root = try! @semantic.compile(
-    root_ast,
-    allow_unstable=true,
-    defer_recipe_linking=true,
-  )
-  let child = @semantic.compile_source(
-    @source.Source::from_text(@source.SourceId::new(925), "foo.just", "bar:\n"),
-    allow_unstable=true,
-  )
-  let foo = try! @modulepath.ModulePath::parse("foo")
-  @semantic.ProjectCompilation::new([
-    @semantic.ProjectModule::new(
-      @modulepath.ModulePath::root(),
-      root,
-      @path.PathValue::new("/workspace", Unix),
-    ),
-    @semantic.ProjectModule::new(
-      foo,
-      child,
-      @path.PathValue::new("/workspace/foo", Unix),
-      default_recipe="bar",
-    ),
-  ])
-}
-
-///|
 test "upstream invocation_parser::tests::recipe_in_submodule" {
   let project = try! upstream_project("", "bar:\n")
   let invocations = try! @invocation.parse_project_invocations(project, [
@@ -136,14 +103,31 @@ test "upstream invocation_parser::tests::recipe_in_absent_optional_module" {
 }
 
 ///|
-test "upstream invocation_parser::tests::module_alias" {
-  let project = try! upstream_alias_project()
-  let invocations = try! @invocation.parse_project_invocations(project, [
-    "f", "bar",
-  ])
+async test "upstream invocation_parser::tests::module_alias" {
+  let cwd = @path.PathValue::new("/workspace", Unix)
+  let host = @host_testkit.FakeHost::new(
+    cwd,
+    @host.PlatformInfo::new(Linux, None, Unix),
+  )
+  let justfile = cwd.join(@path.PathValue::new("justfile", Unix))
+  host.put_file(justfile, b"mod foo\nalias f := foo\n")
+  host.put_file(cwd.join(@path.PathValue::new("foo.just", Unix)), b"bar:\n")
+  let request = @project.ProjectLoadRequest::new(
+    @project.ProjectInput::new(cwd),
+    File(justfile),
+    [],
+    @semantic.TargetPlatform::new(Linux, true),
+    [],
+  )
+  let snapshot = @project.load_snapshot(host, request)
+  let invocations = @invocation.resolve_project_invocations(
+    snapshot.compilation(),
+    ["f", "bar"],
+  )
   assert_eq(invocations.length(), 1)
   assert_eq(invocations[0].module_path().as_string(), "foo")
   assert_eq(invocations[0].invocation().recipe(), "bar")
+  assert_true(invocations[0].invocation().arguments().is_empty())
 }
 
 ///|

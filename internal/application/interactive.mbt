@@ -7,11 +7,13 @@ async fn[T : @host.HostFs] locate_interactive_justfile(
   if arguments.flag("global-justfile") {
     return global_input_directories(context).1
   }
+  let cwd = context.cwd()
   let working_directory = working_directory_argument(
     arguments,
-    context.cwd().flavor(),
+    cwd.flavor(),
+    base=context.invocation_directory(),
   )
-  match input_selection(arguments, context.cwd().flavor()) {
+  match input_selection(arguments, cwd.flavor(), base=cwd) {
     Stdin =>
       raise Query("interactive commands cannot use a justfile from stdin")
     File(path) => {
