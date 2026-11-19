@@ -2,7 +2,6 @@ import {
   "ZSeanYves/MoonJust/internal/cache",
   "ZSeanYves/MoonJust/internal/planner",
   "ZSeanYves/MoonJust/internal/host",
-  "ZSeanYves/MoonJust/internal/host/fs" @host_fs,
   "ZSeanYves/MoonJust/internal/path",
   "moonbitlang/core/async",
   "moonbitlang/core/encoding/utf8",
@@ -17,6 +16,15 @@ import {
   "ZSeanYves/MoonJust/internal/semantic",
   "ZSeanYves/MoonJust/internal/source",
 } for "test"
+
+import {
+  "ZSeanYves/MoonJust/internal/environment",
+  "ZSeanYves/MoonJust/internal/evaluator",
+  "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
+  "ZSeanYves/MoonJust/internal/parser",
+  "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
+} for "wbtest"
 
 supported_targets = "wasm"
 

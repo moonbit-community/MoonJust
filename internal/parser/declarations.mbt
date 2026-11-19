@@ -1,45 +1,7 @@
 ///|
-fn setting_known(name : String) -> Bool {
-  setting_names().contains(name)
-}
-
-///|
-fn setting_is_boolean(name : String) -> Bool {
-  match name {
-    "allow-duplicate-recipes"
-    | "allow-duplicate-variables"
-    | "default-list"
-    | "default-script"
-    | "dotenv-load"
-    | "dotenv-override"
-    | "dotenv-required"
-    | "export"
-    | "fallback"
-    | "guards"
-    | "ignore-comments"
-    | "lazy"
-    | "lists"
-    | "no-cd"
-    | "no-exit-message"
-    | "positional-arguments"
-    | "quiet"
-    | "unstable"
-    | "windows-powershell" => true
-    _ => false
-  }
-}
-
-///|
-/// Return the complete stable settings inventory from `just 1.57.0`.
+/// Names accepted in setting declarations, in registry order.
 pub fn setting_names() -> ArrayView[String] {
-  [
-    "allow-duplicate-recipes", "allow-duplicate-variables", "default-list", "default-script",
-    "dotenv-command", "dotenv-filename", "dotenv-load", "dotenv-override", "dotenv-path",
-    "dotenv-required", "export", "fallback", "guards", "ignore-comments", "indentation",
-    "lazy", "lists", "minimum-version", "no-cd", "no-exit-message", "positional-arguments",
-    "quiet", "script-interpreter", "shell", "tempdir", "unstable", "windows-powershell",
-    "windows-shell", "working-directory",
-  ][:]
+  @syntax.setting_specs().map(spec => spec.name())[:]
 }
 
 ///|
@@ -49,10 +11,10 @@ fn Parser::parse_setting(
 ) -> @syntax.Setting raise ParserError {
   self.expect_identifier() |> ignore
   let (name, name_token) = self.expect_identifier()
-  if !setting_known(name) {
+  guard @syntax.setting_spec(name) is Some(spec) else {
     raise UnknownSetting(name~, span=name_token.span())
   }
-  let value = if setting_is_boolean(name) {
+  let value = if spec.kind() is Boolean {
     if self.accept(ColonEquals) is Some(_) {
       let token = self.peek()
       if token.kind() != Identifier {
@@ -81,7 +43,9 @@ fn Parser::parse_setting(
         )
       }
       self.advance() |> ignore
-      Some(@syntax.Boolean(value=lexeme == "true", span=token.span()))
+      Some(
+        @syntax.Expression::Boolean(value=lexeme == "true", span=token.span()),
+      )
     } else {
       None
     }

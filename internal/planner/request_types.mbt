@@ -66,7 +66,6 @@ pub fn ProjectRecipeRequest::arguments(
 /// Runtime values owned by one project module during execution planning.
 #derive(Debug)
 pub struct ProjectModuleRuntime {
-  module_path : @modulepath.ModulePath
   global : @evaluator.Environment
   context : @evaluator.EvaluationContext
   shell : @environment.ShellConfiguration
@@ -77,7 +76,6 @@ pub struct ProjectModuleRuntime {
 
 ///|
 pub fn ProjectModuleRuntime::new(
-  module_path : @modulepath.ModulePath,
   global : @evaluator.Environment,
   context : @evaluator.EvaluationContext,
   shell : @environment.ShellConfiguration,
@@ -86,7 +84,6 @@ pub fn ProjectModuleRuntime::new(
   configuration : ScriptConfiguration,
 ) -> ProjectModuleRuntime {
   {
-    module_path,
     global,
     context,
     shell,
@@ -94,13 +91,6 @@ pub fn ProjectModuleRuntime::new(
     process_environment: process_environment.to_owned(),
     configuration,
   }
-}
-
-///|
-pub fn ProjectModuleRuntime::module_path(
-  self : ProjectModuleRuntime,
-) -> @modulepath.ModulePath {
-  self.module_path
 }
 
 ///|

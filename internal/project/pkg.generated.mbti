@@ -73,6 +73,7 @@ pub struct ProjectSources {
   graph : @loader.LoadedGraph
   directories : @workdir.WorkingDirectoryModel
 }
+pub fn ProjectSources::compile(Self, allow_unstable~ : Bool, platform~ : @semantic.TargetPlatform) -> ProjectSnapshot raise ProjectError
 pub fn ProjectSources::directories(Self) -> @workdir.WorkingDirectoryModel
 pub fn ProjectSources::graph(Self) -> @loader.LoadedGraph
 pub fn ProjectSources::new(@loader.LoadedGraph, @workdir.WorkingDirectoryModel) -> Self

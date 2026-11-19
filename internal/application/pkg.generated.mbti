@@ -13,7 +13,6 @@ import {
   "ZSeanYves/MoonJust/internal/planner",
   "ZSeanYves/MoonJust/internal/project",
   "ZSeanYves/MoonJust/internal/semantic",
-  "ZSeanYves/MoonJust/internal/source",
   "ZSeanYves/MoonJust/internal/workdir",
   "moonbitlang/core/debug",
 }
@@ -22,8 +21,6 @@ import {
 pub fn[E : @host.HostEnv + @host.HostPlatform] classify_request(E, ArrayView[String]) -> PreparedInvocation
 
 pub async fn[T : @host.HostFs + @host.HostAtomicFs, H : @host.HostTerminal] execute_file_command(T, H, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
-
-pub async fn[T : @host.HostFs + @host.HostEnv + @host.HostTerminal + @host.HostPlatform] execute_query_command(T, @cli.CliArguments, @project.ProjectInput) -> @cli.ApplicationResponse raise ApplicationError
 
 pub fn[E : @host.HostEnv] parse_environment(E) -> InvocationEnvironment raise @host.HostError
 
@@ -52,7 +49,7 @@ pub(all) suberror ApplicationError {
   Path(@path.PathError)
   Project(@semantic.ProjectCompilationError)
   Semantic(@semantic.SemanticError)
-  ContextualSemantic(error~ : @semantic.SemanticError, source~ : @source.Source, cwd~ : @path.PathValue)
+  AtProject(ApplicationError, @loader.LoadedGraph?, @path.PathValue)
   WorkingDirectory(@workdir.WorkingDirectoryError)
   InteractiveInvocation(kind~ : String, command~ : String, detail~ : String)
   InteractiveProcess(kind~ : String, command~ : String, termination~ : @host.ProcessTermination)

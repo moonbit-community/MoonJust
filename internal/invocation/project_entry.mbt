@@ -18,24 +18,16 @@ pub fn parse_project_invocations(
       error => raise Evaluation(error)
     }
   }
-  parse_project_invocations_in_environments(
-    project,
-    arguments,
-    environments,
-    allow_missing~,
-  )
+  resolve_project_invocations(project, arguments, environments~, allow_missing~)
 }
 
 ///|
-/// Parse project invocations with the already materialized module scopes used
-/// by execution. This prevents effectful assignments from being evaluated a
-/// second time through the pure parser path.
-pub fn parse_project_invocations_in_environments(
+/// Resolve and group raw CLI arguments once. Supplying module environments also evaluates defaults and argument constraints.
+pub fn resolve_project_invocations(
   project : @semantic.ProjectCompilation,
   arguments : ArrayView[String],
-  environments : Map[@modulepath.ModulePath, @evaluator.Environment],
+  environments? : Map[@modulepath.ModulePath, @evaluator.Environment],
   allow_missing~ : Bool = false,
-  resolve_expressions~ : Bool = true,
 ) -> Array[ProjectInvocation] raise InvocationError {
   let result : Array[ProjectInvocation] = []
   let mut cursor = 0
@@ -59,21 +51,15 @@ pub fn parse_project_invocations_in_environments(
       continue
     }
     let compilation = project.module_compilation(module_path).unwrap()
-    let global = environments.get(module_path).unwrap()
-    let synthetic : Array[String] = [recipe]
-    for value in arguments[cursor + path_consumed:] {
-      synthetic.push(value)
-    }
-    let (invocation, consumed) = parse_one(
+    let (invocation, consumed) = parse_recipe_arguments(
       compilation,
-      global,
-      synthetic,
-      0,
-      resolve_expressions~,
+      compilation.recipe(recipe).unwrap(),
+      arguments[cursor + path_consumed:],
+      environments.map(scopes => scopes[module_path]),
       display_name=arguments[cursor:cursor + path_consumed].join("::"),
     )
     result.push({ module_path, invocation, })
-    cursor += path_consumed + consumed - 1
+    cursor += path_consumed + consumed
     if cursor >= arguments.length() {
       break
     }

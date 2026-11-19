@@ -53,24 +53,6 @@ pub fn ApplicationFailure::new(FailureKind, @diagnostic.Diagnostic) -> Self rais
 pub fn ApplicationFailure::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
-pub(all) enum ApplicationRequest {
-  Version
-  Help
-  Check(InputSelection)
-  Format(InputSelection, check_only~ : Bool)
-  Query(InputSelection, QueryKind)
-  Run(InputSelection, ReadOnlyArray[String])
-}
-pub fn ApplicationRequest::arguments(Self) -> ReadOnlyArray[String]?
-#deprecated
-pub fn ApplicationRequest::equal(Self, Self) -> Bool
-#deprecated
-pub fn ApplicationRequest::not_equal(Self, Self) -> Bool
-pub fn ApplicationRequest::run(InputSelection, Array[String]) -> Self
-#deprecated
-pub fn ApplicationRequest::to_repr(Self) -> @debug.Repr
-
-#derive(Eq, @debug.Debug)
 pub struct ApplicationResponse {
   stdout : Bytes
   stderr : Bytes
@@ -91,6 +73,7 @@ pub fn ApplicationResponse::to_repr(Self) -> @debug.Repr
 
 pub struct CliArguments {
   command : CommandKind
+  jobs : Int32?
   flags : Map[String, Bool]
   counts : Map[String, Int32]
   values : Map[String, Array[String]]
@@ -101,6 +84,7 @@ pub struct CliArguments {
 pub fn CliArguments::command(Self) -> CommandKind
 pub fn CliArguments::count(Self, String) -> Int32
 pub fn CliArguments::flag(Self, String) -> Bool
+pub fn CliArguments::jobs(Self) -> Int32?
 pub fn CliArguments::positional(Self) -> ArrayView[String]
 pub fn CliArguments::shell_arguments(Self) -> Array[String]?
 pub fn CliArguments::value(Self, String) -> String?
@@ -174,22 +158,6 @@ pub fn InputSelection::equal(Self, Self) -> Bool
 pub fn InputSelection::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn InputSelection::to_repr(Self) -> @debug.Repr
-
-#derive(Eq, @debug.Debug)
-pub(all) enum QueryKind {
-  List
-  Show(String)
-  Summary
-  Variables
-  Dump
-  Json
-}
-#deprecated
-pub fn QueryKind::equal(Self, Self) -> Bool
-#deprecated
-pub fn QueryKind::not_equal(Self, Self) -> Bool
-#deprecated
-pub fn QueryKind::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

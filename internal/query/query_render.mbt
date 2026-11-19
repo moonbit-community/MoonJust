@@ -1,59 +1,60 @@
 ///|
-fn show_recipe_text(
-  loaded : @loader.LoadedSource,
-  compilation : @semantic.Compilation,
-  requested : String,
-) -> String raise ApplicationError {
-  let name = compilation.alias_target(requested).unwrap_or(requested)
-  guard compilation.recipe(name) is Some(recipe) else {
-    raise Query(unknown_recipe_message(compilation, requested))
+fn show_doc_comment(
+  graph : @loader.LoadedGraph,
+  recipe : @syntax.Recipe,
+) -> String? {
+  if recipe.attributes().any(fn(attribute) { attribute.name() == "doc" }) {
+    return None
   }
-  let items : Array[@syntax.Item] = []
-  if name != requested {
-    for item in loaded.ast().items() {
-      if item is Alias(definition) && definition.name() == requested {
-        items.push(item)
-        break
-      }
+  let span = recipe.span()
+  guard graph
+    .files()
+    .iter()
+    .find_first(fn(file) { file.ast().source_id() == span.source_id() })
+    is Some(file) else {
+    return None
+  }
+  let items = file.ast().items()
+  for i, item in items {
+    if item is Recipe(definition) && definition.span() == span {
+      guard i > 0 && items[i - 1] is Comment(text~, ..) else { return None }
+      let doc = text[1:].trim()
+      return if doc.is_empty() { None } else { Some(doc.to_owned()) }
     }
   }
-  let mut comments : Array[@syntax.Item] = []
-  for item in loaded.ast().items() {
-    match item {
-      Comment(_) => comments.push(item)
-      Recipe(value) if value.name() == name => {
-        if !value.attributes().any(fn(attribute) { attribute.name() == "doc" }) {
-          items.append(comments)
-        }
-        items.push(Recipe(recipe))
-        break
-      }
-      Attribute(_) => comments = []
-      _ => comments = []
-    }
-  }
-  @formatter.format(
-    @syntax.Ast::new(compilation.source_id(), items, recipe.span()),
-  )
+  None
 }
 
 ///|
-fn show_text(
-  loaded : @loader.LoadedSource,
-  compilation : @semantic.Compilation,
-  arguments : @cli.CliArguments,
-) -> String raise ApplicationError {
-  if arguments.positional().length() > 1 {
-    raise Query(
-      "`--show` used with unexpected argument: `" +
-      arguments.positional()[1] +
-      "`",
-    )
+fn show_recipe_text(
+  graph : @loader.LoadedGraph,
+  project : @semantic.ProjectCompilation,
+  path : @modulepath.ModulePath,
+  requested : String,
+) -> String raise QueryError {
+  let compilation = project.module_compilation(path).unwrap()
+  guard project.resolve_recipe(path, requested) is Some(resolved) else {
+    raise Query(unknown_recipe_message(compilation, requested))
   }
-  guard arguments.positional().get(0) is Some(requested) else {
-    raise Query("`--show` requires recipe")
+  let recipe = project
+    .module_compilation(resolved.module_path())
+    .unwrap()
+    .recipe(resolved.recipe_name())
+    .unwrap()
+  let span = recipe.span()
+  let builder = StringBuilder()
+  if compilation.alias_target(requested) is Some(target) {
+    builder.write_string("alias " + requested + " := " + target + "\n")
   }
-  show_recipe_text(loaded, compilation, requested)
+  if show_doc_comment(graph, recipe) is Some(doc) {
+    builder.write_string("# " + doc + "\n")
+  }
+  builder.write_string(
+    @formatter.format(
+      @syntax.Ast::new(span.source_id(), [Recipe(recipe)], span),
+    ),
+  )
+  builder.to_string()
 }
 
 ///|
@@ -62,7 +63,7 @@ fn usage_recipe_text(
   requested : String,
   display_path : String,
   environment? : @evaluator.Environment,
-) -> String raise ApplicationError {
+) -> String raise QueryError {
   let name = compilation.alias_target(requested).unwrap_or(requested)
   guard compilation.recipe(name) is Some(recipe) else {
     raise Query(unknown_recipe_message(compilation, requested))
@@ -190,22 +191,4 @@ fn usage_recipe_text(
     }
   }
   builder.to_string()
-}
-
-///|
-fn usage_text(
-  compilation : @semantic.Compilation,
-  arguments : @cli.CliArguments,
-) -> String raise ApplicationError {
-  if arguments.positional().length() > 1 {
-    raise Query(
-      "`--usage` used with unexpected argument: `" +
-      arguments.positional()[1] +
-      "`",
-    )
-  }
-  guard arguments.positional().get(0) is Some(requested) else {
-    raise Query("`--usage` requires recipe")
-  }
-  usage_recipe_text(compilation, requested, requested)
 }

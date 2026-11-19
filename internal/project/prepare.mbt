@@ -160,11 +160,8 @@ pub async fn[T : @host.HostFs] load_snapshot(
   request : ProjectLoadRequest,
   allow_unstable~ : Bool = false,
 ) -> ProjectSnapshot raise ProjectError {
-  let sources = load_sources(host, request)
-  let compilation = compile_loaded_graph(
-    sources.graph(),
+  load_sources(host, request).compile(
     allow_unstable~,
     platform=request.platform,
   )
-  ProjectSnapshot::new(sources.graph(), compilation, sources.directories())
 }

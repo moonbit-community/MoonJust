@@ -11,7 +11,7 @@ fn write_list_line(
   builder.write_string(prefix)
   builder.write_string(rendered)
   if !annotations.is_empty() {
-    let padding = Int32::max(1, maximum - @query.display_width(label) + 1)
+    let padding = Int32::max(1, maximum - display_width(label) + 1)
     for _ in 0..<padding {
       builder.write_char(' ')
     }
@@ -33,32 +33,36 @@ fn rendered_alias_signature(row : ListRow, alias_name : String) -> String {
 }
 
 ///|
-fn list_text(
-  loaded : @loader.LoadedSource,
-  compilation : @semantic.Compilation,
-  arguments : @cli.CliArguments,
+fn list_body(
+  graph : @loader.LoadedGraph,
+  project : @semantic.ProjectCompilation,
+  module_path : @modulepath.ModulePath,
+  options : ListOptions,
   color : Bool,
-  hidden_recipes~ : ArrayView[String] = [],
-  hidden_aliases~ : ArrayView[String] = [],
-  project? : @semantic.ProjectCompilation,
-  module_path? : @modulepath.ModulePath,
-  globals? : Map[@modulepath.ModulePath, @evaluator.Environment],
-  graph? : @loader.LoadedGraph,
-) -> String raise ApplicationError {
-  let docs = recipe_docs(loaded.ast())
-  let list_environment = match (globals, module_path) {
-    (Some(globals), Some(module_path)) =>
-      globals.get(module_path).unwrap_or(@evaluator.Environment::new())
-    _ =>
-      @evaluator.evaluate_compilation(compilation) catch {
-        error => raise Evaluation(error)
-      }
+  globals : Map[@modulepath.ModulePath, @evaluator.Environment],
+) -> String raise QueryError {
+  let compilation = project.module_compilation(module_path).unwrap()
+  guard loaded_for_module(graph, module_path) is Some(loaded) else {
+    raise Query(
+      "source for module `" + module_path.as_string() + "` is unavailable",
+    )
   }
-  if module_path.map(fn(path) { path.is_root() }).unwrap_or(true) {
-    for group in arguments.values("group") {
+  let docs = recipe_docs(loaded.ast())
+  let list_environment = globals
+    .get(module_path)
+    .unwrap_or(@evaluator.Environment::new())
+  let hidden_aliases : Array[String] = []
+  for symbol in compilation.symbols() {
+    if symbol.kind() is Alias &&
+      project.alias_disabled(module_path, symbol.name()) {
+      hidden_aliases.push(symbol.name())
+    }
+  }
+  if module_path.is_root() {
+    for group in options.filter.groups {
       let mut found = false
       for name in compilation.recipe_names() {
-        if hidden_recipes.contains(name) {
+        if project.recipe_disabled(module_path, name) {
           continue
         }
         match compilation.recipe_attributes(name) {
@@ -74,13 +78,9 @@ fn list_text(
   }
   let rows : Array[ListRow] = []
   let mut maximum = 0
-  let alias_style = arguments.value("alias-style").unwrap_or("right")
-  for
-    name in @query.visible_recipe_names(
-      compilation,
-      @query.build_query(arguments),
-    ) {
-    if hidden_recipes.contains(name) {
+  let alias_style = options.alias_style
+  for name in visible_recipe_names(compilation, options.filter) {
+    if project.recipe_disabled(module_path, name) {
       continue
     }
     guard compilation.recipe(name) is Some(recipe) else { continue }
@@ -88,7 +88,7 @@ fn list_text(
       continue
     }
     let signature = recipe_signature(recipe)
-    let signature_width = @query.display_width(signature)
+    let signature_width = display_width(signature)
     if signature_width <= 50 {
       maximum = Int32::max(maximum, signature_width)
     }
@@ -113,14 +113,14 @@ fn list_text(
     } else {
       docs.get(name)
     }
-    let aliases = if arguments.flag("no-aliases") {
+    let aliases = if options.hide_aliases {
       []
     } else {
       alias_names(compilation, name, hidden=hidden_aliases)
     }
     if alias_style == "separate" {
       for alias_name in aliases {
-        let alias_width = @query.display_width(
+        let alias_width = display_width(
           alias_name + signature[name.length():].to_owned(),
         )
         if alias_width <= 50 {
@@ -138,7 +138,7 @@ fn list_text(
       nested: None,
     })
   }
-  if !arguments.flag("no-aliases") {
+  if !options.hide_aliases {
     for symbol in compilation.symbols() {
       if symbol.kind() is Alias &&
         !hidden_aliases.contains(symbol.name()) &&
@@ -148,7 +148,7 @@ fn list_text(
           continue
         }
         if target.contains("::") {
-          maximum = Int32::max(maximum, @query.display_width(symbol.name()))
+          maximum = Int32::max(maximum, display_width(symbol.name()))
           rows.push({
             name: symbol.name(),
             signature: symbol.name(),
@@ -162,96 +162,50 @@ fn list_text(
       }
     }
   }
-  match (project, module_path, globals, graph) {
-    (Some(project), Some(module_path), Some(globals), Some(graph)) => {
-      let children = direct_child_modules(
-        project,
-        module_path,
-        arguments.flag("unsorted"),
-      )
-      for child in children {
-        let name = child.components().last().unwrap()
-        let child_compilation = project.module_compilation(child).unwrap()
-        let child_hidden_recipes : Array[String] = []
-        let child_hidden_aliases : Array[String] = []
-        for recipe_name in child_compilation.recipe_names() {
-          if project.recipe_disabled(child, recipe_name) {
-            child_hidden_recipes.push(recipe_name)
-          }
+  let children = direct_child_modules(
+    project,
+    module_path,
+    options.filter.unsorted,
+  )
+  for child in children {
+    let name = child.components().last().unwrap()
+    let signature = if options.submodules { name + ":" } else { name + " ..." }
+    maximum = Int32::max(maximum, display_width(signature))
+    let doc = match evaluated_module_attribute(project, child, globals, "doc") {
+      Some(value) if !value.trim().is_empty() => Some(value)
+      Some(_) => None
+      None if project
+        .module_declaration_attributes(child)
+        .any(fn(attribute) { attribute.name() == "doc" }) => None
+      None => project.module_declaration_doc(child)
+    }
+    let module_groups : Array[String] = []
+    for attribute in project.module_declaration_attributes(child) {
+      if attribute.name() == "group" {
+        match evaluated_module_attribute(project, child, globals, "group") {
+          Some(group) if !module_groups.contains(group) =>
+            module_groups.push(group)
+          _ => ()
         }
-        for symbol in child_compilation.symbols() {
-          if symbol.kind() is Alias &&
-            project.alias_disabled(child, symbol.name()) {
-            child_hidden_aliases.push(symbol.name())
-          }
-        }
-        let signature = if arguments.flag("list-submodules") {
-          name + ":"
-        } else {
-          name + " ..."
-        }
-        maximum = Int32::max(maximum, @query.display_width(signature))
-        let doc = match
-          evaluated_module_attribute(project, child, globals, "doc") {
-          Some(value) if !value.trim().is_empty() => Some(value)
-          Some(_) => None
-          None if project
-            .module_declaration_attributes(child)
-            .any(fn(attribute) { attribute.name() == "doc" }) => None
-          None => project.module_declaration_doc(child)
-        }
-        let module_groups : Array[String] = []
-        for attribute in project.module_declaration_attributes(child) {
-          if attribute.name() == "group" {
-            match evaluated_module_attribute(project, child, globals, "group") {
-              Some(group) if !module_groups.contains(group) =>
-                module_groups.push(group)
-              _ => ()
-            }
-          }
-        }
-        let nested = if arguments.flag("list-submodules") {
-          let child_text = list_text(
-            loaded_for_module(graph, child).unwrap(),
-            child_compilation,
-            arguments,
-            color,
-            hidden_recipes=child_hidden_recipes,
-            hidden_aliases=child_hidden_aliases,
-            project~,
-            module_path=child,
-            globals~,
-            graph~,
-          )
-          Some(
-            child_text
-            .strip_prefix(
-              arguments.value("list-heading").unwrap_or("Available recipes:\n"),
-            )
-            .unwrap_or("")
-            .to_owned(),
-          )
-        } else {
-          None
-        }
-        rows.push({
-          name,
-          signature,
-          rendered_signature: signature,
-          doc,
-          aliases: [],
-          groups: module_groups,
-          nested,
-        })
       }
     }
-    _ => ()
+    let nested = if options.submodules {
+      Some(list_body(graph, project, child, options, color, globals))
+    } else {
+      None
+    }
+    rows.push({
+      name,
+      signature,
+      rendered_signature: signature,
+      doc,
+      aliases: [],
+      groups: module_groups,
+      nested,
+    })
   }
   let builder = StringBuilder()
-  builder.write_string(
-    arguments.value("list-heading").unwrap_or("Available recipes:\n"),
-  )
-  let prefix = arguments.value("list-prefix").unwrap_or("    ")
+  let prefix = options.prefix
   let groups : Array[String] = []
   for row in rows {
     for group in row.groups {
@@ -260,17 +214,17 @@ fn list_text(
       }
     }
   }
-  if !arguments.flag("unsorted") {
-    groups.sort_by(@query.lexical_compare)
+  if !options.filter.unsorted {
+    groups.sort_by(lexical_compare)
   }
   let sections : Array[String?] = []
-  if arguments.values("group").is_empty() {
+  if options.filter.groups.is_empty() {
     sections.push(None)
     for group in groups {
       sections.push(Some(group))
     }
   } else {
-    for group in arguments.values("group") {
+    for group in options.filter.groups {
       sections.push(Some(group))
     }
   }
@@ -344,8 +298,7 @@ fn list_text(
           color,
           rendered=row.rendered_signature,
         )
-      } else if @query.display_width(row.signature) > 50 &&
-        row.doc is Some(value) {
+      } else if display_width(row.signature) > 50 && row.doc is Some(value) {
         builder.write_string(prefix)
         builder.write_string(paint("#", "34", color))
         builder.write_char(' ')

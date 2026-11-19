@@ -14,11 +14,7 @@ pub(all) suberror ApplicationError {
   Path(@path.PathError)
   Project(@semantic.ProjectCompilationError)
   Semantic(@semantic.SemanticError)
-  ContextualSemantic(
-    error~ : @semantic.SemanticError,
-    source~ : @source.Source,
-    cwd~ : @path.PathValue,
-  )
+  AtProject(ApplicationError, @loader.LoadedGraph?, @path.PathValue)
   WorkingDirectory(@workdir.WorkingDirectoryError)
   InteractiveInvocation(kind~ : String, command~ : String, detail~ : String)
   InteractiveProcess(
@@ -31,6 +27,18 @@ pub(all) suberror ApplicationError {
   AlreadyExists(@path.PathValue)
   Query(String)
   UnsupportedCommand(String)
+}
+
+///|
+fn ApplicationError::with_project_sources(
+  self : ApplicationError,
+  graph : @loader.LoadedGraph,
+  cwd : @path.PathValue,
+) -> ApplicationError {
+  match self {
+    AtProject(_, _, _) => self
+    _ => AtProject(self, Some(graph), cwd)
+  }
 }
 
 ///|
@@ -54,6 +62,7 @@ fn ApplicationError::exit_code(self : ApplicationError) -> Int32 {
     Evaluation(ProcessFailure(code~, ..)) => code
     Evaluation(BacktickFailure(code~, ..)) => code
     Evaluation(ProcessSignaled(signal~, ..)) => signal.exit_code()
+    AtProject(error, _, _) => error.exit_code()
     Planner(error) => error.exit_code()
     Dotenv(error) => error.exit_code()
     Load(_)
@@ -65,7 +74,6 @@ fn ApplicationError::exit_code(self : ApplicationError) -> Int32 {
     | Path(_)
     | Project(_)
     | Semantic(_)
-    | ContextualSemantic(_)
     | WorkingDirectory(_)
     | InteractiveInvocation(_)
     | WriteJustfile(_)
@@ -90,7 +98,7 @@ fn ApplicationError::message(self : ApplicationError) -> String {
     Path(error) => "error: invalid path: \{Repr(error)}"
     Project(error) => "error: invalid project compilation: \{Repr(error)}"
     Semantic(error) => "error: \{error.message()}"
-    ContextualSemantic(error~, ..) => "error: \{error.message()}"
+    AtProject(error, _, _) => error.message()
     WorkingDirectory(error) => "error: \{error.message()}"
     InteractiveInvocation(kind="command", command~, detail~) =>
       "error: failed to invoke \{command}: \{detail}"
@@ -130,23 +138,11 @@ fn ApplicationError::message(self : ApplicationError) -> String {
 ///|
 fn stable_application_error_message(error : ApplicationError) -> String {
   match error {
-    Evaluation(Builtin(Failure(message~), ..)) if message.contains(
-        "currently unstable",
-      ) => "error: " + message
     Evaluation(evaluation) =>
       "error[" + evaluation.code() + "]: " + evaluation.message()
     Planner(Evaluation(evaluation)) =>
       "error[" + evaluation.code() + "]: " + evaluation.message()
     Planner(InvalidAttributeValue(message~, ..)) => "error: " + message
-    Semantic(UserFunctionsUnstable(_) as semantic) =>
-      "error: " + semantic.message()
-    Semantic(ListsUnstable(_) as semantic) => "error: " + semantic.message()
-    ContextualSemantic(error~, ..) =>
-      match error {
-        UserFunctionsUnstable(_) | ListsUnstable(_) =>
-          "error: " + error.message()
-        _ => error.message()
-      }
     _ => error.message()
   }
 }
@@ -193,9 +189,7 @@ fn diagnostic_source(
     }
     _ => ()
   }
-  @source.Source::from_bytes(source.id(), display, source.bytes().to_owned()) catch {
-    _ => source
-  }
+  source.with_name(display)
 }
 
 ///|
@@ -224,48 +218,26 @@ fn diagnostic_load_cwd(
 }
 
 ///|
-/// Async counterpart used by production command paths. Source recovery for a
-/// diagnostic observes the same bounded-read contract as the initial load.
-#warnings("-unused_async-unused_trait_bound")
-async fn[T : @host.HostFs] render_application_error_async(
-  host : T,
+fn render_application_error(
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
   error : ApplicationError,
 ) -> String {
-  let color = arguments.value("color") == Some("always")
-  let stable_message = stable_application_error_message(error)
-  if stable_message.contains("user-defined functions are currently unstable") ||
-    stable_message.contains("`lists` setting is currently unstable") ||
-    stable_message.contains("cached recipes are currently unstable") {
-    return stable_message
-  }
-  fn render_diagnostic(
-    diagnostic : @diagnostic.Diagnostic,
-    sources : @source.SourceMap,
-    color : Bool,
-  ) -> String raise @diagnostic.DiagnosticError {
-    if color {
-      @diagnostic.render_colored_text(diagnostic, sources)
-    } else {
-      @diagnostic.render_text(diagnostic, sources)
-    }
+  let (error, graph, cwd) = match error {
+    AtProject(cause, graph, cwd) => (cause, graph, cwd)
+    _ => (error, None, context.cwd())
   }
   match error {
-    Evaluation(UnknownOverrides(..) as evaluation) =>
+    Load(ImportCycle(_))
+    | Semantic(UserFunctionsUnstable(_) | ListsUnstable(_))
+    | Planner(CachedRecipesUnstable) => return error.message()
+    Evaluation(
+      UnknownOverrides(..)
+      | EmptyParameter(..)
+      | FunctionRecursionLimit(..) as evaluation,
+    )
+    | Planner(Evaluation(EmptyParameter(..) as evaluation)) =>
       return "error: " + evaluation.message()
-    Evaluation(EmptyParameter(..) as evaluation) =>
-      return "error: " + evaluation.message()
-    Planner(Evaluation(EmptyParameter(..) as evaluation)) =>
-      return "error: " + evaluation.message()
-    Evaluation(FunctionRecursionLimit(..) as evaluation) =>
-      return "error: " + evaluation.message()
-    ContextualSemantic(error~, ..) =>
-      match error {
-        UserFunctionsUnstable(_) | ListsUnstable(_) =>
-          return "error: " + error.message()
-        _ => ()
-      }
     _ => ()
   }
   let diagnostic = match error {
@@ -274,10 +246,7 @@ async fn[T : @host.HostFs] render_application_error_async(
         Some(span) => Some(error.to_diagnostic(span)) catch { _ => None }
         None => None
       }
-    Semantic(error) | ContextualSemantic(error~, ..) =>
-      Some(error.to_diagnostic()) catch {
-        _ => None
-      }
+    Semantic(error) => Some(error.to_diagnostic()) catch { _ => None }
     Evaluation(error) => Some(error.to_diagnostic()) catch { _ => None }
     Invocation(error) => error.to_diagnostic() catch { _ => None }
     Planner(error) => error.to_diagnostic() catch { _ => None }
@@ -287,59 +256,27 @@ async fn[T : @host.HostFs] render_application_error_async(
     return stable_application_error_message(error)
   }
   let sources = @source.SourceMap::new()
-  let render_cwd = match error {
-    ContextualSemantic(cwd~, ..) => cwd
-    Load(_) => diagnostic_load_cwd(arguments, context.cwd())
-    _ => context.cwd()
-  }
-  let direct_source = match error {
-    Load(error) => error.diagnostic_source()
-    ContextualSemantic(source~, ..) => Some(source)
-    _ => None
-  }
-  match direct_source {
-    Some(source) =>
-      try sources.add(diagnostic_source(source, render_cwd)) catch {
-        _ => return stable_application_error_message(error)
-      } noraise {
-        _ => ()
-      }
-    None => {
-      let graph = try
-        load_graph_input_with_directories(host, arguments, context).0
-      catch {
-        _ => {
-          let loaded = try
-            load_input_with_directories(host, arguments, context).0
-          catch {
-            _ => return stable_application_error_message(error)
-          } noraise {
-            value => value
-          }
-          try
-            sources.add(diagnostic_source(loaded.source(), render_cwd))
-          catch {
-            _ => return stable_application_error_message(error)
-          } noraise {
-            _ => ()
-          }
-          return render_diagnostic(diagnostic, sources, color) catch {
-            _ => stable_application_error_message(error)
+  try {
+    match error {
+      Load(load) =>
+        if load.diagnostic_source() is Some(source) {
+          sources.add(
+            diagnostic_source(source, diagnostic_load_cwd(arguments, cwd)),
+          )
+        }
+      _ =>
+        if graph is Some(graph) {
+          for file in graph.files() {
+            sources.add(diagnostic_source(file.source(), cwd))
           }
         }
-      } noraise {
-        value => value
-      }
-      for file in graph.files() {
-        try sources.add(diagnostic_source(file.source(), render_cwd)) catch {
-          _ => return stable_application_error_message(error)
-        } noraise {
-          _ => ()
-        }
-      }
     }
-  }
-  render_diagnostic(diagnostic, sources, color) catch {
+    if arguments.value("color") == Some("always") {
+      @diagnostic.render_colored_text(diagnostic, sources)
+    } else {
+      @diagnostic.render_text(diagnostic, sources)
+    }
+  } catch {
     _ => stable_application_error_message(error)
   }
 }

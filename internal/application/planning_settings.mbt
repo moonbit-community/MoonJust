@@ -322,7 +322,7 @@ async fn[T : @host.HostTerminal] selected_color_active(
   arguments : @cli.CliArguments,
   stream : @host.OutputStream,
 ) -> Bool raise ApplicationError {
-  let mode = arguments.value("color").unwrap_or("auto")
+  let mode = arguments.value("color").unwrap()
   match mode {
     "always" => true
     "never" => false
@@ -364,27 +364,12 @@ fn selected_command_color(
 }
 
 ///|
-fn selected_jobs(arguments : @cli.CliArguments) -> Int32 raise ApplicationError {
-  guard arguments.value("jobs") is Some(value) else { return 1 }
-  let jobs = @string.parse_int(value[:]) catch {
-    _ =>
-      raise Query(
-        "invalid --jobs value `\{value}`; expected a positive integer",
-      )
-  }
-  if jobs <= 0 {
-    raise Query("invalid --jobs value `\{value}`; expected a positive integer")
-  }
-  jobs
-}
-
-///|
 fn execution_options(
   arguments : @cli.CliArguments,
   timestamp : String?,
   command_color : @planner.CommandColor?,
   color_enabled : Bool,
-) -> @planner.ExecutionOptions raise ApplicationError {
+) -> @planner.ExecutionOptions {
   @planner.ExecutionOptions::from_values(
     arguments.flag("dry-run"),
     arguments.flag("quiet"),
@@ -394,7 +379,7 @@ fn execution_options(
     command_color,
   )
   .with_assume_yes(arguments.flag("yes"))
-  .with_jobs(selected_jobs(arguments))
+  .with_jobs(arguments.jobs().unwrap_or(1))
   .with_cache(!arguments.flag("no-cache"))
   .with_unstable(arguments.flag("unstable"))
   .with_no_dependencies(arguments.flag("no-deps"))

@@ -7,31 +7,11 @@ pub async fn[T : @host.HostFs] stream_file(
   consume : (Bytes) -> Unit,
   chunk_size~ : Int32 = 64 * 1024,
 ) -> Unit raise @host.HostError {
-  if chunk_size <= 0 {
-    raise InvalidInput("chunk size must be positive")
-  }
-  let metadata = @host.HostFs::metadata(host, path)
+  let metadata = @host.HostFs::stream_regular_file(
+    host, path, chunk_size, consume,
+  )
   if !metadata.is_file() {
     raise InvalidInput("stream source must be a file")
-  }
-  let size = @host.HostFs::file_size(host, path)
-  let mut offset = 0L
-  while offset < size {
-    let remaining = size - offset
-    let length = if remaining < chunk_size.to_int64() {
-      remaining.to_int()
-    } else {
-      chunk_size
-    }
-    let bytes = @host.HostFs::read_file_range(host, path, offset, length)
-    if bytes.length() == 0 || bytes.length() > length {
-      raise InvalidInput("host returned an invalid file range")
-    }
-    consume(bytes)
-    offset += bytes.length().to_int64()
-  }
-  if size == 0L {
-    consume(b"")
   }
 }
 
@@ -42,9 +22,6 @@ pub async fn[T : @host.HostFs] read_file_chunks(
   path : @path.PathValue,
   chunk_size~ : Int32 = 64 * 1024,
 ) -> Array[Bytes] raise @host.HostError {
-  if chunk_size <= 0 {
-    raise InvalidInput("chunk size must be positive")
-  }
   let chunks : Array[Bytes] = []
   stream_file(host, path, fn(bytes) { chunks.push(bytes) }, chunk_size~)
   chunks

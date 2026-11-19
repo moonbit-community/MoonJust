@@ -1,4 +1,14 @@
 ///|
+fn running_message(recipe : String, color_enabled : Bool) -> Bytes {
+  let text = "===> running recipe `\{recipe}`..."
+  if color_enabled {
+    @utf8.encode("\u{001b}[1;36m" + text + "\u{001b}[0m\n")
+  } else {
+    @utf8.encode(text + "\n")
+  }
+}
+
+///|
 fn live_spec(spec : @host.CommandSpec) -> @host.CommandSpec {
   let spec = spec.copy()
   spec.set_inherit_stdin(true)

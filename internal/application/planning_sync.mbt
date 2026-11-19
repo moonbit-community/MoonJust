@@ -39,13 +39,13 @@ fn project_supports_pure_sync_globals(
   }
   for name in compilation.variable_names() {
     guard compilation.variable(name) is Some(assignment) else { return false }
-    if @evaluator.expression_is_effectful(assignment.value()) {
+    if @evaluator.expression_requires_async_path(assignment.value()) {
       return false
     }
   }
   for name in compilation.settings().names() {
     match compilation.settings().get(name) {
-      Some(Expression(expression)) if @evaluator.expression_is_effectful(
+      Some(Expression(expression)) if @evaluator.expression_requires_async_path(
           expression,
         ) => return false
       _ => ()
@@ -229,10 +229,6 @@ fn project_evaluation_context(
     Some(value) => (value.pid(), value.num_cpus())
     None => (None, None)
   }
-  let num_jobs = match arguments.value("jobs") {
-    Some(value) => Some(@string.parse_int(value[:])) catch { _ => None }
-    None => None
-  }
   let module_name = if path.is_root() {
     None
   } else {
@@ -263,8 +259,8 @@ fn project_evaluation_context(
     ),
     pid?,
     num_cpus?,
-    num_jobs?,
-    color_mode=arguments.value("color").unwrap_or("auto"),
+    num_jobs?=arguments.jobs(),
+    color_mode?=arguments.value("color"),
     command_color?=arguments.value("command-color"),
     lists=project.module_compilation(path).unwrap().settings().bool("lists"),
     utc_offset_seconds?=match environment_value(entries, "TZ") {

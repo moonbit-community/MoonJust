@@ -3,28 +3,49 @@ package "ZSeanYves/MoonJust/internal/query"
 
 import {
   "ZSeanYves/MoonJust/internal/cli",
+  "ZSeanYves/MoonJust/internal/evaluator",
   "ZSeanYves/MoonJust/internal/loader",
+  "ZSeanYves/MoonJust/internal/modulepath",
   "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/syntax",
+  "moonbitlang/core/json",
+  "moonbitlang/core/set",
 }
 
 // Values
-pub fn build_query(@cli.CliArguments) -> QueryRequest
+pub fn build_query(@semantic.ProjectCompilation, @cli.CliArguments) -> QueryRequest raise QueryError
+
+pub fn closest_name(String, Array[String]) -> String?
+
+pub fn direct_submodule_names(@semantic.ProjectCompilation, @modulepath.ModulePath) -> Array[String]
 
 pub fn display_width(String) -> Int32
 
+pub fn inspect_json(@loader.LoadedSource, @semantic.Compilation, module_path? : @modulepath.ModulePath, project? : @semantic.ProjectCompilation, graph? : @loader.LoadedGraph) -> @json.Json
+
 pub fn lexical_compare(String, String) -> Int32
 
-pub fn try_fast_summary(@loader.LoadedGraph, QueryRequest) -> QueryResult?
+pub fn loaded_for_module(@loader.LoadedGraph, @modulepath.ModulePath) -> @loader.LoadedSource?
 
-pub fn visible_recipe_names(@semantic.Compilation, QueryRequest) -> Array[String]
+pub fn private_assignments(@syntax.Ast) -> @set.Set[String]
+
+pub fn render(QueryRequest, @loader.LoadedGraph, @semantic.ProjectCompilation, Bool, Map[@modulepath.ModulePath, @evaluator.Environment]) -> QueryResult raise QueryError
+
+pub fn try_fast_summary(@loader.LoadedGraph, @cli.CliArguments) -> QueryResult?
+
+pub fn unknown_submodule_message(@semantic.ProjectCompilation, @modulepath.ModulePath, String, display? : String) -> String
 
 // Errors
+pub(all) suberror QueryError {
+  Query(String)
+  Evaluation(@evaluator.EvaluationError)
+  UnsupportedCommand(String)
+}
 
 // Types and methods
-pub struct QueryRequest {
-  arguments : @cli.CliArguments
-}
-pub fn QueryRequest::arguments(Self) -> @cli.CliArguments
+type QueryRequest
+pub fn QueryRequest::default_list(@modulepath.ModulePath, @cli.CliArguments) -> Self
+pub fn QueryRequest::needs_globals(Self) -> Bool
 
 pub struct QueryResult {
   stdout : Bytes

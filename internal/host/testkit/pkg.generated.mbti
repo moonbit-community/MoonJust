@@ -18,6 +18,7 @@ pub struct FakeHost {
   files : Map[@path.PathValue, Bytes]
   non_executable_files : @set.Set[@path.PathValue]
   directories : @set.Set[@path.PathValue]
+  mut source_reads : Int32
   mut temp_serial : Int32
   script_temp_creations : Array[(@path.PathValue, Bytes)]
   executable_calls : Array[@path.PathValue]
@@ -87,6 +88,7 @@ pub fn FakeHost::set_env(Self, String, String) -> Unit
 pub fn FakeHost::set_platform(Self, @host.PlatformInfo) -> Unit
 pub fn FakeHost::set_random_stream(Self, Bytes) -> Unit
 pub fn FakeHost::set_terminal(Self, @host.TerminalInfo) -> Unit
+pub fn FakeHost::source_read_count(Self) -> Int32
 pub async fn FakeHost::terminal_info(Self) -> @host.TerminalInfo raise @host.HostError
 pub async fn FakeHost::write_cache_manifest(Self, @host.CacheLease, Bytes) -> Unit raise @host.HostError
 pub fn FakeHost::write_file(Self, @path.PathValue, Bytes) -> Unit raise @host.HostError

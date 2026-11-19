@@ -6,6 +6,7 @@ pub struct FakeHost {
   files : Map[@path.PathValue, Bytes]
   non_executable_files : Set[@path.PathValue]
   directories : Set[@path.PathValue]
+  mut source_reads : Int32
   mut temp_serial : Int32
   script_temp_creations : Array[(@path.PathValue, Bytes)]
   executable_calls : Array[@path.PathValue]
@@ -38,6 +39,7 @@ pub fn FakeHost::new(
     files: Map([]),
     non_executable_files: Set([]),
     directories: Set([cwd]),
+    source_reads: 0,
     temp_serial: 0,
     script_temp_creations: [],
     executable_calls: [],
@@ -311,11 +313,17 @@ pub impl @host.HostFs for FakeHost with fn read_file_range(
 }
 
 ///|
+pub fn FakeHost::source_read_count(self : FakeHost) -> Int32 {
+  self.source_reads
+}
+
+///|
 pub impl @host.HostFs for FakeHost with fn read_source(
   self : FakeHost,
   path : @path.PathValue,
   max_bytes : Int32,
 ) -> Bytes raise @host.HostError {
+  self.source_reads += 1
   if max_bytes < 0 {
     raise InvalidInput("source byte limit must not be negative")
   }

@@ -250,6 +250,7 @@ pub(open) trait HostEnv {
 pub(open) trait HostFs {
   async fn read_source(Self, @path.PathValue, Int32) -> Bytes raise HostError
   async fn read_file(Self, @path.PathValue) -> Bytes raise HostError
+  async fn stream_regular_file(Self, @path.PathValue, Int32, (Bytes) -> Unit) -> FileMetadata raise HostError = _
   async fn read_file_range(Self, @path.PathValue, Int64, Int32) -> Bytes raise HostError
   fn write_file(Self, @path.PathValue, Bytes) -> Unit raise HostError
   async fn file_exists(Self, @path.PathValue) -> Bool raise HostError

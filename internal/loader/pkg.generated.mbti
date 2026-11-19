@@ -40,14 +40,13 @@ pub(all) suberror LoaderError {
   MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
-  ImportFileMissing(span~ : @source.Span)
+  ImportFileMissing(span~ : @source.Span, source~ : @source.Source)
   Host(@host.HostError)
   InvalidSource(@source.SourceError)
-  Parse(@parser.ParserError)
-  ParseSource(@parser.ParserError, source_name~ : String, source_bytes~ : Bytes)
+  Parse(@parser.ParserError, @source.Source)
   ImportCycle(path~ : @path.PathValue, chain~ : Array[@path.PathValue], span~ : @source.Span?)
-  ModuleFileMissing(module_name~ : String, span~ : @source.Span)
-  AmbiguousModuleFile(module_name~ : String, found~ : Array[@path.PathValue], span~ : @source.Span)
+  ModuleFileMissing(module_name~ : String, span~ : @source.Span, source~ : @source.Source?)
+  AmbiguousModuleFile(module_name~ : String, found~ : Array[@path.PathValue], source~ : @source.Source?, span~ : @source.Span)
 }
 pub fn LoaderError::code(Self) -> String
 pub fn LoaderError::diagnostic_source(Self) -> @source.Source?

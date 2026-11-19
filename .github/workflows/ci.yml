@@ -39,3 +39,4 @@ jobs:
       - run: moon check --target native --deny-warn
       - run: moon test --target native
       - run: moon run tests/wasm_contract.mbtx
+      - run: moon run tests/cache_contract.mbtx

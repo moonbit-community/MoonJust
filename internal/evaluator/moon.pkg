@@ -17,6 +17,7 @@ import {
 }
 
 import {
+  "moonbitlang/core/bench",
   "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
 } for "test"
 

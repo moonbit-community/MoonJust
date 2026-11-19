@@ -1,319 +1,185 @@
 ///|
-/// Query commands keep accepting global options after their recipe/module
-/// argument. Other command modes deliberately treat every following token as
-/// command data, matching just's positional parsing rules.
-fn has_interspersed_query_command(argv : ArrayView[String]) -> Bool {
-  let mut consumes_value = false
-  for token in argv {
-    if consumes_value {
-      consumes_value = false
-      continue
-    }
-    if token == "--" {
-      return false
-    }
-    if token.has_prefix("-") && token != "-" {
-      let name = option_name(token)
-      if name == "--show" || name == "-s" || name == "--list" || name == "-l" {
-        return true
-      }
-      if supported_value_option(name) && !token.contains("=") {
-        consumes_value = true
-      }
-    } else {
-      return false
-    }
-  }
-  false
-}
-
-///|
-fn check_supported(argv : ArrayView[String]) -> Unit raise CliParseError {
-  let mut consumes_value = false
-  let mut after_separator = false
-  let mut invocation_started = false
-  for token in argv {
-    if after_separator || invocation_started {
-      continue
-    }
-    if consumes_value {
-      consumes_value = false
-      continue
-    }
-    if token == "--" {
-      after_separator = true
-      continue
-    }
-    if token.has_prefix("-") && token != "-" && token != "--" {
-      let name = option_name(token)
-      if !supported_option(name) {
-        raise Unsupported(name)
-      }
-      if supported_value_option(name) && !token.contains("=") {
-        consumes_value = true
-      }
-    } else {
-      invocation_started = true
-    }
-  }
-}
-
-///|
-priv struct EnvironmentArgv {
-  argv : Array[String]
+priv struct NormalizedArgv {
+  command : ArgSpec?
+  options : Array[String]
+  positional : Array[String]
   variable_overrides : Array[(String, String)]
   shell_arguments : Array[String]?
+  early_exit : Bool
+  highlight : String?
 }
 
 ///|
-fn inline_option_value(token : String) -> String? {
-  match token.find("=") {
-    Some(index) => Some(token[index + 1:].to_owned())
-    None => None
+/// Split only a global option token. A short value option consumes the rest
+/// of its cluster (e.g. -qfFILE), even when FILE looks like another flag.
+fn option_occurrences(
+  token : String,
+) -> Array[(ArgSpec, String?)] raise CliParseError {
+  if token.has_prefix("--") {
+    let (name, inline) = match token.split_once("=") {
+      Some((name, value)) => (name.to_owned(), Some(value.to_owned()))
+      None => (token, None)
+    }
+    guard option_index.get(name) is Some(spec) else { raise Unsupported(name) }
+    return [(spec, inline)]
+  }
+  let occurrences = []
+  let chars = token[1:].iter()
+  while chars.next() is Some(short) {
+    let name = "-\{short}"
+    guard option_index.get(name) is Some(spec) else { raise Unsupported(name) }
+    if spec.action is (Value | Append | OverridePair) ||
+      spec.operands is External {
+      let rest = String::from_iter(chars)
+      let inline = if rest.is_empty() {
+        None
+      } else {
+        Some(rest.strip_prefix("=").unwrap_or(rest[:]).to_owned())
+      }
+      occurrences.push((spec, inline))
+      break
+    }
+    occurrences.push((spec, None))
+  }
+  occurrences
+}
+
+///|
+fn collect_positionals(
+  tokens : ArrayView[String],
+  positional : Array[String],
+  overrides : Array[(String, String)],
+) -> Unit {
+  for i, token in tokens {
+    if positional.is_empty() && token.find("=") is Some(split) && split > 0 {
+      overrides.push((token[:split].to_owned(), token[split + 1:].to_owned()))
+    } else {
+      positional.append(tokens[i:])
+      break
+    }
   }
 }
 
 ///|
-fn missing_value(option : String, expected : String) -> CliParseError {
-  Invalid("error: '--\{option}' requires \{expected}")
-}
-
-///|
-/// Core argparse options consume one value, while upstream `--set` consumes a
-/// pair. Encode each pair as an opaque one-value option before parsing and keep
-/// the actual values in a side table. The scan stops at recipe invocation so
-/// recipe-local options with the same spelling remain untouched.
-fn normalize_environment_argv(
+/// Collect global options separately so core argparse never interprets a
+/// recipe argument as an option. Query paths may be interleaved with options.
+fn normalize_argv(
   argv : ArrayView[String],
-) -> EnvironmentArgv raise CliParseError {
-  let command_mode = has_command_mode_before_invocation(argv)
-  let raw_command_mode = has_raw_command_mode_before_invocation(argv)
-  let normalized : Array[String] = []
-  let variable_overrides : Array[(String, String)] = []
+) -> NormalizedArgv raise CliParseError {
+  let options = []
+  let positional : Array[String] = []
+  let variable_overrides = []
   let mut shell_arguments : Array[String]? = None
-  let mut global = true
+  let mut highlight_index : Int32? = None
+  let mut early_exit = false
+  let positional_overrides = []
+  let mut command : ArgSpec? = None
   let mut index = 0
   while index < argv.length() {
     let token = argv[index]
-    if !global {
-      normalized.push(token)
-      index += 1
-      continue
+    index += 1
+    if command is Some({ operands: External, .. }) {
+      positional.append(argv[index - 1:])
+      break
     }
     if token == "--" {
-      normalized.push(token)
-      global = false
-      index += 1
-      continue
+      positional.append(argv[index:])
+      break
     }
     if !token.has_prefix("-") || token == "-" {
-      if !raw_command_mode && token != "-" {
-        match token.find("=") {
-          Some(separator) if separator > 0 => {
-            variable_overrides.push(
-              (token[:separator].to_owned(), token[separator + 1:].to_owned()),
-            )
-            normalized.push("--set=\{variable_overrides.length() - 1}")
-            index += 1
-            continue
-          }
-          _ => ()
+      if command is Some({ operands: QueryPath, .. }) {
+        collect_positionals(
+          argv[index - 1:index],
+          positional,
+          positional_overrides,
+        )
+        continue
+      }
+      collect_positionals(argv[index - 1:], positional, positional_overrides)
+      break
+    }
+    for (spec, inline) in option_occurrences(token) {
+      let name = spec.name
+      let spelling = "--" + name
+      if spec.command is Some(_) {
+        // --check refines --fmt regardless of their order on the command line.
+        if !(command is Some({ command: Some(CheckCommand), .. })) {
+          command = Some(spec)
         }
       }
-      normalized.push(token)
-      if !command_mode || raw_command_mode {
-        global = false
-      }
-      index += 1
-      continue
-    }
-    let name = option_name(token)
-    if name == "--set" {
-      let override_name = match inline_option_value(token) {
-        Some(value) => value
-        None =>
-          match argv.get(index + 1) {
-            Some(value) => {
+      match spec.action {
+        Flag | Count => {
+          if spec.operands is External {
+            options.push(spelling)
+            if inline is Some(value) {
+              positional.push(value)
+            }
+            continue
+          }
+          if name == "help" || name == "version" {
+            early_exit = true
+          }
+          if name == "highlight" || name == "no-highlight" {
+            if highlight_index is Some(previous) {
+              ignore(options.remove(previous))
+            }
+            highlight_index = Some(options.length())
+          }
+          if name == "clear-shell-args" {
+            shell_arguments = Some([])
+          }
+          options.push(
+            if inline is Some(value) {
+              spelling + "=" + value
+            } else {
+              spelling
+            },
+          )
+        }
+        Value | Append | OverridePair => {
+          let value = match inline {
+            Some(value) => value
+            None => {
+              guard argv.get(index) is Some(value) else {
+                if spec.action is OverridePair {
+                  raise Invalid("error: '--set' requires a VARIABLE and VALUE")
+                }
+                if name == "shell-arg" {
+                  raise Invalid("error: '--shell-arg' requires a value")
+                }
+                // Let argparse render its normal missing-value diagnostic.
+                options.push(spelling)
+                continue
+              }
               index += 1
               value
             }
-            None => raise missing_value("set", "a VARIABLE and VALUE")
           }
-      }
-      let override_value = match argv.get(index + 1) {
-        Some(value) => {
-          index += 1
-          value
-        }
-        None => raise missing_value("set", "a VARIABLE and VALUE")
-      }
-      variable_overrides.push((override_name, override_value))
-      normalized.push("--set=\{variable_overrides.length() - 1}")
-      index += 1
-      continue
-    }
-    if name == "--clear-shell-args" {
-      shell_arguments = Some([])
-      normalized.push(token)
-      index += 1
-      continue
-    }
-    if name == "--shell-arg" {
-      let value = match inline_option_value(token) {
-        Some(value) => value
-        None =>
-          match argv.get(index + 1) {
-            Some(value) => {
-              normalized.push(token)
-              normalized.push(value)
-              index += 2
-              value
+          if spec.action is OverridePair {
+            guard argv.get(index) is Some(override_value) else {
+              raise Invalid("error: '--set' requires a VARIABLE and VALUE")
             }
-            None => raise missing_value("shell-arg", "a value")
+            variable_overrides.push((value, override_value))
+            index += 1
+          } else if name == "shell-arg" {
+            let arguments = shell_arguments.unwrap_or([])
+            arguments.push(value)
+            shell_arguments = Some(arguments)
           }
-      }
-      let arguments = shell_arguments.unwrap_or([])
-      arguments.push(value)
-      shell_arguments = Some(arguments)
-      if token.contains("=") {
-        normalized.push(token)
-        index += 1
-      }
-      continue
-    }
-    normalized.push(token)
-    if supported_value_option(name) && !token.contains("=") {
-      match argv.get(index + 1) {
-        Some(value) => {
-          normalized.push(value)
-          index += 2
+          options.push(spelling + "=" + value)
         }
-        None => index += 1
       }
-    } else {
-      index += 1
     }
   }
-  { argv: normalized, variable_overrides, shell_arguments, }
-}
-
-///|
-fn parser_argv(
-  argv : ArrayView[String],
-  env : Map[String, String],
-) -> Array[String] {
-  let mut highlight_index : Int32? = None
-  let result : Array[String] = []
-  let query_mode = has_interspersed_query_command(argv)
-  let mut consumes_value = false
-  let mut separated = false
-  for token in argv {
-    if separated {
-      result.push(token)
-      continue
-    }
-    if consumes_value {
-      result.push(token)
-      consumes_value = false
-      continue
-    }
-    if token == "--" {
-      result.push(token)
-      separated = true
-      continue
-    }
-    let name = option_name(token)
-    if token.has_prefix("-") && token != "-" && supported_option(name) {
-      if name == "--highlight" || name == "--no-highlight" {
-        if highlight_index is Some(previous) {
-          ignore(result.remove(previous))
-        }
-        highlight_index = Some(result.length())
-      }
-      result.push(
-        if token.has_prefix("--") && !token.contains("=") {
-          name
-        } else {
-          token
-        },
-      )
-      if supported_value_option(name) && !token.contains("=") {
-        consumes_value = true
-      }
-      continue
-    }
-    if query_mode {
-      result.push(token)
-      continue
-    }
-    result.push("--")
-    result.push(token)
-    separated = true
-  }
-  if highlight_index is Some(index) {
-    env.remove(
-      if result[index] == "--highlight" {
-        "JUST_NO_HIGHLIGHT"
-      } else {
-        "JUST_HIGHLIGHT"
-      },
-    )
-  }
-  result
-}
-
-///|
-fn invocation_arguments(argv : ArrayView[String]) -> Array[String] {
-  let result : Array[String] = []
-  let mut invocation_started = false
-  let mut consumes_global_value = false
-  let mut after_global_separator = false
-  for token in argv {
-    if after_global_separator {
-      result.push(token)
-      invocation_started = true
-      continue
-    }
-    if consumes_global_value {
-      consumes_global_value = false
-      continue
-    }
-    if token == "--" {
-      if invocation_started {
-        result.push(token)
-      }
-      after_global_separator = true
-      continue
-    }
-    let name = option_name(token)
-    if !invocation_started &&
-      token.has_prefix("-") &&
-      token != "-" &&
-      supported_option(name) {
-      if supported_value_option(name) && !token.contains("=") {
-        consumes_global_value = true
-      }
-      continue
-    }
-    invocation_started = true
-    result.push(token)
-  }
-  result
-}
-
-///|
-fn validate_choice(
-  matches : @argparse.Matches,
-  name : String,
-  choices : ArrayView[String],
-) -> Unit raise CliParseError {
-  guard matches.values.get(name) is Some(values) else { return }
-  guard values.last() is Some(value) else { return }
-  if !choices.contains(value) {
-    raise Invalid(
-      "error: invalid value '\{value}' for '--\{name}'; expected one of: " +
-      choices.join(", "),
-    )
+  variable_overrides.append(positional_overrides)
+  {
+    command,
+    options,
+    positional,
+    variable_overrides,
+    shell_arguments,
+    early_exit,
+    highlight: highlight_index.map(i => options[i]),
   }
 }
 
@@ -348,52 +214,33 @@ fn check_unsupported_environment(
 ///|
 fn normalize_supported_environment(
   env : Map[String, String],
+  normalized : NormalizedArgv,
 ) -> Map[String, String] raise CliParseError {
-  let normalized : Map[String, String] = Map([])
-  for name, value in env {
-    if name == "JUST_UNSTABLE" {
-      if enabled_unstable_environment(value) {
-        normalized[name] = "true"
-      }
-    } else if [
-        "JUST_ALLOW_MISSING", "JUST_DEFAULT_LIST", "JUST_DRY_RUN", "JUST_EXPLAIN",
-        "JUST_HIGHLIGHT", "JUST_LIST_SUBMODULES", "JUST_NO_ALIASES", "JUST_NO_CACHE",
-        "JUST_NO_DEPS", "JUST_NO_DOTENV", "JUST_NO_HIGHLIGHT", "JUST_ONE", "JUST_QUIET",
-        "JUST_TIME", "JUST_TIMESTAMP", "JUST_UNSORTED", "JUST_YES",
-      ].contains(name) {
-      if enabled_environment_flag(value) {
-        normalized[name] = "true"
-      }
-    } else {
-      normalized[name] = value
-    }
+  let result : Map[String, String] = Map([])
+  if normalized.early_exit {
+    return result
   }
-  normalized
-}
-
-///|
-fn early_exit_requested(argv : ArrayView[String]) -> Bool {
-  let command_mode = has_command_mode_before_invocation(argv)
-  let mut consumes_value = false
-  for token in argv {
-    if consumes_value {
-      consumes_value = false
+  for spec in argument_specs {
+    guard spec.env is Some(name) && env.get(name) is Some(value) else {
       continue
     }
-    if token == "--" {
-      return false
-    }
-    if token.has_prefix("-") && token != "-" {
-      let name = option_name(token)
-      if name == "--help" || name == "-h" || name == "--version" || name == "-V" {
-        return true
+    if spec.action is Flag {
+      let enabled = if spec.name == "unstable" {
+        enabled_unstable_environment(value)
+      } else {
+        enabled_environment_flag(value)
       }
-      if supported_value_option(name) && !token.contains("=") {
-        consumes_value = true
+      if enabled {
+        result[name] = "true"
       }
-    } else if !command_mode {
-      return false
+    } else {
+      result[name] = value
     }
   }
-  false
+  match normalized.highlight {
+    Some("--highlight") => result.remove("JUST_NO_HIGHLIGHT")
+    Some("--no-highlight") => result.remove("JUST_HIGHLIGHT")
+    _ => ()
+  }
+  result
 }

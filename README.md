@@ -25,7 +25,7 @@ Run `moonrun _build/wasm/release/build/MoonJust.wasm -- build release`. The exec
 - Project loading follows real paths. Executable lookup and canonicalization do not spawn helper commands. Windows lookup honors `PATHEXT`.
 - `--fmt --check` is read-only. Formatting an already formatted file succeeds without touching it. When an existing file would change, MoonJust refuses before writing: the public Wasm filesystem API does not supply the mode needed for a permission-preserving atomic replacement. Formatting stdin still writes to stdout. `--init` creates a file atomically and never replaces one.
 - The OS comes from the runtime. Where needed, provide `MOONJUST_ARCH`, `MOONJUST_PID`, `MOONJUST_NUM_CPUS` or `MOONJUST_EXECUTABLE` for facts the runtime cannot supply. A recursive recipe needs an executable launcher, not just a path to Wasm bytes. Local time without a known offset is not silently treated as UTC.
-- Process cancellation covers the direct child, not arbitrary descendant process groups. The compatibility inventory distinguishes completion and raw-signal exclusions, product identity and the three specified formatting refusal cases.
+- Process cancellation covers the direct child. The compatibility report distinguishes live CLI comparisons, document checks, indexed MoonBit assertions, scoped smoke tests and exclusions. It lists three known formatting refusals and counts the two product-identity checks separately. [Coverage categories](tests/compatibility/README.md#reading-a-coverage-report)
 
 ## Verification
 

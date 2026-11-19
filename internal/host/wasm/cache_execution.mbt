@@ -1,8 +1,5 @@
 ///|
-let execution_cache_locks : Map[Int32, @async_fs.File] = Map([])
-
-///|
-let execution_cache_keys : Map[Int32, String] = Map([])
+let execution_cache_locks : Map[Int32, ExecutionCacheLock] = Map([])
 
 ///|
 let execution_cache_token : Ref[Int32] = Ref(0)
@@ -17,33 +14,6 @@ fn execution_cache_child(
   }
   directory.join(child) catch {
     _ => raise InvalidInput("cache path flavor mismatch")
-  }
-}
-
-///|
-fn execution_valid_cache_digest(digest : String) -> Bool {
-  if digest.length() != 64 {
-    return false
-  }
-  for character in digest {
-    if !(character >= '0' && character <= '9') &&
-      !(character >= 'a' && character <= 'f') {
-      return false
-    }
-  }
-  true
-}
-
-///|
-fn execution_cache_temporary_digest(name : String) -> String? {
-  if name.length() != 69 || !name.has_prefix(".") || !name.has_suffix(".tmp") {
-    return None
-  }
-  let digest = name[1:65].to_owned()
-  if execution_valid_cache_digest(digest) {
-    Some(digest)
-  } else {
-    None
   }
 }
 
@@ -72,14 +42,6 @@ fn next_execution_cache_token() -> Int32 {
 }
 
 ///|
-fn execution_cache_storage_key(
-  directory : @path.PathValue,
-  digest : String,
-) -> String {
-  directory.as_string() + "|" + digest
-}
-
-///|
 fn execution_cache_error(error : Error) -> @host.HostError {
   match error {
     @os_error.OsError(AccessDenied, ..) =>
@@ -95,56 +57,32 @@ pub impl @host.HostCacheStore for ExecutionFs with fn acquire_cache_lease(
   directory : @path.PathValue,
   digest : String,
 ) -> @host.CacheLease raise @host.HostError {
-  if !execution_valid_cache_digest(digest) {
+  if !cache_hex(digest, 64) {
     raise InvalidInput("invalid cache digest")
   }
-  @async_fs.mkdir(directory.as_string(), permission=0o700, recursive=true) catch {
-    @os_error.OsError(AlreadyExists, ..) => ()
+  let lock = open_execution_cache_lock(directory, digest) catch {
     error => raise execution_cache_error(error)
   }
-  let lock_path = execution_cache_child(directory, digest + ".json")
-  let file = @async_fs.open(
-    lock_path.as_string(),
-    mode=ReadWrite,
-    sync=Full,
-    create_mode=OpenOrCreate,
-    permission=0o600,
-  ) catch {
-    error => raise execution_cache_error(error)
-  }
-  try file.lock(Exclusive) catch {
-    error => {
-      file.close()
-      raise execution_cache_error(error)
-    }
-  } noraise {
+  errdefer (@async.protect_from_cancel(() => release_execution_cache_lock(lock)) catch {
     _ => ()
-  }
-  {
-    errdefer {
-      file.unlock()
-      file.close()
-    }
-    clean_execution_cache_temporary(directory, digest)
-  }
+  })
+  clean_execution_cache_temporary(directory, digest)
   let token = next_execution_cache_token()
-  execution_cache_locks[token] = file
-  execution_cache_keys[token] = execution_cache_storage_key(directory, digest)
+  execution_cache_locks[token] = lock
   @host.CacheLease::new(directory, digest, token)
 }
 
 ///|
 fn require_execution_cache_lease(
   lease : @host.CacheLease,
-) -> @async_fs.File raise @host.HostError {
-  guard execution_cache_locks.get(lease.token()) is Some(file) else {
+) -> ExecutionCacheLock raise @host.HostError {
+  guard execution_cache_locks.get(lease.token()) is Some(lock) else {
     raise InvalidInput("cache lease is not held")
   }
-  if execution_cache_keys.get(lease.token()) !=
-    Some(execution_cache_storage_key(lease.directory(), lease.digest())) {
+  if lock.directory != lease.directory() || lock.digest != lease.digest() {
     raise InvalidInput("cache lease does not match cache key")
   }
-  file
+  lock
 }
 
 ///|
@@ -152,7 +90,13 @@ pub impl @host.HostCacheStore for ExecutionFs with fn read_cache_manifest(
   _self : ExecutionFs,
   lease : @host.CacheLease,
 ) -> Bytes? raise @host.HostError {
-  let file = require_execution_cache_lease(lease)
+  ignore(require_execution_cache_lease(lease))
+  let path = execution_cache_child(lease.directory(), lease.digest() + ".json")
+  let file = @async_fs.open(path.as_string(), mode=ReadOnly) catch {
+    @os_error.OsError(NotFound, ..) => return None
+    error => raise execution_cache_error(error)
+  }
+  defer file.close()
   let size = file.size() catch { error => raise execution_cache_error(error) }
   if size == 0L {
     return None
@@ -179,13 +123,20 @@ pub impl @host.HostCacheStore for ExecutionFs with fn write_cache_manifest(
     lease.directory(),
     lease.digest() + ".json",
   )
+  let temporary = execution_cache_child(
+    lease.directory(),
+    "." + lease.digest() + ".tmp",
+  )
   @async_fs.write_binary(
-    destination.as_string(),
+    temporary.as_string(),
     contents,
-    create_mode=CreateOrTruncate,
+    create_mode=CreateNew,
     permission=0o600,
     sync=Full,
   ) catch {
+    error => raise execution_cache_error(error)
+  }
+  @async_fs.rename(temporary.as_string(), destination.as_string(), replace=true) catch {
     error => raise execution_cache_error(error)
   }
 }
@@ -195,23 +146,10 @@ pub impl @host.HostCacheStore for ExecutionFs with fn release_cache_lease(
   _self : ExecutionFs,
   lease : @host.CacheLease,
 ) -> Unit raise @host.HostError {
-  let file = require_execution_cache_lease(lease)
+  let lock = require_execution_cache_lease(lease)
   execution_cache_locks.remove(lease.token())
-  execution_cache_keys.remove(lease.token())
-  file.unlock()
-  file.close()
-}
-
-///|
-fn execution_cache_manifest_name(name : String) -> String? {
-  if name.length() != 69 || !name.has_suffix(".json") {
-    return None
-  }
-  let digest = name[:64].to_owned()
-  if execution_valid_cache_digest(digest) {
-    Some(digest)
-  } else {
-    None
+  release_execution_cache_lock(lock) catch {
+    error => raise execution_cache_error(error)
   }
 }
 
@@ -219,7 +157,6 @@ fn execution_cache_manifest_name(name : String) -> String? {
 async fn clean_execution_cache_entry(
   host : ExecutionFs,
   directory : @path.PathValue,
-  name : String,
   digest : String,
   recipe_prefix : String?,
 ) -> Bool raise @host.HostError {
@@ -249,7 +186,7 @@ async fn clean_execution_cache_entry(
         None => ()
       }
     }
-    let path = execution_cache_child(directory, name)
+    let path = execution_cache_child(directory, digest + ".json")
     try @async_fs.remove(path.as_string()) catch {
       @os_error.OsError(NotFound, ..) => false
       error => raise execution_cache_error(error)
@@ -262,49 +199,49 @@ async fn clean_execution_cache_entry(
 }
 
 ///|
-async fn clean_execution_stale_temporary(
-  host : ExecutionFs,
-  directory : @path.PathValue,
-  digest : String,
-) -> Unit raise @host.HostError {
-  ignore(host)
-  clean_execution_cache_temporary(directory, digest)
-}
-
-///|
 pub impl @host.HostCacheStore for ExecutionFs with fn clean_cache(
   self : ExecutionFs,
   directory : @path.PathValue,
   recipe_prefix : String?,
 ) -> Int32 raise @host.HostError {
-  let names = try @async_fs.readdir(directory.as_string(), sort=true) catch {
+  let root = directory.as_string()
+  let names = @async_fs.readdir(root, sort=true) catch {
     @os_error.OsError(NotFound, ..) => return 0
     error => raise execution_cache_error(error)
-  } noraise {
-    value => value
+  }
+  let digests : Set[String] = Set([])
+  for name in names {
+    match name.split(".").collect() {
+      [digest, "json"] | ["", digest, "tmp" | "lease"] if cache_hex(
+          digest.to_owned(),
+          64,
+        ) => digests.add(digest.to_owned())
+      ["", digest, nonce, "stage"] if recipe_prefix is None &&
+        cache_hex(digest.to_owned(), 64) &&
+        cache_hex(nonce.to_owned(), 24) => {
+        let stage = execution_cache_child(directory, name).as_string()
+        try {
+          if @async_fs.kind(stage, follow_symlink=false) == Directory {
+            @async_fs.remove(stage + "/" + nonce.to_owned(), allow_missing=true)
+            remove_empty_directory(stage)
+          }
+        } catch {
+          @os_error.OsError(NotFound, ..) => ()
+          error => raise execution_cache_error(error)
+        }
+      }
+      _ => ()
+    }
   }
   let mut removed = 0
-  for name in names {
-    if recipe_prefix is None &&
-      execution_cache_temporary_digest(name) is Some(digest) {
-      clean_execution_stale_temporary(self, directory, digest)
-      continue
-    }
-    guard execution_cache_manifest_name(name) is Some(digest) else { continue }
-    if clean_execution_cache_entry(self, directory, name, digest, recipe_prefix) {
+  for digest in digests {
+    if clean_execution_cache_entry(self, directory, digest, recipe_prefix) {
       removed += 1
     }
   }
-  let remaining = @async_fs.readdir(directory.as_string(), sort=true) catch {
+  // A new publisher may have populated the directory since the scan.
+  remove_empty_directory(root) catch {
     error => raise execution_cache_error(error)
-  }
-  if remaining.is_empty() {
-    try @async_fs.remove(directory.as_string()) catch {
-      @os_error.OsError(NotFound, ..) => ()
-      error => raise execution_cache_error(error)
-    } noraise {
-      _ => ()
-    }
   }
   removed
 }

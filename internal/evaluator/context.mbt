@@ -717,7 +717,7 @@ fn context_builtin(
             )
         },
       )
-    "just_version" => String("1.57.0")
+    "just_version" => String(@semantic.JUST_COMPATIBILITY_VERSION)
     _ => return None
   }
   Some(value)

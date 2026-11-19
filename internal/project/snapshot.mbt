@@ -8,6 +8,16 @@ pub struct ProjectSources {
 }
 
 ///|
+pub fn ProjectSources::compile(
+  self : ProjectSources,
+  allow_unstable~ : Bool,
+  platform~ : @semantic.TargetPlatform,
+) -> ProjectSnapshot raise ProjectError {
+  let compilation = compile_loaded_graph(self.graph, allow_unstable~, platform~)
+  ProjectSnapshot::new(self.graph, compilation, self.directories)
+}
+
+///|
 pub fn ProjectSources::new(
   graph : @loader.LoadedGraph,
   directories : @workdir.WorkingDirectoryModel,

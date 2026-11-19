@@ -32,7 +32,7 @@ not compatibility evidence.
 
 Only two workflows run on PRs and pushes to main (and in the merge queue):
 - **Check, build and test** checks formatting, interfaces, the production source boundary and Wasm compilation on Linux. It runs the native test-tool tests and tests the release CLI with child processes denied: executable lookup, symlink cycles, permission-preserving format refusal and no-clobber initialization.
-- **Upstream differential** builds one release Wasm and runs it on Linux, macOS and Windows against just 1.57.0. The complete Wasm package test suite runs once per host inside the strict runner; its outline ties executed specifications to upstream identities. The required `just 1.57 differential` check fails if a host or its evidence is missing.
+- **Upstream differential** builds one release Wasm and runs it on Linux, macOS and Windows against just 1.57.0. Each host runs the live CLI fixtures and document contracts. A passing Wasm suite and a matching outline entry establish execution of an indexed local assertion. Give a local smoke test a fifth spec-index field describing the subset it checks. The required `just 1.57 differential` check verifies each host's evidence. [Report schema and categories](tests/compatibility/README.md#reading-a-coverage-report)
 
 Performance is local only: see the [paired Wasm benchmark instructions](docs/maintenance/WASM_MIGRATION.md). For published versions, manually run [MoonX verification](docs/release/MOONX_RELEASE_GATE.md).
 

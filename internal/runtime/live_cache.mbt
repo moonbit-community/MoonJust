@@ -27,15 +27,10 @@ async fn[H : @host.HostFs] live_cache_key(
   let inputs : Array[@cache.InputDigest] = []
   for relative in directive.inputs() {
     let path = live_cache_path(directive.working_directory(), relative)
-    let exists = @host.HostFs::file_exists(effects, path) catch {
-      error => raise live_failure(@planner.ExecutionError::host(error), 0)
-    }
-    if !exists {
-      raise live_cache_failure(
-        "cache input does not exist: `\{path.as_string()}`",
-      )
-    }
-    let metadata = @host.HostFs::metadata(effects, path) catch {
+    let hasher = @cache.ContentHasher::new()
+    let metadata = @host.HostFs::stream_regular_file(effects, path, 64 * 1024, chunk => {
+      hasher.update(chunk)
+    }) catch {
       NotFound(_) =>
         raise live_cache_failure(
           "cache input does not exist: `\{path.as_string()}`",
@@ -50,15 +45,6 @@ async fn[H : @host.HostFs] live_cache_key(
       raise live_cache_failure(
         "cache input is not a file: `\{path.as_string()}`",
       )
-    }
-    let hasher = @cache.ContentHasher::new()
-    @host_fs.stream_file(
-      effects,
-      path,
-      fn(chunk) { hasher.update(chunk) },
-      chunk_size=64 * 1024,
-    ) catch {
-      error => raise live_failure(@planner.ExecutionError::host(error), 0)
     }
     inputs.push(
       @cache.InputDigest::new(relative, hasher.finalize()) catch {

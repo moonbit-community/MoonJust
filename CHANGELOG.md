@@ -13,6 +13,12 @@ published releases.
 
 ### Changed
 
+- Compatibility reports now use schema 4. Live CLI comparisons, upstream
+  document checks, indexed MoonBit assertions, scoped smoke tests and
+  repository-only checks have distinct counts. The strict runner exercises
+  the pinned README examples, example files and changelog with both CLIs.
+  [Coverage definitions](tests/compatibility/README.md#reading-a-coverage-report)
+
 - Rebuilt MoonJust as a binary-only module with the executable in the root
   package. moon run . replaces the former cmd/just path.
 - Removed the public api facade and moved all implementation packages under

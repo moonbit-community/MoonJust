@@ -24,7 +24,7 @@ async fn[
   is_dependency : Bool,
   project? : @semantic.ProjectCompilation,
   module_path~ : @modulepath.ModulePath = @modulepath.ModulePath::root(),
-  project_runtimes~ : ArrayView[ProjectModuleRuntime] = [],
+  project_runtimes~ : Map[@modulepath.ModulePath, ProjectModuleRuntime] = Map([]),
 ) -> Int32 raise ExecutionError {
   let key = module_path.as_string() +
     "\u{0000}" +
@@ -222,10 +222,7 @@ async fn[
     .map(fn(value) { value.names().contains("cache") })
     .unwrap_or(false)
   if has_cache && !options.unstable() {
-    raise InvalidAttributeValue(
-      message="cached recipes are currently unstable, invoke `just` with `--unstable`, set the `JUST_UNSTABLE` environment variable, or add `set unstable` to your `justfile` to enable unstable features",
-      span=recipe.span(),
-    )
+    raise CachedRecipesUnstable
   }
   let explicit_script = attributes
     .map(fn(value) { value.script() })
@@ -540,7 +537,7 @@ pub async fn[
   host : H,
   project : @semantic.ProjectCompilation,
   requests : ArrayView[ProjectRecipeRequest],
-  runtimes : ArrayView[ProjectModuleRuntime],
+  runtimes : Map[@modulepath.ModulePath, ProjectModuleRuntime],
   options~ : ExecutionOptions = ExecutionOptions::new(),
   cache_directory? : @path.PathValue,
 ) -> ExecutionPlan raise ExecutionError {
@@ -553,7 +550,7 @@ pub async fn[
     guard project.module_compilation(request.module_path()) is Some(compilation) else {
       raise UnknownRecipe(recipe=request.recipe())
     }
-    guard project_runtime(runtimes, request.module_path()) is Some(runtime) else {
+    guard runtimes.get(request.module_path()) is Some(runtime) else {
       raise UnknownRecipe(recipe=request.recipe())
     }
     let context = runtime.context()

@@ -1,5 +1,4 @@
 ///|
-/// Names of pure builtins supported by the evaluator.
 type Value = @value.Value
 
 ///|
@@ -24,22 +23,13 @@ pub(all) enum BuiltinCapability {
 
 ///|
 #derive(Eq, Debug)
-pub(all) enum BuiltinTarget {
-  Native
-  Wasm1
-}
-
-///|
-#derive(Eq, Debug)
 pub(all) struct BuiltinSpec {
   name : String
   purity : BuiltinPurity
   min_arguments : Int32
   max_arguments : Int32?
-  aliases : Array[String]
-  capabilities : Array[BuiltinCapability]
-  targets : Array[BuiltinTarget]
-  evidence : String
+  aliases : ArrayView[String]
+  capabilities : ArrayView[BuiltinCapability]
 }
 
 ///|
@@ -64,24 +54,14 @@ pub fn BuiltinSpec::max_arguments(self : BuiltinSpec) -> Int32? {
 
 ///|
 pub fn BuiltinSpec::aliases(self : BuiltinSpec) -> ArrayView[String] {
-  self.aliases[:]
+  self.aliases
 }
 
 ///|
 pub fn BuiltinSpec::capabilities(
   self : BuiltinSpec,
 ) -> ArrayView[BuiltinCapability] {
-  self.capabilities[:]
-}
-
-///|
-pub fn BuiltinSpec::targets(self : BuiltinSpec) -> ArrayView[BuiltinTarget] {
-  self.targets[:]
-}
-
-///|
-pub fn BuiltinSpec::evidence(self : BuiltinSpec) -> String {
-  self.evidence
+  self.capabilities
 }
 
 ///|
@@ -238,22 +218,39 @@ fn builtin_aliases(name : String) -> Array[String] {
 }
 
 ///|
-pub fn registry() -> ArrayView[BuiltinSpec] {
-  names().map(fn(name) {
+priv struct BuiltinRegistry {
+  ordered : ArrayView[BuiltinSpec]
+  by_name : Map[String, BuiltinSpec]
+}
+
+///|
+let builtins : Lazy[BuiltinRegistry] = Lazy(fn() {
+  let ordered = []
+  let by_name = Map([])
+  for name in names() {
     let (min_arguments, max_arguments) = builtin_arity(name)
     let capabilities = builtin_capabilities(name)
     let purity = if capabilities.is_empty() { Pure } else { Effect }
-    {
+    let spec = {
       name,
       purity,
       min_arguments,
       max_arguments,
-      aliases: builtin_aliases(name),
-      capabilities,
-      targets: [Native, Wasm1],
-      evidence: "just-1.57.0/" + name,
+      aliases: builtin_aliases(name)[:],
+      capabilities: capabilities[:],
     }
-  })
+    ordered.push(spec)
+    by_name[name] = spec
+    for spelling in spec.aliases {
+      by_name[spelling] = spec
+    }
+  }
+  { ordered: ordered[:], by_name, }
+})
+
+///|
+pub fn registry() -> ArrayView[BuiltinSpec] {
+  builtins.force().ordered
 }
 
 ///|
@@ -278,8 +275,7 @@ pub fn canonical_name(name : String) -> String {
 
 ///|
 pub fn find(name : String) -> BuiltinSpec? {
-  let canonical = canonical_name(name)
-  registry().iter().find_first(fn(spec) { spec.name() == canonical })
+  builtins.force().by_name.get(name)
 }
 
 ///|

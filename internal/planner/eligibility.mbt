@@ -22,25 +22,26 @@ fn compilation_supports_sync_dry_run(
     }
     for parameter in recipe.parameters() {
       match parameter.default_value() {
-        Some(expression) if @evaluator.expression_is_effectful(expression) =>
-          return false
+        Some(expression) if @evaluator.expression_requires_async_path(
+            expression,
+          ) => return false
         _ => ()
       }
     }
     for dependency in recipe.dependencies() {
-      if dependency.arguments().any(@evaluator.expression_is_effectful) {
+      if dependency.arguments().any(@evaluator.expression_requires_async_path) {
         return false
       }
     }
     for dependency in recipe.subsequent_dependencies() {
-      if dependency.arguments().any(@evaluator.expression_is_effectful) {
+      if dependency.arguments().any(@evaluator.expression_requires_async_path) {
         return false
       }
     }
     for line in recipe.lines() {
       for fragment in line.fragments() {
         match fragment {
-          Interpolation(expression~, ..) if @evaluator.expression_is_effectful(
+          Interpolation(expression~, ..) if @evaluator.expression_requires_async_path(
               expression,
             ) => return false
           _ => ()

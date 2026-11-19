@@ -1,70 +1,84 @@
-# Compatibility Corpus
+# Compatibility corpus
 
-The runner in `tests/compat` is the executable compatibility contract. It
-starts MoonJust and the pinned just 1.57.0 oracle in isolated temporary roots
-and compares status, stdout, stderr, merged output, filesystem effects, and
-live-output observations byte-for-byte where the case declares them.
+MoonJust tests its release Wasm CLI against official just 1.57.0. The inventory
+contains 2,417 upstream test identities. One fixture can supply evidence for
+several identities, and one identity can require hundreds of CLI invocations.
+The inventory counts identities. Use each row's `fixture`, `upstream_source_anchor`,
+`status` and `execution_state` to interpret a result.
 
-Each case must have a manifest entry, a matching `compat-id`, and an explicit
-`match` or `difference` expectation. The two product-identity cases (`--version`
-and `--help`) use exact local snapshots and are outside functional upstream
-differences. [The functional allowlist](../testkit/functional_allowlist.mbt) is shared by the runner and report merger. Its only entries are the three format-in-place cases: the public Wasm API cannot atomically replace an existing file and preserve its mode. Each entry is scoped to one upstream identity, fixture, platform set and reason. The oracle must succeed and the candidate must exit 1 with empty stdout, the pinned refusal diagnostic and the original tree intact. An unexpected match also fails: remove the entry and change the fixture to an exact match when the limitation is fixed. No wildcard or skip is accepted. Every upstream anchor is
-checked against the pinned just 1.57.0 source tree.
+## Reading a coverage report
 
-The files under `upstream/` are provenance and oracle metadata. They do not
-replace executable behavior tests and are never treated as a source of
-implementation code.
+Schema 4 assigns every identity a row. The numbers below are declarations in
+the pinned inventory. The per-host report records which checks actually ran.
 
-Use `--coverage-report PATH` to emit a schema 3 JSON row for every identity in
-the pinned upstream inventory. The runner uses only these statuses:
-`differential-exact`, `differential-known-difference`, `moonbit-spec-exact`,
-`excluded-completion`, `excluded-signal`, and `unclassified`. Supplying
-`--strict-coverage` fails when any identity is unclassified, deferred, failed,
-or counted without an execution record. Every executable upstream behavior must
-carry a real fixture, input, expected output, exit status, and source anchor.
-Internal parser, semantic, evaluator, and formatter behavior belongs in MoonBit
-whitebox tests with exact token, AST, diagnostic, value, or byte assertions;
-strict mode executes those tests and verifies their `moon test --outline`
-locations.
+| Status | Identities | What the evidence establishes |
+| --- | ---: | --- |
+| `differential-exact` | 1,443 | On a successful row, the Wasm CLI and live official CLI matched on all observations declared by the fixture after its permitted normalizations. |
+| `differential-known-difference` | 3 | The oracle successfully reformatted the file. The Wasm CLI exited 1 with empty stdout, the reviewed diagnostic bytes and its initial tree intact. An unexpected match fails the fixture. |
+| `moonbit-spec` | 906 | The Wasm package suite passed and its outline contained the indexed local test at its exact declaration. The test body defines which behavior was asserted. This category makes no claim that every upstream assertion was ported. |
+| `local-smoke` | 4 | Three assertions check selected parser fields. One checks the MoonJust-specific `Unsupported("--completions")` error for `--list --completions`. The upstream clap test requires a parse error. Each row describes its assertion in `evidence_scope`. |
+| `document-oracle` | 3 | The two CLIs ran the upstream document checks described below. The required observation differs by document. |
+| `repository-only` | 3 | Two upstream README heading rules and the generated README constants table concern just's repository. Their execution state is `excluded`. |
+| `excluded-completion` | 34 | Shell completion generation and its protocol are outside the portable CLI contract. |
+| `excluded-signal` | 21 | Raw signal identity and forwarding are outside the portable CLI contract. |
+| `unclassified` | 0 required | Strict mode fails for an identity without an evidence category. A source snapshot alone cannot establish execution. |
 
-Completion generation and runtime signal identity/forwarding are excluded only
-for their documented shell-protocol and OS-process-group reasons. Static signal
-validation, option parsing, diagnostics, and all other platform-testable
-behavior remain in scope.
+`status` describes the expected evidence. `execution_state` records
+`executed`, `failed`, `unexecuted`, `excluded` or `deferred-platform`.
+For differential rows, `differential_executed` counts attempted comparisons,
+including mismatches. `differential_exact` and `differential_known_difference`
+in the summary count successful comparisons of each kind. Local spec, smoke
+and document execution totals require a successful check. A zero exit from
+the strict runner also requires the fixture, index and oracle validation to pass.
 
-Cases whose upstream test is conditionally compiled for one operating system
-may declare `platform = "windows"`, `"macos"`, or `"linux"` in the manifest.
-The runner reports such a case as `deferred-platform` on other systems and
-executes it on the matching CI runner; the aggregate coverage merge requires
-the matching report rather than treating a local defer as a pass.
+`--help` and `--version` have separate product-identity fixtures and pinned
+candidate stdout digests. `product_identity_difference` counts verified fixtures
+outside the 2,417 upstream rows. The three in-place formatting refusals are the
+only functional exceptions. [Reviewed allowlist](../testkit/functional_allowlist.mbt)
 
-Pure lexical and semantic invariants are indexed in
-`upstream/just-1.57.0/spec-index.txt`. Each index row points to a concrete
-MoonBit assertion file or black-box fixture, together with the upstream source
-line that defines the case. The source snapshot preserves the original test
-body under explicit `input` and `expected` sections for provenance; it is not
-used as a substitute for executable evidence. The strict report currently has
-zero unclassified identities.
+## Document identities
 
-Use `--record-expected` once a deterministic black-box fixture is ready to
-write the official status, stdout, stderr, and filesystem snapshot into the
-case directory. Normal runs execute the official 1.57.0 binary as the live
-oracle. `--verify-snapshots` is an optional same-platform audit of recorded
-official bytes; the cross-platform CI gate uses the live oracle because shell,
-environment, and filesystem diagnostics can legitimately differ by runner.
-Snapshot files are not a clock-free oracle: cases that print the current date
-or time use a finite, fixture-declared normalization. Regex files are forbidden
-and cause strict validation to fail.
+- `readme::readme` extracts all 192 blocks with the exact three-backtick
+  opening fence and language tag `just` from the pinned README. Each CLI must exit 0 on
+  `--dump` for each block in an isolated directory. The assertion covers acceptance.
+- `examples::examples` runs both CLIs with `--justfile FILE --dump` on each of
+  the seven files from the upstream examples directory and requires exit 0 for
+  every invocation. The dumped text is outside this upstream assertion.
+- `changelog::print_changelog` compares the complete `--changelog` stdout with
+  the live official CLI, verifies the oracle against the SHA-256 of the pinned
+  upstream `CHANGELOG.md`, and requires both processes to exit 0 with empty stderr.
 
-The current strict report is the source of compatibility totals. A platform
-run may defer a case guarded for another operating system (currently one
-Windows-only case on Unix); the runner still counts that identity in the
-2,417-row inventory and the pure MoonBit merge requires its matching CI report.
+The upstream `man::output` identity uses a normal differential fixture.
+MoonJust also has local byte-level tests for its static changelog and manual
+responses. The upstream document inputs and original Rust assertions are
+available offline. [Pinned inputs](upstream/just-1.57.0/source)
 
-For Wasm runs, pass `--candidate-runner moonrun` and build the native
-`tests/wasm_reentry` helper. The helper is supplied with `--wasm-reentry` so
-recipes that call `just_executable()` can re-enter the Wasm artifact through
-`moonrun`; without it, those child-process cases are reported as failures.
+## Fixtures and anchors
+
+The runner starts each side of a differential fixture in its own temporary
+root. Every fixture declares its observations in the manifest. They include
+status, stdout and stderr, with tree contents, merged output, live output and
+step-by-step results where applicable. Rows record required platforms and
+fixture-supplied host inputs such as architecture, CPU count or the re-entry
+launcher. A passing injected case establishes behavior with those inputs.
+
+Every fixture has a manifest entry, matching `compat-id`, an explicit
+`match` or `difference` expectation and recorded oracle output. A normal
+run uses the live pinned executable. `--record-expected` writes snapshots,
+and `--verify-snapshots` checks them against a live run on the same platform.
+Regex expectation files fail validation. UUID normalization accepts a complete
+lowercase v4 UUID with an RFC variant. The parallel fixtures allow only
+permutations of complete serialized jobs or of sibling recipes between their
+shared dependency and dependent. Both rules apply solely to declared stdout.
+The timestamp fixtures normalize one command's clock prefix. Multi-command
+traces retain every clock reading and the order of the commands.
+
+The spec index has four tab-separated fields giving the upstream identity,
+local declaration or provenance location, local test name when present,
+and upstream source anchor. A fifth field documents a local smoke assertion's
+scope. Excluded identities can reference their pinned Rust declaration directly.
+Strict mode runs the Wasm test suite and verifies declaration locations
+and names against `moon test --outline`. [Spec index](upstream/just-1.57.0/spec-index.txt)
 
 ## Run locally
 
@@ -78,4 +92,11 @@ moon run --target native ./tests/compat -- \
   --coverage-report _build/coverage-wasm.json
 ~~~
 
-Use official just **1.57.0**. The runner and re-entry launcher may be Native; the CLI, outline and spec tests are Wasm. The report labels explicitly supplied host facts and re-entry. A local defer is not an aggregate pass.
+Use `--case DIRECTORY` to run one differential fixture or `--case readme::readme`,
+`--case examples::examples` or `--case changelog::print_changelog` to run one
+document identity. Omit `--strict-coverage` for a partial run.
+
+One Windows-only identity defers on macOS and Linux. The flag
+`--allow-deferred-platform` permits this in a single-host run. The aggregate
+requires schema 4 reports from Linux, macOS and Windows for the same Wasm
+target, with every required row executed on its applicable hosts.

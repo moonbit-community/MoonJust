@@ -170,13 +170,12 @@ async fn confirm_recipe(
 }
 
 ///|
-async fn[F : @host.HostFs] application_failure(
-  host : F,
+fn application_failure(
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
   error : ApplicationError,
 ) -> @cli.ApplicationResponse {
-  let message = render_application_error_async(host, arguments, context, error)
+  let message = render_application_error(arguments, context, error)
   let message = color_error_message(arguments, message)
   let response = failure(message, error.exit_code())
   if arguments.flag("quiet") {
@@ -188,44 +187,6 @@ async fn[F : @host.HostFs] application_failure(
   } else {
     response
   }
-}
-
-///|
-async fn[
-  F : @host.HostFs,
-  T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
-] dispatch_default_list(
-  host : F,
-  terminal_host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-) -> @cli.ApplicationResponse? raise ApplicationError {
-  execute_default_list_command_async(host, terminal_host, arguments, context)
-}
-
-///|
-async fn[F : @host.HostFs] dispatch_inspect(
-  host : F,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-  environment : ArrayView[(String, String)],
-) -> @cli.ApplicationResponse raise ApplicationError {
-  execute_inspect_command_async(host, arguments, context, environment~)
-}
-
-///|
-async fn[
-  F : @host.HostFs,
-  T : @host.HostEnv + @host.HostTerminal + @host.HostPlatform,
-] dispatch_query(
-  host : F,
-  terminal_host : T,
-  arguments : @cli.CliArguments,
-  context : @project.ProjectInput,
-) -> @cli.ApplicationResponse raise ApplicationError {
-  execute_query_command_with_terminal_async(
-    host, terminal_host, arguments, context,
-  )
 }
 
 ///|
@@ -254,17 +215,27 @@ async fn[
   process : P,
   arguments : @cli.CliArguments,
   context : @project.ProjectInput,
+  default_list~ : Bool = false,
 ) -> @cli.ApplicationResponse {
-  let plan = try
-    plan_run_command_async(
-      loading_host, environment_host, process, arguments, context,
+  let prepared = try
+    prepare_run(
+      loading_host,
+      environment_host,
+      process,
+      arguments,
+      context,
+      default_list~,
     )
   catch {
-    error => return application_failure(loading_host, arguments, context, error)
+    error => return application_failure(arguments, context, error)
   } noraise {
     value => value
   }
-  let summary = try
+  let (plan, graph, cwd) = match prepared {
+    Listing(response) => return response
+    Ready(plan, graph, cwd) => (plan, graph, cwd)
+  }
+  try
     @runtime.execute_plan_live(
       process, process, execution_host, environment_host, plan, confirm_recipe,
     )
@@ -278,23 +249,19 @@ async fn[
       } else {
         let message = match error.error() {
           Evaluation(value) =>
-            render_application_error_async(
-              loading_host,
+            render_application_error(
               arguments,
               context,
-              Evaluation(value),
+              ApplicationError::Evaluation(value).with_project_sources(
+                graph, cwd,
+              ),
             )
           _ => error.message()
         }
         failure(color_error_message(arguments, message), error.exit_code())
       }
   } noraise {
-    value => value
-  }
-  if summary.commands() >= 0 {
-    @cli.ApplicationResponse::success()
-  } else {
-    failure("error: invalid live execution summary", 1)
+    _ => @cli.ApplicationResponse::success()
   }
 }
 
@@ -351,38 +318,29 @@ pub async fn[
   }
   match arguments.command() {
     RunCommand => {
-      let default_list = try
-        dispatch_default_list(
-          loading_host, environment_host, arguments, context,
-        )
-      catch {
-        error =>
-          return application_failure(loading_host, arguments, context, error)
-      } noraise {
-        value => value
-      }
-      match default_list {
-        Some(response) => return response
-        None => ()
-      }
       let process = @host_process.ProcessAdapter::new(
-        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+        cygpath=arguments.value("cygpath").unwrap(),
       )
       execute_run(
-        loading_host, execution_host, environment_host, process, arguments, context,
+        loading_host,
+        execution_host,
+        environment_host,
+        process,
+        arguments,
+        context,
+        default_list=true,
       )
     }
     ChooseCommand => {
       let process = @host_process.ProcessAdapter::new(
-        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+        cygpath=arguments.value("cygpath").unwrap(),
       )
       let selections = try
         execute_choose_command_async(
           loading_host, environment_host, process, arguments, context,
         )
       catch {
-        error =>
-          return application_failure(loading_host, arguments, context, error)
+        error => return application_failure(arguments, context, error)
       } noraise {
         value => value
       }
@@ -414,21 +372,21 @@ pub async fn[
     }
     EditCommand => {
       let process = @host_process.ProcessAdapter::new(
-        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+        cygpath=arguments.value("cygpath").unwrap(),
       )
       try
         execute_edit_command_async(
           loading_host, environment_host, process, arguments, context,
         )
       catch {
-        error => application_failure(loading_host, arguments, context, error)
+        error => application_failure(arguments, context, error)
       } noraise {
         value => value
       }
     }
     CleanCommand =>
       try execute_clean_command(loading_host, arguments, context) catch {
-        error => application_failure(loading_host, arguments, context, error)
+        error => application_failure(arguments, context, error)
       } noraise {
         value => value
       }
@@ -436,51 +394,58 @@ pub async fn[
       try
         execute_file_command(loading_host, environment_host, arguments, context)
       catch {
-        error => application_failure(loading_host, arguments, context, error)
+        error => application_failure(arguments, context, error)
       } noraise {
         value => value
       }
     EvaluateCommand => {
       let process = @host_process.ProcessAdapter::new(
-        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+        cygpath=arguments.value("cygpath").unwrap(),
       )
       try
         execute_evaluate_command_async(
           loading_host, environment_host, process, arguments, context,
         )
       catch {
-        error => application_failure(loading_host, arguments, context, error)
+        error => application_failure(arguments, context, error)
       } noraise {
         value => value
       }
     }
     CommandCommand => {
       let process = @host_process.ProcessAdapter::new(
-        cygpath=arguments.value("cygpath").unwrap_or("cygpath"),
+        cygpath=arguments.value("cygpath").unwrap(),
       )
       try
         execute_command_command_async(
           loading_host, environment_host, process, arguments, context,
         )
       catch {
-        error => application_failure(loading_host, arguments, context, error)
+        error => application_failure(arguments, context, error)
       } noraise {
         value => value
       }
     }
     DumpCommand | JsonCommand =>
       try
-        dispatch_inspect(loading_host, arguments, context, environment.entries)
+        execute_inspect_command(
+          loading_host,
+          arguments,
+          context,
+          environment=environment.entries,
+        )
       catch {
-        error => application_failure(loading_host, arguments, context, error)
+        error => application_failure(arguments, context, error)
       } noraise {
         value => value
       }
     _ =>
       try
-        dispatch_query(loading_host, environment_host, arguments, context)
+        execute_query_command(
+          loading_host, environment_host, arguments, context,
+        )
       catch {
-        error => application_failure(loading_host, arguments, context, error)
+        error => application_failure(arguments, context, error)
       } noraise {
         value => value
       }

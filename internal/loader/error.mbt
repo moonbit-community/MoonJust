@@ -7,20 +7,24 @@ pub(all) suberror LoaderError {
   MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
-  ImportFileMissing(span~ : @source.Span)
+  ImportFileMissing(span~ : @source.Span, source~ : @source.Source)
   Host(@host.HostError)
   InvalidSource(@source.SourceError)
-  Parse(@parser.ParserError)
-  ParseSource(@parser.ParserError, source_name~ : String, source_bytes~ : Bytes)
+  Parse(@parser.ParserError, @source.Source)
   ImportCycle(
     path~ : @path.PathValue,
     chain~ : Array[@path.PathValue],
     span~ : @source.Span?,
   )
-  ModuleFileMissing(module_name~ : String, span~ : @source.Span)
+  ModuleFileMissing(
+    module_name~ : String,
+    span~ : @source.Span,
+    source~ : @source.Source?,
+  )
   AmbiguousModuleFile(
     module_name~ : String,
     found~ : Array[@path.PathValue],
+    source~ : @source.Source?,
     span~ : @source.Span,
   )
 }
@@ -36,7 +40,7 @@ pub fn LoaderError::code(self : LoaderError) -> String {
     ImportFileMissing(_) => "MJ-LOAD-0010"
     Host(_) => "MJ-LOAD-0003"
     InvalidSource(_) => "MJ-LOAD-0004"
-    Parse(_) | ParseSource(_) => "MJ-LOAD-0005"
+    Parse(_) => "MJ-LOAD-0005"
     ImportCycle(_) => "MJ-LOAD-0006"
     ModuleFileMissing(_) => "MJ-LOAD-0007"
     AmbiguousModuleFile(_) => "MJ-LOAD-0008"
@@ -47,12 +51,12 @@ pub fn LoaderError::code(self : LoaderError) -> String {
 pub fn LoaderError::span(self : LoaderError) -> @source.Span? {
   match self {
     InvalidLimit => None
-    Parse(error) | ParseSource(error, ..) => Some(error.span())
+    Parse(error, _) => Some(error.span())
     NoJustfileFound(_) => None
     MissingSearchDirectory(_) => None
     AmbiguousJustfile(_) => None
     ExplicitFileMissing(_) => None
-    ImportFileMissing(span~) => Some(span)
+    ImportFileMissing(span~, ..) => Some(span)
     Host(_) => None
     InvalidSource(_) => None
     ImportCycle(span~, ..) => span
@@ -80,7 +84,7 @@ pub fn LoaderError::message(self : LoaderError) -> String {
     ImportFileMissing(_) => "could not find source file for import"
     Host(_) => "host error while loading"
     InvalidSource(_) => "invalid source"
-    Parse(error) | ParseSource(error, ..) => error.message()
+    Parse(error, _) => error.message()
     ImportCycle(path~, chain~, ..) => {
       let parent = chain.last().unwrap_or(path)
       "import `" +
@@ -134,20 +138,11 @@ pub fn LoaderError::message(self : LoaderError) -> String {
 }
 
 ///|
-/// Recover the exact source that failed parsing so diagnostics do not need to
-/// successfully parse the same file a second time.
+/// The source retained by the loader at the failing parse or include site.
 pub fn LoaderError::diagnostic_source(self : LoaderError) -> @source.Source? {
   match self {
-    ParseSource(error, source_name~, source_bytes~) =>
-      Some(
-        @source.Source::from_bytes(
-          error.span().source_id(),
-          source_name,
-          source_bytes,
-        ),
-      ) catch {
-        _ => None
-      }
+    Parse(_, source) | ImportFileMissing(source~, ..) => Some(source)
+    ModuleFileMissing(source~, ..) | AmbiguousModuleFile(source~, ..) => source
     _ => None
   }
 }
