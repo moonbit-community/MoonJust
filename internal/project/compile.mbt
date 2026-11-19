@@ -58,7 +58,6 @@ fn override_key(item : @syntax.Item) -> String? {
   match item {
     Recipe(recipe) => Some("recipe\u{0000}" + recipe.name())
     Assignment(assignment) => Some("variable\u{0000}" + assignment.name())
-    Alias(definition) => Some("alias\u{0000}" + definition.name())
     _ => None
   }
 }

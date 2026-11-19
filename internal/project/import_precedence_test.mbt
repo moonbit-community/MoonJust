@@ -39,6 +39,32 @@ async test "later shallow declarations displace deeper winners in input order" {
 }
 
 ///|
+async test "root and imported aliases reach semantic redefinition checks" {
+  for
+    root in [
+      b"import 'child'\nalias run := first\nfirst:\n", b"set allow-duplicate-recipes\nset allow-duplicate-variables\nimport 'child'\nalias run := first\nfirst:\n",
+    ] {
+    let graph = import_graph([
+      ("justfile", root),
+      ("child", b"alias run := second\nsecond:\n"),
+    ])
+    try @project.compile_loaded_graph(graph) catch {
+      Semantic(
+        SymbolRedefinition(
+          name="run",
+          first_kind="alias",
+          second_kind="alias",
+          ..
+        ),
+      ) => ()
+      error => fail("unexpected error \{Repr(error)}")
+    } noraise {
+      _ => fail("expected duplicate alias")
+    }
+  }
+}
+
+///|
 async test "equal-depth duplicates retain the first and second diagnostic spans" {
   let graph = import_graph([
     ("justfile", b"import 'left'\nimport 'right'\n"),
