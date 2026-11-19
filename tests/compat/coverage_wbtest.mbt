@@ -163,6 +163,8 @@ test "byte contract detects status output error tail and tree changes" {
     cwd: "",
     platform: None,
     merged: false,
+    closed_stdout: false,
+    verify_snapshot: false,
     live_prefix: None,
     live_timeout_ms: 1,
     normalizations: [],
@@ -258,7 +260,7 @@ test "allowlisted formatting must refuse unchanged, not just return a known code
 }
 
 ///|
-async test "schema 4 distinguishes document contracts, local smoke and repository evidence" {
+async test "schema 5 distinguishes document contracts, local smoke and repository evidence" {
   let specs = parse_spec_index(
     @fs.read_text("tests/compatibility/upstream/just-1.59.0/spec-index.txt"),
   )

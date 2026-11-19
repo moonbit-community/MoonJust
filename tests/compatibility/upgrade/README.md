@@ -16,6 +16,8 @@ The three-target upstream inventory grew from **2,427 to 2,461 IDs** across 1.58
 
 The complete ledger also covers shell completion, the installer and minified JSON, CI/workflow locking, dependency and error-handling changes, lint configuration, man-page escaping, developer scripts, and documentation including Chinese typography and language metadata. Each of the 30 release-note items and both release commits has a full commit SHA and a line in the 1.59 changelog. The hunk table records every changed range for each commit and the endpoint comparison, including changes superseded before 1.59.0. [Commit ledger](release-commits.tsv) · [Source hunks](source-hunks.tsv)
 
+The 1.58.0 step adds seven test IDs across timestamps (four), filename search (two) and format-string spacing (one). The 1.59.0 step adds the other 30 IDs and removes three. The obsolete `usage::search_directory_without_recipe` assertion was removed upstream. MoonJust keeps the existing differential scenario for `--usage .` as a standalone fixture. [Registration changes](registration-delta.tsv)
+
 ### Test evidence and target scope
 
 | Rust test registration | just 1.57.0 | just 1.59.0 | Ignored in each release |
@@ -29,7 +31,9 @@ IDs are the Rust test harness's fully qualified names from the `just` library an
 
 The platform tables list every registration with a restricted target set or an ignore flag. Every other registration is present and enabled on all three targets. The target names in these tables describe the three targets above. Upstream also gates SIGINFO on several BSD systems and iOS. A registered test may return early at runtime, as the Unix PowerShell BOM test does on Windows. [1.57 platform exceptions](platforms-1.57.0.tsv) · [1.59 platform exceptions](platforms-1.59.0.tsv) · [SIGINFO gate](../upstream/just-1.59.0/source/tests/signals.rs#L303) · [PowerShell test](../upstream/just-1.59.0/source/tests/shebang.rs#L55)
 
-The ten 1.59 IDs outside the macOS list comprise two Linux non-Unicode tests, seven Windows shell/shebang tests, and a Windows drive-root unit test. The same eight Windows IDs existed in 1.57.0. Linux replaces two old warning IDs with `non_unicode_invocation_directory_is_an_error` and `non_unicode_sibling_files_are_ignored`. Their host-probe results belong to the active runner's evidence. [Module gates](../upstream/just-1.59.0/source/tests/lib.rs#L152) · [Linux tests](../upstream/just-1.59.0/source/tests/non_unicode.rs#L4) · [Drive-root test](../upstream/just-1.59.0/source/src/clean.rs#L146)
+The ten 1.59 IDs outside the macOS list comprise two Linux non-Unicode tests, seven Windows shell/shebang tests, and a Windows drive-root unit test. The same eight Windows IDs existed in 1.57.0. Linux replaces two old warning IDs with `non_unicode_invocation_directory_is_an_error` and `non_unicode_sibling_files_are_ignored`. The Linux host probe records the byte-valued cwd limitation. [Module gates](../upstream/just-1.59.0/source/tests/lib.rs#L152) · [Linux tests](../upstream/just-1.59.0/source/tests/non_unicode.rs#L4) · [Host probe](host-limits.md) · [Drive-root test](../upstream/just-1.59.0/source/src/clean.rs#L146)
+
+The four new cache-environment identities and the closed-stdout identity run as live Wasm-to-official comparisons. The cache fixtures compare results across invocations. The print fixture closes the read end of the pipe before starting either CLI. Additional contract scripts check cache failure recovery and stdout errors on other file descriptors. [Cache fixtures](../../differential/cases/upstream-cache-environment-added) · [Closed-pipe fixture](../../differential/cases/upstream-print-broken-pipe)
 
 | Artifact | Meaning |
 | --- | --- |
@@ -95,6 +99,14 @@ Repeat with `v=1.57.0`. To compare every compiler-reported source path, line and
 ```sh
 RUSTC_BOOTSTRAP=1 cargo +1.97.1 test --locked --manifest-path "$RUNNER_TEMP/src-$v/Cargo.toml" -- --list -Z unstable-options --format=json > "$RUNNER_TEMP/descriptors-$v.jsonl"
 moon run "$U/verify.mbtx" -- cargo-json "$v" "$HOST" "$RUNNER_TEMP/descriptors-$v.jsonl"
+```
+
+Collect one JSONL file per native host under separate names. To reproduce the 1.59 ID list from the three files, sort and deduplicate the compiler names. The three individual `cargo-json` checks also detect duplicates within a host, omitted IDs, moved anchors or changed ignore flags.
+
+```sh
+jq -rs 'map(select(.event == "discovered") | .name) | unique[]' \
+  macos-1.59.0.jsonl linux-1.59.0.jsonl windows-1.59.0.jsonl \
+  | diff - tests/compatibility/upstream/just-1.59.0/test-list.txt
 ```
 
 The optional body comparison uses ast-grep 0.39.6. It parses both vendored Rust trees, resolves each registration to its smallest enclosing function or macro invocation, compares text for all common IDs and checks the complete table of changed ranges. This check requires the ast-grep CLI binary path.

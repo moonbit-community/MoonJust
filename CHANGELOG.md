@@ -19,7 +19,7 @@ published releases.
   timestamp format and select cache-key environment variables.
 - Import duplicate diagnostics and override order follow upstream. Recipe
   listing evaluates the metadata it displays and skips unrelated assignments.
-- Compatibility reports now use schema 4. Live CLI comparisons, upstream
+- Compatibility reports now use schema 5. Live CLI comparisons, upstream
   document checks, indexed MoonBit assertions, scoped smoke tests and
   repository-only checks have distinct counts. The strict runner exercises
   the pinned README examples, example files and changelog with both CLIs.

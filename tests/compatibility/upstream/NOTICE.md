@@ -20,7 +20,7 @@ registrations emitted by `cargo test -- --list`. The adjacent `source/` tree
 supplies the upstream Rust source anchors, the complete README and all seven
 files from `examples/`.
 
-The runner executes the official binary on each host. Schema 4 records the
+The runner executes the official binary on each host. Schema 5 records the
 observation for each upstream identity and the host that supplied it.
 The coverage guide defines the live comparisons, local assertions, document
 checks, exclusions and cross-host merge. [Coverage guide](../README.md)

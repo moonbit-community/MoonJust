@@ -311,7 +311,9 @@ fn process_result(
         captured_stdout,
         captured_stderr,
       )
-    Completed(status) if status < 0 =>
+    // Unix wait reports a signal as a negative number. On Windows the same
+    // bits belong to the process's 32-bit exit code.
+    Completed(status) if status < 0 && !windows_process_runtime() =>
       @host.ProcessResult::from_signal(
         signal_from_status(status),
         captured_stdout,

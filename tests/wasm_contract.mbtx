@@ -131,7 +131,8 @@ async fn timestamp_and_shebang(
     assert_eq(cached.stderr_text(), "[cache] run\n")
   }
   // A Unix kernel must see #! at byte zero to execute the script directly.
-  @fs.symlink(target="/bin/cat", root + "/pwsh")
+  @fs.write_text(root + "/pwsh", "#!/bin/sh\nexec cat \"$@\"\n")
+  @fs.chmod(root + "/pwsh", 0o755)
   @fs.write_text(file, "run:\n  #!{{justfile_directory()}}/pwsh\n  echo bar\n")
   let shebang = cli(["run"])
   assert_eq(shebang.exit_code, 0, msg=shebang.stderr_text())

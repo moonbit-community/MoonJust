@@ -1,0 +1,4 @@
+[cache(environment = undefined)]
+[script('sh')]
+foo:
+  echo bar

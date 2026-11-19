@@ -21,6 +21,7 @@ priv struct CoverageRow {
 #derive(ToJson)
 priv struct CoverageReport {
   schema_version : Int32
+  upstream : String
   runner_os : String
   target : String
   reentry : String
@@ -39,7 +40,7 @@ priv struct CoverageReport {
   mut excluded_completion : Int32
   mut excluded_signal : Int32
   mut host_limited : Int32
-  deferred_platform : Int32
+  mut deferred_platform : Int32
   mut unclassified : Int32
   mut failures : Int32
   product_identity_difference : Int32
@@ -65,7 +66,8 @@ fn coverage_report(
   reentry~ : String,
 ) -> CoverageReport {
   let report : CoverageReport = {
-    schema_version: 4,
+    schema_version: 5,
+    upstream: @testkit.ORACLE_IDENTITY,
     runner_os: platform,
     target,
     reentry,
@@ -84,7 +86,7 @@ fn coverage_report(
     excluded_completion: 0,
     excluded_signal: 0,
     host_limited: 0,
-    deferred_platform: deferred.length(),
+    deferred_platform: 0,
     unclassified: 0,
     failures,
     product_identity_difference: product_identity,
@@ -97,12 +99,18 @@ fn coverage_report(
     let differential = status == "differential-exact" ||
       status == "differential-known-difference"
     let details = if differential { metadata.get(fixture) } else { None }
+    let required_platform = match @testkit.deferred_host_behavior(upstream_id) {
+      Some((required, _)) => required
+      None => details.bind(d => d.platform).unwrap_or("all")
+    }
     let state = if failed.contains(upstream_id) {
       "failed"
     } else if deferred.contains(upstream_id) {
       "deferred-platform"
     } else {
       match status {
+        "host-limited" if !platform_matches(Some(required_platform), platform) =>
+          "deferred-platform"
         "host-limited" => "deferred-host"
         "repository-only" | "excluded-completion" | "excluded-signal" =>
           "excluded"
@@ -121,6 +129,9 @@ fn coverage_report(
       if executed.contains(upstream_id) {
         report.differential_executed += 1
       }
+    }
+    if state == "deferred-platform" {
+      report.deferred_platform += 1
     }
     match status {
       "differential-exact" =>
@@ -166,10 +177,7 @@ fn coverage_report(
       execution_state: state,
       execution_platform: platform,
       execution_target: target,
-      required_platform: match @testkit.deferred_host_behavior(upstream_id) {
-        Some((required, _)) => required
-        None => details.bind(d => d.platform).unwrap_or("all")
-      },
+      required_platform,
       host_inputs: details.map(d => d.host_inputs).unwrap_or([]),
       fixture,
       local_test: if status == "moonbit-spec" || status == "local-smoke" {

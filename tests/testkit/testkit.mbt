@@ -1,4 +1,7 @@
 ///|
+pub const ORACLE_IDENTITY : String = "just 1.59.0"
+
+///|
 pub fn runner_os() -> String {
   match @async.platform {
     Linux => "linux"
@@ -206,16 +209,28 @@ async fn collect(
   extra_env : Map[String, String],
   inherit_env : Bool,
   no_console_window : Bool,
+  closed_stdout~ : Bool = false,
 ) -> RunResult {
   let input = match stdin_path {
     Some(path) => @process.ProcessInput::FromFile(path)
     None => Empty
   }
+  let writer = if closed_stdout {
+    let (reader, writer) = @process.read_from_process()
+    reader.close()
+    Some(writer)
+  } else {
+    None
+  }
+  defer (if writer is Some(pipe) { pipe.close() })
   let output = @process.run(
     program,
     args,
     stdin=input,
-    stdout=Collect,
+    stdout=match writer {
+      Some(pipe) => Shared(pipe)
+      None => Collect
+    },
     stderr=Collect,
     cwd?=cwd.map(s => s[:]),
     extra_env~,
@@ -224,7 +239,11 @@ async fn collect(
   )
   {
     status: output.exit_code,
-    stdout: output.stdout_binary(),
+    stdout: if closed_stdout {
+      b""
+    } else {
+      output.stdout_binary()
+    },
     stderr: output.stderr_binary(),
   }
 }
@@ -237,6 +256,7 @@ pub async fn run_prepared(
   cwd? : String,
   extra_env~ : Map[String, String] = Map([]),
   inherit_env~ : Bool = true,
+  closed_stdout~ : Bool = false,
 ) -> RunResult {
   collect(
     program.executable,
@@ -246,6 +266,7 @@ pub async fn run_prepared(
     extra_env,
     inherit_env,
     program.no_console_window,
+    closed_stdout~,
   )
 }
 
@@ -257,6 +278,7 @@ pub async fn run_prepared_bytes(
   cwd? : String,
   extra_env~ : Map[String, String] = Map([]),
   inherit_env~ : Bool = true,
+  closed_stdout~ : Bool = false,
 ) -> RunResult {
   let input_dir = match stdin {
     Some(_) => Some(@fs.tmpdir(prefix="moonjust-input"))
@@ -275,7 +297,15 @@ pub async fn run_prepared_bytes(
     }
     _ => None
   }
-  run_prepared(program, args, stdin_path?=input, cwd?, extra_env~, inherit_env~)
+  run_prepared(
+    program,
+    args,
+    stdin_path?=input,
+    cwd?,
+    extra_env~,
+    inherit_env~,
+    closed_stdout~,
+  )
 }
 
 ///|

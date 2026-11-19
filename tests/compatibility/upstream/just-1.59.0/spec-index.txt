@@ -829,8 +829,8 @@ format_string::unclosed	tests/compatibility/upstream/just-1.59.0/source/tests/fo
 format_string::undefined_variable_error	tests/compatibility/upstream/just-1.59.0/source/tests/format_string.rs:272		tests/format_string.rs:272
 format_string::unmatched_close_is_ignored	tests/compatibility/upstream/just-1.59.0/source/tests/format_string.rs:163		tests/format_string.rs:163
 format_string::unterminated_format_string_error	tests/compatibility/upstream/just-1.59.0/source/tests/format_string.rs:304		tests/format_string.rs:304
-function::tests::dir_not_found	internal/evaluator/upstream_function_dir_test.mbt:11	upstream function::tests::dir_not_found	src/function.rs:867
-function::tests::dir_not_unicode	internal/evaluator/upstream_function_dir_test.mbt:30	upstream function::tests::dir_not_unicode	src/function.rs:876
+function::tests::dir_not_found	internal/evaluator/upstream_function_dir_test.mbt:2	upstream function::tests::dir_not_found	src/function.rs:867
+function::tests::dir_not_unicode	tests/compatibility/upstream/just-1.59.0/source/src/function.rs:876		src/function.rs:876
 function_definitions::assignments_are_not_reevaluated	tests/compatibility/upstream/just-1.59.0/source/tests/function_definitions.rs:456		tests/function_definitions.rs:456
 function_definitions::duplicate_parameter	tests/compatibility/upstream/just-1.59.0/source/tests/function_definitions.rs:34		tests/function_definitions.rs:34
 function_definitions::format_no_args	tests/compatibility/upstream/just-1.59.0/source/tests/function_definitions.rs:267		tests/function_definitions.rs:267

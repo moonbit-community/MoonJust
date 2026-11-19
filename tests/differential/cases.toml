@@ -2,28 +2,42 @@ schema_version = 3
 upstream = "just 1.59.0"
 
 [[case]]
+id = "MJ-PRINT-BROKEN-PIPE"
+directory = "upstream-print-broken-pipe"
+verify_snapshot = true
+owner_area = "upstream-blackbox"
+closed_stdout = true
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["print::broken_pipe_is_ignored"]
+upstream_anchors = ["tests/print.rs:4"]
+
+[[case]]
 id = "MJ-WIN159-CMD-VERBATIM"
 directory = "upstream-win159-cmd-verbatim"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 platform = "windows"
 status = "match"
-compare = ["status", "stdout", "stderr", "tree"]
+compare = ["status", "stdout", "stderr"]
 upstream_tests = ["windows::cmd_shell_receives_command_verbatim"]
 upstream_anchors = ["tests/windows.rs:4"]
 
 [[case]]
 id = "MJ-WIN159-CMD-ENV"
 directory = "upstream-win159-cmd-env"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 platform = "windows"
 status = "match"
-compare = ["status", "stdout", "stderr", "tree"]
+compare = ["status", "stdout", "stderr"]
 upstream_tests = ["windows::cmd_shell_expands_environment_variables"]
 upstream_anchors = ["tests/windows.rs:36"]
 
 [[case]]
 id = "MJ-WIN159-CMD-REDIRECTION"
 directory = "upstream-win159-cmd-redirection"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 platform = "windows"
 status = "match"
@@ -34,40 +48,46 @@ upstream_anchors = ["tests/windows.rs:53"]
 [[case]]
 id = "MJ-WIN159-BARE-BASH"
 directory = "upstream-win159-bare-bash"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 platform = "windows"
 status = "match"
-compare = ["status", "stdout", "stderr", "tree"]
+compare = ["status", "stdout", "stderr"]
 upstream_tests = ["windows::bare_bash_in_shebang"]
 upstream_anchors = ["tests/windows.rs:71"]
 
 [[case]]
 id = "MJ-WIN159-WINDOWS-SHELL"
 directory = "upstream-win159-windows-shell"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 platform = "windows"
 status = "match"
-compare = ["status", "stdout", "stderr", "tree"]
+compare = ["status", "stdout", "stderr"]
 upstream_tests = ["windows_shell::windows_shell_setting"]
 upstream_anchors = ["tests/windows_shell.rs:4"]
 
 [[case]]
 id = "MJ-WIN159-POWERSHELL-WITH-SHELL"
 directory = "upstream-win159-powershell-with-shell"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 platform = "windows"
+host_inputs = ["SystemRoot"]
 status = "match"
-compare = ["status", "stdout", "stderr", "tree"]
+compare = ["status", "stdout", "stderr"]
 upstream_tests = ["windows_shell::windows_powershell_setting_uses_powershell_set_shell"]
 upstream_anchors = ["tests/windows_shell.rs:22"]
 
 [[case]]
 id = "MJ-WIN159-POWERSHELL"
 directory = "upstream-win159-powershell"
+verify_snapshot = true
 owner_area = "upstream-blackbox"
 platform = "windows"
+host_inputs = ["SystemRoot"]
 status = "match"
-compare = ["status", "stdout", "stderr", "tree"]
+compare = ["status", "stdout", "stderr"]
 upstream_tests = ["windows_shell::windows_powershell_setting_uses_powershell"]
 upstream_anchors = ["tests/windows_shell.rs:40"]
 
@@ -991,6 +1011,46 @@ upstream_anchors = ["tests/json.rs:1234"]
 reason = "Compares the complete official JSON document for private recipe metadata."
 
 [[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-REMOVED"
+directory = "upstream-cache-environment-removed"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::environment_variables_may_be_removed_from_cache_key"]
+upstream_anchors = ["tests/cache.rs:217"]
+reason = "Changing the exported override hits the existing cache entry when the environment selection is empty."
+
+[[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-ADDED"
+directory = "upstream-cache-environment-added"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::environment_variables_may_be_added_to_cache_key"]
+upstream_anchors = ["tests/cache.rs:242"]
+reason = "Changing the selected inherited variable reruns the recipe in the same workspace."
+
+[[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-EXPRESSION"
+directory = "upstream-cache-environment-expression"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::environment_may_be_expression"]
+upstream_anchors = ["tests/cache.rs:265"]
+reason = "Resolves a variable in the environment selection and changes its inherited value between runs."
+
+[[case]]
+id = "MJ-UPSTREAM-CACHE-ENVIRONMENT-UNDEFINED"
+directory = "upstream-cache-environment-undefined"
+owner_area = "upstream-blackbox"
+status = "match"
+compare = ["status", "stdout", "stderr", "tree"]
+upstream_tests = ["cache::cache_environment_variables_are_resolved"]
+upstream_anchors = ["tests/cache.rs:1207"]
+reason = "Compares the complete undefined-variable diagnostic and the workspace after the failed invocation."
+
+[[case]]
 id = "MJ-UPSTREAM-CACHE-HIT-SKIPS"
 directory = "upstream-cache-hit-skips"
 owner_area = "upstream-blackbox"
@@ -1021,7 +1081,7 @@ compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 upstream_anchors = []
 allowed_difference = "product-identity"
-candidate_stdout_sha256 = "ae98ab873ade45bed606f51e6d50c52d4fde4591318aa7492feaacaa0949821b"
+candidate_stdout_sha256 = "1f73f3e325dc6df95dc68148e96828d5eea55eddcef1cf74118879d57fe0a566"
 reason = "ADR 0001 requires independent MoonJust identification; argparse presentation is not copied from upstream."
 
 [[case]]

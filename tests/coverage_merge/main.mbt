@@ -72,12 +72,12 @@ fn expected_execution(
   platform : String,
 ) -> String {
   match kind {
-    "host-limited" => "deferred-host"
     "repository-only" | "excluded-completion" | "excluded-signal" => "excluded"
-    "differential" if required != "all" &&
+    "differential" | "host-limited" if required != "all" &&
       required != platform &&
       !(required == "unix" && ["macos", "linux"].contains(platform)) =>
       "deferred-platform"
+    "host-limited" => "deferred-host"
     _ => "executed"
   }
 }
@@ -186,8 +186,12 @@ fn parse_report(
     errors.push(path + ": report root is not an object")
     return None
   }
-  guard int_field(fields, "schema_version") == Some(4) else {
-    errors.push(path + ": report schema must be 4")
+  guard int_field(fields, "schema_version") == Some(5) else {
+    errors.push(path + ": report schema must be 5")
+    return None
+  }
+  guard string_field(fields, "upstream") == Some(@testkit.ORACLE_IDENTITY) else {
+    errors.push(path + ": unexpected upstream version")
     return None
   }
   guard string_field(fields, "runner_os") is Some(runner_os) &&
@@ -235,6 +239,10 @@ fn parse_report(
   if int_field(fields, "repository_only") !=
     Some(rows.filter(r => r.evidence_kind == "repository-only").length()) {
     errors.push(path + ": summary disagrees with repository-only rows")
+  }
+  if int_field(fields, "host_limited") !=
+    Some(rows.filter(row => row.evidence_kind == "host-limited").length()) {
+    errors.push(path + ": summary disagrees with host-limited rows")
   }
   Some({
     runner_os,
@@ -396,20 +404,22 @@ async fn main {
   if rows_by_id.length() != inventory.length() {
     errors.push("merged identity count differs from the pinned inventory")
   }
-  if differential != 1446 ||
-    specs != 906 ||
+  if differential != 1460 ||
+    specs != 929 ||
     smoke != 4 ||
     documents != 3 ||
     repository_only != 3 ||
     completion != 39 ||
-    host_limited != 1 ||
+    host_limited != 2 ||
     signal != 21 {
     errors.push(
       "merged evidence category totals do not match the pinned inventory",
     )
   }
   reject_invalid_evidence(errors)
-  let report = "{\"schema_version\":4,\"target\":" +
+  let report = "{\"schema_version\":5,\"upstream\":" +
+    json_string(@testkit.ORACLE_IDENTITY) +
+    ",\"target\":" +
     json_string(target) +
     ",\"platforms\":[\"linux\",\"macos\",\"windows\"],\"upstream_total\":" +
     rows_by_id.length().to_string() +

@@ -1,4 +1,6 @@
-# Linux working directories with non-UTF-8 names
+# Unix paths and environment values with invalid UTF-8
+
+## Invocation directory
 
 The upstream test `non_unicode::non_unicode_invocation_directory_is_an_error`
 starts just inside a directory whose last component ends with the byte `ff`.
@@ -34,3 +36,24 @@ Both programs execute the recipe inside the valid U+FFFD directory.
 An unrelated directory entry with invalid bytes also permits normal recipe
 discovery and execution. The Linux differential job exercises that case
 under its own identity. [Sibling-file fixture](../../differential/cases/upstream-non-unicode-sibling)
+
+## Directory builtins
+
+The upstream `dir_not_unicode` unit test supplies invalid bytes to the
+directory lookup helper. To exercise that path through the official CLI on
+Linux, create a justfile containing `value := config_directory()` and run the
+commands below from its directory.
+
+```sh
+XDG_CONFIG_HOME="/tmp/$(printf 'foo\377')" "$JUST159" --evaluate value
+XDG_CONFIG_HOME="/tmp/$(printf 'foo\377')" moonrun "$WASM" -- --evaluate value
+```
+
+In the Linux arm64 probe, official just exited 1, rendered the invalid byte
+as U+FFFD and highlighted the call. MoonJust exited 0 and returned the
+default config directory. Both returned `/tmp/safe` for the valid input
+`XDG_CONFIG_HOME=/tmp/safe`. The guest environment interface provides
+string keys and values. The invalid value was absent from that interface.
+The upstream Unix identity is deferred until the host can distinguish an
+absent value from a present value containing invalid bytes.
+[Upstream directory helper test](../upstream/just-1.59.0/source/src/function.rs#L876)

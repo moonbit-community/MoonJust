@@ -114,7 +114,9 @@ async fn main {
     None => failures.push("moon.mod does not declare a product version")
   }
   if !official_is_pinned(official) {
-    failures.push("official oracle must report exactly `just 1.59.0`")
+    failures.push(
+      "official oracle must report exactly " + @testkit.ORACLE_IDENTITY,
+    )
   }
   validate_inventory(
     parsed_manifest, cases_root, upstream_names, spec_index, spec_text, failures,
@@ -156,6 +158,8 @@ async fn main {
         cwd: "",
         platform: None,
         merged: false,
+        closed_stdout: false,
+        verify_snapshot: false,
         live_prefix: None,
         live_timeout_ms: 1000,
         id: "",
@@ -218,11 +222,18 @@ async fn main {
       normalize_snapshot(snapshot, official.subject(), details.normalizations)
     })
     match expected_snapshot_result {
-      Some(snapshot) if verify_snapshots && !record_expected => {
+      Some(snapshot) if (details.verify_snapshot || verify_snapshots) &&
+        !record_expected => {
         let snapshot_differences = difference_fields(
           snapshot, official_result, details,
         )
         if !snapshot_differences.is_empty() {
+          write_difference_details(
+            name, snapshot_differences, snapshot, official_result,
+          )
+          for upstream_test in details.upstream_tests {
+            failed_upstream.add(upstream_test)
+          }
           failures.push(
             name +
             ": recorded official result differs in [" +
@@ -353,7 +364,7 @@ async fn main {
     " differential_known_difference=\{report.differential_known_difference} moonbit_spec_executed=\{report.moonbit_spec_executed}" +
     " local_smoke_executed=\{report.local_smoke_executed} document_oracle_executed=\{report.document_oracle_executed}" +
     " repository_only=\{report.repository_only} excluded_completion=\{report.excluded_completion}" +
-    " excluded_signal=\{report.excluded_signal} deferred_platform=\{report.deferred_platform} unclassified=\{report.unclassified}\n",
+    " excluded_signal=\{report.excluded_signal} host_limited=\{report.host_limited} deferred_platform=\{report.deferred_platform} unclassified=\{report.unclassified}\n",
   )
   if !failures.is_empty() {
     @env.exit(1)

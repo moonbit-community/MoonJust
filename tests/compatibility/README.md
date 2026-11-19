@@ -8,20 +8,20 @@ The inventory counts identities. Use each row's `fixture`, `upstream_source_anch
 
 ## Reading a coverage report
 
-Schema 4 assigns every identity a row. The numbers below are declarations in
+Schema 5 assigns every identity a row. The numbers below are declarations in
 the pinned inventory. The per-host report records which checks actually ran.
 
 | Status | Identities | What the evidence establishes |
 | --- | ---: | --- |
-| `differential-exact` | 1,443 | On a successful row, the Wasm CLI and live official CLI matched on all observations declared by the fixture after its permitted normalizations. |
+| `differential-exact` | 1,457 | On a successful row, the Wasm CLI and live official CLI matched on all observations declared by the fixture after its permitted normalizations. |
 | `differential-known-difference` | 3 | The oracle successfully reformatted the file. The Wasm CLI exited 1 with empty stdout, the reviewed diagnostic bytes and its initial tree intact. An unexpected match fails the fixture. |
-| `moonbit-spec` | 906 | The Wasm package suite passed and its outline contained the indexed local test at its exact declaration. The test body defines which behavior was asserted. This category makes no claim that every upstream assertion was ported. |
+| `moonbit-spec` | 929 | The Wasm package suite passed and its outline contained the indexed local test at its exact declaration. The test body defines which behavior was asserted. This category makes no claim that every upstream assertion was ported. |
 | `local-smoke` | 4 | Three assertions check selected parser fields. One checks the MoonJust-specific `Unsupported("--completions")` error for `--list --completions`. The upstream clap test requires a parse error. Each row describes its assertion in `evidence_scope`. |
 | `document-oracle` | 3 | The two CLIs ran the upstream document checks described below. The required observation differs by document. |
 | `repository-only` | 3 | Two upstream README heading rules and the generated README constants table concern just's repository. Their execution state is `excluded`. |
 | `excluded-completion` | 39 | Shell completion generation and its protocol are outside the portable CLI contract. |
 | `excluded-signal` | 21 | Raw signal identity and forwarding are outside the portable CLI contract. |
-| `host-limited` | 1 | On Linux an invalid byte in the invocation directory can abort moonrun during its current-directory request. The report records this identity as deferred. [Reproduction and controls](upgrade/host-limits.md) |
+| `host-limited` | 2 | The guest can lose a non-UTF-8 Unix directory value from its environment. An invalid byte in the Linux invocation directory can also abort moonrun before the guest receives its path. [Reproduction and controls](upgrade/host-limits.md) |
 | `unclassified` | 0 required | Strict mode fails for an identity without an evidence category. A source snapshot alone cannot establish execution. |
 
 `status` describes the expected evidence. `execution_state` records
@@ -68,6 +68,8 @@ Every fixture has a manifest entry, matching `compat-id`, an explicit
 `match` or `difference` expectation and recorded oracle output. A normal
 run uses the live pinned executable. `--record-expected` writes snapshots,
 and `--verify-snapshots` checks them against a live run on the same platform.
+Fixtures marked `verify_snapshot = true`, including the Windows shell cases,
+always check the recorded upstream assertions against the live official binary.
 Regex expectation files fail validation. UUID normalization accepts a complete
 lowercase v4 UUID with an RFC variant. The parallel fixtures allow only
 permutations of complete serialized jobs or of sibling recipes between their
@@ -100,5 +102,5 @@ document identity. Omit `--strict-coverage` for a partial run.
 
 Fixtures with host-specific behavior run on their declared platforms. The flag
 `--allow-deferred-platform` permits this in a single-host run. The aggregate
-requires schema 4 reports from Linux, macOS and Windows for the same Wasm
+requires schema 5 reports from Linux, macOS and Windows for the same Wasm
 target, with every required row executed on its applicable hosts.
