@@ -63,7 +63,8 @@ Options:
   -f, --justfile <JUSTFILE>
           Use <JUSTFILE> as justfile or `-` to read from standard input [env: JUST_JUSTFILE=]
       --justfile-name <NAME>
-          Search for justfile named <NAME> [env: JUST_JUSTFILE_NAME=]
+          Search for justfile named <NAME>, accepts multiple `,`-separated values and may be
+          repeated [env: JUST_JUSTFILE_NAME=]
       --list-heading <TEXT>
           Print <TEXT> before list [env: JUST_LIST_HEADING=] [default: "Available recipes:\n"]
       --list-prefix <TEXT>
@@ -107,8 +108,7 @@ Options:
   -v, --verbose...
           Use verbose output [env: JUST_VERBOSE=]
   -d, --working-directory <WORKING_DIRECTORY>
-          Use <WORKING-DIRECTORY> as working directory. --justfile must also be set [env:
-          JUST_WORKING_DIRECTORY=]
+          Use <WORKING-DIRECTORY> as working directory [env: JUST_WORKING_DIRECTORY=]
       --yes
           Automatically confirm all recipes. [env: JUST_YES=]
   -h, --help
@@ -140,5 +140,6 @@ Commands:
       --man                       Print man page
   -s, --show <RECIPE_PATH>...     Show recipe at <RECIPE_PATH>
       --summary                   List names of available recipes
-      --usage <RECIPE_PATH>...    Print usage information for recipe at <RECIPE_PATH>
+      --usage [<PATH>...]         Print usage information for recipe at <PATH> or all recipes in
+                                  module at <PATH>, defaulting to all recipes in the root justfile
       --variables                 List names of variables

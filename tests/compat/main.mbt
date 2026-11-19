@@ -44,13 +44,13 @@ async fn main {
     "tests/differential/cases.toml",
   )
   let upstream_list = option(args, "--upstream-list").unwrap_or(
-    "tests/compatibility/upstream/just-1.57.0/test-list.txt",
+    "tests/compatibility/upstream/just-1.59.0/test-list.txt",
   )
   let report_path = option(args, "--coverage-report")
   let execution_target = option(args, "--execution-target").unwrap_or("wasm")
   let spec_text = read_text(
     option(args, "--spec-index").unwrap_or(
-      "tests/compatibility/upstream/just-1.57.0/spec-index.txt",
+      "tests/compatibility/upstream/just-1.59.0/spec-index.txt",
     ),
   )
   let spec_index = parse_spec_index(spec_text)
@@ -114,7 +114,7 @@ async fn main {
     None => failures.push("moon.mod does not declare a product version")
   }
   if !official_is_pinned(official) {
-    failures.push("official oracle must report exactly `just 1.57.0`")
+    failures.push("official oracle must report exactly `just 1.59.0`")
   }
   validate_inventory(
     parsed_manifest, cases_root, upstream_names, spec_index, spec_text, failures,

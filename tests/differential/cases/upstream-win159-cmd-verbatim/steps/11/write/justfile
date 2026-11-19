@@ -1,0 +1,4 @@
+set shell := ['cmd.exe', '/c']
+
+foo:
+ @if "foo"=="foo" echo bar

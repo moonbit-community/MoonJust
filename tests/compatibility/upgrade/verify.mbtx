@@ -1,0 +1,466 @@
+----
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/async/process",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+}
+----
+
+///|
+const REPORT = "tests/compatibility/upgrade/"
+
+///|
+const UPSTREAM = "tests/compatibility/upstream/just-"
+
+///|
+struct Registration {
+  anchor : String
+  hosts : Array[String]
+  ignored : Array[String]
+}
+
+///|
+fn lines(text : String) -> Array[String] {
+  text
+  .split("\n")
+  .map(s => s.trim_end(chars="\r").to_owned())
+  .filter(s => !s.is_empty())
+  .collect()
+}
+
+///|
+fn sorted(ids : Array[String]) -> Array[String] {
+  ids.sort_by(String::lexical_compare)
+  ids
+}
+
+///|
+async fn registrations(version : String) -> Map[String, Registration] {
+  let root = UPSTREAM + version + "/"
+  let result : Map[String, Registration] = Map([])
+  let all_hosts = ["macos", "linux", "windows"]
+  let names = lines(@fs.read_text(root + "test-list.txt"))
+  let spec_ids = []
+  for row in lines(@fs.read_text(root + "spec-index.txt")) {
+    let f = row.split("\t").collect()
+    guard f.length() == 4 || f.length() == 5 else {
+      fail("invalid spec row: " + row)
+    }
+    let id = f[0].to_owned()
+    guard !result.contains(id) else { fail("duplicate spec ID: " + id) }
+    result[id] = { anchor: f[3].to_owned(), hosts: all_hosts, ignored: [], }
+    spec_ids.push(id)
+  }
+  if version == "1.57.0" {
+    let extra = lines(@fs.read_text(REPORT + "supplemental-anchors-1.57.0.tsv"))
+    for row in extra[1:] {
+      let f = row.split("\t").collect()
+      guard f.length() == 2 else { fail(row) }
+      let id = f[0].to_owned()
+      guard !result.contains(id) else {
+        fail("duplicate supplemental anchor: " + id)
+      }
+      result[id] = { anchor: f[1].to_owned(), hosts: all_hosts, ignored: [], }
+      spec_ids.push(id)
+    }
+  }
+  assert_eq(
+    sorted(spec_ids),
+    sorted(names),
+    msg=version + " list and spec index",
+  )
+  let exceptions : Set[String] = Set([])
+  let platform_rows = lines(
+    @fs.read_text(REPORT + "platforms-" + version + ".tsv"),
+  )
+  for row in platform_rows[1:] {
+    let f = row.split("\t").collect()
+    guard f.length() == 4 else { fail(row) }
+    let id = f[0].to_owned()
+    let hosts = f[2].split(",").map(x => x.to_owned()).collect()
+    let ignored = if f[3] == "-" {
+      []
+    } else {
+      f[3].split(",").map(x => x.to_owned()).collect()
+    }
+    guard !exceptions.contains(id) &&
+      hosts.iter().all(h => all_hosts.contains(h)) &&
+      ignored.iter().all(h => hosts.contains(h)) else {
+      fail(row)
+    }
+    exceptions.add(id)
+    let anchor = f[1].to_owned()
+    if result.get(id) is Some(c) {
+      assert_eq(c.anchor, anchor, msg=id)
+    } else if version != "1.57.0" || hosts.contains("macos") {
+      fail("platform ID absent from index: " + id)
+    }
+    result[id] = { anchor, hosts, ignored, }
+  }
+  let sources : Map[String, Array[StringView]] = Map([])
+  for id, entry in result {
+    let loc = entry.anchor.split(":").collect()
+    guard loc.length() == 2 else { fail(entry.anchor) }
+    let file = loc[0].to_owned()
+    if !sources.contains(file) {
+      sources[file] = @fs.read_text(root + "source/" + file)
+        .split("\n")
+        .collect()
+    }
+    let n = @string.parse_int(loc[1])
+    let name = id.split("::").last().unwrap()
+    guard sources[file].get(n - 1) is Some(line) &&
+      (
+        line.trim().has_prefix("fn " + name.to_owned() + "(") ||
+        (
+          line.trim().has_prefix("name:") &&
+          line.split(":").last().unwrap().trim() == name.to_owned() + ","
+        )
+      ) else {
+      fail(id + " invalid declaration at " + entry.anchor)
+    }
+  }
+  result
+}
+
+///|
+async fn check_cargo(
+  version : String,
+  host : String,
+  file : String,
+  ignored : Bool,
+  cases : Map[String, Registration],
+) -> Unit {
+  guard ["linux", "macos", "windows"].contains(host) else {
+    fail("unknown host: " + host)
+  }
+  let expected = cases
+    .iter()
+    .filter(p => {
+      if ignored {
+        p.1.ignored.contains(host)
+      } else {
+        p.1.hosts.contains(host)
+      }
+    })
+    .map(p => p.0)
+    .collect()
+  let actual = []
+  for line in lines(@fs.read_text(file)) {
+    if line.strip_suffix(": test") is Some(name) {
+      actual.push(name.to_owned())
+    }
+  }
+  assert_eq(
+    sorted(actual),
+    sorted(expected),
+    msg=version + " " + host + " libtest registrations",
+  )
+  println(
+    "Verified " +
+    actual.length().to_string() +
+    " " +
+    host +
+    " registrations for " +
+    version +
+    ".",
+  )
+}
+
+///|
+async fn check_oracles(before : String, after : String) -> Unit {
+  let temp = @fs.realpath(@fs.tmpdir(prefix="moonjust-upstream-oracles"))
+  defer @fs.remove(temp, recursive=true)
+  @fs.write_text(temp + "/justfile", "foo := f'{{'a'}}'\n\nbar:\n")
+  for
+    (version, exe, changelog) in [
+      (
+        "1.57.0",
+        @fs.realpath(before),
+        "d17d58f22d459420945f4f43439622758ecb5d81",
+      ),
+      (
+        "1.59.0",
+        @fs.realpath(after),
+        "8a171a70fed08557c32b44d817457ab55ba1f316",
+      ),
+    ] {
+    async fn run(args : Array[String]) -> @process.ProcessResult {
+      @process.run(
+        exe,
+        args,
+        inherit_env=false,
+        cwd=temp,
+        stdin=Empty,
+        stdout=Collect,
+        stderr=Collect,
+      )
+    }
+    let banner = run(["--version"])
+    assert_eq(banner.exit_code, 0)
+    assert_eq(banner.stdout_text(), "just " + version + "\n")
+    assert_eq(banner.stderr_text(), "")
+    let document = run(["--changelog"])
+    assert_eq(document.exit_code, 0)
+    assert_eq(document.stderr_text(), "")
+    @fs.write_binary(temp + "/changelog", document.stdout_binary())
+    let hash = @process.run(
+      "git",
+      ["hash-object", "--no-filters", temp + "/changelog"],
+      stdout=Collect,
+      accepted_exit_code=code => code == 0,
+    )
+    assert_eq(
+      hash.stdout_text().trim().to_owned(),
+      changelog,
+      msg=version + " changelog blob",
+    )
+    let dump = run(["--color", "never", "-f", "justfile", "--dump"])
+    assert_eq(dump.exit_code, 0)
+    assert_eq(dump.stderr_text(), "")
+    let usage = run(["--color", "never", "-f", "justfile", "--usage"])
+    if version == "1.57.0" {
+      assert_eq(dump.stdout_text(), "foo := f'{{'a'}}'\n\nbar:\n")
+      assert_eq(usage.exit_code, 2)
+      assert_eq(usage.stdout_text(), "")
+      assert_eq(
+        usage.stderr_text(),
+        "error: a value is required for '--usage <RECIPE_PATH>...' but none was supplied\n\nFor more information, try '--help'.\n",
+      )
+    } else {
+      assert_eq(dump.stdout_text(), "foo := f'{{ 'a' }}'\n\nbar:\n")
+      assert_eq(usage.exit_code, 0)
+      assert_eq(usage.stdout_text(), "Usage:\n    just bar\n")
+      assert_eq(usage.stderr_text(), "")
+    }
+  }
+  println(
+    "Verified release binaries, embedded changelogs and formatter and module-usage behavior.",
+  )
+}
+
+///|
+#derive(FromJson)
+priv struct Position {
+  line : Int32
+}
+
+///|
+#derive(FromJson)
+priv struct SourceRange {
+  start : Position
+  end : Position
+}
+
+///|
+#derive(FromJson)
+priv struct RustItem {
+  file : String
+  text : String
+  range : SourceRange
+}
+
+///|
+#derive(FromJson)
+priv struct Discovery {
+  source_path : String
+  start_line : Int32
+  ignore : Bool
+  name : String
+}
+
+///|
+async fn check_discovery(
+  cases : Map[String, Registration],
+  host : String,
+  path : String,
+) -> Unit {
+  guard ["linux", "macos", "windows"].contains(host) else {
+    fail("unknown host: " + host)
+  }
+  let found = []
+  for line in lines(@fs.read_text(path)) {
+    let row = @json.parse(line)
+    if row is { "type": String("suite"), .. } {
+      continue
+    }
+    guard row is { "type": String("test"), "event": String("discovered"), .. } else {
+      fail("unexpected libtest event: " + line)
+    }
+    let item : Discovery = @json.from_json(row)
+    guard cases.get(item.name) is Some(entry) else {
+      fail("unexpected registration: " + item.name)
+    }
+    let anchor = item.source_path.replace_all(old="\\", new="/") +
+      ":" +
+      item.start_line.to_string()
+    assert_eq(entry.anchor, anchor, msg=item.name)
+    assert_eq(entry.ignored.contains(host), item.ignore, msg=item.name)
+    found.push(item.name)
+  }
+  let expected = cases
+    .iter()
+    .filter(p => p.1.hosts.contains(host))
+    .map(p => p.0)
+    .collect()
+  assert_eq(
+    sorted(found),
+    sorted(expected),
+    msg=host + " compiler registration metadata",
+  )
+  println(
+    "Verified " +
+    found.length().to_string() +
+    " compiler IDs, anchors and ignore flags on " +
+    host +
+    ".",
+  )
+}
+
+///|
+async fn test_items(
+  version : String,
+  cases : Map[String, Registration],
+  tool : String,
+) -> Map[String, RustItem] {
+  let by_file : Map[String, Array[(String, Int32)]] = Map([])
+  for id, r in cases {
+    let loc = r.anchor.split(":").collect()
+    let path = loc[0].to_owned()
+    if !by_file.contains(path) {
+      by_file[path] = []
+    }
+    by_file[path].push((id, @string.parse_int(loc[1]) - 1))
+  }
+  let rule = "id: rust-item\nlanguage: Rust\nrule:\n  any:\n    - kind: function_item\n    - kind: macro_invocation"
+  let parsed = @process.run(
+    tool,
+    ["scan", "--inline-rules", rule, "--json=stream", "src", "tests"],
+    cwd=UPSTREAM + version + "/source",
+    stdout=Collect,
+    accepted_exit_code=code => code == 0,
+  )
+  let items : Map[String, RustItem] = Map([])
+  for row in parsed.stdout_text().split("\n") {
+    if row.is_empty() {
+      continue
+    }
+    let item : RustItem = @json.from_json(@json.parse(row))
+    let path = item.file.replace_all(old="\\", new="/")
+    if by_file.get(path) is Some(anchors) {
+      let r = item.range
+      for (id, line) in anchors {
+        if r.start.line <= line && line <= r.end.line {
+          let old = items.get(id)
+          if old is None ||
+            (
+              old is Some(e) &&
+              r.end.line - r.start.line < e.range.end.line - e.range.start.line
+            ) {
+            items[id] = { ..item, file: path, }
+          }
+        }
+      }
+    }
+  }
+  for id, _ in cases {
+    guard items.get(id) is Some(item) else { fail("missing Rust item: " + id) }
+    let leaf = id.split("::").last().unwrap().to_owned()
+    guard item.text.contains("fn " + leaf + "(") ||
+      (item.text.contains("name:") && item.text.contains(leaf + ",")) else {
+      fail("wrong Rust item: " + id)
+    }
+  }
+  items
+}
+
+///|
+fn source_range(item : RustItem) -> String {
+  item.file +
+  ":" +
+  (item.range.start.line + 1).to_string() +
+  "-" +
+  (item.range.end.line + 1).to_string()
+}
+
+///|
+async fn main {
+  let prev = registrations("1.57.0")
+  let next = registrations("1.59.0")
+  let keys : Set[String] = Set([])
+  for id, _ in prev {
+    keys.add(id)
+  }
+  for id, _ in next {
+    keys.add(id)
+  }
+  let delta = ["change\tupstream_id\tjust_1.57.0\tjust_1.59.0"]
+  for id in sorted(keys.iter().collect()) {
+    match (prev.get(id), next.get(id)) {
+      (None, Some(r)) => delta.push(["added", id, "-", r.anchor].join("\t"))
+      (Some(r), None) => delta.push(["removed", id, r.anchor, "-"].join("\t"))
+      _ => ()
+    }
+  }
+  assert_eq(lines(@fs.read_text(REPORT + "registration-delta.tsv")), delta)
+  for
+    (v, cases, total, counts) in [
+      ("1.57.0", prev, 2427, [2417, 2418, 2393]),
+      ("1.59.0", next, 2461, [2451, 2452, 2426]),
+    ] {
+    assert_eq(cases.length(), total, msg=v)
+    for i, host in ["macos", "linux", "windows"] {
+      let ids = cases.values().filter(r => r.hosts.contains(host)).count()
+      assert_eq(ids, counts[i], msg=v + " " + host)
+    }
+  }
+  println(
+    "Verified the three-host unions, declaration anchors and 40 registration changes.",
+  )
+  match @env.args()[1:] {
+    [] => ()
+    ["oracles", before, after] => check_oracles(before, after)
+    ["changed-tests", binary] => {
+      let tool = @fs.realpath(binary)
+      let old = test_items("1.57.0", prev, tool)
+      let new = test_items("1.59.0", next, tool)
+      let rows = ["upstream_id\tjust_1.57.0_item\tjust_1.59.0_item"]
+      for id in sorted(old.keys().collect()) {
+        if new.get(id) is Some(b) && old[id].text != b.text {
+          rows.push([id, source_range(old[id]), source_range(b)].join("\t"))
+        }
+      }
+      assert_eq(
+        rows,
+        lines(@fs.read_text(REPORT + "changed-tests.tsv")),
+        msg="changed upstream test items",
+      )
+      println(
+        "Verified " +
+        (rows.length() - 1).to_string() +
+        " changed Rust test items.",
+      )
+    }
+    [mode, version, host, file] if ["cargo-list", "cargo-ignored", "cargo-json"].contains(
+        mode,
+      ) => {
+      let cases = match version {
+        "1.57.0" => prev
+        "1.59.0" => next
+        _ => fail("unknown release")
+      }
+      if mode == "cargo-json" {
+        check_discovery(cases, host, file)
+      } else {
+        check_cargo(version, host, file, mode == "cargo-ignored", cases)
+      }
+    }
+    _ =>
+      fail(
+        "usage: verify.mbtx [oracles JUST157 JUST159 | cargo-list|cargo-ignored|cargo-json VERSION HOST LIBTEST_OUTPUT | changed-tests AST_GREP]",
+      )
+  }
+}

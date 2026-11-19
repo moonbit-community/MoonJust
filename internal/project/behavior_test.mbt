@@ -15,7 +15,7 @@ async test "project snapshot owns loading, compilation, and working directories"
   let request = @project.ProjectLoadRequest::new(
     @project.ProjectInput::new(@path.PathValue::new("/workspace", Unix)),
     File(root),
-    "justfile",
+    [],
     @semantic.TargetPlatform::new(Linux, true),
     [],
   )

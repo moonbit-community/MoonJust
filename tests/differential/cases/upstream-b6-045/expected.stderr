@@ -1,4 +1,4 @@
-error: justfile requires just 999.0.0 or later, but using 1.57.0
+error: justfile requires just 999.0.0 or later, but using 1.59.0
  ——▶ justfile:1:24
   │
 1 │ set minimum-version := '999.0.0'

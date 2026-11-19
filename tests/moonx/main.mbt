@@ -525,8 +525,8 @@ async fn main {
   let candidate_program = prepare_candidate(coordinate)
   let official_program = @testkit.prepare_program("just")
   let oracle = @testkit.run_prepared_bytes(official_program, ["--version"])
-  guard oracle.status == 0 && oracle.stdout == b"just 1.57.0\n" else {
-    fail("expected just 1.57.0")
+  guard oracle.status == 0 && oracle.stdout == b"just 1.59.0\n" else {
+    fail("expected just 1.59.0")
   }
   let preflight_result = preflight(candidate_program, version)
   guard preflight_result.0 else {

@@ -267,7 +267,7 @@ async fn run_side(
 async fn official_is_pinned(program : @testkit.PreparedProgram) -> Bool {
   let result = @testkit.run_prepared_bytes(program, ["--version"])
   result.status == 0 &&
-  @testkit.bytes_equal(result.stdout, b"just 1.57.0\n") &&
+  @testkit.bytes_equal(result.stdout, b"just 1.59.0\n") &&
   result.stderr.is_empty()
 }
 

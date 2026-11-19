@@ -1,4 +1,4 @@
-error: call to function `executable_directory` failed: executable directory not found
+error: executable directory not found
  ——▶ justfile:1:6
   │
 1 │ x := executable_directory()

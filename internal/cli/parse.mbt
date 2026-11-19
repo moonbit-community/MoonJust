@@ -126,7 +126,26 @@ pub fn parse_arguments(
     argv=normalized.options,
     env=normalized_env,
   ) catch {
+    error if error
+      .to_string()
+      .has_prefix(
+        "error: argument '--working-directory' cannot be used multiple times",
+      ) =>
+      raise Invalid(
+        "error: the argument '\{option_index["--working-directory"].usage()}' cannot be used multiple times\n\nUsage: just [OPTIONS] [ARGUMENTS]...\n\nFor more information, try '--help'.",
+      )
+    error if error
+      .to_string()
+      .has_prefix("error: conflicting arguments: global-justfile and ") =>
+      raise search_conflict(normalized, env)
     error => raise Invalid(normalize_argparse_error(error.to_string()))
+  }
+  if normalized.query_argument_conflict && normalized.command is Some(spec) {
+    raise conflict_error(
+      spec,
+      ["[ARGUMENTS]..."],
+      supplied_specs(normalized, env),
+    )
   }
   if !normalized.early_exit {
     check_unsupported_environment(env)
@@ -159,7 +178,11 @@ pub fn parse_arguments(
       raise Config("error: invalid override path " + @diagnostic.tick(name))
     }
   }
-  if (command == ListCommand || command == ShowCommand) &&
+  if (
+      command == ListCommand ||
+      command == ShowCommand ||
+      command == UsageCommand
+    ) &&
     !valid_query_module_path(command_arguments) {
     raise Config(
       "error: invalid module path `" + command_arguments.join(" ") + "`",
@@ -184,6 +207,15 @@ pub fn parse_arguments(
     )
   }
   let values = matches.values
+  if values.get("justfile-name") is Some(groups) {
+    let filenames = []
+    for group in groups {
+      for name in group.split(",") {
+        filenames.push(name.to_owned())
+      }
+    }
+    values["justfile-name"] = filenames
+  }
   if !command_arguments.is_empty() {
     values["arguments"] = command_arguments
   }

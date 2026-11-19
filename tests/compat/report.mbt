@@ -38,6 +38,7 @@ priv struct CoverageReport {
   mut repository_only : Int32
   mut excluded_completion : Int32
   mut excluded_signal : Int32
+  mut host_limited : Int32
   deferred_platform : Int32
   mut unclassified : Int32
   mut failures : Int32
@@ -82,6 +83,7 @@ fn coverage_report(
     repository_only: 0,
     excluded_completion: 0,
     excluded_signal: 0,
+    host_limited: 0,
     deferred_platform: deferred.length(),
     unclassified: 0,
     failures,
@@ -101,6 +103,7 @@ fn coverage_report(
       "deferred-platform"
     } else {
       match status {
+        "host-limited" => "deferred-host"
         "repository-only" | "excluded-completion" | "excluded-signal" =>
           "excluded"
         "document-oracle" if documents_passed.contains(upstream_id) =>
@@ -149,6 +152,7 @@ fn coverage_report(
       "repository-only" => report.repository_only += 1
       "excluded-completion" => report.excluded_completion += 1
       "excluded-signal" => report.excluded_signal += 1
+      "host-limited" => report.host_limited += 1
       _ => report.unclassified += 1
     }
     report.rows.push({
@@ -162,7 +166,10 @@ fn coverage_report(
       execution_state: state,
       execution_platform: platform,
       execution_target: target,
-      required_platform: details.bind(d => d.platform).unwrap_or("all"),
+      required_platform: match @testkit.deferred_host_behavior(upstream_id) {
+        Some((required, _)) => required
+        None => details.bind(d => d.platform).unwrap_or("all")
+      },
       host_inputs: details.map(d => d.host_inputs).unwrap_or([]),
       fixture,
       local_test: if status == "moonbit-spec" || status == "local-smoke" {
@@ -199,6 +206,8 @@ fn CoverageReport::complete(
   self.rows.all(row => {
     match row.execution_state {
       "executed" | "excluded" => true
+      "deferred-host" =>
+        @testkit.deferred_host_behavior(row.upstream_id) is Some(_)
       "deferred-platform" => allow_deferred
       _ => false
     }

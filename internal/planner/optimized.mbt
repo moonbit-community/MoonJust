@@ -110,6 +110,45 @@ fn plan_plain_empty_fanout(
 }
 
 ///|
+/// Only recipe-controlled changes belong to the default key. Keep unexports
+/// explicit so a named lookup cannot fall back to an inherited value.
+fn default_cache_environment(
+  dotenv : Array[(String, String)],
+  compilation : @semantic.Compilation,
+  global : @evaluator.Environment,
+  recipe : @syntax.Recipe,
+  scope : @evaluator.Environment,
+  attributes : Array[(String, String)],
+) -> Map[String, String?] {
+  let env : Map[String, String?] = Map([])
+  for (key, value) in dotenv {
+    env[key] = Some(value)
+  }
+  for key in compilation.unexports() {
+    env[key] = None
+  }
+  for key in global.names() {
+    if global.is_exported(key) &&
+      global.get(key) is Some(value) &&
+      !value.elements().is_empty() {
+      env[key] = Some(value.to_string())
+    }
+  }
+  for parameter in recipe.parameters() {
+    let key = parameter.name()
+    if (parameter.exported() || compilation.settings().bool("export")) &&
+      scope.get(key) is Some(value) &&
+      !value.elements().is_empty() {
+      env[key] = Some(value.to_string())
+    }
+  }
+  for (key, value) in attributes {
+    env[key] = Some(value)
+  }
+  env
+}
+
+///|
 async fn[
   P : @host.HostProcess,
   H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal,
@@ -120,11 +159,13 @@ async fn[
   scope : @evaluator.Environment,
   context : @evaluator.EvaluationContext,
   shell : @environment.ShellConfiguration,
-  arguments : ArrayView[@value.Value],
+  positional : Array[String],
+  default_environment : Map[String, String?],
   script : PlannedScript,
   display_name : String,
 ) -> CacheDirective raise ExecutionError {
   let seen : Set[String] = Set([])
+  let mut cache_environment = default_environment
   let mut extra = ""
   let inputs : Array[String] = []
   let outputs : Array[String] = []
@@ -143,6 +184,19 @@ async fn[
       process, host, expression, scope, context, shell,
     )
     match key {
+      "environment" => {
+        cache_environment = Map([])
+        for name in value.elements() {
+          cache_environment[name] = match default_environment.get(name) {
+            Some(value) => value
+            None =>
+              @host.HostEnv::env_get(host, name) catch {
+                InvalidInput(message) => raise CacheFailure(message~)
+                error => raise Host(error)
+              }
+          }
+        }
+      }
       "extra" => extra = value.to_string()
       "inputs" | "outputs" => {
         let target = if key == "inputs" { inputs } else { outputs }
@@ -183,25 +237,15 @@ async fn[
   }
   let body = body_lines.join("\n")
   let configuration = script.configuration()
-  let cache_environment : Array[(String, String)] = []
-  for name in scope.names() {
-    if scope.is_exported(name) {
-      match scope.get(name) {
-        Some(value) if !value.elements().is_empty() =>
-          cache_environment.push((name, value.to_string()))
-        _ => ()
-      }
-    }
-  }
   CacheDirective::new(
     display_name,
     body,
     configuration.interpreter().program(),
     configuration.interpreter().arguments().to_owned(),
-    cache_environment,
+    cache_environment.iter().collect(),
     configuration.extension().unwrap_or(""),
     script.cwd(),
-    arguments.map(fn(value) { value.to_string() }),
+    positional,
     extra,
     inputs,
     outputs,

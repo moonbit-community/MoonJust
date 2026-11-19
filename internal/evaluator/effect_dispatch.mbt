@@ -127,7 +127,7 @@ pub async fn[
       let canonical = @host.HostFs::canonicalize(host, path) catch {
         error =>
           raise effect_failure(
-            "call to function `canonicalize` failed: I/O error canonicalizing `" +
+            "I/O error canonicalizing `" +
             raw +
             "`: " +
             canonicalize_host_error_detail(error, path),
@@ -142,10 +142,7 @@ pub async fn[
       let bytes = @host.HostFs::read_file(host, path) catch {
         error =>
           raise effect_failure(
-            "call to function `read` failed: I/O error reading `" +
-            raw +
-            "`: " +
-            host_error_detail(error),
+            "I/O error reading `" + raw + "`: " + host_error_detail(error),
             span,
           )
       }
@@ -255,9 +252,7 @@ pub async fn[
       let path = which_value(host, executable, context, span)
       if path == "" {
         raise effect_failure(
-          "call to function `require` failed: could not find executable `" +
-          executable +
-          "`",
+          "could not find executable `" + executable + "`",
           span,
         )
       }

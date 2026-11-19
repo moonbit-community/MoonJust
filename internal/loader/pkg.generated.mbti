@@ -36,7 +36,7 @@ pub async fn[T : @host.HostFs] load_stdin_graph(T, Bytes, @source.SourceId, @pat
 #derive(Eq, @debug.Debug)
 pub(all) suberror LoaderError {
   InvalidLimit
-  NoJustfileFound(start~ : @path.PathValue, filename~ : String)
+  NoJustfileFound(start~ : @path.PathValue)
   MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)
@@ -77,8 +77,10 @@ pub fn GraphLimits::to_repr(Self) -> @debug.Repr
 #derive(@debug.Debug)
 pub struct LoadedGraph {
   files : Array[LoadedSource]
+  imports : Map[Int32, Array[Int32]]
 }
 pub fn LoadedGraph::files(Self) -> ArrayView[LoadedSource]
+pub fn LoadedGraph::imports_from(Self, Int32) -> ArrayView[Int32]
 #deprecated
 pub fn LoadedGraph::to_repr(Self) -> @debug.Repr
 
@@ -108,7 +110,7 @@ pub fn LoadedSource::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
 pub(all) struct SearchOptions {
-  filename : String
+  filenames : ArrayView[String]
   ceiling : @path.PathValue?
   explicit : @path.PathValue?
   global : @path.PathValue?
@@ -117,9 +119,8 @@ pub fn SearchOptions::ceiling(Self) -> @path.PathValue?
 #deprecated
 pub fn SearchOptions::equal(Self, Self) -> Bool
 pub fn SearchOptions::explicit(Self) -> @path.PathValue?
-pub fn SearchOptions::filename(Self) -> String
 pub fn SearchOptions::global(Self) -> @path.PathValue?
-pub fn SearchOptions::new(filename? : String, ceiling? : @path.PathValue?, explicit? : @path.PathValue?, global? : @path.PathValue?) -> Self
+pub fn SearchOptions::new(filenames? : ArrayView[String], ceiling? : @path.PathValue?, explicit? : @path.PathValue?, global? : @path.PathValue?) -> Self
 #deprecated
 pub fn SearchOptions::not_equal(Self, Self) -> Bool
 #deprecated

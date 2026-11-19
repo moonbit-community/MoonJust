@@ -64,7 +64,7 @@ pub struct CacheKey {
   body : String
   interpreter : String
   interpreter_arguments : Array[String]
-  environment : Array[(String, String)]
+  environment : Array[(String, String?)]
   extension : String
   working_directory : String
   positional : Array[String]
@@ -107,19 +107,6 @@ fn lexical_compare(left : String, right : String) -> Int32 {
 ///|
 fn input_compare(left : InputDigest, right : InputDigest) -> Int32 {
   lexical_compare(left.path(), right.path())
-}
-
-///|
-fn environment_compare(
-  left : (String, String),
-  right : (String, String),
-) -> Int32 {
-  let key = lexical_compare(left.0, right.0)
-  if key != 0 {
-    key
-  } else {
-    lexical_compare(left.1, right.1)
-  }
 }
 
 ///|
@@ -209,7 +196,7 @@ pub fn CacheKey::new(
   body : String,
   interpreter : String,
   interpreter_arguments~ : Array[String] = [],
-  environment~ : Array[(String, String)] = [],
+  environment~ : Array[(String, String?)] = [],
   extension~ : String = "",
   working_directory~ : String = "",
   positional~ : Array[String] = [],
@@ -218,7 +205,7 @@ pub fn CacheKey::new(
   outputs~ : Array[String] = [],
 ) -> CacheKey raise CacheError {
   let environment = environment.copy()
-  environment.sort_by(environment_compare)
+  environment.sort_by((left, right) => lexical_compare(left.0, right.0))
   let mut previous : String? = None
   for entry in environment {
     if previous == Some(entry.0) {
@@ -295,7 +282,10 @@ pub fn CacheKey::canonical(self : CacheKey) -> String {
   )
   for entry in self.environment {
     append_component(builder, "environment-name", entry.0)
-    append_component(builder, "environment-value", entry.1)
+    match entry.1 {
+      Some(value) => append_component(builder, "environment-value", value)
+      None => append_component(builder, "environment-unset", "")
+    }
   }
   append_component(builder, "extension", self.extension)
   append_component(builder, "working-directory", self.working_directory)
@@ -331,7 +321,10 @@ pub fn CacheKey::debug_json(self : CacheKey) -> String {
   }
   let environment : Map[String, Json] = Map([])
   for entry in self.environment {
-    environment[entry.0] = Json::string(entry.1)
+    environment[entry.0] = match entry.1 {
+      Some(value) => Json::string(value)
+      None => Json::null()
+    }
   }
   let input_json : Json = if self.inputs.is_empty() {
     Json::null()

@@ -256,6 +256,12 @@ async fn[
                 graph, cwd,
               ),
             )
+          InvalidAttributeValue(..) as value =>
+            render_application_error(
+              arguments,
+              context,
+              ApplicationError::Planner(value).with_project_sources(graph, cwd),
+            )
           _ => error.message()
         }
         failure(color_error_message(arguments, message), error.exit_code())
@@ -294,9 +300,7 @@ pub async fn[
     )
   }
   if arguments.command() == ManCommand {
-    return @cli.ApplicationResponse::success(
-      stdout=@utf8.encode(JUST_MAN_PAGE + "\n"),
-    )
+    return @cli.ApplicationResponse::success(stdout=@utf8.encode(just_man_page))
   }
   let context = try @host.HostEnv::current_dir(environment_host) catch {
     error =>

@@ -73,20 +73,20 @@ async fn main {
   }
   for size in [1, 250, 500, 1000, 2000] {
     for count in (if size == 1 { [1] } else { [1, 2] }) {
-      write_graph(root, size, count, chain=false, duplicates=false)
+      write_graph(root, size, count, depth=1)
       measure("recipes-\{size}-files-\{count}", ["--summary"])
     }
   }
-  for
-    (shape, chain, duplicates) in [
-      ("wide", false, false),
-      ("deep", true, false),
-      ("deep-shadow", true, true),
-    ] {
-    write_graph(root, 1024, 16, chain~, duplicates~)
-    measure("recipes-1024-files-16-\{shape}", ["--summary"])
-    if duplicates {
-      measure("show-shadowed-r0", ["--show", "r0"])
+  // Fix 16 files and 64 declarations per file. A repeated name always has
+  // a unique shallowest declaration in the root, irrespective of topology.
+  for depth in [1, 4, 15] {
+    for shared in [0, 16, 48] {
+      write_graph(root, 1024, 16, depth~, shared~)
+      let label = "recipes-1024-files-16-depth-\{depth}-shadowed-\{15 * shared}"
+      measure(label, ["--summary"])
+      if shared > 0 {
+        measure(label + "-winner", ["--show", "r0"])
+      }
     }
   }
 }
@@ -96,26 +96,24 @@ async fn write_graph(
   root : String,
   size : Int32,
   count : Int32,
-  chain~ : Bool,
-  duplicates~ : Bool,
+  depth~ : Int32,
+  shared? : Int32,
 ) -> Unit {
   let per_file = size / count
   for file in 0..<count {
     let text = StringBuilder()
-    if duplicates && file == 0 {
+    if shared is Some(_) && file == 0 {
       text.write_string("set allow-duplicate-recipes\n")
     }
-    if chain && file + 1 < count {
-      text.write_string("import 'part\{file + 1}'\n")
-    } else if !chain && file == 0 {
-      for child in 1..<count {
+    for child in 1..<count {
+      if (child - 1) % depth == file {
         text.write_string("import 'part\{child}'\n")
       }
     }
     for offset in 0..<per_file {
-      let shadow = duplicates && offset % 4 == 0
+      let shadow = offset < shared.unwrap_or(0)
       let index = if shadow { offset } else { file * per_file + offset }
-      let body = if shadow { "from\{file}" } else { "item" }
+      let body = if shared is Some(_) { "from\{file}" } else { "item" }
       text.write_string("r\{index}:\n    echo \{body}\n")
     }
     let name = if file == 0 { "justfile" } else { "part\{file}" }

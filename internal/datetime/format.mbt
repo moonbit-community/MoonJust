@@ -49,6 +49,16 @@ pub(all) suberror FormatError {
 }
 
 ///|
+pub fn FormatError::message(self : FormatError, format : String) -> String {
+  match self {
+    Invalid =>
+      "failed to parse time format string `\{format}`: bad or unsupported format string"
+    Unformattable => "failed to format time with format string `\{format}`"
+    OutOfRange => "clock value is out of range"
+  }
+}
+
+///|
 pub fn format(
   millis : Int64,
   offset_seconds : Int32,

@@ -86,7 +86,7 @@ async fn[F : @host.HostFs] global_project_root(
 }
 
 ///|
-/// Resolve just 1.57.0's platform-specific global search before normal
+/// Resolve the platform-specific global search before normal
 /// application loading. The returned context keeps the invocation project cwd
 /// separate from the user-configuration justfile path.
 pub async fn[F : @host.HostFs, E : @host.HostEnv + @host.HostPlatform] resolve_global_context(
@@ -96,16 +96,9 @@ pub async fn[F : @host.HostFs, E : @host.HostEnv + @host.HostPlatform] resolve_g
   context : @project.ProjectInput,
 ) -> @project.ProjectInput raise ApplicationError {
   guard arguments.flag("global-justfile") else { return context }
+  ignore(search_prefixed_invocation(arguments, context))
   if arguments.command() == InitCommand {
     raise Query("cannot initialize global justfile")
-  }
-  for argument in arguments.positional() {
-    if argument.contains("/") || argument.contains("\\") {
-      raise Query(
-        "path-prefixed recipes may not be used with `--global-justfile`, " +
-        "`--working-directory`, or `--justfile`",
-      )
-    }
   }
   let platform = @host.HostPlatform::platform_info(environment) catch {
     error => raise Host(error)

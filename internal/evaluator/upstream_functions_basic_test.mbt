@@ -137,49 +137,49 @@ async test "upstream functions::shell_args" {
 ///|
 test "upstream functions::broken_directory_function" {
   assert_upstream_function_error(
-    "parent_directory('')", "call to function `parent_directory` failed: could not extract parent directory from ``",
+    "parent_directory('')", "could not extract parent directory from ``",
   )
 }
 
 ///|
 test "upstream functions::broken_directory_function2" {
   assert_upstream_function_error(
-    "parent_directory('/')", "call to function `parent_directory` failed: could not extract parent directory from `/`",
+    "parent_directory('/')", "could not extract parent directory from `/`",
   )
 }
 
 ///|
 test "upstream functions::broken_extension_function" {
   assert_upstream_function_error(
-    "extension('')", "call to function `extension` failed: could not extract extension from ``",
+    "extension('')", "could not extract extension from ``",
   )
 }
 
 ///|
 test "upstream functions::broken_extension_function2" {
   assert_upstream_function_error(
-    "extension('foo')", "call to function `extension` failed: could not extract extension from `foo`",
+    "extension('foo')", "could not extract extension from `foo`",
   )
 }
 
 ///|
 test "upstream functions::broken_file_name_function" {
   assert_upstream_function_error(
-    "file_name('')", "call to function `file_name` failed: could not extract file name from ``",
+    "file_name('')", "could not extract file name from ``",
   )
 }
 
 ///|
 test "upstream functions::broken_file_stem_function" {
   assert_upstream_function_error(
-    "file_stem('')", "call to function `file_stem` failed: could not extract file stem from ``",
+    "file_stem('')", "could not extract file stem from ``",
   )
 }
 
 ///|
 test "upstream functions::broken_without_extension_function" {
   assert_upstream_function_error(
-    "without_extension('')", "call to function `without_extension` failed: could not extract parent from ``",
+    "without_extension('')", "could not extract parent from ``",
   )
 }
 
@@ -457,7 +457,7 @@ test "upstream functions::just_version" {
   let expression = try! @parser.parse_expression(source)
   assert_eq(
     try! @evaluator.evaluate_with_context(expression, context).to_string(),
-    "1.57.0",
+    "1.59.0",
   )
 }
 

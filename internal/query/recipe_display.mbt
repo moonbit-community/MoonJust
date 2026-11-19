@@ -41,7 +41,7 @@ priv struct ParameterDisplay {
 fn parameter_display(
   recipe : @syntax.Recipe,
   parameter : @syntax.Parameter,
-  environment? : @evaluator.Environment,
+  values? : MetadataValues,
 ) -> ParameterDisplay {
   let mut flag = false
   let mut help : String? = None
@@ -63,11 +63,9 @@ fn parameter_display(
       match argument.key() {
         Some("flag") => flag = true
         Some("help") =>
-          match (argument.value(), environment) {
-            (Some(expression), Some(environment)) => {
-              let value = @evaluator.evaluate(expression, environment~) catch {
-                _ => List([])
-              }
+          match (argument.value(), values) {
+            (Some(expression), Some(values)) => {
+              let value = values[expression.span()]
               let elements = value.elements()
               if !elements.is_empty() {
                 help = Some(elements.join(" "))
@@ -83,11 +81,9 @@ fn parameter_display(
             _ => ()
           }
         Some("pattern") =>
-          match (argument.value(), environment) {
-            (Some(expression), Some(environment)) => {
-              let value = @evaluator.evaluate(expression, environment~) catch {
-                _ => List([])
-              }
+          match (argument.value(), values) {
+            (Some(expression), Some(values)) => {
+              let value = values[expression.span()]
               pattern.append(value.elements())
             }
             (Some(String(text)), None) => pattern.push(text.cooked())
@@ -123,8 +119,12 @@ fn parameter_display(
 }
 
 ///|
-fn recipe_signature(recipe : @syntax.Recipe) -> String {
-  let values : Array[String] = [recipe.name()]
+fn recipe_signature(
+  recipe : @syntax.Recipe,
+  name : String,
+  color : Bool,
+) -> String {
+  let values : Array[String] = [name]
   let mut has_options = false
   for parameter in recipe.parameters() {
     if parameter_display(recipe, parameter).option {
@@ -132,44 +132,7 @@ fn recipe_signature(recipe : @syntax.Recipe) -> String {
     }
   }
   if has_options {
-    values.push("[OPTIONS]")
-  }
-  for parameter in recipe.parameters() {
-    if parameter_display(recipe, parameter).option {
-      continue
-    }
-    let prefix = if parameter.variadic() {
-      if parameter.variadic_minimum() == 0 {
-        "*"
-      } else {
-        "+"
-      }
-    } else {
-      ""
-    }
-    let suffix = match parameter.default_value() {
-      Some(value) => "=" + @formatter.format_expression(value)
-      None => ""
-    }
-    values.push(prefix + parameter.name() + suffix)
-  }
-  values.join(" ")
-}
-
-///|
-fn styled_recipe_signature(recipe : @syntax.Recipe, color : Bool) -> String {
-  if !color {
-    return recipe_signature(recipe)
-  }
-  let values : Array[String] = [recipe.name()]
-  let mut has_options = false
-  for parameter in recipe.parameters() {
-    if parameter_display(recipe, parameter).option {
-      has_options = true
-    }
-  }
-  if has_options {
-    values.push(paint("[OPTIONS]", "36", true))
+    values.push(paint("[OPTIONS]", "36", color))
   }
   for parameter in recipe.parameters() {
     if parameter_display(recipe, parameter).option {
@@ -183,17 +146,17 @@ fn styled_recipe_signature(recipe : @syntax.Recipe, color : Bool) -> String {
           "+"
         },
         "35",
-        true,
+        color,
       )
     } else {
       ""
     }
     let suffix = match parameter.default_value() {
       Some(value) =>
-        "=" + paint(@formatter.format_expression(value), "32", true)
+        "=" + paint(@formatter.format_expression(value), "32", color)
       None => ""
     }
-    values.push(prefix + paint(parameter.name(), "36", true) + suffix)
+    values.push(prefix + paint(parameter.name(), "36", color) + suffix)
   }
   values.join(" ")
 }

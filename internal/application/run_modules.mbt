@@ -31,16 +31,16 @@ fn prepare_module_runtimes(
       arguments,
       evaluation_cwd.flavor(),
     )
+    let base = merge_dotenv_entries(
+      loading_environment.to_owned(),
+      dotenv_by_module[path],
+      compilation.settings().bool("dotenv-override"),
+    )
     let environment = process_environment(
-      loading_environment,
+      base,
       global,
       evaluation_cwd.flavor(),
       unexports=compilation.unexports(),
-    )
-    let environment = merge_dotenv_entries(
-      environment,
-      dotenv_by_module[path],
-      compilation.settings().bool("dotenv-override"),
     )
     let evaluation_context = project_evaluation_context(
       project,
@@ -75,7 +75,13 @@ fn prepare_module_runtimes(
       platform,
     )
     runtimes[path] = @planner.ProjectModuleRuntime::new(
-      global, evaluation_context, shell, cwd, environment, configuration,
+      global,
+      evaluation_context,
+      shell,
+      cwd,
+      environment,
+      configuration,
+      dotenv=dotenv_by_module[path],
     )
   }
   runtimes

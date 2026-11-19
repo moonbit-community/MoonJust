@@ -123,7 +123,7 @@ fn report_json(
   json_string(baseline_digest) +
   ",\"baseline_commit\":" +
   json_string(@env.get_env_var("BASELINE_SHA").unwrap_or("unknown")) +
-  ",\"official_just_version\":\"1.57.0\"" +
+  ",\"official_just_version\":\"1.59.0\"" +
   ",\"moon_version\":" +
   json_string(moon_version) +
   ",\"moonc_version\":" +

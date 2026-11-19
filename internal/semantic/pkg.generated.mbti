@@ -13,9 +13,9 @@ import {
 }
 
 // Values
-pub const JUST_COMPATIBILITY_VERSION : String = "1.57.0"
+pub const JUST_COMPATIBILITY_VERSION : String = "1.59.0"
 
-pub fn compile(@syntax.Ast, platform? : TargetPlatform, allow_unstable? : Bool, defer_recipe_linking? : Bool) -> Compilation raise SemanticError
+pub fn compile(@syntax.Ast, imports? : ArrayView[ImportSource], platform? : TargetPlatform, allow_unstable? : Bool, defer_recipe_linking? : Bool) -> Compilation raise SemanticError
 
 pub fn compile_source(@source.Source, allow_unstable? : Bool) -> Compilation raise SemanticError
 
@@ -50,6 +50,7 @@ pub(all) suberror SemanticError {
   DuplicateFunctionParameter(function_name~ : String, parameter~ : String, span~ : @source.Span)
   UndefinedFunction(name~ : String, span~ : @source.Span)
   FunctionArgumentCount(name~ : String, expected~ : String, actual~ : Int32, span~ : @source.Span)
+  CachedRecipesUnstable(span~ : @source.Span)
   UserFunctionsUnstable(span~ : @source.Span)
   ListsUnstable(span~ : @source.Span)
   GuardAndInfallibleSigil(span~ : @source.Span)
@@ -153,6 +154,12 @@ pub fn CompiledSettings::span(Self, String) -> @source.Span?
 #deprecated
 pub fn CompiledSettings::to_repr(Self) -> @debug.Repr
 
+pub(all) struct ImportSource {
+  source : @source.Source
+  depth : Int32
+  items : ArrayView[@syntax.Item]
+}
+
 #derive(@debug.Debug)
 pub struct ProjectCompilation {
   module_order : Array[@modulepath.ModulePath]
@@ -231,6 +238,7 @@ pub struct RecipeAttributes {
   doc_expression : @syntax.Expression?
   groups : Array[String]
   working_directory : @syntax.Expression?
+  timestamp : @syntax.Attribute?
   shell : Array[@syntax.Expression]
   script : Bool
   script_interpreter : Array[@syntax.Expression]

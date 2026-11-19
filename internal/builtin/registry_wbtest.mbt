@@ -16,5 +16,5 @@ test "canonical and alias lookups cover the ordered builtin inventory" {
   assert_eq(directory.capabilities(), [Context])
   assert_true(directory.accepts_arity(0))
   assert_false(directory.accepts_arity(1))
-  assert_eq(directory.evidence(), "just-1.57.0/invocation_directory_native")
+  assert_eq(directory.evidence(), "just-1.59.0/invocation_directory_native")
 }

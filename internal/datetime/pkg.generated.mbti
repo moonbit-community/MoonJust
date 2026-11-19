@@ -10,6 +10,7 @@ pub(all) suberror FormatError {
   Unformattable
   OutOfRange
 }
+pub fn FormatError::message(Self, String) -> String
 
 // Types and methods
 

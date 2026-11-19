@@ -207,12 +207,16 @@ pub impl @host.HostEnv for ExecutionFs with fn env_get(
   _self : ExecutionFs,
   key : String,
 ) -> String? raise @host.HostError {
-  for entry in portable_environment() {
-    if entry.0 == key {
-      return Some(entry.1)
-    }
+  let value = @env.get_env_var(key)
+  // On Unix moonrun returns Some("") for a non-Unicode value, but omits
+  // that entry from the Unicode environment snapshot. A genuine empty
+  // value is present in both views. The original bytes are unavailable.
+  if value == Some("") &&
+    !(@async.platform is Windows) &&
+    !portable_environment().any(entry => entry.0 == key) {
+    raise InvalidInput("environment variable `\{key}` not unicode")
   }
-  None
+  value
 }
 
 ///|

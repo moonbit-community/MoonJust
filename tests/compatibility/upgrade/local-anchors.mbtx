@@ -1,0 +1,82 @@
+----
+import {
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+  "moonbitlang/core/async/process",
+  "moonbitlang/core/env",
+}
+----
+
+///|
+async fn main {
+  let emit = match @env.args()[1:] {
+    [] => false
+    ["--print-index"] => true
+    _ => fail("usage: local-anchors.mbtx [--print-index]")
+  }
+  let outline = @process.run(
+    "moon",
+    ["test", "--target", "wasm", "--outline"],
+    stdout=Collect,
+    accepted_exit_code=code => code == 0,
+  )
+  let locations : Map[(String, String), String] = Map([])
+  for raw in outline.stdout_text().split("\n") {
+    let line = raw.trim()
+    guard line.find(" name=\"") is Some(start) && line.has_suffix("\"") else {
+      continue
+    }
+    let name = line[start + 7:line.length() - 1].to_owned()
+    let fields = line[:start].split(" ").filter(s => !s.is_empty()).collect()
+    guard fields.length() == 4 else {
+      fail("unexpected outline record: " + line.to_owned())
+    }
+    let pkg_path = fields[1].strip_prefix("ZSeanYves/MoonJust/").unwrap_or("")
+    let loc = fields[2].split(":").collect()
+    guard loc.length() == 2 else {
+      fail("invalid outline location: " + line.to_owned())
+    }
+    let path = if pkg_path.is_empty() {
+      loc[0].to_owned()
+    } else {
+      pkg_path.to_owned() + "/" + loc[0].to_owned()
+    }
+    let key = (path, name)
+    guard !locations.contains(key) else {
+      fail("ambiguous test: " + path + " " + name)
+    }
+    locations[key] = path + ":" + loc[1].to_owned()
+  }
+  let input = @fs.read_text(
+    "tests/compatibility/upstream/just-1.59.0/spec-index.txt",
+  )
+  let rows = []
+  let mut count = 0
+  for line in input.split("\n") {
+    if line.is_empty() {
+      continue
+    }
+    let fields = line.split("\t").map(s => s.to_owned()).collect()
+    let path = fields[1].split(":").next().unwrap().to_owned()
+    if !fields[2].is_empty() && path.has_suffix(".mbt") {
+      guard locations.get((path, fields[2])) is Some(new_location) else {
+        fail("Wasm outline missing " + fields[0] + " in " + path)
+      }
+      if !emit {
+        assert_eq(fields[1], new_location, msg=fields[0])
+      }
+      fields[1] = new_location
+      count += 1
+    }
+    rows.push(fields.join("\t"))
+  }
+  if emit {
+    println(rows.join("\n"))
+  } else {
+    println(
+      "Verified " +
+      count.to_string() +
+      " named MoonBit test anchors in the Wasm outline.",
+    )
+  }
+}

@@ -1,3 +1,4 @@
 Usage: just foo [OPTIONS]
+
 Options:
       --bar a flag

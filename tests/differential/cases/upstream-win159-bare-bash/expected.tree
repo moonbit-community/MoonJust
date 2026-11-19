@@ -1,0 +1,6 @@
+dir	./home
+file	./justfile	33
+default:
+    #!bash
+    echo FOO
+

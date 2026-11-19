@@ -21,7 +21,7 @@ jobs:
       - run: moon version --all
       - run: moon update
       - run: moonx --version
-      - run: cargo install just --version 1.57.0 --locked
+      - run: cargo install just --version 1.59.0 --locked
       - run: moon run --target native ./tests/moonx -- --report _build/moonx-report.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: ${{ !cancelled() }}

@@ -100,14 +100,106 @@ test "only global help flags bypass invalid environment settings" {
 }
 
 ///|
-test "global options can be interleaved with query paths" {
+test "a global option terminates the preceding query path" {
   let parsed = try! @cli.parse_arguments(
-    ["--show", "tools", "--color=never", "build"],
+    ["--show", "tools", "build", "--color=never"],
     Map([]),
   )
   assert_eq(parsed.command(), ShowCommand)
   assert_eq(parsed.positional(), ["tools", "build"])
   assert_eq(parsed.value("color"), Some("never"))
+  assert_cli_usage_error(
+    ["--show", "tools", "--color=never", "build"],
+    "error: the argument '--show <RECIPE_PATH>...' cannot be used with '[ARGUMENTS]...'",
+  )
+}
+
+///|
+test "release query paths support attached operands and retain recipe and external argument boundaries" {
+  for
+    (argv, path) in [
+      (["--usage"], []),
+      (["--usage=tools", "-d", "child"], ["tools"]),
+      (["--usage", "tools", "build", "-dchild"], ["tools", "build"]),
+    ] {
+    let args = try! upstream_cli(argv)
+    assert_eq(args.command(), UsageCommand)
+    assert_eq(args.positional(), path[:])
+  }
+  let shown = try! upstream_cli(["-qsbuild"])
+  assert_true(shown.flag("quiet"))
+  assert_eq(shown.positional(), ["build"])
+  let trailing = ["--justfile-name=x,y", "-d", "other", "--usage=tools"]
+  for prefix in [["recipe"], ["--command", "exec"], ["--", "recipe"]] {
+    let args = try! upstream_cli(["-d.", ..prefix, ..trailing])
+    assert_eq(args.value("working-directory"), Some("."))
+    assert_true(args.values("justfile-name").is_empty())
+    assert_eq(args.positional()[1:], trailing[:])
+  }
+}
+
+///|
+test "release discovery usage errors preserve option order and explicit environment inputs" {
+  let footer = "\n\nFor more information, try '--help'."
+  for
+    (argv, option) in [
+      (["-d"], "--working-directory <WORKING_DIRECTORY>"),
+      (["-d", "--summary"], "--working-directory <WORKING_DIRECTORY>"),
+      (["--justfile-name", "--"], "--justfile-name <NAME>"),
+      (["--show", "--help"], "--show <RECIPE_PATH>..."),
+    ] {
+    assert_eq(
+      upstream_cli_error(argv),
+      Invalid(
+        "error: a value is required for '\{option}' but none was supplied" +
+        footer,
+      ),
+    )
+  }
+  assert_eq(
+    upstream_cli_error(["-d.", "-d", "elsewhere"]),
+    Invalid(
+      "error: the argument '--working-directory <WORKING_DIRECTORY>' cannot be used multiple times\n\nUsage: just [OPTIONS] [ARGUMENTS]..." +
+      footer,
+    ),
+  )
+  for
+    (argv, env, reason, usage) in [
+      (
+        ["--summary", "-g", "-d."],
+        { "JUST_COLOR": "never" },
+        "'--global-justfile' cannot be used with '--working-directory <WORKING_DIRECTORY>'",
+        "--summary --global-justfile --color <COLOR>",
+      ),
+      (
+        ["-d.", "-g", "--summary"],
+        Map([]),
+        "'--working-directory <WORKING_DIRECTORY>' cannot be used with '--global-justfile'",
+        "--working-directory <WORKING_DIRECTORY> --summary",
+      ),
+      (
+        ["--usage", "-v", "a", "-q"],
+        { "JUST_COLOR": "never" },
+        "'--usage [<PATH>...]' cannot be used with '[ARGUMENTS]...'",
+        "--usage [<PATH>...] --verbose... --color <COLOR>",
+      ),
+    ] {
+    try @cli.parse_arguments(argv, env) catch {
+      Invalid(message) =>
+        assert_eq(
+          message,
+          "error: the argument " +
+          reason +
+          "\n\nUsage: just " +
+          usage +
+          " [ARGUMENTS]..." +
+          footer,
+        )
+      error => fail("unexpected CLI error: \{Repr(error)}")
+    } noraise {
+      _ => fail("invalid invocation was accepted")
+    }
+  }
 }
 
 ///|

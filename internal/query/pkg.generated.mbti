@@ -29,7 +29,7 @@ pub fn loaded_for_module(@loader.LoadedGraph, @modulepath.ModulePath) -> @loader
 
 pub fn private_assignments(@syntax.Ast) -> @set.Set[String]
 
-pub fn render(QueryRequest, @loader.LoadedGraph, @semantic.ProjectCompilation, Bool, Map[@modulepath.ModulePath, @evaluator.Environment]) -> QueryResult raise QueryError
+pub fn render(QueryRequest, @loader.LoadedGraph, @semantic.ProjectCompilation, Bool, overrides? : Map[@modulepath.ModulePath, Array[(String, String)]]) -> QueryResult raise QueryError
 
 pub fn try_fast_summary(@loader.LoadedGraph, @cli.CliArguments) -> QueryResult?
 
@@ -45,7 +45,6 @@ pub(all) suberror QueryError {
 // Types and methods
 type QueryRequest
 pub fn QueryRequest::default_list(@modulepath.ModulePath, @cli.CliArguments) -> Self
-pub fn QueryRequest::needs_globals(Self) -> Bool
 
 pub struct QueryResult {
   stdout : Bytes

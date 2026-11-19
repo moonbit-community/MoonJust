@@ -9,10 +9,16 @@ the dates on which the corresponding moon.mod version entered source history;
 early 0.3.0 through 0.7.0-alpha.1 entries were development snapshots, not
 published releases.
 
-## Unreleased - 0.1.2 development line
+## Unreleased
 
 ### Changed
 
+- The CLI now targets just 1.59.0. A standalone `-d` starts justfile discovery
+  in the requested directory. Discovery accepts multiple `--justfile-name`
+  candidates, and `--usage` accepts a module. Recipes can set their own
+  timestamp format and select cache-key environment variables.
+- Import duplicate diagnostics and override order follow upstream. Recipe
+  listing evaluates the metadata it displays and skips unrelated assignments.
 - Compatibility reports now use schema 4. Live CLI comparisons, upstream
   document checks, indexed MoonBit assertions, scoped smoke tests and
   repository-only checks have distinct counts. The strict runner exercises

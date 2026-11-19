@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	82
+set windows-powershell
+set shell := ['asdfasdfasdfasdf']
+
+foo:
+  Write-Output bar
+

@@ -170,11 +170,7 @@ async test "upstream functions::read_file_not_found" {
     "bar",
     @evaluator.EvaluationContext::new(cwd~),
   )
-  assert_true(
-    message.has_prefix(
-      "call to function `read` failed: I/O error reading `bar`:",
-    ),
-  )
+  assert_true(message.has_prefix("I/O error reading `bar`:"))
 }
 
 ///|

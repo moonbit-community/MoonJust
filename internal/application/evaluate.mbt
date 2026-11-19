@@ -244,6 +244,7 @@ async fn[
   if arguments.command() != EvaluateCommand {
     raise UnsupportedCommand("async evaluation for non-evaluate command")
   }
+  let (arguments, context) = search_prefixed_invocation(arguments, context)
   let loading_environment = @host.HostEnv::env_entries(effects) catch {
     error => raise Host(error)
   }

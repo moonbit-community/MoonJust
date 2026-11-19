@@ -130,3 +130,8 @@ test "upstream search::tests::clean" {
     assert_eq(try! prefix.join(suffix).clean().as_string(), expected.2)
   }
 }
+
+///|
+test "clean parent_dir_after_disk_is_removed" {
+  assert_clean_path("C:\\..", "C:\\", Windows)
+}

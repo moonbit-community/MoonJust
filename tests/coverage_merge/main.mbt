@@ -72,6 +72,7 @@ fn expected_execution(
   platform : String,
 ) -> String {
   match kind {
+    "host-limited" => "deferred-host"
     "repository-only" | "excluded-completion" | "excluded-signal" => "excluded"
     "differential" if required != "all" &&
       required != platform &&
@@ -108,6 +109,10 @@ fn parse_row(
   }
   let reason = string_field(fields, "difference_reason").unwrap_or("")
   let valid_kind = match evidence_kind {
+    "host-limited" =>
+      status == evidence_kind &&
+      @testkit.deferred_host_behavior(upstream_id) ==
+      Some((required_platform, scope))
     "differential" =>
       status == "differential-exact" ||
       status == "differential-known-difference"
@@ -288,7 +293,7 @@ async fn main {
   let platforms : Set[String] = Set([])
   let rows_by_id : Map[String, Array[(String, CoverageRow)]] = Map([])
   let inventory = Set::from_iter(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/test-list.txt")
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/test-list.txt")
     .split("\n")
     .map(id => id.trim().to_owned())
     .filter(id => !id.is_empty()),
@@ -301,8 +306,10 @@ async fn main {
     if report.target != target {
       errors.push(report.runner_os + ": report target does not match")
     }
-    if report.upstream_total != 2417 {
-      errors.push(report.runner_os + ": upstream_total must be 2417")
+    if report.upstream_total != inventory.length() {
+      errors.push(
+        report.runner_os + ": upstream_total differs from the pinned inventory",
+      )
     }
     if report.failures != 0 ||
       report.known_differences !=
@@ -333,8 +340,10 @@ async fn main {
         rows_by_id[row.upstream_id] = observations
       }
     }
-    if seen.length() != 2417 {
-      errors.push(report.runner_os + ": report does not contain 2417 rows")
+    if seen.length() != inventory.length() {
+      errors.push(
+        report.runner_os + ": row count differs from the pinned inventory",
+      )
     }
   }
   for required in ["linux", "macos", "windows"] {
@@ -351,6 +360,7 @@ async fn main {
   let mut repository_only = 0
   let mut completion = 0
   let mut signal = 0
+  let mut host_limited = 0
   for upstream_id, observations in rows_by_id {
     guard observations.get(0) is Some((_, first)) else { continue }
     for observation in observations {
@@ -379,20 +389,20 @@ async fn main {
       "repository-only" => repository_only += 1
       "excluded-completion" => completion += 1
       "excluded-signal" => signal += 1
+      "host-limited" => host_limited += 1
       _ => errors.push(upstream_id + ": unclassified evidence")
     }
   }
-  if rows_by_id.length() != 2417 {
-    errors.push(
-      "merged report does not contain 2417 unique upstream identities",
-    )
+  if rows_by_id.length() != inventory.length() {
+    errors.push("merged identity count differs from the pinned inventory")
   }
   if differential != 1446 ||
     specs != 906 ||
     smoke != 4 ||
     documents != 3 ||
     repository_only != 3 ||
-    completion != 34 ||
+    completion != 39 ||
+    host_limited != 1 ||
     signal != 21 {
     errors.push(
       "merged evidence category totals do not match the pinned inventory",
@@ -430,6 +440,8 @@ async fn main {
     completion.to_string() +
     ",\"excluded_signal\":" +
     signal.to_string() +
+    ",\"host_limited\":" +
+    host_limited.to_string() +
     ",\"deferred_platform\":0,\"unclassified\":0,\"failures\":0}\n"
   match output {
     Some(path) => @fs.write_binary(path, @utf8.encode(report))

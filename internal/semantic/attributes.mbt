@@ -9,6 +9,7 @@ pub struct RecipeAttributes {
   doc_expression : @syntax.Expression?
   groups : Array[String]
   working_directory : @syntax.Expression?
+  timestamp : @syntax.Attribute?
   shell : Array[@syntax.Expression]
   script : Bool
   script_interpreter : Array[@syntax.Expression]
@@ -223,6 +224,7 @@ let shared_empty_recipe_attributes : RecipeAttributes = {
   doc_expression: None,
   groups: [],
   working_directory: None,
+  timestamp: None,
   shell: [],
   script: false,
   script_interpreter: [],
@@ -263,6 +265,7 @@ fn compile_attributes(
   let groups : Array[String] = []
   let group_spans : Map[String, @source.Span] = Map([])
   let mut working_directory : @syntax.Expression? = None
+  let mut timestamp = None
   let shell : Array[@syntax.Expression] = []
   let mut script = false
   let script_interpreter : Array[@syntax.Expression] = []
@@ -284,7 +287,7 @@ fn compile_attributes(
   let nonrepeatable = [
     "confirm", "default", "doc", "exit-message", "extension", "no-cd", "no-exit-message",
     "no-quiet", "parallel", "positional-arguments", "private", "script", "shell",
-    "working-directory",
+    "timestamp", "working-directory",
   ]
   for attribute in attributes {
     let name = attribute.name()
@@ -386,6 +389,7 @@ fn compile_attributes(
             if attribute.arguments().length() > 0 {
               working_directory = attribute.arguments()[0].value()
             }
+          "timestamp" => timestamp = Some(attribute)
           "env" => {
             let arguments = attribute.arguments()
             if arguments.length() == 2 {
@@ -513,6 +517,7 @@ fn compile_attributes(
     doc_expression,
     groups,
     working_directory,
+    timestamp,
     shell,
     script,
     script_interpreter,

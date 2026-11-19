@@ -1,0 +1,3 @@
+default:
+    #!bash
+    echo FOO

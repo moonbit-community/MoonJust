@@ -1,6 +1,6 @@
 # MoonJust
 
-MoonJust runs justfiles. Its only product is a linear-memory Wasm executable, written in MoonBit, with CLI behavior compared against official **just 1.57.0**. The root package is the executable; there is no public library facade.
+MoonJust runs justfiles. Its only product is a linear-memory Wasm executable, written in MoonBit, with CLI behavior compared against official **just 1.59.0**. The root package is the executable; there is no public library facade.
 
 ## Quick start
 

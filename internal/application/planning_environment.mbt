@@ -115,22 +115,6 @@ fn evaluate_project_globals(
 }
 
 ///|
-fn selected_timestamp(
-  arguments : @cli.CliArguments,
-) -> String? raise ApplicationError {
-  if !arguments.flag("timestamp") {
-    return None
-  }
-  let format = arguments.value("timestamp-format").unwrap()
-  if !@planner.valid_timestamp_format(format) {
-    raise Query(
-      "failed to parse time format string `\{format}`: bad or unsupported format string",
-    )
-  }
-  Some(format)
-}
-
-///|
 fn invocation_values(
   compilation : @semantic.Compilation,
   invocation : @invocation.Invocation,

@@ -12,8 +12,8 @@ async fn validate_inventory(
   if manifest.schema_version != 3 {
     failures.push("compatibility manifest schema_version must be 3")
   }
-  if manifest.upstream != "just 1.57.0" {
-    failures.push("compatibility manifest upstream must be `just 1.57.0`")
+  if manifest.upstream != "just 1.59.0" {
+    failures.push("compatibility manifest upstream must be `just 1.59.0`")
   }
   let manifest_upstream : Set[String] = Set([])
   for error in spec_index_shape_errors(spec_text) {

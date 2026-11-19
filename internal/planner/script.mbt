@@ -78,7 +78,8 @@ fn recipe_has_explicit_script_interpreter(recipe : @syntax.Recipe) -> Bool {
 }
 
 ///|
-fn needs_bom(program : String) -> Bool {
+fn needs_bom(program : String, platform : @host.PlatformInfo) -> Bool {
+  platform.operating_system() == Windows &&
   inferred_extension(program) == ".ps1"
 }
 
@@ -236,7 +237,13 @@ fn prepare_planned_script(
   }
   PlannedScript::new(
     recipe.name(),
-    script_bytes(recipe, lines, needs_bom(program), shebang is Some(_), false),
+    script_bytes(
+      recipe,
+      lines,
+      needs_bom(program, configuration.platform()),
+      shebang is Some(_),
+      false,
+    ),
     shebang,
     cwd,
     process_environment.to_owned(),
@@ -379,7 +386,6 @@ pub async fn[T : @host.HostScriptTemp] materialize_script(
       configuration.interpreter(),
       parsed,
       configuration.platform(),
-      planned.quiet,
       positional=planned.positional,
     )
   }
@@ -404,7 +410,6 @@ fn script_command(
   interpreter : @environment.ShellConfiguration,
   shebang : ShebangCommand?,
   platform : @host.PlatformInfo,
-  discard_output : Bool,
   positional~ : ArrayView[String] = [],
 ) -> @host.CommandSpec raise ExecutionError {
   let (program, arguments) = match shebang {
@@ -439,7 +444,8 @@ fn script_command(
     }
   }
   spec.set_stdin(b"")
-  spec.set_stdout(if discard_output { Discard } else { Capture })
-  spec.set_stderr(if discard_output { Discard } else { Capture })
+  // Script children retain their streams even when --quiet suppresses echoes.
+  spec.set_stdout(Capture)
+  spec.set_stderr(Capture)
   spec
 }

@@ -48,82 +48,36 @@ fn module_path_from_arguments(
 }
 
 ///|
-fn query_recipe_path(
-  project : @semantic.ProjectCompilation,
+fn query_path(
   arguments : ArrayView[String],
-) -> (@modulepath.ModulePath, String, String) raise QueryError {
-  if arguments.is_empty() {
-    raise Query("recipe path is required")
+) -> (@modulepath.ModulePath, String) raise QueryError {
+  let parts = match arguments {
+    [arg] if arg.contains(" ") =>
+      String::from_iter(
+        arg.iter().map(fn(c) { if c.is_whitespace() { ' ' } else { c } }),
+      )
+      .split(" ")
+      .filter(fn(part) { !part.is_empty() })
+      .map(StringView::to_owned)
+      .collect()
+    _ => arguments.to_owned()
   }
-  if arguments.length() > 1 &&
-    project.resolve_module(@modulepath.ModulePath::root(), arguments[0]) is None {
-    raise Query("unexpected argument: `" + arguments[1] + "`")
-  }
-  let (requested, display) = if arguments.length() == 1 {
-    (
-      arguments[0].split(" ").filter(fn(part) { !part.is_empty() }).join("::"),
-      arguments[0],
-    )
-  } else {
-    (arguments.join("::"), arguments.join(" "))
-  }
-  let parsed = try @modulepath.ModulePath::parse(requested) catch {
-    _ => raise Query("invalid recipe path `" + display + "`")
-  } noraise {
-    value => value
-  }
-  if project.absent_module_for_reference(
-      @modulepath.ModulePath::root(),
-      requested,
-    )
-    is Some(absent) {
-    raise Query("optional module `" + absent.as_string() + "` is absent")
-  }
-  let components = parsed.components()
-  if components.last() is Some(local_name) {
-    let prefix = components[:components.length() - 1].join("::")
-    let module_path = if prefix.is_empty() {
-      Some(@modulepath.ModulePath::root())
-    } else {
-      project.resolve_module(@modulepath.ModulePath::root(), prefix)
-    }
-    match module_path {
-      Some(path) => {
-        let compilation = project.module_compilation(path).unwrap()
-        if compilation.alias_target(local_name) is Some(_) &&
-          project.resolve_recipe(path, local_name) is Some(_) {
-          return (path, local_name, display)
-        }
+  let display = parts.join(" ")
+  let path = match parts {
+    [arg] => {
+      if arg.is_empty() || arg.has_suffix(":") {
+        raise Query("invalid module path `" + display + "`")
       }
-      None => ()
-    }
-  }
-  match project.resolve_recipe(@modulepath.ModulePath::root(), requested) {
-    Some(recipe) => (recipe.module_path(), recipe.recipe_name(), display)
-    None => {
-      guard components.last() is Some(local_name) else {
-        raise Query("unknown recipe `" + display + "`")
-      }
-      if components.length() == 1 {
-        return (@modulepath.ModulePath::root(), local_name, display)
-      }
-      let prefix = components[:components.length() - 1].join("::")
-      match project.resolve_module(@modulepath.ModulePath::root(), prefix) {
-        Some(path) => (path, local_name, display)
-        None => {
-          let requested_component = components[0]
-          raise Query(
-            unknown_submodule_message(
-              project,
-              @modulepath.ModulePath::root(),
-              requested_component,
-              display=prefix,
-            ),
-          )
-        }
+      @modulepath.ModulePath::parse(arg) catch {
+        _ => raise Query("invalid module path `" + display + "`")
       }
     }
+    _ =>
+      @modulepath.ModulePath::new(parts) catch {
+        _ => raise Query("invalid module path `" + arguments.join(" ") + "`")
+      }
   }
+  (path, display)
 }
 
 ///|
@@ -147,30 +101,6 @@ fn direct_child_modules(
     })
   }
   result
-}
-
-///|
-fn evaluated_module_attribute(
-  project : @semantic.ProjectCompilation,
-  path : @modulepath.ModulePath,
-  globals : Map[@modulepath.ModulePath, @evaluator.Environment],
-  name : String,
-) -> String? raise QueryError {
-  let environment_path = path.parent().unwrap_or(@modulepath.ModulePath::root())
-  let environment = globals
-    .get(environment_path)
-    .unwrap_or(@evaluator.Environment::new())
-  for attribute in project.module_declaration_attributes(path) {
-    if attribute.name() != name || attribute.arguments().is_empty() {
-      continue
-    }
-    guard attribute.arguments()[0].value() is Some(expression) else { continue }
-    let value = @evaluator.evaluate(expression, environment~) catch {
-      error => raise Evaluation(error)
-    }
-    return Some(value.to_string())
-  }
-  None
 }
 
 ///|
@@ -219,8 +149,13 @@ pub fn render(
   graph : @loader.LoadedGraph,
   project : @semantic.ProjectCompilation,
   color : Bool,
-  globals : Map[@modulepath.ModulePath, @evaluator.Environment],
+  overrides~ : Map[@modulepath.ModulePath, Array[(String, String)]] = Map([]),
 ) -> QueryResult raise QueryError {
+  let values = match request {
+    ListModule(_, _) | ModuleUsage(_, _, ..) | Usage(_, _, _) =>
+      evaluate_metadata(project, overrides)
+    _ => Map([])
+  }
   let output = match request {
     Summary(filter, quiet~) =>
       return summary_result(project_summary_names(project, filter), quiet)
@@ -232,40 +167,65 @@ pub fn render(
       if project.module_compilation(path) is None {
         raise Query("unknown module `" + path.as_string() + "`")
       }
-      options.heading + list_body(graph, project, path, options, color, globals)
+      options.heading + list_body(graph, project, path, options, color, values)
     }
-    Show(path, recipe) => {
-      if project.alias_disabled(path, recipe) {
-        let modules = project.alias_absent_modules(path, recipe)
-        raise Query(
-          "alias `" +
-          recipe +
-          "` depends on absent module" +
-          (if modules.length() == 1 { " `" } else { "s `" }) +
-          modules.map(fn(value) { value.as_string() }).join("` and `") +
-          "`",
-        )
+    Show(path, recipe) => show_recipe_text(graph, project, path, recipe)
+    Usage(path, name, display) => {
+      let compilation = project.module_compilation(path).unwrap()
+      guard project.resolve_recipe(path, name) is Some(target) else {
+        raise Query(unknown_recipe_message(compilation, name))
       }
-      if project.recipe_disabled(path, recipe) {
-        let modules = project.recipe_absent_modules(path, recipe)
-        raise Query(
-          "recipe `" +
-          recipe +
-          "` depends on absent module" +
-          (if modules.length() == 1 { " `" } else { "s `" }) +
-          modules.map(fn(value) { value.as_string() }).join("` and `") +
-          "`",
-        )
-      }
-      show_recipe_text(graph, project, path, recipe)
-    }
-    Usage(path, recipe, display) =>
-      usage_recipe_text(
-        project.module_compilation(path).unwrap(),
+      let path = target.module_path()
+      let recipe = project
+        .module_compilation(path)
+        .unwrap()
+        .recipe(target.recipe_name())
+        .unwrap()
+      let usage = usage_recipe_text(
         recipe,
         display,
-        environment=globals[path],
+        values,
+        color,
+        in_module=false,
       )
+      match compilation.alias_target(name) {
+        Some(target) => "alias " + name + " := " + target + "\n" + usage
+        None => usage
+      }
+    }
+    ModuleUsage(path, prefix, unsorted~, quiet~) => {
+      let compilation = project.module_compilation(path).unwrap()
+      let names = visible_recipe_names(compilation, { groups: [], unsorted, }).filter(fn(
+          name,
+        ) {
+          !project.recipe_disabled(path, name)
+        },
+      )
+      if names.is_empty() {
+        return QueryResult::new(
+          stderr=if quiet { b"" } else { b"module contains no recipes\n" },
+        )
+      }
+      let docs = module_recipe_comments(graph, path)
+      let entries = []
+      for name in names {
+        let recipe = compilation.recipe(name).unwrap()
+        let builder = StringBuilder()
+        if recipe_metadata_doc(recipe, docs, values) is Some(doc) {
+          for line in doc.replace_all(old="\r\n", new="\n").split("\n") {
+            builder.write_string(
+              "    " + paint("# " + line.to_owned(), "34", color) + "\n",
+            )
+          }
+        }
+        let display = if prefix.is_empty() { name } else { prefix + " " + name }
+        builder.write_string(
+          usage_recipe_text(recipe, display, values, color, in_module=true),
+        )
+        entries.push(builder.to_string())
+      }
+      paint("Usage:", "1;33", color) + "\n" + entries.join("\n")
+    }
     Variables => {
       let private = private_assignments(graph.files()[0].ast())
       let names = project

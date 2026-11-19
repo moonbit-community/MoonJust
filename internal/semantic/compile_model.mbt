@@ -1,18 +1,19 @@
 ///|
 fn compile_full(
   ast : @syntax.Ast,
+  imports~ : ArrayView[ImportSource],
   platform~ : TargetPlatform = TargetPlatform::new(Other("unknown"), false),
   allow_unstable~ : Bool = false,
   defer_recipe_linking~ : Bool = false,
 ) -> Compilation raise SemanticError {
-  let preliminary_settings_nodes : Array[@syntax.Setting] = []
+  let settings_nodes : Array[@syntax.Setting] = []
   let mut preliminary_attributes : Array[@syntax.Attribute] = []
   for item in ast.items() {
     match item {
       Attribute(value) => preliminary_attributes.push(value)
       Setting(value) => {
         if platform_attributes_match(preliminary_attributes, platform) {
-          preliminary_settings_nodes.push(value)
+          settings_nodes.push(value)
         }
         preliminary_attributes = []
       }
@@ -21,8 +22,8 @@ fn compile_full(
       Comment(_) | TrailingComment(_) | Blank(_) | Import(_) | Module(_) => ()
     }
   }
-  let preliminary_settings = compile_settings(preliminary_settings_nodes)
-  let settings_nodes : Array[@syntax.Setting] = []
+  let settings = compile_settings(settings_nodes)
+  let shadowed = shadowed_declarations(ast, imports, platform, settings)
   let variables : Array[@syntax.Assignment] = []
   let functions : Array[@syntax.FunctionDefinition] = []
   let recipes : Array[@syntax.Recipe] = []
@@ -35,12 +36,11 @@ fn compile_full(
   let aliases : Array[@syntax.Alias] = []
   let unexports : Array[String] = []
   let symbols : Array[Symbol] = []
-  let duplicate_recipe_names : Set[String] = Set([])
-  let variable_spans : Map[String, @source.Span] = Map([])
   let function_spans : Map[String, @source.Span] = Map([])
   let alias_spans : Map[String, @source.Span] = Map([])
   let alias_names : Map[String, String] = Map([])
   let recipe_docs : Map[String, String] = Map([])
+  let mut cached_recipe : @source.Span? = None
   let mut recipes_have_dependencies = false
   let mut pending_docs : Array[String] = []
   let mut pending_attributes : Array[@syntax.Attribute] = []
@@ -54,13 +54,7 @@ fn compile_full(
           [],
           semantic_name_span(value.span(), value.name(), offset=4),
         )
-        let enabled = platform_attributes_match(pending_attributes, platform)
         pending_attributes = []
-        if !enabled {
-          pending_docs = []
-          continue
-        }
-        settings_nodes.push(value)
         pending_docs = []
       }
       Attribute(value) => pending_attributes.push(value)
@@ -72,25 +66,15 @@ fn compile_full(
           value.name(),
           value.attributes(),
           ["private"],
-          semantic_name_span(value.span(), value.name()),
+          value.name_span,
         )
         if !value.attributes().is_empty() &&
           !compile_attributes(value.attributes()).matches(platform) {
           continue
         }
         let name = value.name()
-        if variable_spans.get(name) is Some(first) &&
-          !variable_spans.contains(name + "#duplicate") {
-          if !bool_setting(preliminary_settings, "allow-duplicate-variables") {
-            raise DuplicateVariable(
-              name~,
-              first~,
-              second=semantic_name_span(value.span(), name),
-            )
-          }
-          variable_spans[name + "#duplicate"] = value.span()
-        } else {
-          variable_spans[name] = value.span()
+        if shadowed.contains(value.name_span) {
+          continue
         }
         variables.push(value)
         symbols.push(Symbol::new(name, Variable, value.span()))
@@ -141,7 +125,7 @@ fn compile_full(
           value.name(),
           value.attributes(),
           ["private"],
-          semantic_name_span(value.span(), value.name(), offset=6),
+          value.name_span,
         )
         if !value.attributes().is_empty() &&
           !compile_attributes(value.attributes()).matches(platform) {
@@ -153,38 +137,19 @@ fn compile_full(
               name=value.name(),
               first_kind="recipe",
               second_kind="alias",
-              first=first_recipe.span(),
-              second=semantic_name_span(value.span(), value.name(), offset=6),
+              first=first_recipe.name_span,
+              second=value.name_span,
             )
           None => ()
         }
-        match alias_spans.get(value.name()) {
-          Some(first) =>
-            raise SymbolRedefinition(
-              name=value.name(),
-              first_kind="alias",
-              second_kind="alias",
-              first~,
-              second=semantic_name_span(value.span(), value.name(), offset=6),
-            )
-          None => alias_spans[value.name()] = value.span()
-        }
+        alias_spans[value.name()] = value.name_span
         alias_names[value.name()] = value.target()
         aliases.push(value)
-        symbols.push(
-          Symbol::new(
-            value.name(),
-            Alias,
-            semantic_name_span(value.span(), value.name(), offset=6),
-          ),
-        )
+        symbols.push(Symbol::new(value.name(), Alias, value.name_span))
       }
       Recipe(value) => {
         let name = value.name()
-        let first_definition = recipe_map.get(name) is None
-        if !pending_docs.is_empty() {
-          recipe_docs[name] = pending_docs.join(" ")
-        }
+        let docs = pending_docs
         pending_docs = []
         let attributes = if value.attributes().is_empty() {
           empty_recipe_attributes()
@@ -194,6 +159,9 @@ fn compile_full(
             recipe_name=value.name(),
             recipe_span=value.span(),
           )
+        }
+        if cached_recipe is None && attributes.names().contains("cache") {
+          cached_recipe = Some(value.name_span)
         }
         if !attributes.matches(platform) {
           pending_attributes = []
@@ -206,22 +174,18 @@ fn compile_full(
               first_kind="alias",
               second_kind="recipe",
               first~,
-              second=semantic_name_span(value.span(), name),
+              second=value.name_span,
             )
           None => ()
         }
-        if recipe_map.get(name) is Some(first_recipe) &&
-          !duplicate_recipe_names.contains(name) {
-          if !bool_setting(preliminary_settings, "allow-duplicate-recipes") {
-            raise DuplicateRecipe(
-              name~,
-              first=first_recipe.span(),
-              second=semantic_name_span(value.span(), name),
-            )
-          }
-          duplicate_recipe_names.add(name)
-        }
         validate_parameters(value)
+        if shadowed.contains(value.name_span) {
+          pending_attributes = []
+          continue
+        }
+        if !docs.is_empty() {
+          recipe_docs[name] = docs.join(" ")
+        }
         if !value.dependencies().is_empty() ||
           !value.subsequent_dependencies().is_empty() {
           recipes_have_dependencies = true
@@ -230,12 +194,8 @@ fn compile_full(
         recipe_attributes.push(attributes)
         recipe_map[name] = value
         attribute_map[name] = attributes
-        if first_definition {
-          ordered_recipe_names.push(name)
-        }
-        symbols.push(
-          Symbol::new(name, Recipe, semantic_name_span(value.span(), name)),
-        )
+        ordered_recipe_names.push(name)
+        symbols.push(Symbol::new(name, Recipe, value.name_span))
         pending_attributes = []
       }
       Comment(text~, ..) => {
@@ -291,7 +251,6 @@ fn compile_full(
       }
     }
   }
-  let settings = compile_settings(settings_nodes)
   for variable in variables {
     if unexports.contains(variable.name()) {
       raise ExportUnexported(
@@ -302,16 +261,6 @@ fn compile_full(
           7 + variable.name().length(),
         ),
       )
-    }
-  }
-  if !functions.is_empty() && !allow_unstable && !settings.bool("unstable") {
-    raise UserFunctionsUnstable(span=functions[0].span())
-  }
-  if settings.bool("lists") && !allow_unstable && !settings.bool("unstable") {
-    for setting in settings_nodes {
-      if setting.name() == "lists" {
-        raise ListsUnstable(span=setting.span())
-      }
     }
   }
   validate_minimum_version(settings, settings_nodes)
@@ -493,6 +442,21 @@ fn compile_full(
           states,
           settings.bool("lists"),
         )
+      }
+    }
+  }
+  if !allow_unstable && !settings.bool("unstable") {
+    if cached_recipe is Some(span) {
+      raise CachedRecipesUnstable(span~)
+    }
+    if !functions.is_empty() {
+      raise UserFunctionsUnstable(span=functions[0].span())
+    }
+    if settings.bool("lists") {
+      for setting in settings_nodes {
+        if setting.name() == "lists" {
+          raise ListsUnstable(span=setting.span())
+        }
       }
     }
   }

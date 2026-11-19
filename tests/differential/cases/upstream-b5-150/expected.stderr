@@ -1,4 +1,4 @@
-error: call to function `replace_regex` failed: regex parse error:
+error: regex parse error:
     foo\
        ^
 error: incomplete escape sequence, reached end of pattern prematurely

@@ -1,0 +1,5 @@
+error: alias `a` first defined on line 1 is redefined on line 4
+ ——▶ justfile:4:7
+  │
+4 │ alias a := target1
+  │       ^

@@ -1,0 +1,7 @@
+dir	./home
+file	./justfile	48
+set windows-powershell
+
+foo:
+  Write-Output bar
+

@@ -5,7 +5,9 @@ import {
   "ZSeanYves/MoonJust/internal/loader",
   "ZSeanYves/MoonJust/internal/modulepath",
   "ZSeanYves/MoonJust/internal/semantic",
+  "ZSeanYves/MoonJust/internal/source",
   "ZSeanYves/MoonJust/internal/syntax",
+  "ZSeanYves/MoonJust/internal/value",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/string",
 }
@@ -17,7 +19,6 @@ import {
   "ZSeanYves/MoonJust/internal/host/testkit" @host_testkit,
   "ZSeanYves/MoonJust/internal/path",
   "ZSeanYves/MoonJust/internal/project",
-  "ZSeanYves/MoonJust/internal/source",
   "moonbitlang/core/async",
 } for "test"
 

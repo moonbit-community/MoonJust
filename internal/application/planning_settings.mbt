@@ -366,7 +366,6 @@ fn selected_command_color(
 ///|
 fn execution_options(
   arguments : @cli.CliArguments,
-  timestamp : String?,
   command_color : @planner.CommandColor?,
   color_enabled : Bool,
 ) -> @planner.ExecutionOptions {
@@ -375,7 +374,8 @@ fn execution_options(
     arguments.flag("quiet"),
     arguments.flag("verbose"),
     arguments.flag("time"),
-    timestamp,
+    arguments.flag("timestamp"),
+    arguments.value("timestamp-format").unwrap(),
     command_color,
   )
   .with_assume_yes(arguments.flag("yes"))

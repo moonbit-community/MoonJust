@@ -1,7 +1,7 @@
 # Compatibility corpus
 
-MoonJust tests its release Wasm CLI against official just 1.57.0. The inventory
-contains 2,417 upstream test identities. One fixture can supply evidence for
+MoonJust tests its release Wasm CLI against official just 1.59.0. The inventory
+contains 2,461 upstream test identities. One fixture can supply evidence for
 several identities, and one identity can require hundreds of CLI invocations.
 The inventory counts identities. Use each row's `fixture`, `upstream_source_anchor`,
 `status` and `execution_state` to interpret a result.
@@ -19,12 +19,13 @@ the pinned inventory. The per-host report records which checks actually ran.
 | `local-smoke` | 4 | Three assertions check selected parser fields. One checks the MoonJust-specific `Unsupported("--completions")` error for `--list --completions`. The upstream clap test requires a parse error. Each row describes its assertion in `evidence_scope`. |
 | `document-oracle` | 3 | The two CLIs ran the upstream document checks described below. The required observation differs by document. |
 | `repository-only` | 3 | Two upstream README heading rules and the generated README constants table concern just's repository. Their execution state is `excluded`. |
-| `excluded-completion` | 34 | Shell completion generation and its protocol are outside the portable CLI contract. |
+| `excluded-completion` | 39 | Shell completion generation and its protocol are outside the portable CLI contract. |
 | `excluded-signal` | 21 | Raw signal identity and forwarding are outside the portable CLI contract. |
+| `host-limited` | 1 | On Linux an invalid byte in the invocation directory can abort moonrun during its current-directory request. The report records this identity as deferred. [Reproduction and controls](upgrade/host-limits.md) |
 | `unclassified` | 0 required | Strict mode fails for an identity without an evidence category. A source snapshot alone cannot establish execution. |
 
 `status` describes the expected evidence. `execution_state` records
-`executed`, `failed`, `unexecuted`, `excluded` or `deferred-platform`.
+`executed`, `failed`, `unexecuted`, `excluded`, `deferred-host` or `deferred-platform`.
 For differential rows, `differential_executed` counts attempted comparisons,
 including mismatches. `differential_exact` and `differential_known_difference`
 in the summary count successful comparisons of each kind. Local spec, smoke
@@ -33,12 +34,13 @@ the strict runner also requires the fixture, index and oracle validation to pass
 
 `--help` and `--version` have separate product-identity fixtures and pinned
 candidate stdout digests. `product_identity_difference` counts verified fixtures
-outside the 2,417 upstream rows. The three in-place formatting refusals are the
-only functional exceptions. [Reviewed allowlist](../testkit/functional_allowlist.mbt)
+outside the 2,461 upstream rows. The three in-place formatting refusals have
+live oracle comparisons and check the candidate's complete original tree.
+[Reviewed exceptions](../testkit/functional_allowlist.mbt)
 
 ## Document identities
 
-- `readme::readme` extracts all 192 blocks with the exact three-backtick
+- `readme::readme` extracts all 195 blocks with the exact three-backtick
   opening fence and language tag `just` from the pinned README. Each CLI must exit 0 on
   `--dump` for each block in an isolated directory. The assertion covers acceptance.
 - `examples::examples` runs both CLIs with `--justfile FILE --dump` on each of
@@ -51,7 +53,7 @@ only functional exceptions. [Reviewed allowlist](../testkit/functional_allowlist
 The upstream `man::output` identity uses a normal differential fixture.
 MoonJust also has local byte-level tests for its static changelog and manual
 responses. The upstream document inputs and original Rust assertions are
-available offline. [Pinned inputs](upstream/just-1.57.0/source)
+available offline. [Pinned inputs](upstream/just-1.59.0/source)
 
 ## Fixtures and anchors
 
@@ -78,7 +80,7 @@ local declaration or provenance location, local test name when present,
 and upstream source anchor. A fifth field documents a local smoke assertion's
 scope. Excluded identities can reference their pinned Rust declaration directly.
 Strict mode runs the Wasm test suite and verifies declaration locations
-and names against `moon test --outline`. [Spec index](upstream/just-1.57.0/spec-index.txt)
+and names against `moon test --outline`. [Spec index](upstream/just-1.59.0/spec-index.txt)
 
 ## Run locally
 
@@ -96,7 +98,7 @@ Use `--case DIRECTORY` to run one differential fixture or `--case readme::readme
 `--case examples::examples` or `--case changelog::print_changelog` to run one
 document identity. Omit `--strict-coverage` for a partial run.
 
-One Windows-only identity defers on macOS and Linux. The flag
+Fixtures with host-specific behavior run on their declared platforms. The flag
 `--allow-deferred-platform` permits this in a single-host run. The aggregate
 requires schema 4 reports from Linux, macOS and Windows for the same Wasm
 target, with every required row executed on its applicable hosts.

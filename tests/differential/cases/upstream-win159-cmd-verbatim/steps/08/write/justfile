@@ -1,0 +1,4 @@
+set shell := ['cmd.exe', '/c']
+
+foo:
+ @cmd /c exit 1||echo foo

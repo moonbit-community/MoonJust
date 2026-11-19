@@ -49,145 +49,101 @@ fn show_recipe_text(
   if show_doc_comment(graph, recipe) is Some(doc) {
     builder.write_string("# " + doc + "\n")
   }
+  // The analyzer displays recipe attributes ordered by kind.
+  let attributes = recipe.attributes().to_owned()
+  attributes.sort_by(fn(left, right) {
+    lexical_compare(left.name(), right.name())
+  })
+  let shown = { ..recipe, attributes, }
   builder.write_string(
-    @formatter.format(
-      @syntax.Ast::new(span.source_id(), [Recipe(recipe)], span),
-    ),
+    @formatter.format(@syntax.Ast::new(span.source_id(), [Recipe(shown)], span)),
   )
   builder.to_string()
 }
 
 ///|
 fn usage_recipe_text(
-  compilation : @semantic.Compilation,
-  requested : String,
+  recipe : @syntax.Recipe,
   display_path : String,
-  environment? : @evaluator.Environment,
-) -> String raise QueryError {
-  let name = compilation.alias_target(requested).unwrap_or(requested)
-  guard compilation.recipe(name) is Some(recipe) else {
-    raise Query(unknown_recipe_message(compilation, requested))
-  }
-  let builder = StringBuilder()
-  if name != requested {
-    builder.write_string("alias ")
-    builder.write_string(requested)
-    builder.write_string(" := ")
-    builder.write_string(name)
-    builder.write_char('\n')
-  }
-  builder.write_string("Usage: just ")
-  builder.write_string(display_path)
-  let mut has_options = false
-  let mut has_arguments = false
+  values : MetadataValues,
+  color : Bool,
+  in_module~ : Bool,
+) -> String {
+  let signature = StringBuilder()
+  let arguments = []
+  let options = []
   for parameter in recipe.parameters() {
-    let display = parameter_display(recipe, parameter, environment?)
+    let display = parameter_display(recipe, parameter, values~)
+    let line = StringBuilder()
     if display.option {
-      has_options = true
-    } else {
-      has_arguments = true
-    }
-  }
-  if has_options {
-    builder.write_string(" [OPTIONS]")
-  }
-  for parameter in recipe.parameters() {
-    if parameter_display(recipe, parameter, environment?).option {
-      continue
-    }
-    builder.write_char(' ')
-    let label = parameter.name() +
-      (if parameter.variadic() { "..." } else { "" })
-    if parameter.default_value() is Some(_) ||
-      (parameter.variadic() && parameter.variadic_minimum() == 0) {
-      builder.write_string("[" + label + "]")
-    } else {
-      builder.write_string(label)
-    }
-  }
-  builder.write_string("\n")
-  if has_arguments {
-    builder.write_string("\nArguments:\n")
-    for parameter in recipe.parameters() {
-      let display = parameter_display(recipe, parameter, environment?)
-      if display.option {
-        continue
-      }
-      builder.write_string("  ")
-      let label = parameter.name() +
-        (if parameter.variadic() { "..." } else { "" })
-      match parameter.default_value() {
-        Some(value) =>
-          builder.write_string(
-            "[" +
-            label +
-            "] [default: " +
-            @formatter.format_expression(value) +
-            "]",
-          )
-        None if parameter.variadic() && parameter.variadic_minimum() == 0 =>
-          builder.write_string("[" + label + "]")
-        None => builder.write_string(label)
-      }
-      match display.help {
-        Some(help) => builder.write_string(" " + help)
-        None => ()
-      }
-      if !display.pattern.is_empty() {
-        builder.write_string(
-          " [pattern: '" + display.pattern.join("' | '") + "']",
-        )
-      }
-      builder.write_char('\n')
-    }
-  }
-  if has_options {
-    if has_arguments {
-      builder.write_string("\nOptions:\n")
-    } else {
-      builder.write_string("Options:\n")
-    }
-    for parameter in recipe.parameters() {
-      let display = parameter_display(recipe, parameter, environment?)
-      if !display.option {
-        continue
-      }
-      builder.write_string("  ")
       match display.short {
-        Some(short) => builder.write_string("-" + short)
-        None => builder.write_string("  ")
+        Some(short) => line.write_string(paint("-" + short, "32", color))
+        None => line.write_string("  ")
       }
-      match display.long {
-        Some(long) => {
-          if display.short is Some(_) {
-            builder.write_string(", ")
-          } else {
-            builder.write_string("  ")
-          }
-          builder.write_string("--" + long)
-        }
-        None => ()
+      if display.long is Some(long) {
+        line.write_string(if display.short is Some(_) { ", " } else { "  " })
+        line.write_string(paint("--" + long, "32", color))
       }
       if !display.value && !display.flag {
-        builder.write_string(" " + parameter.name())
+        line.write_string(" " + paint(parameter.name(), "36", color))
       }
-      match display.help {
-        Some(help) => builder.write_string(" " + help)
-        None => ()
+    } else {
+      let optional = parameter.default_value() is Some(_) ||
+        (parameter.variadic() && parameter.variadic_minimum() == 0)
+      if optional {
+        line.write_string(paint("[", "36", color))
       }
-      match parameter.default_value() {
-        Some(default) if !display.value =>
-          builder.write_string(
-            " [default: " + @formatter.format_expression(default) + "]",
-          )
-        _ => ()
+      line.write_string(paint(parameter.name(), "36", color))
+      if parameter.variadic() {
+        line.write_string(paint("...", "36", color))
       }
-      if !display.pattern.is_empty() {
-        builder.write_string(
-          " [pattern: '" + display.pattern.join("' | '") + "']",
-        )
+      if optional {
+        line.write_string(paint("]", "36", color))
       }
-      builder.write_char('\n')
+      signature.write_string(" " + line.to_string())
+    }
+    if display.help is Some(help) {
+      line.write_string(" " + help)
+    }
+    if !display.value && parameter.default_value() is Some(value) {
+      line.write_string(
+        " [default: " + @formatter.format_expression(value) + "]",
+      )
+    }
+    if !display.pattern.is_empty() {
+      line.write_string(" [pattern: '" + display.pattern.join("' | '") + "']")
+    }
+    if display.option {
+      options.push(line.to_string())
+    } else {
+      arguments.push(line.to_string())
+    }
+  }
+  let builder = StringBuilder()
+  let indentation = if in_module { "    " } else { "" }
+  if !in_module {
+    builder.write_string(paint("Usage:", "1;33", color) + " ")
+  }
+  builder.write_string(
+    indentation +
+    paint("just", "36", color) +
+    " " +
+    paint(display_path, "36", color),
+  )
+  if !options.is_empty() {
+    builder.write_string(" " + paint("[OPTIONS]", "36", color))
+  }
+  builder.write_string(signature.to_string())
+  builder.write_char('\n')
+  for (heading, lines) in [("Arguments:", arguments), ("Options:", options)] {
+    if lines.is_empty() {
+      continue
+    }
+    if !in_module {
+      builder.write_string("\n" + paint(heading, "1;33", color) + "\n")
+    }
+    for line in lines {
+      builder.write_string(indentation + "  " + line + "\n")
     }
   }
   builder.to_string()

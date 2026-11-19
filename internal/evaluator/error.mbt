@@ -108,7 +108,7 @@ pub fn EvaluationError::message(self : EvaluationError) -> String {
     Host(error, ..) =>
       "host capability failed during evaluation: " + Repr(error).to_string()
     ProcessFailure(code~, ..) =>
-      "call to function `shell` failed: process exited with status code " +
+      "shell command failed: process exited with status code " +
       code.to_string()
     BacktickFailure(code~, ..) =>
       "backtick failed with exit code " + code.to_string()

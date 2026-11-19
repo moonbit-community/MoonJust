@@ -1,11 +1,11 @@
 ///|
-/// Return the complete stable attribute inventory from `just 1.57.0`.
+/// Return the supported attribute names.
 pub fn attribute_names() -> ArrayView[String] {
   [
     "android", "arg", "cache", "confirm", "continue", "default", "doc", "dragonfly",
     "env", "exit-message", "extension", "freebsd", "group", "linux", "macos", "metadata",
     "netbsd", "no-cd", "no-exit-message", "no-quiet", "openbsd", "parallel", "positional-arguments",
-    "private", "script", "shell", "unix", "windows", "working-directory",
+    "private", "script", "shell", "timestamp", "unix", "windows", "working-directory",
   ][:]
 }
 
@@ -21,10 +21,10 @@ fn attribute_arity_valid(
   keywords : Int32,
 ) -> Bool {
   match name {
-    "confirm" | "doc" => keywords == 0 && positional <= 1
+    "confirm" | "doc" | "timestamp" => keywords == 0 && positional <= 1
     "continue" | "script" => keywords == 0
     "arg" => positional == 1 && keywords <= 9
-    "cache" => positional == 0 && keywords <= 3
+    "cache" => positional == 0 && keywords <= 4
     "extension" | "group" | "working-directory" =>
       positional == 1 && keywords == 0
     "env" => positional == 2 && keywords == 0
@@ -58,7 +58,7 @@ fn attribute_key_valid(attribute : String, key : String) -> Bool {
       [
         "flag", "help", "long", "max", "min", "multiple", "pattern", "short", "value",
       ].contains(key)
-    "cache" => ["extra", "inputs", "outputs"].contains(key)
+    "cache" => ["environment", "extra", "inputs", "outputs"].contains(key)
     _ => false
   }
 }
@@ -99,7 +99,8 @@ fn Parser::parse_attribute_group(
       )
     } else if self.accept(ParenL) is Some(_) {
       while self.peek_kind() != ParenR {
-        if self.peek_kind_at(1) == Some(Equals) {
+        if (name == "arg" || name == "cache") &&
+          self.peek_kind_at(1) == Some(Equals) {
           let (key, key_token) = self.expect_identifier()
           self.expect(Equals) |> ignore
           let value = self.parse_expression_node()
@@ -113,8 +114,16 @@ fn Parser::parse_attribute_group(
           )
         } else {
           let value = self.parse_expression_node()
+          if value is Variable(_) && self.peek_kind() == Equals {
+            raise UnexpectedToken(
+              expected="'&&', '!=', '!~', '||', ',', '==', '=~', '(', ')', '+', '++', or '/'",
+              found=Equals,
+              span=self.peek().span(),
+            )
+          }
           match value {
-            Variable(name=key, ..) if attribute_key_valid(name, key) =>
+            Variable(name=key, ..) if name == "cache" ||
+              attribute_key_valid(name, key) =>
               arguments.push(
                 @syntax.AttributeArgument::new(Some(key), None, value.span()),
               )
@@ -137,10 +146,10 @@ fn Parser::parse_attribute_group(
     let span = name_token.span()
     let mut positional = 0
     let mut keywords = 0
+    let cache_keys : Set[String] = Set([])
     for argument in arguments {
       match argument.key() {
         Some(key) => {
-          keywords += 1
           if !attribute_key_valid(name, key) {
             raise UnknownAttributeKey(
               attribute=name,
@@ -148,6 +157,20 @@ fn Parser::parse_attribute_group(
               span=argument.span(),
             )
           }
+          if name == "cache" {
+            if cache_keys.contains(key) {
+              raise DuplicateAttributeKey(
+                attribute=name,
+                key~,
+                span=argument.span(),
+              )
+            }
+            cache_keys.add(key)
+            if argument.value() is None {
+              raise MissingAttributeKeyValue(key~, span=argument.span())
+            }
+          }
+          keywords += 1
         }
         None => positional += 1
       }
@@ -181,6 +204,13 @@ fn Parser::parse_attribute_group(
     if arguments.length() > 32 ||
       !attribute_arity_valid(name, positional, keywords) {
       raise InvalidAttributeArity(name~, actual=arguments.length(), span~)
+    }
+    // The cache schema defines evaluation and display order independently
+    // of source order. All accepted cache arguments are named.
+    if name == "cache" {
+      arguments.sort_by((a, b) => {
+        a.key().unwrap().lexical_compare(b.key().unwrap())
+      })
     }
     result.push(@syntax.Attribute::new(name, arguments, span))
     if self.accept(Comma) is None {

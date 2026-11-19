@@ -19,11 +19,11 @@ import {
 // Values
 pub async fn[T : @host.HostScriptTemp] cleanup_materialized_script(T, MaterializedScript) -> Unit raise ExecutionError
 
-pub async fn[H : @host.HostClock] command_timestamp(H, ExecutionOptions) -> String? raise ExecutionError
+pub async fn[H : @host.HostClock] command_timestamp(H, String?) -> String? raise ExecutionError
 
 pub fn confirmation_answer_is_yes(String) -> Bool
 
-pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] materialize_line_async(P, H, PlannedLine) -> (PlannedCommand, Bytes) raise ExecutionError
+pub async fn[P : @host.HostProcess, H : @host.HostFs + @host.HostEnv + @host.HostClock + @host.HostRandom + @host.HostPlatform + @host.HostTerminal] materialize_line_async(P, H, PlannedLine, String?) -> (PlannedCommand, Bytes) raise ExecutionError
 
 pub async fn[T : @host.HostScriptTemp] materialize_script(T, PlannedScript) -> MaterializedScript raise ExecutionError
 
@@ -43,7 +43,7 @@ pub fn render_elapsed_message(String, Int64) -> Bytes
 
 pub fn render_failure_message(ExecutionError, Bool) -> Bytes
 
-pub async fn[H : @host.HostClock] script_timestamp(H, ExecutionOptions, String) -> Bytes raise ExecutionError
+pub async fn[H : @host.HostClock] script_timestamp(H, ExecutionOptions, String?, String) -> Bytes raise ExecutionError
 
 pub fn supports_sync_dry_run(@semantic.ProjectCompilation) -> Bool
 
@@ -66,6 +66,7 @@ pub(all) suberror ExecutionError {
   GuardCode(recipe~ : String, line~ : Int32, code~ : Int32)
   CachedRecipesUnstable
   InvalidAttributeValue(message~ : String, span~ : @source.Span)
+  InvalidTimestampFormat(String)
   ConfirmationFailure(message~ : String)
   CacheFailure(message~ : String)
 }
@@ -85,7 +86,7 @@ pub struct CacheDirective {
   body : String
   interpreter : String
   interpreter_arguments : Array[String]
-  environment : Array[(String, String)]
+  environment : Array[(String, String?)]
   extension : String
   working_directory : @path.PathValue
   positional : Array[String]
@@ -94,7 +95,7 @@ pub struct CacheDirective {
   outputs : Array[String]
 }
 pub fn CacheDirective::body(Self) -> String
-pub fn CacheDirective::environment(Self) -> ArrayView[(String, String)]
+pub fn CacheDirective::environment(Self) -> ArrayView[(String, String?)]
 #deprecated
 pub fn CacheDirective::equal(Self, Self) -> Bool
 pub fn CacheDirective::extension(Self) -> String
@@ -140,7 +141,8 @@ pub struct ExecutionOptions {
   verbose : Bool
   verbosity : Int32
   time : Bool
-  timestamp : String?
+  timestamp_enabled : Bool
+  timestamp_format : String
   command_color : CommandColor?
   jobs : Int32
   cache_enabled : Bool
@@ -158,7 +160,7 @@ pub fn ExecutionOptions::echo_quiet(Self) -> Bool
 #deprecated
 pub fn ExecutionOptions::equal(Self, Self) -> Bool
 pub fn ExecutionOptions::explain(Self) -> Bool
-pub fn ExecutionOptions::from_values(Bool, Bool, Bool, Bool, String?, CommandColor?) -> Self
+pub fn ExecutionOptions::from_values(Bool, Bool, Bool, Bool, Bool, String, CommandColor?) -> Self
 pub fn ExecutionOptions::guards(Self) -> Bool
 pub fn ExecutionOptions::jobs(Self) -> Int32
 pub fn ExecutionOptions::new(dry_run? : Bool, quiet? : Bool, verbose? : Bool, time? : Bool, timestamp? : String, command_color? : CommandColor) -> Self
@@ -212,6 +214,8 @@ pub struct ExecutionTask {
   dependencies : Array[Int32]
   cache : CacheDirective?
   confirmation : (async () -> String raise ExecutionError)?
+  timestamp : (async () -> String raise ExecutionError)?
+  deferred_script : (String, async () -> (PlannedScript, Bytes, CacheDirective?) raise ExecutionError)?
   print_exit_message : Bool
   preamble : Bytes
 }
@@ -225,6 +229,7 @@ pub fn ExecutionTask::recipe(Self) -> String
 pub fn ExecutionTask::steps(Self) -> ArrayView[PlannedStep]
 #deprecated
 pub fn ExecutionTask::to_repr(Self) -> @debug.Repr
+pub fn ExecutionTask::with_script(Self, PlannedScript, Bytes, CacheDirective?) -> Self
 pub impl @debug.Debug for ExecutionTask
 
 pub struct MaterializedScript {
@@ -325,13 +330,14 @@ pub struct ProjectModuleRuntime {
   shell : @environment.ShellConfiguration
   cwd : @path.PathValue
   process_environment : Array[(String, String)]
+  dotenv : Array[(String, String)]
   configuration : ScriptConfiguration
 }
 pub fn ProjectModuleRuntime::configuration(Self) -> ScriptConfiguration
 pub fn ProjectModuleRuntime::context(Self) -> @evaluator.EvaluationContext
 pub fn ProjectModuleRuntime::cwd(Self) -> @path.PathValue
 pub fn ProjectModuleRuntime::global(Self) -> @evaluator.Environment
-pub fn ProjectModuleRuntime::new(@evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ArrayView[(String, String)], ScriptConfiguration) -> Self
+pub fn ProjectModuleRuntime::new(@evaluator.Environment, @evaluator.EvaluationContext, @environment.ShellConfiguration, @path.PathValue, ArrayView[(String, String)], ScriptConfiguration, dotenv? : Array[(String, String)]) -> Self
 pub fn ProjectModuleRuntime::process_environment(Self) -> ArrayView[(String, String)]
 pub fn ProjectModuleRuntime::shell(Self) -> @environment.ShellConfiguration
 #deprecated

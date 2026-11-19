@@ -33,14 +33,11 @@ async fn[T : @host.HostFs] locate_interactive_justfile(
     }
     Search => {
       let options = @loader.SearchOptions::new(
-        filename=arguments.value("justfile-name").unwrap_or("justfile"),
-        ceiling=ceiling_argument(arguments, context.cwd()),
+        filenames=arguments.values("justfile-name"),
+        ceiling=ceiling_argument(arguments, context.invocation_directory()),
       )
-      let path = @loader.discover(host, context.cwd(), options~) catch {
-        error => raise Load(error)
-      }
-      @workdir.WorkingDirectoryModel::from_justfile(context.cwd(), path) catch {
-        error => raise WorkingDirectory(error)
+      @project.discover_directories(host, context, options, working_directory) catch {
+        error => raise ApplicationError::from_project_error(error)
       }
     }
   }
@@ -102,6 +99,7 @@ async fn[F : @host.HostFs, E : @host.HostEnv, P : @host.HostProcess] execute_edi
   if arguments.command() != EditCommand {
     raise UnsupportedCommand("editor execution for non-edit command")
   }
+  let (arguments, context) = search_prefixed_invocation(arguments, context)
   if !arguments.positional().is_empty() {
     raise Query("`--edit` does not accept recipe arguments")
   }
@@ -287,6 +285,7 @@ async fn[
   if arguments.command() != ChooseCommand {
     raise UnsupportedCommand("chooser execution for non-choose command")
   }
+  let (arguments, context) = search_prefixed_invocation(arguments, context)
   let loading_environment = @host.HostEnv::env_entries(effects) catch {
     error => raise Host(error)
   }
@@ -329,25 +328,16 @@ async fn[
       raise Query("justfile contains no choosable recipes")
     }
     let shell = selected_shell(compilation, global, arguments, cwd.flavor())
-    let justfile = directories
-      .justfile()
-      .map(fn(path) { path.as_string() })
-      .unwrap_or("-")
-    let default_chooser = "fzf --multi --preview 'just --unstable --color always --justfile \"" +
-      justfile +
-      "\" --show {}'"
-    let chooser = match arguments.value("chooser") {
-      Some(value) => value
-      None => {
-        let configured = @host.HostEnv::env_get(effects, "JUST_CHOOSER") catch {
+    let configured = match arguments.value("chooser") {
+      Some(_) as value => value
+      None =>
+        @host.HostEnv::env_get(effects, "JUST_CHOOSER") catch {
           error => raise Host(error)
         }
-        match configured {
-          Some(value) => value
-          None => default_chooser
-        }
-      }
     }
+    let chooser = configured.unwrap_or(
+      "fzf --multi --preview 'just --unstable --color always --show {}'",
+    )
     let shell_arguments = shell.arguments().to_owned()
     shell_arguments.push(chooser)
     if cwd.flavor() == Windows {
@@ -364,6 +354,15 @@ async fn[
     }
     let spec = @host.CommandSpec::new(shell.program(), shell_arguments) catch {
       error => raise Host(error)
+    }
+    if configured is None {
+      let justfile = directories
+        .justfile()
+        .map(path => path.as_string())
+        .unwrap_or("-")
+      spec.add_environment("JUST_JUSTFILE", justfile) catch {
+        error => raise Host(error)
+      }
     }
     spec.set_cwd(cwd)
     spec.set_stdin(@utf8.encode(candidates.join("\n") + "\n"))

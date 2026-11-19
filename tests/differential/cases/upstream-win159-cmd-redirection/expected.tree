@@ -1,0 +1,11 @@
+file	./baz	5
+bar
+
+dir	./home
+file	./justfile	65
+set shell := ['cmd.exe', '/c']
+
+foo:
+  @echo bar>baz
+  @type baz
+

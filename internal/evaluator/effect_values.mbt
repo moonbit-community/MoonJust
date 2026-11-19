@@ -92,31 +92,25 @@ fn[T : @host.HostRandom] choose_value(
   let count = @string.parse_int(count_text[:]) catch {
     _ =>
       raise effect_failure(
-        "call to function `choose` failed: failed to parse `" +
+        "failed to parse `" +
         count_text +
         "` as positive integer: invalid digit found in string",
         span,
       )
   }
   if count < 0 {
-    raise effect_failure(
-      "call to function `choose` failed: choose count must not be negative", span,
-    )
+    raise effect_failure("choose count must not be negative", span)
   }
   let alphabet_text = expect_string("choose", arguments, 1, span)
   let alphabet = alphabet_text.to_array()
   if alphabet.is_empty() {
-    raise effect_failure(
-      "call to function `choose` failed: empty alphabet", span,
-    )
+    raise effect_failure("empty alphabet", span)
   }
   let unique : Set[Char] = Set([])
   for character in alphabet {
     if unique.contains(character) {
       raise effect_failure(
-        "call to function `choose` failed: alphabet contains repeated character `" +
-        character.to_string() +
-        "`",
+        "alphabet contains repeated character `" + character.to_string() + "`",
         span,
       )
     }
@@ -298,11 +292,7 @@ async fn[T : @host.HostTerminal] style_value(
             } else {
               foreground = Some(code)
             }
-          None =>
-            raise effect_failure(
-              "call to function `style` failed: invalid style: `" + style + "`",
-              span,
-            )
+          None => raise effect_failure("invalid style: `" + style + "`", span)
         }
     }
   }

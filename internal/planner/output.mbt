@@ -40,9 +40,9 @@ pub fn valid_timestamp_format(format : String) -> Bool {
 ///|
 pub async fn[H : @host.HostClock] command_timestamp(
   host : H,
-  options : ExecutionOptions,
+  format : String?,
 ) -> String? raise ExecutionError {
-  guard options.timestamp() is Some(format) else { return None }
+  guard format is Some(format) else { return None }
   let millis = @host.HostClock::now_millis(host) catch {
     error => raise Host(error)
   }
@@ -51,7 +51,7 @@ pub async fn[H : @host.HostClock] command_timestamp(
   }
   Some(
     @datetime.format(millis, offset, format) catch {
-      _ => raise Host(InvalidInput("failed to format timestamp"))
+      error => raise InvalidTimestampFormat(error.message(format))
     },
   )
 }
@@ -60,9 +60,10 @@ pub async fn[H : @host.HostClock] command_timestamp(
 pub async fn[H : @host.HostClock] script_timestamp(
   host : H,
   options : ExecutionOptions,
+  format : String?,
   recipe : String,
 ) -> Bytes raise ExecutionError {
-  match command_timestamp(host, options) {
+  match command_timestamp(host, format) {
     Some(value) =>
       @utf8.encode(
         "[" +

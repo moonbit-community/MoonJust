@@ -2,10 +2,10 @@
 test "static changelog response preserves the pinned document bytes" {
   let response = @application.static_invocation_response(["--changelog"]).unwrap()
   assert_eq(response.exit_code(), 0)
-  assert_eq(response.stdout().length(), 209131)
+  assert_eq(response.stdout().length(), 213523)
   assert_eq(
     @crypto.bytes_to_hex_string(@crypto.sha256(response.stdout())),
-    "f904802597ddf0e88788a07882ca69b693e1e941caec508e8817bd5f22ae1f38",
+    "0dce88c74adb5a3d4b3418a66bd3a75be54fd85f9eee7de44de5f593b87462a2",
   )
 }
 
@@ -13,10 +13,10 @@ test "static changelog response preserves the pinned document bytes" {
 test "static manual response preserves the complete roff page" {
   let response = @application.static_invocation_response(["--man"]).unwrap()
   assert_eq(response.exit_code(), 0)
-  assert_eq(response.stdout().length(), 8211)
+  assert_eq(response.stdout().length(), 8313)
   assert_eq(
     @crypto.bytes_to_hex_string(@crypto.sha256(response.stdout())),
-    "7243ceeec8f8dd1a140676d6d1c6855a930bbd0d33e27a81cd1106e28953cc60",
+    "96a00b5434c031884dc0b1ff24ed6a6ed19745e54beb419d84bf407c01f6b701",
   )
   let text = try! @utf8.decode(response.stdout().to_owned())
   assert_true(text.has_prefix(".ie \\n(.g .ds Aq \\(aq"))

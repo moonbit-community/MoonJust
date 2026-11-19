@@ -111,7 +111,13 @@ test "upstream executor::tests::needs_bom" {
       ("/bin/sh", false),
       ("python", false),
     ] {
-    assert_eq(needs_bom(expected.0), expected.1)
+    assert_eq(
+      needs_bom(expected.0, @host.PlatformInfo::new(Windows, None, Windows)),
+      expected.1,
+    )
+    assert_false(
+      needs_bom(expected.0, @host.PlatformInfo::new(Linux, None, Unix)),
+    )
   }
 }
 

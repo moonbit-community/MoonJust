@@ -82,11 +82,12 @@ fn Parser::parse_assignment(
   eager : Bool,
   attributes : Array[@syntax.Attribute],
 ) -> @syntax.Assignment raise ParserError {
-  let (name, _) = self.expect_identifier()
+  let (name, name_token) = self.expect_identifier()
   self.expect(ColonEquals) |> ignore
   let value = self.parse_expression_node()
   @syntax.Assignment::new(
     name,
+    name_span=name_token.span(),
     value,
     exported,
     eager,
@@ -130,12 +131,18 @@ fn Parser::parse_alias(
   attributes : Array[@syntax.Attribute],
 ) -> @syntax.Alias raise ParserError {
   self.expect_identifier() |> ignore
-  let (name, _) = self.expect_identifier()
+  let (name, name_token) = self.expect_identifier()
   if self.accept(ColonEquals) is None {
     self.expect(Equals) |> ignore
   }
   let (target, target_span) = self.parse_namepath()
-  @syntax.Alias::new(name, target, self.cover(start, target_span), attributes~)
+  @syntax.Alias::new(
+    name,
+    target,
+    self.cover(start, target_span),
+    name_span=name_token.span(),
+    attributes~,
+  )
 }
 
 ///|

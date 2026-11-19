@@ -1,0 +1,8 @@
+dir	./home
+file	./justfile	116
+set windows-shell := ['pwsh.exe', '-NoLogo', '-Command']
+set shell := ['asdfasdfasdfasdf']
+
+foo:
+  Write-Output bar
+

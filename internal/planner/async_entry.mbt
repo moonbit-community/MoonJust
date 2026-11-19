@@ -111,10 +111,11 @@ async fn[
   }
   let definition_context = context.for_source(recipe.span().source_id())
   let continue_signals = planned_continue_signals(attributes)
-  let attribute_environment = recipe_process_environment(
-    process, host, attributes, global, definition_context, shell, process_environment,
-    recipe,
+  let env_attributes = recipe_environment_attributes(
+    process, host, attributes, global, definition_context, shell, recipe,
   )
+  let base = environment_with_exports(process_environment, global)
+  let attribute_environment = with_recipe_env(base, env_attributes)
   let binding_context = definition_context
     .with_process_environment(attribute_environment)
     .for_recipe(evaluation_directory, name, is_dependency)
@@ -130,11 +131,14 @@ async fn[
   ) catch {
     error => raise Evaluation(error)
   }
-  let recipe_environment = environment_with_parameter_exports(
-    attribute_environment,
+  let parameter_environment = environment_with_parameter_exports(
+    base,
     recipe,
     scope,
     compilation.settings().bool("export"),
+  )
+  let recipe_environment = with_recipe_env(
+    parameter_environment, env_attributes,
   )
   let parameter_context = binding_context.with_process_environment(
     recipe_environment,
@@ -218,10 +222,45 @@ async fn[
   let dry_echo : Array[Byte] = []
   let task_steps : Array[PlannedStep] = []
   let mut cache : CacheDirective? = None
+  let mut deferred_script = None
+  let timestamp = match attributes {
+    Some({ timestamp: Some(attribute), .. }) => {
+      async fn resolve() -> String raise ExecutionError {
+        guard attribute.arguments().get(0) is Some(argument) &&
+          argument.value() is Some(expression) else {
+          return options.timestamp_format
+        }
+        let value = evaluate_recipe_expression(
+          process,
+          host,
+          expression,
+          scope,
+          recipe_context,
+          recipe_shell,
+          dry_run=options.dry_run(),
+        )
+        match value.as_string() {
+          Some(format) => format
+          None =>
+            raise InvalidAttributeValue(
+              message="list value " +
+                value.display() +
+                " used as a `[timestamp]` attribute",
+              span=attribute.span(),
+            )
+        }
+      }
+      Some(resolve)
+    }
+    _ => None
+  }
+  let timestamped = timestamp is Some(_) || options.timestamp_enabled
   let has_cache = attributes
     .map(fn(value) { value.names().contains("cache") })
     .unwrap_or(false)
-  if has_cache && !options.unstable() {
+  if has_cache &&
+    !options.unstable() &&
+    !compilation.settings().bool("unstable") {
     raise CachedRecipesUnstable
   }
   let explicit_script = attributes
@@ -239,94 +278,116 @@ async fn[
       )
     )
   if is_script {
-    let script_interpreter = recipe_script_interpreter(
-      process,
-      host,
-      attributes,
-      scope,
-      recipe_context,
-      recipe_shell,
-      configuration.interpreter(),
-    )
-    let extension = match attributes {
-      Some(value) =>
-        match value.extension() {
-          Some(extension) => Some(extension)
-          None => configuration.extension()
-        }
-      None => configuration.extension()
-    }
-    let script_configuration = match extension {
-      Some(extension) =>
-        ScriptConfiguration::new(
-          script_interpreter,
-          configuration.temporary_directory(),
-          configuration.platform(),
-          extension~,
-        )
-      None =>
-        ScriptConfiguration::new(
-          script_interpreter,
-          configuration.temporary_directory(),
-          configuration.platform(),
-        )
-    }
-    let planned = plan_script_recipe_async(
-      process,
-      host,
-      recipe,
-      scope,
-      recipe_context,
-      recipe_shell,
-      recipe_cwd,
-      script_configuration,
-      process_environment=recipe_environment,
-      positional~,
-      quiet=recipe_options.quiet(),
-      dry_run=recipe_options.dry_run(),
-      continue_signals~,
-    )
-    if has_cache {
-      cache = Some(
-        planned_cache_directive(
-          process,
-          host,
-          attributes.unwrap(),
-          scope,
-          recipe_context,
-          recipe_shell,
-          arguments,
-          planned,
-          display_name,
-        ),
+    async fn prepare() -> (PlannedScript, Bytes, CacheDirective?) raise ExecutionError {
+      let script_interpreter = recipe_script_interpreter(
+        process,
+        host,
+        attributes,
+        scope,
+        recipe_context,
+        recipe_shell,
+        configuration.interpreter(),
       )
-    }
-    let script_echo : Array[Byte] = []
-    if !recipe_options.quiet() &&
-      !recipe_options.echo_quiet() &&
-      (
-        recipe_options.dry_run() ||
-        recipe.quiet() ||
-        recipe_options.verbosity() >= 2
-      ) {
-      let script_text = @utf8.decode(planned.contents()) catch { _ => "" }
-      for line in script_text.split("\n") {
-        if line.is_empty() {
-          continue
-        }
-        append_bytes(
-          script_echo,
-          render_command_echo(
-            line.to_owned(),
-            color=recipe_options.command_color(),
-          )[:],
-        )
+      let extension = match attributes {
+        Some(value) =>
+          match value.extension() {
+            Some(extension) => Some(extension)
+            None => configuration.extension()
+          }
+        None => configuration.extension()
       }
+      let script_configuration = match extension {
+        Some(extension) =>
+          ScriptConfiguration::new(
+            script_interpreter,
+            configuration.temporary_directory(),
+            configuration.platform(),
+            extension~,
+          )
+        None =>
+          ScriptConfiguration::new(
+            script_interpreter,
+            configuration.temporary_directory(),
+            configuration.platform(),
+          )
+      }
+      let planned = plan_script_recipe_async(
+        process,
+        host,
+        recipe,
+        scope,
+        recipe_context,
+        recipe_shell,
+        recipe_cwd,
+        script_configuration,
+        process_environment=recipe_environment,
+        positional~,
+        quiet=recipe_options.quiet(),
+        dry_run=recipe_options.dry_run(),
+        continue_signals~,
+      )
+      let directive = if has_cache &&
+        options.cache_enabled() &&
+        !options.dry_run() {
+        let dotenv = project_runtimes
+          .get(module_path)
+          .map(runtime => runtime.dotenv)
+          .unwrap_or([])
+        let environment = default_cache_environment(
+          dotenv, compilation, global, recipe, scope, env_attributes,
+        )
+        Some(
+          planned_cache_directive(
+            process,
+            host,
+            attributes.unwrap(),
+            scope,
+            recipe_context,
+            recipe_shell,
+            positional,
+            environment,
+            planned,
+            display_name,
+          ),
+        )
+      } else {
+        None
+      }
+      let script_echo : Array[Byte] = []
+      if !recipe_options.quiet() &&
+        !recipe_options.echo_quiet() &&
+        (
+          recipe_options.dry_run() ||
+          recipe.quiet() ||
+          recipe_options.verbosity() >= 2
+        ) {
+        let script_text = @utf8.decode(planned.contents()) catch { _ => "" }
+        for line in script_text.split("\n") {
+          if line.is_empty() {
+            continue
+          }
+          append_bytes(
+            script_echo,
+            render_command_echo(
+              line.to_owned(),
+              color=recipe_options.command_color(),
+            )[:],
+          )
+        }
+      }
+      (planned, Bytes::from_array(script_echo), directive)
     }
-    if recipe_options.dry_run() && recipe_options.timestamp() is None {
-      dry_echo.append(script_echo)
+    if timestamped {
+      // The banner precedes script interpolation and cache lookup, even on a hit.
+      deferred_script = Some((name, prepare))
     } else {
-      task_steps.push(Script(planned, Bytes::from_array(script_echo)))
+      let (planned, echo, directive) = prepare()
+      cache = directive
+      if recipe_options.dry_run() {
+        append_bytes(dry_echo, echo[:])
+      } else {
+        task_steps.push(Script(planned, echo))
+      }
     }
   } else {
     if has_cache {
@@ -358,9 +419,12 @@ async fn[
         recipe.lines()[end_index].source_end_line(),
         continue_signals~,
       )
-      if recipe_options.dry_run() && recipe_options.timestamp() is None {
+      if recipe_options.dry_run() && !timestamped {
         let (command, echo) = materialize_line_async(
-          process, host, planned_line,
+          process,
+          host,
+          planned_line,
+          None,
         )
         if !command.spec().arguments().last().unwrap_or("").is_empty() {
           append_bytes(dry_echo, echo[:])
@@ -406,6 +470,8 @@ async fn[
       task_steps,
       task_dependencies,
       cache?,
+      timestamp?,
+      deferred_script?,
       print_exit_message~,
       preamble~,
     ),

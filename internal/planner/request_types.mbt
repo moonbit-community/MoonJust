@@ -71,6 +71,7 @@ pub struct ProjectModuleRuntime {
   shell : @environment.ShellConfiguration
   cwd : @path.PathValue
   process_environment : Array[(String, String)]
+  dotenv : Array[(String, String)]
   configuration : ScriptConfiguration
 }
 
@@ -82,6 +83,7 @@ pub fn ProjectModuleRuntime::new(
   cwd : @path.PathValue,
   process_environment : ArrayView[(String, String)],
   configuration : ScriptConfiguration,
+  dotenv~ : Array[(String, String)] = [],
 ) -> ProjectModuleRuntime {
   {
     global,
@@ -89,6 +91,7 @@ pub fn ProjectModuleRuntime::new(
     shell,
     cwd,
     process_environment: process_environment.to_owned(),
+    dotenv: dotenv.copy(),
     configuration,
   }
 }

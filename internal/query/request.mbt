@@ -48,13 +48,13 @@ priv enum ListTarget {
 }
 
 ///|
-/// Prepared rendering inputs. Recipe paths for --usage are resolved before
-/// application evaluates globals, preserving the order of user diagnostics.
+/// Resolve usage paths once and retain the user's spelling for display.
 enum QueryRequest {
   Summary(RecipeFilter, quiet~ : Bool)
   ListModule(ListTarget, ListOptions)
   Show(@modulepath.ModulePath, String)
   Usage(@modulepath.ModulePath, String, String)
+  ModuleUsage(@modulepath.ModulePath, String, unsorted~ : Bool, quiet~ : Bool)
   Variables
   Groups(RecipeFilter, prefix~ : String)
 }
@@ -73,15 +73,76 @@ pub fn build_query(
         Arguments(ReadOnlyArray::from_array(path)),
         ListOptions::from_cli(arguments),
       )
-    ShowCommand => {
-      guard !path.is_empty() else { raise Query("`--show` requires recipe") }
-      let (module_path, recipe, _) = query_recipe_path(project, path)
-      Show(module_path, recipe)
-    }
-    UsageCommand => {
-      guard !path.is_empty() else { raise Query("`--usage` requires recipe") }
-      let (module_path, recipe, display) = query_recipe_path(project, path)
-      Usage(module_path, recipe, display)
+    ShowCommand | UsageCommand => {
+      let (requested, display) = query_path(path)
+      let parts = requested.components()
+      let root = @modulepath.ModulePath::root()
+      if arguments.command() == UsageCommand {
+        let module_path = if parts.is_empty() {
+          Some(root)
+        } else {
+          project.resolve_module(root, requested.as_string())
+        }
+        if module_path is Some(module_path) {
+          return ModuleUsage(
+            module_path,
+            parts.join(" "),
+            unsorted=arguments.flag("unsorted"),
+            quiet=arguments.flag("quiet"),
+          )
+        }
+      }
+      guard parts.last() is Some(recipe) else {
+        raise Query("`--show` requires recipe")
+      }
+      let mut module_path = root
+      for component in parts[:parts.length() - 1] {
+        match project.resolve_module(module_path, component) {
+          Some(child) => module_path = child
+          None => {
+            if project.absent_module_for_reference(module_path, component)
+              is Some(absent) {
+              raise Query(
+                "optional module `" + absent.as_string() + "` is absent",
+              )
+            }
+            raise Query(
+              unknown_submodule_message(
+                project,
+                module_path,
+                component,
+                display~,
+              ),
+            )
+          }
+        }
+      }
+      let alias_disabled = project.alias_disabled(module_path, recipe)
+      if alias_disabled || project.recipe_disabled(module_path, recipe) {
+        let (kind, modules) = if alias_disabled {
+          ("alias", project.alias_absent_modules(module_path, recipe))
+        } else {
+          ("recipe", project.recipe_absent_modules(module_path, recipe))
+        }
+        raise Query(
+          kind +
+          " `" +
+          display +
+          "` depends on absent module" +
+          (if modules.length() == 1 { " `" } else { "s `" }) +
+          modules.map(fn(value) { value.as_string() }).join("` and `") +
+          "`",
+        )
+      }
+      if project.absent_module_for_reference(module_path, recipe)
+        is Some(absent) {
+        raise Query("optional module `" + absent.as_string() + "` is absent")
+      }
+      if arguments.command() == ShowCommand {
+        Show(module_path, recipe)
+      } else {
+        Usage(module_path, recipe, display)
+      }
     }
     VariablesCommand => Variables
     GroupsCommand => {
@@ -97,11 +158,6 @@ pub fn build_query(
     }
     command => raise UnsupportedCommand("\{Repr(command)}")
   }
-}
-
-///|
-pub fn QueryRequest::needs_globals(self : QueryRequest) -> Bool {
-  self is ListModule(_, _) || self is Usage(_, _, _)
 }
 
 ///|

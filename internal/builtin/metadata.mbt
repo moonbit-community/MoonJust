@@ -13,5 +13,5 @@ pub fn BuiltinSpec::targets(_self : BuiltinSpec) -> ArrayView[BuiltinTarget] {
 
 ///|
 pub fn BuiltinSpec::evidence(self : BuiltinSpec) -> String {
-  "just-1.57.0/" + self.name
+  "just-1.59.0/" + self.name
 }

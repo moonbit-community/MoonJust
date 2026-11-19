@@ -260,7 +260,7 @@ test "allowlisted formatting must refuse unchanged, not just return a known code
 ///|
 async test "schema 4 distinguishes document contracts, local smoke and repository evidence" {
   let specs = parse_spec_index(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/spec-index.txt"),
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/spec-index.txt"),
   )
   let readme = "readme::readme"
   let completion = "config::tests::subcommand_conflict_completions"
@@ -328,10 +328,10 @@ async test "snapshot provenance is bound to its indexed line" {
 ///|
 async test "all completion and signal exclusions carry verified pinned source anchors" {
   let specs = parse_spec_index(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/spec-index.txt"),
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/spec-index.txt"),
   )
   let names = upstream_test_names(
-    @fs.read_text("tests/compatibility/upstream/just-1.57.0/test-list.txt"),
+    @fs.read_text("tests/compatibility/upstream/just-1.59.0/test-list.txt"),
   )
   let mut completions = 0
   let mut signals = 0
@@ -346,6 +346,6 @@ async test "all completion and signal exclusions carry verified pinned source an
       signals += 1
     }
   }
-  assert_eq(completions, 34)
+  assert_eq(completions, 39)
   assert_eq(signals, 21)
 }

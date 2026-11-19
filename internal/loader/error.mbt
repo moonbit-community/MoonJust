@@ -3,7 +3,7 @@
 #derive(Eq, Debug)
 pub(all) suberror LoaderError {
   InvalidLimit
-  NoJustfileFound(start~ : @path.PathValue, filename~ : String)
+  NoJustfileFound(start~ : @path.PathValue)
   MissingSearchDirectory(@path.PathValue)
   AmbiguousJustfile(directory~ : @path.PathValue, found~ : Array[String])
   ExplicitFileMissing(path~ : @path.PathValue)

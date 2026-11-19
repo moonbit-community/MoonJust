@@ -175,16 +175,7 @@ fn builtin_call_failure(
         ),
         span~,
       )
-    InvalidPattern(detail~, ..) =>
-      raise Builtin(
-        Failure(message="call to function `" + name + "` failed: " + detail),
-        span~,
-      )
-    Failure(message~) =>
-      raise Builtin(
-        Failure(message="call to function `" + name + "` failed: " + message),
-        span~,
-      )
+    InvalidPattern(detail~, ..) => raise Builtin(Failure(message=detail), span~)
     _ => raise Builtin(error, span~)
   }
 }
