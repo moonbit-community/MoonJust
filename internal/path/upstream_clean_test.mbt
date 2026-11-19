@@ -171,7 +171,8 @@ test "a share introduced by a relative spelling is protected during the join" {
 
 ///|
 test "UNC share roots bound parent traversal and rooted children" {
-  for prefix in ["//server/share", "//?/UNC/server/share", "//./UNC/server/share"] {
+  for
+    prefix in ["//server/share", "//?/UNC/server/share", "//./UNC/server/share"] {
     let root = @path.PathValue::new(prefix, Windows)
     let root_text = prefix.replace_all(old="/", new="\\")
     assert_eq(root.as_string(), root_text)

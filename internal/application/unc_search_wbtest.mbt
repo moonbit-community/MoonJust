@@ -33,7 +33,12 @@ async test "path-prefixed recipe discovery stays on the selected UNC share" {
     assert_eq(interactive.justfile(), Some(file))
     assert_eq(interactive.project_directory(), expected)
   }
-  let init = @cli.parse_arguments(["--init", "-f", "share/../new.just"], Map([]))
+  let init = @cli.parse_arguments(
+    ["--init", "-f", "share/../new.just"],
+    Map([]),
+  )
   ignore(init_response(host, init, origin))
-  assert_true(host.file_exists(@path.PathValue::new("//server/share/new.just", Windows)))
+  assert_true(
+    host.file_exists(@path.PathValue::new("//server/share/new.just", Windows)),
+  )
 }
