@@ -9,7 +9,7 @@ the dates on which the corresponding moon.mod version entered source history;
 early 0.3.0 through 0.7.0-alpha.1 entries were development snapshots, not
 published releases.
 
-## Unreleased
+## 0.1.3 - 2026-11-19
 
 ### Changed
 
@@ -25,6 +25,10 @@ published releases.
   the pinned README examples, example files and changelog with both CLIs.
   [Coverage definitions](tests/compatibility/README.md#reading-a-coverage-report)
 
+## Earlier maintenance
+
+### Changed
+
 - Rebuilt MoonJust as a binary-only module with the executable in the root
   package. moon run . replaces the former cmd/just path.
 - Removed the public api facade and moved all implementation packages under
@@ -39,8 +43,6 @@ published releases.
 - Replaced custom release, architecture-count, contract-count, Python, Rust,
   shell, C, and spike tooling with focused MoonBit behavior, compatibility,
   platform, and benchmark runners.
-- Moved historical ADRs and delivery reports to docs/development/; current
-  architecture and maintenance records now have separate locations.
 - Made `moon.mod` version 0.1.2 authoritative for the executable identity and
   added a preflight check that rejects a mismatched `--version` response.
 - Expanded compatibility evidence to schema 3: one auditable row for each of

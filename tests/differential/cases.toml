@@ -1080,8 +1080,8 @@ compare = ["status", "stdout", "stderr", "tree"]
 upstream_tests = []
 upstream_anchors = []
 allowed_difference = "product-identity"
-candidate_stdout_sha256 = "4a5311886b0c0578ec203f049174bab3a7140c89c92eaddd00e2ead88319fb10"
-reason = "ADR 0001 requires MoonJust product identity in version output."
+candidate_stdout_sha256 = "de59db85b4d0275d47f74b2fb1e9c1ef1dd9a0c9319cbee6579bf899209bf2c1"
+reason = "MoonJust reports its own package name and version."
 
 [[case]]
 id = "MJ-COMPAT-0002"
@@ -1093,7 +1093,7 @@ upstream_tests = []
 upstream_anchors = []
 allowed_difference = "product-identity"
 candidate_stdout_sha256 = "1f73f3e325dc6df95dc68148e96828d5eea55eddcef1cf74118879d57fe0a566"
-reason = "ADR 0001 requires independent MoonJust identification; argparse presentation is not copied from upstream."
+reason = "The help output identifies MoonJust and describes its supported options."
 
 [[case]]
 id = "MJ-COMPAT-0003"

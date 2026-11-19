@@ -1,43 +1,130 @@
 # MoonJust
 
-MoonJust runs justfiles. Its only product is a linear-memory Wasm executable, written in MoonBit, with CLI behavior compared against official **just 1.59.0**. The root package is the executable; there is no public library facade.
+MoonJust runs justfiles through MoonX and targets CLI compatibility with **just 1.59.0**.
 
-## Quick start
+## Usage
 
-~~~sh
-moon update
-moon run --target wasm . -- --version
-moon build --release --target wasm .
-moonrun _build/wasm/release/build/MoonJust.wasm -- --list
-~~~
+Save this recipe as `justfile`.
 
-For example, save this as `justfile`:
+```just
+hello name="world":
+    @echo "Hello, {{ name }}!"
+```
 
-~~~make
-build profile="debug":
-    echo "building {{profile}}"
-~~~
+```sh
+# Run the default recipe (prints "Hello, world!")
+moonx ZSeanYves/MoonJust
 
-Run `moonrun _build/wasm/release/build/MoonJust.wasm -- build release`. The executable supports project discovery, imports and modules, dotenv, queries, dry runs, recipes, dependencies, scripts, parallel jobs and caching. Filesystem, environment and child-process access depend on the host policy. A justfile is executable code; granting subprocess access is not a sandbox for recipes. See [SECURITY.md](SECURITY.md).
+# List recipes, then run one with an argument
+moonx ZSeanYves/MoonJust --list
+moonx ZSeanYves/MoonJust hello MoonBit
 
-## Wasm capabilities
+# Preview the shell command
+moonx ZSeanYves/MoonJust --dry-run hello MoonBit
+```
 
-- Project loading follows real paths. Executable lookup and canonicalization do not spawn helper commands. Windows lookup honors `PATHEXT`.
-- `--fmt --check` is read-only. Formatting an already formatted file succeeds without touching it. When an existing file would change, MoonJust refuses before writing because the public Wasm filesystem API does not supply the mode needed for a permission-preserving atomic replacement. Formatting stdin still writes to stdout. `--init` creates a file atomically and never replaces one.
-- Invalid UTF-8 bytes in a Linux working directory or a Unix directory environment value can be lost before MoonJust can produce just's diagnostic. [Host reproductions and controls](tests/compatibility/upgrade/host-limits.md)
-- On Windows, recipe diagnostics preserve the child's signed exit code. For codes with the high bit set, moonrun returns 1 to the calling process. [Windows exit-code probe](tests/compatibility/upgrade/host-limits.md#propagating-a-windows-exit-code-with-the-high-bit-set)
-- The OS comes from the runtime. Where needed, provide `MOONJUST_ARCH`, `MOONJUST_PID`, `MOONJUST_NUM_CPUS` or `MOONJUST_EXECUTABLE` for facts the runtime cannot supply. A recursive recipe needs an executable launcher, not just a path to Wasm bytes. Local time without a known offset is not silently treated as UTC.
-- Process cancellation covers the direct child. The compatibility report distinguishes live CLI comparisons, document checks, indexed MoonBit assertions, scoped smoke tests and exclusions. It lists three known formatting refusals and counts the two product-identity checks separately. [Coverage categories](tests/compatibility/README.md#reading-a-coverage-report)
+MoonJust looks for a justfile in the current directory and its parents. By default, the first recipe runs when you omit the recipe name. Use `[default]` to select a different recipe.
 
-## Verification
+## All options
 
-~~~sh
-moon check --target wasm --deny-warn
-moon test --target wasm
-moon build --release --target wasm .
-moon info && moon fmt
-~~~
+Put MoonJust options before the recipe name. To pass a flag to a recipe, place it after the recipe name. Use `--` to end option parsing explicitly.
 
-CI tests the Wasm CLI against official just on Linux, macOS and Windows. Only the test tools are built as Native executables. The differential CI jobs consume the same Wasm artifact; test-injected host facts and re-entry are not standalone product capabilities. Benchmarks are local only. The separate manual MoonX workflow verifies the exact published version on all three hosts; it never publishes.
+### Finding and editing justfiles
 
-See the [compatibility runner](tests/compatibility/README.md), [architecture](docs/ARCHITECTURE.md), [maintenance evidence](docs/maintenance/WASM_MIGRATION.md), and [contributor checks](CONTRIBUTING.md). The [published-artifact gate](docs/release/MOONX_RELEASE_GATE.md) is separate from source verification. MoonJust is licensed under Apache-2.0; pinned upstream fixtures retain their [provenance](tests/compatibility/upstream/NOTICE.md). MoonJust is independent of the upstream just project.
+| Option | Description |
+| --- | --- |
+| `-f, --justfile FILE` | Read a specific justfile. Use `-` to read it from standard input. |
+| `-d, --working-directory DIR` | Use `DIR` as the working directory. With automatic discovery, start the search there. |
+| `--justfile-name NAME` | Search for the given filename. Repeat the option or supply a comma-separated list to try multiple names. |
+| `--ceiling DIR` | Stop the upward search for a justfile at `DIR`. |
+| `-g, --global-justfile` | Use the global justfile. |
+| `--init`, `--initialize` | Create a starter justfile in the project root. |
+| `-e, --edit` | Open the justfile in an editor. |
+| `--fmt`, `--format` | Format the justfile. When reading from stdin, write the formatted text to stdout. See **Notes** for in-place writes. |
+| `--check` | Use with `--fmt` to check formatting. Exit 0 if the input is formatted, or exit 1 and show a diff if it needs changes. |
+| `--indentation TEXT` | Use `TEXT` to indent recipe bodies when formatting. |
+
+### Listing and inspecting recipes
+
+| Option | Description |
+| --- | --- |
+| `-l, --list [MODULE...]` | List available recipes in the root justfile or in the named module. |
+| `--default-list` | List recipes when invoked without arguments. |
+| `--list-submodules` | Include recipes from submodules in `--list`. |
+| `--group GROUP` | Filter `--list` or `--choose` by group. Repeat to include multiple groups. |
+| `--groups` | Print recipe group names. |
+| `--summary` | Print available recipe names on one line. |
+| `-u, --unsorted` | Show list and summary entries in source order. |
+| `--no-aliases` | Hide recipe aliases in the list. |
+| `--alias-style STYLE` | Display aliases on the `left`, on the `right` (default), or as `separate` entries. |
+| `--list-heading TEXT` | Set the text before the recipe list. The default is `Available recipes:` followed by a newline. |
+| `--list-prefix TEXT` | Set the prefix before each list entry. The default is four spaces. |
+| `-s, --show RECIPE_PATH...` | Print the definition of the recipe at the given path. |
+| `--usage [PATH...]` | Print usage for one recipe or for all recipes in a module. Omit the path for the root module. |
+| `--variables` | Print variable names. |
+| `--evaluate [VARIABLE]`, `--eval [VARIABLE]` | Print evaluated assignments, or just the value of the named variable. |
+| `--evaluate-format FORMAT` | Print evaluated assignments in `just` (default) or `shell` syntax. |
+| `--dump` | Print the parsed justfile. |
+| `--dump-format FORMAT` | Select `just` (default) or `json` output for `--dump`. |
+| `--json` | Print the justfile as JSON. |
+
+### Running recipes and commands
+
+| Option | Description |
+| --- | --- |
+| `-n, --dry-run` | Print the commands a recipe would run. |
+| `--choose` | Select one or more recipes interactively and run them. |
+| `--chooser COMMAND` | Set the chooser used by `--choose`. The default is `fzf`. |
+| `-c, --command COMMAND [ARG...]` | Run an external command with the justfile’s working directory and environment. |
+| `--shell-command` | With `--command`, invoke the command through the recipe shell. |
+| `--shell SHELL` | Set the shell for recipe lines and backticks. |
+| `--shell-arg ARG` | Pass an argument to the shell. Repeat to pass more than one. |
+| `--clear-shell-args` | Clear the shell argument list. |
+| `--set VARIABLE VALUE` | Override a variable. Repeat for additional overrides. |
+| `--jobs N` | Run at most `N` recipes simultaneously when executing parallel dependencies. |
+| `--one` | Allow only one recipe to be requested on the command line. |
+| `--allow-missing` | Ignore missing recipe or module errors. |
+| `--no-deps`, `--no-dependencies` | Skip recipe dependencies. |
+| `--yes` | Automatically confirm recipes that ask for confirmation. |
+| `--no-cache` | Bypass the recipe cache. |
+| `--clean [RECIPE_PATH...]` | Clear the project’s recipe cache. Supply a path to clear only entries with that recipe path prefix. |
+| `--tempdir DIR` | Use `DIR` for temporary files. |
+| `--cygpath PROGRAM` | Set the program used to convert Unix and Windows paths. The default is `cygpath`. |
+| `--unstable` | Enable features marked unstable. |
+
+### Loading environment variables
+
+| Option | Description |
+| --- | --- |
+| `-F, --dotenv-filename NAME` | Search for an environment file with this name. Repeat to supply multiple names. |
+| `-E, --dotenv-path FILE` | Load an environment file from an explicit path. Repeat to supply multiple paths. |
+| `--dotenv-command COMMAND` | Run a command and read its stdout as dotenv data. Repeat for multiple commands. |
+| `--no-dotenv` | Disable dotenv loading. |
+
+### Output and program information
+
+| Option | Description |
+| --- | --- |
+| `-q, --quiet` | Suppress output during execution. |
+| `-v, --verbose` | Increase verbosity. Repeat for more detail. |
+| `--explain` | Print the recipe’s documentation comment before running it. |
+| `--color MODE` | Set color output to `always`, `auto` (default), or `never`. |
+| `--command-color COLOR` | Color echoed recipe lines. Choose `black`, `blue`, `cyan`, `green`, `purple`, `red`, or `yellow`. |
+| `--highlight` | Display echoed recipe lines in bold. |
+| `--no-highlight` | Disable bold highlighting for echoed recipe lines. |
+| `--time` | Print recipe execution times. |
+| `--timestamp` | Add timestamps to echoed commands. |
+| `--timestamp-format FORMAT` | Set the timestamp format. The default is `%H:%M:%S`. |
+| `--changelog` | Print the upstream just changelog. |
+| `--man` | Print the manual page. |
+| `-h, --help` | Show command-line help, including environment variable names. |
+| `-V, --version` | Print the MoonJust version. |
+
+The table describes the current source. In MoonJust builds targeting just 1.57, `--usage` requires a recipe path, `-d` requires `-f`, and `--justfile-name` accepts a single filename.
+
+## Notes
+
+- Use `--fmt --check` to check formatting. If formatting would change an existing file, the Wasm CLI refuses the rewrite to preserve its permissions.
+- Recipes can start child processes with the permissions of the host. Review unfamiliar justfiles before running them. See the [security policy](SECURITY.md).
+
+See the [compatibility guide](https://github.com/moonbit-community/MoonJust/blob/main/tests/compatibility/README.md) for tested behavior and known differences from upstream just.

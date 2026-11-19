@@ -1,6 +1,6 @@
 name = "ZSeanYves/MoonJust"
 
-version = "0.1.3-rc.1"
+version = "0.1.3"
 
 readme = "README.md"
 
