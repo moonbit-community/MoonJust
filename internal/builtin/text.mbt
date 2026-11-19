@@ -31,6 +31,7 @@ fn replacement_capture_index(regexp : @regexp.Regexp, name : String) -> Int32? {
 fn write_replacement(
   regexp : @regexp.Regexp,
   result : @regexp.MatchResult,
+  matched : StringView,
   replacement : String,
   builder : StringBuilder,
 ) -> Unit {
@@ -63,7 +64,8 @@ fn write_replacement(
       let name = String::from_array(characters[start:end])
       match replacement_capture_index(regexp, name) {
         Some(capture) =>
-          match result.get(capture) {
+          match
+            (if capture == 0 { Some(matched) } else { result.get(capture) }) {
             Some(value) => builder.write_stringview(value)
             None => ()
           }
@@ -84,7 +86,7 @@ fn write_replacement(
     let name = String::from_array(characters[index + 1:end])
     match replacement_capture_index(regexp, name) {
       Some(capture) =>
-        match result.get(capture) {
+        match (if capture == 0 { Some(matched) } else { result.get(capture) }) {
           Some(value) => builder.write_stringview(value)
           None => ()
         }
@@ -97,38 +99,66 @@ fn write_replacement(
 ///|
 fn replace_regex_all(
   regexp : @regexp.Regexp,
+  pattern : String,
   value : String,
   replacement : String,
-) -> String {
+) -> String raise BuiltinError {
   let builder = StringBuilder()
-  let mut remaining = value
-  for ;; {
-    let result = regexp.execute(remaining[:])
-    if !result.matched() {
-      builder.write_string(remaining)
-      break
+  let mut resumed : @regexp.Regexp? = None
+  let mut search = 0
+  let mut previous_end = -1
+  let mut copied = 0
+  while search <= value.length() {
+    let result = if search == 0 {
+      regexp.execute(value[:])
+    } else {
+      let engine = match resumed {
+        Some(engine) => engine
+        None => {
+          let engine = @regexp.compile("(?s:.)(?:" + pattern + ")") catch {
+            error =>
+              raise InvalidPattern(
+                value=pattern,
+                detail=regex_parse_failure(pattern, error),
+              )
+          }
+          resumed = Some(engine)
+          engine
+        }
+      }
+      let previous = value.offset_of_nth_char(-1, end=search).unwrap()
+      engine.execute(value[previous:])
     }
-    builder.write_stringview(result.before())
-    write_replacement(regexp, result, replacement, builder)
-    let matched = result.get(0).unwrap()
-    let after = result.after().to_owned()
-    if matched.length() == 0 {
-      if after.length() == 0 {
+    guard result.get(0) is Some(full) else { break }
+    let matched = if search == 0 {
+      full
+    } else {
+      full[full.offset_of_nth_char(1).unwrap_or(full.length()):]
+    }
+    let start = matched.start_offset()
+    let end = start + matched.length()
+    if start != end || end != previous_end {
+      builder.write_stringview(value[copied:start])
+      write_replacement(regexp, result, matched, replacement, builder)
+      copied = end
+      previous_end = end
+    }
+    if start == end {
+      if end == value.length() {
         break
       }
-      let after_characters = after.to_array()
-      builder.write_char(after_characters[0])
-      remaining = String::from_array(after_characters[1:])
+      search = value.offset_of_nth_char(1, start=end).unwrap_or(value.length())
     } else {
-      remaining = after
+      search = end
     }
   }
+  builder.write_stringview(value[copied:])
   builder.to_string()
 }
 
 ///|
 fn quote(value : String) -> String {
-  "'" + value.replace(old="'", new="'\\''") + "'"
+  "'" + value.replace_all(old="'", new="'\\''") + "'"
 }
 
 ///|

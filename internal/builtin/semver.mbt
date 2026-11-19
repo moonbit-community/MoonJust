@@ -1,27 +1,23 @@
 ///|
 priv struct SemVersion {
-  major : Int32
-  minor : Int32
-  patch : Int32
+  major : UInt64
+  minor : UInt64
+  patch : UInt64
   prerelease : Array[String]
 }
 
 ///|
-fn parse_semver_int(value : String) -> Int32? {
-  if value.is_empty() {
+fn parse_semver_int(value : String) -> UInt64? {
+  if value.is_empty() ||
+    !value.all(Char::is_ascii_digit) ||
+    (value.length() > 1 && value[0] == '0') {
     return None
   }
-  let mut result = 0
-  for character in value {
-    if !character.is_ascii_digit() {
-      return None
-    }
-    result = result * 10 + character.to_int() - 48
+  try @string.parse_uint64(value[:], radix=10) catch {
+    _ => None
+  } noraise {
+    number => Some(number)
   }
-  if value.length() > 1 && value[0] == '0' {
-    return None
-  }
-  Some(result)
 }
 
 ///|
@@ -50,7 +46,10 @@ fn valid_semver_identifier(value : String) -> Bool {
 }
 
 ///|
-fn parse_semver(value : String, partial : Bool) -> SemVersion? {
+fn parse_semver(
+  value : String,
+  partial : Bool,
+) -> SemVersion? raise BuiltinError {
   let trimmed = value.trim().to_owned()
   let (without_build, build) = match trimmed.find("+") {
     Some(index) =>
@@ -82,12 +81,19 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
   match prerelease_text {
     Some(text) =>
       for identifier in split_owned(text, ".") {
-        if !valid_semver_identifier(identifier) ||
-          (
-            identifier.length() > 1 &&
-            identifier[0] == '0' &&
-            parse_semver_int(identifier) is Some(_)
-          ) {
+        if identifier.length() > 1 &&
+          identifier[0] == '0' &&
+          identifier.all(Char::is_ascii_digit) {
+          let prefix = if partial {
+            "invalid semver requirement: "
+          } else {
+            "invalid semver version: "
+          }
+          raise Failure(
+            message=prefix + "invalid leading zero in pre-release identifier",
+          )
+        }
+        if !valid_semver_identifier(identifier) {
           return None
         }
         prerelease.push("\{identifier}")
@@ -98,10 +104,26 @@ fn parse_semver(value : String, partial : Bool) -> SemVersion? {
   if parts.length() > 3 || (!partial && parts.length() != 3) {
     return None
   }
-  let numbers : Array[Int32] = []
-  for part in parts {
+  let numbers : Array[UInt64] = []
+  for index, part in parts {
     match parse_semver_int(part) {
       Some(number) => numbers.push(number)
+      None if !part.is_empty() &&
+        part[0] != '0' &&
+        part.all(Char::is_ascii_digit) => {
+        let component = ["major", "minor", "patch"][index]
+        let prefix = if partial {
+          "invalid semver requirement: "
+        } else {
+          "invalid semver version: "
+        }
+        raise Failure(
+          message=prefix +
+            "value of " +
+            component +
+            " version number exceeds u64::MAX",
+        )
+      }
       None => return None
     }
   }
@@ -152,20 +174,13 @@ fn compare_semver(left : SemVersion, right : SemVersion) -> Int32 {
     if left_id == right_id {
       continue
     }
-    let left_number = parse_semver_int(left_id)
-    let right_number = parse_semver_int(right_id)
-    match left_number {
-      Some(left_value) =>
-        match right_number {
-          Some(right_value) =>
-            return if left_value < right_value { -1 } else { 1 }
-          None => return -1
-        }
-      None =>
-        match right_number {
-          Some(_) => return 1
-          None => return if left_id < right_id { -1 } else { 1 }
-        }
+    match
+      (left_id.all(Char::is_ascii_digit), right_id.all(Char::is_ascii_digit)) {
+      (true, true) if left_id.length() != right_id.length() =>
+        return left_id.length().compare(right_id.length())
+      (true, false) => return -1
+      (false, true) => return 1
+      _ => return left_id.compare(right_id)
     }
   }
   if left.prerelease.length() == right.prerelease.length() {
@@ -187,7 +202,7 @@ fn wildcard_clause(
   if parts.length() == 0 || parts.length() > 3 {
     raise InvalidRequirement(value=raw)
   }
-  let numbers : Array[Int32] = []
+  let numbers : Array[UInt64] = []
   let mut wildcard = false
   for part in parts {
     if part == "*" || part == "x" || part == "X" {
@@ -445,7 +460,10 @@ fn semver_clause(actual : SemVersion, raw : String) -> Bool raise BuiltinError {
 }
 
 ///|
-fn semver_clause_prerelease(actual : SemVersion, raw : String) -> Bool {
+fn semver_clause_prerelease(
+  actual : SemVersion,
+  raw : String,
+) -> Bool raise BuiltinError {
   let raw_token = raw.trim().to_owned()
   if raw_token == "" || raw_token == "*" || raw_token == "x" || raw_token == "X" {
     return false

@@ -545,37 +545,28 @@ async fn[
     }
     let requests : Array[@planner.ProjectRecipeRequest] = []
     if sync_dry_run {
-      let plans : Array[@planner.ExecutionPlan] = []
-      for project_invocation in invocations {
-        let path = project_invocation.module_path()
+      let runtime = runtimes[0]
+      let path = runtime.module_path()
+      let compilation = project.module_compilation(path).unwrap()
+      let global = globals[path]
+      let roots = invocations.map(project_invocation => {
         let invocation = project_invocation.invocation()
-        let compilation = project.module_compilation(path).unwrap()
-        let global = globals[path]
-        let mut selected_runtime : @planner.ProjectModuleRuntime? = None
-        for runtime in runtimes {
-          if runtime.module_path() == path {
-            selected_runtime = Some(runtime)
-            break
-          }
-        }
-        let runtime = selected_runtime.unwrap()
         let values = invocation_values(compilation, invocation, global)
-        let plan = @planner.plan_recipe_graph(
-          compilation,
-          [@planner.RecipeRequest::new(invocation.recipe(), arguments=values)],
-          global,
-          runtime.shell(),
-          runtime.cwd(),
-          process_environment=runtime.process_environment(),
-          options=options.with_echo_quiet(
-            options.echo_quiet() || compilation.settings().bool("quiet"),
-          ),
-        ) catch {
-          error => raise Planner(error)
-        }
-        plans.push(plan)
+        @planner.RecipeRequest::new(invocation.recipe(), arguments=values)
+      })
+      let combined = @planner.plan_recipe_graph(
+        compilation,
+        roots,
+        global,
+        runtime.shell(),
+        runtime.cwd(),
+        process_environment=runtime.process_environment(),
+        options=options.with_echo_quiet(
+          options.echo_quiet() || compilation.settings().bool("quiet"),
+        ),
+      ) catch {
+        error => raise Planner(error)
       }
-      let combined = @planner.combine_execution_plans(plans)
       perf_detail_mark("run.sync_plan")
       ignore(perf_detail_emit() catch { _ => () })
       let prefix = fallback_stderr.to_string()

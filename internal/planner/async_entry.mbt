@@ -21,8 +21,6 @@ async fn[
   stack : Array[String],
   entry_dependencies : Array[Int32],
   tasks : Array[ExecutionTask],
-  stderr : Array[Byte],
-  confirmations : Array[ConfirmationRequest],
   is_dependency : Bool,
   project? : @semantic.ProjectCompilation,
   module_path~ : @modulepath.ModulePath = @modulepath.ModulePath::root(),
@@ -52,21 +50,11 @@ async fn[
     error => raise Invocation(error)
   }
   let attributes = compilation.recipe_attributes(name)
-  let retain_tasks = !(options.dry_run() && !options.explain())
 
   match
     plan_plain_empty_fanout(
-      compilation,
-      recipe,
-      attributes,
-      name,
-      display_name,
-      module_path,
-      entry_dependencies,
-      tasks,
-      ran,
-      options,
-      retain_tasks~,
+      compilation, recipe, attributes, name, display_name, module_path, entry_dependencies,
+      tasks, ran, options,
     ) {
     Some(value) => return value
     None => ()
@@ -82,10 +70,6 @@ async fn[
     (no_dependencies || recipe.dependencies().is_empty()) &&
     (no_dependencies || recipe.subsequent_dependencies().is_empty())
   if plain_empty {
-    if !retain_tasks {
-      ran[key] = 0
-      return 0
-    }
     stack.push(key)
     let task_dependencies : Array[Int32] = []
     for dependency in entry_dependencies {
@@ -165,32 +149,35 @@ async fn[
   let recipe_context = parameter_context
     .for_recipe(recipe_cwd, name, is_dependency)
     .with_process_environment(recipe_environment)
-  match attributes {
-    Some(value) if value.confirm() => {
-      let prompt = match value.confirm_prompt() {
+  let entry_dependencies = if !options.assume_yes &&
+    attributes is Some(attributes) &&
+    attributes.confirm() {
+    let expression = attributes.confirm_prompt()
+    async fn prompt() -> String raise ExecutionError {
+      match expression {
         Some(expression) =>
           confirmation_text(
-            @evaluator.evaluate_with_async_effects(
-              process,
-              host,
-              expression,
-              recipe_context,
-              @evaluator.EffectShell::new(
-                recipe_shell.program(),
-                recipe_shell.arguments().to_owned(),
-              ),
-              environment=scope,
-            ) catch {
-              error => raise Evaluation(error)
-            },
+            evaluate_recipe_expression(
+              process, host, expression, scope, recipe_context, recipe_shell,
+            ),
           )
         None => "Run recipe `" + display_name + "`?"
       }
-      confirmations.push(
-        ConfirmationRequest::new(display_name, prompt, is_dependency),
-      )
     }
-    _ => ()
+    let gate = tasks.length()
+    tasks.push(
+      ExecutionTask::new(
+        gate,
+        gate,
+        display_name,
+        [],
+        entry_dependencies,
+        confirmation=prompt,
+      ),
+    )
+    [gate]
+  } else {
+    entry_dependencies
   }
   stack.push(key)
   let parallel = attributes.map(fn(value) { value.parallel() }).unwrap_or(false)
@@ -202,8 +189,7 @@ async fn[
   let (dependency_terminals, serial_fence) = plan_dependency_group_async(
     process, host, dependencies, project, project_runtimes, module_path, compilation,
     global, recipe_context, shell, recipe_shell, cwd, process_environment, options,
-    configuration, scope, ran, stack, entry_dependencies, tasks, stderr, confirmations,
-    parallel,
+    configuration, scope, ran, stack, entry_dependencies, tasks, parallel,
   )
   let module_options = options.with_echo_quiet(
     options.echo_quiet() || compilation.settings().bool("quiet"),
@@ -229,6 +215,7 @@ async fn[
   } else {
     []
   }
+  let dry_echo : Array[Byte] = []
   let task_steps : Array[PlannedStep] = []
   let mut cache : CacheDirective? = None
   let has_cache = attributes
@@ -350,7 +337,7 @@ async fn[
       }
     }
     if recipe_options.dry_run() {
-      append_bytes(stderr, Bytes::from_array(script_echo)[:])
+      dry_echo.append(script_echo)
     } else {
       task_steps.push(Script(planned, Bytes::from_array(script_echo)))
     }
@@ -389,7 +376,7 @@ async fn[
           process, host, planned_line,
         )
         if !command.spec().arguments().last().unwrap_or("").is_empty() {
-          append_bytes(stderr, echo[:])
+          append_bytes(dry_echo, echo[:])
         }
       } else {
         task_steps.push(Line(planned_line))
@@ -397,23 +384,14 @@ async fn[
       index = end_index + 1
     }
   }
-  let task_dependencies : Array[Int32] = []
-  if retain_tasks {
-    let selected_dependencies = if dependency_terminals.is_empty() {
-      entry_dependencies
-    } else if parallel {
-      dependency_terminals
-    } else {
-      serial_fence
-    }
-    for dependency in selected_dependencies {
-      if !task_dependencies.contains(dependency) {
-        task_dependencies.push(dependency)
-      }
+  let task_dependencies = entry_dependencies.copy()
+  for dependency in (if parallel { dependency_terminals } else { serial_fence }) {
+    if !task_dependencies.contains(dependency) {
+      task_dependencies.push(dependency)
     }
   }
-  let task_id = if retain_tasks { tasks.length() } else { 0 }
-  let preamble = if retain_tasks && options.explain() {
+  let task_id = tasks.length()
+  let explanation = if options.explain() {
     match compilation.recipe_doc(name) {
       Some(doc) => {
         let text = "#### " + doc
@@ -428,40 +406,30 @@ async fn[
   } else {
     b""
   }
-  if retain_tasks {
-    tasks.push(
-      match cache {
-        Some(value) =>
-          ExecutionTask::new(
-            task_id,
-            task_id,
-            display_name,
-            task_steps,
-            task_dependencies,
-            cache=value,
-            print_exit_message~,
-            preamble~,
-          )
-        None =>
-          ExecutionTask::new(
-            task_id,
-            task_id,
-            display_name,
-            task_steps,
-            task_dependencies,
-            print_exit_message~,
-            preamble~,
-          )
-      },
-    )
+  let preamble = if dry_echo.is_empty() {
+    explanation
+  } else {
+    explanation + Bytes::from_array(dry_echo)
   }
+  tasks.push(
+    ExecutionTask::new(
+      task_id,
+      task_id,
+      display_name,
+      task_steps,
+      task_dependencies,
+      cache?,
+      print_exit_message~,
+      preamble~,
+    ),
+  )
   let subsequent_ran : Map[String, Int32] = Map([])
   let subsequent_dependencies : Array[@syntax.Dependency] = if options.no_dependencies() {
     []
   } else {
     recipe.subsequent_dependencies().to_owned()
   }
-  let (subsequent_terminals, _) = plan_dependency_group_async(
+  let (subsequent_terminals, subsequent_fence) = plan_dependency_group_async(
     process,
     host,
     subsequent_dependencies,
@@ -482,14 +450,10 @@ async fn[
     [],
     [task_id],
     tasks,
-    stderr,
-    confirmations,
     parallel,
   )
   ignore(stack.pop())
-  let terminal = if !retain_tasks {
-    0
-  } else if subsequent_terminals.is_empty() {
+  let terminal = if subsequent_terminals.is_empty() {
     task_id
   } else if parallel && subsequent_terminals.length() > 1 {
     let barrier_id = tasks.length()
@@ -503,8 +467,10 @@ async fn[
       ),
     )
     barrier_id
-  } else {
+  } else if parallel {
     subsequent_terminals.last().unwrap()
+  } else {
+    subsequent_fence.last().unwrap_or(task_id)
   }
   ran[key] = terminal
   terminal
@@ -533,9 +499,7 @@ pub async fn[
   let options = options.with_guards(compilation.settings().bool("guards"))
   let steps : Array[PlannedStep] = []
   let commands : Array[PlannedCommand] = []
-  let stderr : Array[Byte] = []
   let tasks : Array[ExecutionTask] = []
-  let confirmations : Array[ConfirmationRequest] = []
   let ran : Map[String, Int32] = Map([])
   let mut root_fence : Array[Int32] = []
   let evaluation_directory = context.cwd().unwrap_or(cwd)
@@ -562,38 +526,18 @@ pub async fn[
       [],
       root_fence,
       tasks,
-      stderr,
-      confirmations,
       false,
     )
-    root_fence = [terminal]
+    if root_fence.is_empty() || terminal > root_fence[0] {
+      root_fence = [terminal]
+    }
   }
   for task in tasks {
     for step in task.steps() {
       steps.push(step)
     }
   }
-  match cache_directory {
-    Some(value) =>
-      ExecutionPlan::new(
-        steps,
-        commands,
-        Bytes::from_array(stderr),
-        options,
-        tasks~,
-        cache_directory=value,
-        confirmations~,
-      )
-    None =>
-      ExecutionPlan::new(
-        steps,
-        commands,
-        Bytes::from_array(stderr),
-        options,
-        tasks~,
-        confirmations~,
-      )
-  }
+  ExecutionPlan::new(steps, commands, b"", options, tasks~, cache_directory?)
 }
 
 ///|
@@ -612,9 +556,7 @@ pub async fn[
 ) -> ExecutionPlan raise ExecutionError {
   let steps : Array[PlannedStep] = []
   let commands : Array[PlannedCommand] = []
-  let stderr : Array[Byte] = []
   let tasks : Array[ExecutionTask] = []
-  let confirmations : Array[ConfirmationRequest] = []
   let ran : Map[String, Int32] = Map([])
   let mut root_fence : Array[Int32] = []
   for request in requests {
@@ -645,39 +587,19 @@ pub async fn[
       [],
       root_fence,
       tasks,
-      stderr,
-      confirmations,
       false,
       project~,
       module_path=request.module_path(),
       project_runtimes=runtimes,
     )
-    root_fence = [terminal]
+    if root_fence.is_empty() || terminal > root_fence[0] {
+      root_fence = [terminal]
+    }
   }
   for task in tasks {
     for step in task.steps() {
       steps.push(step)
     }
   }
-  match cache_directory {
-    Some(value) =>
-      ExecutionPlan::new(
-        steps,
-        commands,
-        Bytes::from_array(stderr),
-        options,
-        tasks~,
-        cache_directory=value,
-        confirmations~,
-      )
-    None =>
-      ExecutionPlan::new(
-        steps,
-        commands,
-        Bytes::from_array(stderr),
-        options,
-        tasks~,
-        confirmations~,
-      )
-  }
+  ExecutionPlan::new(steps, commands, b"", options, tasks~, cache_directory?)
 }

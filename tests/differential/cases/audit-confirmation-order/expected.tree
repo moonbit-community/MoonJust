@@ -1,0 +1,14 @@
+dir	./home
+file	./marker	6
+FIRST
+
+file	./justfile	233
+first:
+    @echo FIRST > marker
+    @echo FIRST
+[confirm(if path_exists('marker') == 'true' { 'First finished. Continue?' } else { 'First still pending. Continue?' })]
+second: denied
+    @echo SECOND
+denied:
+    @echo SHOULD-NOT-RUN
+

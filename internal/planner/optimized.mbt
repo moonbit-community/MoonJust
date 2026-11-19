@@ -55,29 +55,21 @@ fn plan_plain_empty_fanout(
   tasks : Array[ExecutionTask],
   ran : Map[String, Int32],
   options : ExecutionOptions,
-  retain_tasks~ : Bool = true,
 ) -> Int32? {
   guard plain_empty_fanout_children(compilation, recipe, attributes, options)
     is Some(child_names) else {
     return None
   }
   let module_name = module_path.as_string()
-  if !retain_tasks {
-    for child_name in child_names {
-      let key = module_name + "\u{0000}" + execution_key(child_name, [])
-      ran[key] = 0
-    }
-    let key = module_name + "\u{0000}" + execution_key(name, [])
-    ran[key] = 0
-    return Some(0)
-  }
   let print_exit_message = !compilation.settings().bool("no-exit-message")
   let mut fence = entry_dependencies.to_owned()
   for child_name in child_names {
     let key = module_name + "\u{0000}" + execution_key(child_name, [])
     match ran.get(key) {
       Some(value) => {
-        fence = [value]
+        if fence.is_empty() || value > fence[fence.length() - 1] {
+          fence = [value]
+        }
         continue
       }
       None => ()

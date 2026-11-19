@@ -155,41 +155,6 @@ pub struct ExecutionPlan {
   options : ExecutionOptions
   tasks : Array[ExecutionTask]
   cache_directory : @path.PathValue?
-  confirmations : Array[ConfirmationRequest]
-}
-
-///|
-/// A fully evaluated confirmation that must be accepted before any process is
-/// started. Requests preserve upstream pre-order recipe traversal.
-#derive(Eq, Debug)
-pub struct ConfirmationRequest {
-  recipe : String
-  prompt : String
-  is_dependency : Bool
-}
-
-///|
-pub fn ConfirmationRequest::new(
-  recipe : String,
-  prompt : String,
-  is_dependency : Bool,
-) -> ConfirmationRequest {
-  { recipe, prompt, is_dependency, }
-}
-
-///|
-pub fn ConfirmationRequest::recipe(self : ConfirmationRequest) -> String {
-  self.recipe
-}
-
-///|
-pub fn ConfirmationRequest::prompt(self : ConfirmationRequest) -> String {
-  self.prompt
-}
-
-///|
-pub fn ConfirmationRequest::is_dependency(self : ConfirmationRequest) -> Bool {
-  self.is_dependency
 }
 
 ///|
@@ -209,6 +174,7 @@ pub struct ExecutionTask {
   steps : Array[PlannedStep]
   dependencies : Array[Int32]
   cache : CacheDirective?
+  confirmation : (async () -> String raise ExecutionError)?
   print_exit_message : Bool
   preamble : Bytes
 }
@@ -235,6 +201,7 @@ fn ExecutionTask::new(
   steps : Array[PlannedStep],
   dependencies : ArrayView[Int32],
   cache? : CacheDirective,
+  confirmation? : async () -> String raise ExecutionError,
   print_exit_message~ : Bool = true,
   preamble~ : Bytes = b"",
 ) -> ExecutionTask {
@@ -245,6 +212,7 @@ fn ExecutionTask::new(
     steps,
     dependencies: dependencies.to_owned(),
     cache,
+    confirmation,
     print_exit_message,
     preamble,
   }
@@ -298,9 +266,8 @@ fn ExecutionPlan::new(
   options : ExecutionOptions,
   tasks~ : Array[ExecutionTask] = [],
   cache_directory? : @path.PathValue,
-  confirmations~ : Array[ConfirmationRequest] = [],
 ) -> ExecutionPlan {
-  { steps, commands, stderr, options, tasks, cache_directory, confirmations, }
+  { steps, commands, stderr, options, tasks, cache_directory, }
 }
 
 ///|
@@ -339,7 +306,6 @@ pub fn ExecutionPlan::with_stderr_prefix(
     options: self.options,
     tasks: self.tasks,
     cache_directory: self.cache_directory,
-    confirmations: self.confirmations,
   }
 }
 
@@ -356,86 +322,6 @@ pub fn ExecutionPlan::tasks(self : ExecutionPlan) -> ArrayView[ExecutionTask] {
 ///|
 pub fn ExecutionPlan::cache_directory(self : ExecutionPlan) -> @path.PathValue? {
   self.cache_directory
-}
-
-///|
-pub fn ExecutionPlan::confirmations(
-  self : ExecutionPlan,
-) -> ArrayView[ConfirmationRequest] {
-  self.confirmations[:]
-}
-
-///|
-/// Combine independently planned module graphs into one runtime plan. Task ids
-/// are rebased and each later graph is fenced behind the previous graph so CLI
-/// invocation order remains stable even when `--jobs` permits parallel work
-/// within a recipe graph.
-pub fn combine_execution_plans(
-  plans : ArrayView[ExecutionPlan],
-) -> ExecutionPlan {
-  if plans.is_empty() {
-    return ExecutionPlan::new([], [], b"", ExecutionOptions::new())
-  }
-  let steps : Array[PlannedStep] = []
-  let commands : Array[PlannedCommand] = []
-  let stderr : Array[Byte] = []
-  let tasks : Array[ExecutionTask] = []
-  let confirmations : Array[ConfirmationRequest] = []
-  let mut cache_directory : @path.PathValue? = None
-  let mut previous_terminal : Int32? = None
-  for plan in plans {
-    for step in plan.steps() {
-      steps.push(step)
-    }
-    for command in plan.commands() {
-      commands.push(command)
-    }
-    for byte in plan.stderr() {
-      stderr.push(byte)
-    }
-    for confirmation in plan.confirmations() {
-      confirmations.push(confirmation)
-    }
-    if cache_directory is None {
-      cache_directory = plan.cache_directory()
-    }
-    let offset = tasks.length()
-    for task in plan.tasks() {
-      let dependencies = task
-        .dependencies()
-        .map(fn(dependency) { dependency + offset })
-      if dependencies.is_empty() {
-        match previous_terminal {
-          Some(terminal) => dependencies.push(terminal)
-          None => ()
-        }
-      }
-      tasks.push(
-        ExecutionTask::new(
-          task.id() + offset,
-          tasks.length(),
-          task.recipe(),
-          task.steps().to_owned(),
-          dependencies,
-          cache?=task.cache(),
-          print_exit_message=task.print_exit_message(),
-          preamble=task.preamble().to_owned(),
-        ),
-      )
-    }
-    if !plan.tasks().is_empty() {
-      previous_terminal = Some(tasks.length() - 1)
-    }
-  }
-  ExecutionPlan::new(
-    steps,
-    commands,
-    Bytes::from_array(stderr),
-    plans[0].options(),
-    tasks~,
-    cache_directory?,
-    confirmations~,
-  )
 }
 
 ///|

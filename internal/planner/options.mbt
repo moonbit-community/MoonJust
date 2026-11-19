@@ -4,6 +4,7 @@
 pub struct ExecutionOptions {
   dry_run : Bool
   quiet : Bool
+  assume_yes : Bool
   echo_quiet : Bool
   verbose : Bool
   verbosity : Int32
@@ -31,6 +32,7 @@ pub fn ExecutionOptions::new(
   {
     dry_run,
     quiet,
+    assume_yes: false,
     echo_quiet: false,
     verbose,
     verbosity: if verbose {
@@ -63,6 +65,7 @@ pub fn ExecutionOptions::from_values(
   {
     dry_run,
     quiet,
+    assume_yes: false,
     echo_quiet: false,
     verbose,
     verbosity: if verbose {
@@ -90,6 +93,14 @@ pub fn ExecutionOptions::with_jobs(
   jobs : Int32,
 ) -> ExecutionOptions {
   { ..self, jobs, }
+}
+
+///|
+pub fn ExecutionOptions::with_assume_yes(
+  self : ExecutionOptions,
+  enabled : Bool,
+) -> ExecutionOptions {
+  { ..self, assume_yes: enabled, }
 }
 
 ///|
