@@ -100,7 +100,7 @@ async fn arguments(case_dir : String, root : String) -> Array[String] {
 }
 
 ///|
-async fn environment(case_dir : String, root : String) -> Map[String, String] {
+fn isolated_environment(root : String) -> Map[String, String] {
   let values : Map[String, String] = Map([])
   values["PATH"] = @env.get_env_var("PATH").unwrap_or("/usr/bin:/bin")
   values["HOME"] = join(root, "home")
@@ -108,6 +108,12 @@ async fn environment(case_dir : String, root : String) -> Map[String, String] {
   values["LANG"] = "C"
   values["TZ"] = "UTC"
   values["JUST_COLOR"] = "never"
+  values
+}
+
+///|
+async fn environment(case_dir : String, root : String) -> Map[String, String] {
+  let values = isolated_environment(root)
   let path = join(case_dir, "env.list")
   if !@fs.exists(path) {
     return values

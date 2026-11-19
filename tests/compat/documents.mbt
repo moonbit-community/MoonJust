@@ -89,7 +89,13 @@ async fn document_command(
   let root = @fs.tmpdir(prefix="moonjust-document")
   defer @fs.remove(root, recursive=true)
   @fs.write_binary(join(root, filename), source)
-  @testkit.run_prepared(program, args, cwd=root, inherit_env=false)
+  @testkit.run_prepared(
+    program,
+    args,
+    cwd=root,
+    extra_env=isolated_environment(root),
+    inherit_env=false,
+  )
 }
 
 ///|
