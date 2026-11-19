@@ -260,6 +260,39 @@ test "allowlisted formatting must refuse unchanged, not just return a known code
 }
 
 ///|
+async test "Windows host exit probe permits only its observed exit status difference" {
+  let fixture = "windows-negative-exit-code"
+  let details = parse_manifest(@fs.read_text("tests/differential/cases.toml")).cases[fixture]
+  let oracle : CaseResult = {
+    status: -65536,
+    stdout: b"",
+    stderr: b"original diagnostic",
+    merged: None,
+    tree: b"",
+    live: true,
+    steps: [],
+  }
+  fn allowed(candidate : CaseResult) -> Bool {
+    expected_difference_allowed(
+      fixture,
+      difference_fields(oracle, candidate, details),
+      candidate,
+      oracle,
+      b"",
+      details,
+    )
+  }
+  assert_true(allowed({ ..oracle, status: 1, }))
+  assert_false(allowed(oracle))
+  assert_false(allowed({ ..oracle, status: 255, }))
+  assert_false(allowed({ ..oracle, status: 1, stderr: b"another error", }))
+  assert_false(windows_exit_status_probe("another-fixture", details))
+  assert_false(
+    windows_exit_status_probe(fixture, { ..details, verify_snapshot: false, }),
+  )
+}
+
+///|
 async test "schema 5 distinguishes document contracts, local smoke and repository evidence" {
   let specs = parse_spec_index(
     @fs.read_text("tests/compatibility/upstream/just-1.59.0/spec-index.txt"),
@@ -283,6 +316,7 @@ async test "schema 5 distinguishes document contracts, local smoke and repositor
     empty,
     failures=0,
     product_identity=0,
+    supplemental_host_differences=0,
     platform="macos",
     target="wasm",
     reentry="",

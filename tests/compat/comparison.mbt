@@ -172,6 +172,18 @@ fn refusal_digest(fixture : String, metadata : CaseMetadata) -> String? {
 }
 
 ///|
+fn windows_exit_status_probe(fixture : String, metadata : CaseMetadata) -> Bool {
+  fixture == "windows-negative-exit-code" &&
+  metadata.id == "MJ-WINDOWS-NEGATIVE-EXIT-CODE" &&
+  metadata.allowed_difference == Some("moonrun-wasi-exit") &&
+  metadata.platform == Some("windows") &&
+  metadata.upstream_tests.is_empty() &&
+  metadata.normalizations.is_empty() &&
+  metadata.compare == ["status", "stdout", "stderr"] &&
+  metadata.verify_snapshot
+}
+
+///|
 fn expected_difference_allowed(
   fixture : String,
   fields : ArrayView[String],
@@ -180,6 +192,11 @@ fn expected_difference_allowed(
   initial_tree : Bytes,
   metadata : CaseMetadata,
 ) -> Bool {
+  if windows_exit_status_probe(fixture, metadata) {
+    return fields == ["status"] &&
+      expected.status == -65536 &&
+      actual.status == 1
+  }
   let expected_digest = match metadata.allowed_difference {
     Some("product-identity") if fields.length() == 1 && fields[0] == "stdout" =>
       metadata.candidate_stdout_sha256.map(digest => (digest, actual.stdout))

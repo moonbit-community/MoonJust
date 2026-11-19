@@ -44,6 +44,7 @@ priv struct CoverageReport {
   mut unclassified : Int32
   mut failures : Int32
   product_identity_difference : Int32
+  supplemental_host_differences : Int32
   rows : Array[CoverageRow]
 }
 
@@ -61,6 +62,7 @@ fn coverage_report(
   documents_passed : Set[String],
   failures~ : Int32,
   product_identity~ : Int32,
+  supplemental_host_differences~ : Int32,
   platform~ : String,
   target~ : String,
   reentry~ : String,
@@ -90,6 +92,7 @@ fn coverage_report(
     unclassified: 0,
     failures,
     product_identity_difference: product_identity,
+    supplemental_host_differences,
     rows: [],
   }
   for upstream_id in upstream_names {

@@ -200,11 +200,15 @@ fn parse_report(
     int_field(fields, "failures") is Some(failures) &&
     int_field(fields, "differential_known_difference") is Some(known) &&
     int_field(fields, "product_identity_difference") is Some(identity) &&
+    int_field(fields, "supplemental_host_differences") is Some(host_differences) &&
     fields.get("rows") is Some(Array(values)) else {
     errors.push(path + ": report is missing a required summary field")
     return None
   }
   let rows : Array[CoverageRow] = []
+  if host_differences != (if runner_os == "windows" { 1 } else { 0 }) {
+    errors.push(path + ": unexpected supplemental host difference count")
+  }
   for row in values {
     match parse_row(row, errors, path) {
       Some(value) => {
@@ -446,6 +450,7 @@ async fn main {
     ",\"repository_only\":" +
     repository_only.to_string() +
     ",\"product_identity_difference\":2" +
+    ",\"supplemental_host_differences\":1" +
     ",\"excluded_completion\":" +
     completion.to_string() +
     ",\"excluded_signal\":" +

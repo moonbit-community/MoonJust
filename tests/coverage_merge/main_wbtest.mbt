@@ -10,7 +10,7 @@ test "coverage merge rejects invalid schema" {
 test "coverage merge requires row execution fields" {
   let errors : Array[String] = []
   let report = parse_report(
-    "{\"schema_version\":5,\"upstream\":\"just 1.59.0\",\"runner_os\":\"linux\",\"target\":\"wasm\",\"upstream_total\":1,\"failures\":0,\"differential_known_difference\":0,\"product_identity_difference\":2,\"rows\":[{\"upstream_id\":\"x\"}]}",
+    "{\"schema_version\":5,\"upstream\":\"just 1.59.0\",\"runner_os\":\"linux\",\"target\":\"wasm\",\"upstream_total\":1,\"failures\":0,\"differential_known_difference\":0,\"product_identity_difference\":2,\"supplemental_host_differences\":0,\"rows\":[{\"upstream_id\":\"x\"}]}",
     "invalid-row.json", errors,
   )
   assert_true(report is Some(_))

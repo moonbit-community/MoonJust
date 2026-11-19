@@ -66,6 +66,7 @@ async fn main {
   let mut matched = 0
   let mut known = 0
   let mut product_identity = 0
+  let mut supplemental_host_differences = 0
   let mut selected_found = false
   let failures : Array[String] = []
   let executed : Set[String] = Set([])
@@ -298,6 +299,8 @@ async fn main {
       ) {
       if details.allowed_difference == Some("product-identity") {
         product_identity += 1
+      } else if windows_exit_status_probe(name, details) {
+        supplemental_host_differences += 1
       } else {
         known += 1
         for upstream_test in details.upstream_tests {
@@ -338,6 +341,7 @@ async fn main {
     documents_passed,
     failures=failures.length(),
     product_identity~,
+    supplemental_host_differences~,
     platform~,
     target=execution_target,
     reentry=if wasm_reentry.is_empty() {
@@ -358,7 +362,7 @@ async fn main {
     @stdio.stderr.text.write("FAIL  " + failure + "\n")
   }
   @stdio.stdout.text.write(
-    "matched=\{matched} known_differences=\{known} product_identity_difference=\{product_identity} failures=\{report.failures}" +
+    "matched=\{matched} known_differences=\{known} product_identity_difference=\{product_identity} supplemental_host_differences=\{supplemental_host_differences} failures=\{report.failures}" +
     " upstream_total=\{report.upstream_total} differential_declared=\{report.differential_declared}" +
     " differential_executed=\{report.differential_executed} differential_exact=\{report.differential_exact}" +
     " differential_known_difference=\{report.differential_known_difference} moonbit_spec_executed=\{report.moonbit_spec_executed}" +

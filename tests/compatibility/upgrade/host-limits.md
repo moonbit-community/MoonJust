@@ -1,4 +1,4 @@
-# Unix paths and environment values with invalid UTF-8
+# Wasm host limits
 
 ## Invocation directory
 
@@ -57,3 +57,23 @@ string keys and values. The invalid value was absent from that interface.
 The upstream Unix identity is deferred until the host can distinguish an
 absent value from a present value containing invalid bytes.
 [Upstream directory helper test](../upstream/just-1.59.0/source/src/function.rs#L876)
+
+## Propagating a Windows exit code with the high bit set
+
+On the Windows CI host, a recipe that ran `exit /b -65536` through
+`cmd.exe /c` produced the same diagnostic in both CLIs, including
+`exit code -65536`. The official process returned -65536. The MoonJust
+process returned 1. [Windows run](https://github.com/moonbit-community/MoonJust/actions/runs/44465470018/job/135362403665)
+
+The guest calls the public `@env.exit(Int32)` with the child's exit code.
+The linear-memory Wasm backend routes this call through WASI `proc_exit`.
+moonrun reads the argument as a `u32` and replaces a value above
+`i32::MAX` with 1. A standalone Wasm program calling `@env.exit(-65536)`
+also returned 1 on macOS. Fixing propagation requires a change in the
+runtime. [moonrun exit conversion](https://github.com/moonbitlang/moon/blob/eb64713/crates/moonrun/src/wasi/mod.rs#L1484-L1489)
+
+The Windows fixture runs both binaries and also verifies the recorded upstream
+status and outputs. Only the -65536 to 1 status difference is accepted. An
+upstream runtime fix will make this expectation fail and signal that it can be
+removed. This supplemental fixture has no ID in the pinned upstream test list.
+[Fixture](../../differential/cases/windows-negative-exit-code)

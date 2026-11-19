@@ -38,6 +38,11 @@ outside the 2,461 upstream rows. The three in-place formatting refusals have
 live oracle comparisons and check the candidate's complete original tree.
 [Reviewed exceptions](../testkit/functional_allowlist.mbt)
 
+One supplemental Windows fixture records moonrun's conversion of the child
+exit code -65536 to 1. It requires the exact upstream diagnostic. Reports
+count it under `supplemental_host_differences`, outside the 2,461 rows.
+[Runtime source and reproduction](upgrade/host-limits.md#propagating-a-windows-exit-code-with-the-high-bit-set)
+
 ## Document identities
 
 - `readme::readme` extracts all 195 blocks with the exact three-backtick

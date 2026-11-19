@@ -60,7 +60,9 @@ async fn validate_inventory(
         details.upstream_tests.is_empty() &&
         details.allowed_difference == Some("product-identity") &&
         details.candidate_stdout_sha256 is Some(_)
-      if !identity && refusal_digest(name, details) is None {
+      if !identity &&
+        !windows_exit_status_probe(name, details) &&
+        refusal_digest(name, details) is None {
         failures.push(name + ": difference is not on the reviewed allowlist")
       }
     }
