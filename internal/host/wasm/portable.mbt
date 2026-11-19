@@ -24,7 +24,7 @@ pub fn ExecutionFs::new() -> ExecutionFs {
   portable_current_dir_cache.val = None
   portable_platform_cache.val = None
   portable_terminal_cache.val = None
-  local_zone_cache.val = None
+  unix_zone_cache.val = None
   { marker: (), }
 }
 
@@ -330,11 +330,9 @@ pub impl @host.HostClock for ExecutionFs with fn now_millis(_self : ExecutionFs)
 }
 
 ///|
-let local_zone_cache : Ref[@time.Zone?] = Ref(None)
-
-///|
 pub impl @host.HostClock for ExecutionFs with fn local_offset_seconds(_, millis) -> Int32 raise @host.HostError {
-  let name = @env.get_env_var("TZ").unwrap_or("")
+  let tz = @env.get_env_var("TZ")
+  let name = tz.unwrap_or("")
   if name is ("UTC" | "Etc/UTC" | "GMT" | "UTC0" | "GMT0") {
     return 0
   }
@@ -351,24 +349,10 @@ pub impl @host.HostClock for ExecutionFs with fn local_offset_seconds(_, millis)
       )
       return @string.parse_int(output.stdout_text().trim())
     }
-    let zone = match local_zone_cache.val {
-      Some(zone) => zone
-      None => {
-        let path = if name == "" {
-          "/etc/localtime"
-        } else {
-          let id = if name.has_prefix(":") { name[1:] } else { name[:] }
-          if id.has_prefix("/") {
-            id.to_owned()
-          } else {
-            "/usr/share/zoneinfo/" + id.to_owned()
-          }
-        }
-        let zone = @time.Zone::from_tzif(name, @async_fs.read_binary(path))
-        local_zone_cache.val = Some(zone)
-        zone
-      }
+    if tz == Some("") {
+      return 0
     }
+    let zone = unix_local_zone(name)
     @time.ZonedDateTime::from_unix_second(millis / 1000L, zone~)
     .offset()
     .seconds()
