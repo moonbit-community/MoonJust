@@ -2,6 +2,9 @@ name: MoonX release verification
 
 on: workflow_dispatch
 
+env:
+  MOON_SEPARATE_COMPILATION: "1"
+
 permissions:
   contents: read
 
